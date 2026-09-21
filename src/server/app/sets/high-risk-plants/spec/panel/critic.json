@@ -1,0 +1,183 @@
+{
+  "missingIds": [],
+  "inconsistencies": [
+    {
+      "ids": [
+        "conflict:c-035",
+        "behaviour:timing-window-enforcement-and-late-highlight",
+        "conflict:c-031",
+        "conflict:c-029",
+        "conflict:c-030",
+        "behaviour:notification-actions-after-submission",
+        "conflict:c-024",
+        "behaviour:live-access-synchronous-submission",
+        "behaviour:nfr-available-24x7-and-load"
+      ],
+      "issue": "Two incompatible models of lateNotificationIndicator. D1 rules it derived on every read by a pure helper from journey.submittedAt — 'not stored', 'not a manifest obligation and not in SYSTEM_POPULATED', 'nothing is written at finalise', confirmation banner 'computed from journey.submittedAt' — and hedges that if c-030 admits Amend 'the records port must preserve the first-submission timestamp'. D5 admits Amend and rules the opposite: the flag is 'committed as a system value in fulfilment immediately before records.finalise when the journey is DRAFT' (a manifest obligation, so it must sit in SYSTEM_POPULATED per the boot-guard behaviour), because the backend and stub re-stamp submittedAt on every submission and a first-submission timestamp is 'new platform capability' (verified: stub/lifecycle/transition.js nulls submittedAt on amend and re-stamps on finalise). c-031 and c-030 both rewrite lateNotificationIndicator.input.derivation with contradictory text, and c-030's replace target is the pre-c-031 string ('computed once at submission ... stored with the record'), so whichever applies second either fails or overwrites the other. c-029's validationRaw ('lateness is computed at read from submittedAt') and c-024's rationale ('the stored late flag') sit on opposite sides.",
+      "proposedFix": "Make the D5 shape the single model, since Amend is in and no first-submission timestamp exists. Rewrite the D1 spec changes: c-035 notes/input.rendered and timing-window detail say the pure helper (clock, commodityType, arrivalDate) is called twice — with the request clock for the DRAFT CYA warning, and with the finalise clock in the declaration POST, whose result is committed as the system value before submitJourney only when status is DRAFT; confirmation, submitted CYA and the dashboard Late tag read the stored value and never recompute from submittedAt; keep lateNotificationIndicator in the manifest with system: true and listed in SYSTEM_POPULATED (boot-guard-dispatch-coverage requires it). Delete D1's 'records port must preserve the first submittedAt' contingency and c-029's 'computed at read from submittedAt'. Keep c-030's input.derivation as the canonical text and fold c-031's calendar-day rule into it rather than replacing the field twice. The mapper omission assertion stays (no typed backend field) — that is unaffected."
+    },
+    {
+      "ids": [
+        "conflict:c-025",
+        "conflict:c-011",
+        "behaviour:nfr-data-validation",
+        "conflict:c-034",
+        "conflict:c-003"
+      ],
+      "issue": "c-025 (D4) deletes the contactNumber and contactEmail obligations and the contact-details page. c-011 (D3) rules validation for both — a new email-shape pattern on contactEmail and a note on contactNumber — with specChanges targeting the deleted obligations, and its resolution sentence still says 'contactEmail gets a minimal shape check'; nfr-data-validation's adopted detail cites 'an email-shape pattern on contactEmail' and parks a telephone rule. c-034 (D6) keeps the page: 'contact-details runStep: 10 (was 11)' and its opening-run sequence ends '-> consignment-contact-select -> contact-details -> hub'. c-025 says the run 'ends at consignment-contact-select (runStep 10)' while c-034 renumbers that page to 9. Verified in journey-spec.json: contact-details exists at runStep 11 and both obligations exist.",
+      "proposedFix": "c-034 drops the contact-details runStep line and '-> contact-details' from its opening-run sequence (consignment-contact-select is runStep 9 and the last run step); c-025's 'runStep 10' reads 'runStep 9 after c-034's renumbering'. c-011 withdraws its contactEmail and contactNumber specChanges and its resolution reads 'contactEmail and contactNumber removed under c-025 — the address-book API validates phone and email at source; the only new factory is time'. nfr-data-validation's detail drops 'an email-shape pattern on contactEmail' and the parked telephone character-set rule. c-025's own c-011 fields edit stands."
+    },
+    {
+      "ids": [
+        "behaviour:potato-scope-guidance",
+        "conflict:c-021",
+        "conflict:c-022",
+        "behaviour:origin-value-list-by-commodity"
+      ],
+      "issue": "Where the Balearic/ware-potato scope sentence lives, and what it says. D2 (potato-scope-guidance) rules a page-side govukInsetText on origin ('Notify ware potatoes grown, or suspected to have been grown, in Poland, Portugal, Romania or Spain. Spain does not include the Balearic Islands.'), expressly rejecting an obligation-level conditional hint so countryOfOrigin's hint stays verbatim animals (standing ruling 5). D3 c-021 adds countryOfOrigin.input.hintByCategory with different copy ('Ware potatoes grown in the Balearic Islands do not need to be notified.') rendered beneath the obligation hint, and c-021/origin-value-list-by-commodity append to potato-scope-guidance that the exclusion 'is hintByCategory text'. Both dockets rewrite the same origin-page note sentence ('(spain-excludes-balearic-islands)') with different replacements.",
+      "proposedFix": "One delivery: keep D2's page-side inset and copy (it honours the same-as-animals hint c-022 itself relies on). Delete c-021's hintByCategory specChange; its potato-scope-guidance append and origin-page note edit point at the inset ('Balearic exclusion is the origin-page inset per potato-scope-guidance'); origin-value-list-by-commodity's 'Balearic hint when a ware-potatoes line exists (c-021)' reads 'Balearic inset (potato-scope-guidance, c-021)'."
+    },
+    {
+      "ids": [
+        "conflict:c-027",
+        "conflict:c-015",
+        "conflict:c-022",
+        "behaviour:origin-value-list-by-commodity",
+        "behaviour:potato-scope-guidance",
+        "behaviour:nfr-gds-standards"
+      ],
+      "issue": "countryOfOrigin's animals tag. c-015, c-022 and origin-value-list-by-commodity state it 'stays same-as-animals'; potato-scope-guidance appends 'this obligation's label, hint, widget and validation stay verbatim from animals'. Yet c-022 rewrites validationRaw (adds the per-category narrowing requiredOneOf), input.service, valueConstraints, and adds narrowingErrorCopy and cyaErrorCopy, and c-027 retags it variant-of-animals with a divergence naming only the error sentence. The brief defines same-as-animals as same copy and validation verbatim.",
+      "proposedFix": "Tag variant-of-animals once, with c-027's divergence widened to 'error sentence (c-027) and the per-category origin narrowing validated inside POST and re-checked on Check your answers (c-022); id, widget, label, labelCy, hint and hintCy verbatim animals'. potato-scope-guidance's countryOfOrigin note reads 'label, hint and widget stay verbatim from animals; validation gains the narrowing (c-022) and the error sentence diverges (c-027)'. c-015, c-022 and origin-value-list-by-commodity replace 'same-as-animals' with 'variant-of-animals (same widget and service)'."
+    },
+    {
+      "ids": [
+        "conflict:c-031",
+        "behaviour:guidance-before-you-start",
+        "behaviour:day-one-critical-and-list-volatility",
+        "conflict:c-035"
+      ],
+      "issue": "commodityType.input.valueHints is set twice with different strings: c-031 'Notify at least 2 days before the expected date of arrival. | Notify before arrival or no later than 4 days after the date of arrival. | ...' and guidance-before-you-start 'You must notify at least 2 days before the expected date of arrival. | You must notify before arrival, or no later than 4 days after the date of arrival. | ...'. day-one-critical also requires every hint naming a window to read POTATO_DAYS_BEFORE_ARRIVAL / PLANTS_WOOD_DAYS_AFTER_ARRIVAL through a copy-function argument, which c-031's hints and c-035's rule strings ('at least 2 days', 'no later than 4 days') hard-code. guidance-before-you-start also quotes the arrivalStatus hint as 'You must notify within 4 days of arrival', which is the pre-ruling spec text c-031 replaced.",
+      "proposedFix": "Single value: adopt the guidance-before-you-start strings (reg 24A(1)/26(1) wording); c-031's valueHints specChange becomes 'as ruled under guidance-before-you-start, with the day count supplied from the constants named in day-one-critical-and-list-volatility'; c-035's two rule strings are likewise copy functions taking the constant. guidance-before-you-start's rationale cites c-031's actual post-arrival hint ('It must be made no later than 4 days after the date of arrival')."
+    },
+    {
+      "ids": [
+        "conflict:c-028",
+        "conflict:c-038",
+        "behaviour:agent-acting-on-behalf",
+        "conflict:c-034"
+      ],
+      "issue": "The declaration's third-party clause. c-028 (D4) drops all five animals statements, parks the third-party/agent-authority clauses under standing ruling 2, rewrites agent-acting-on-behalf to 'the declaration carries no third-party authority clause (c-028)' and instructs 'the c-038 ruling must not reinstate it'. c-038 (D8) reinstates it: 'The declaration keeps exactly one animals sentence verbatim — I can legally act on behalf of a third party...', with a declaration.animals.divergence append, and D8's agent-acting-on-behalf says 'The declaration keeps the one animals third-party sentence as copy (c-038)' — two contradictory edits to the same behaviour detail. c-034 (D6) adds a declaration note permitting statements about 'the notifier's standing as the professional operator or their authorised agent (c-028; NNS-UN-039)' — the exact GDS-judge sentence c-028's dissent rejected, misattributed to c-028.",
+      "proposedFix": "c-038 and D8's agent-acting-on-behalf conform to c-028: withdraw the retained sentence and the declaration.animals.divergence append; c-038's declaration note reads 'no agent, importer or notifier party is collected; no third-party or authority sentence (c-028, standing ruling 2)'. c-034's declaration legal-limit note reads 'the statements may assert only that the information is true and correct plus the three plants statements ruled at c-028 — no standing, authority or agent clause (standing ruling 2)'."
+    },
+    {
+      "ids": [
+        "conflict:c-038",
+        "behaviour:spot-check-scheduling",
+        "conflict:c-011",
+        "conflict:c-021",
+        "conflict:c-032",
+        "conflict:c-028",
+        "conflict:c-034",
+        "conflict:c-003",
+        "conflict:c-027"
+      ],
+      "issue": "provisionalCopy means two different things across dockets. D8 (c-038 dissent, spot-check-scheduling dissent) refuses the flag on declaration and confirmation because it is 'the invented-title flag' complementary to titleCy — which is what the brief says (RECONCILER-BRIEF.md:114-115; SPEC_RECONCILER.md:61, verified). D3 sets it on commodity-details, arrival-details and origin (titles verbatim animals), D4 on declaration (title verbatim) and on two obligations (consignmentNumber, countryOfOrigin), D6 on confirmation and hub (titles verbatim). Under D8's reading the D3/D4/D6 flags are wrong; under D3/D4/D6's reading D8's refusals are wrong.",
+      "proposedFix": "Pick one definition and record it in RECONCILER-BRIEF.md and SPEC_RECONCILER.md. Recommended: widen it — 'provisionalCopy=true on a page or obligation means it carries copy that is not verbatim animals and awaits the copy pass; the scope is stated in notes; titleCy stays wherever the title itself is verbatim' — then rewrite the c-038 and spot-check-scheduling dissent text to drop the narrow-flag argument (their other grounds stand). If the narrow reading is kept instead, strip the flag from every D3/D4/D6 change and carry the scope in notes."
+    },
+    {
+      "ids": [
+        "behaviour:reference-number-prefix",
+        "behaviour:competent-authority-routing",
+        "behaviour:service-name-feedback-and-support",
+        "behaviour:guidance-before-you-start",
+        "behaviour:previous-scheme-and-ni-roi-precedents",
+        "behaviour:nfr-gdpr",
+        "behaviour:nfr-secure-internal-login",
+        "behaviour:nfr-english-and-welsh",
+        "behaviour:nfr-sustainable",
+        "behaviour:equal-access-defra-policy-sg-fc",
+        "behaviour:bulk-upload",
+        "behaviour:import-from-existing-documents",
+        "behaviour:reuse-previous-consignment",
+        "behaviour:agent-acting-on-behalf",
+        "behaviour:plant-operator-registration",
+        "behaviour:regulator-views",
+        "behaviour:inspector-recording",
+        "behaviour:analyst-export",
+        "behaviour:risk-classification-and-list-maintenance",
+        "behaviour:spot-check-scheduling",
+        "behaviour:document-uploads-out-of-scope",
+        "behaviour:outbox-and-gbnag-publishing-out-of-scope",
+        "behaviour:combined-ins-list-out-of-scope",
+        "conflict:c-025",
+        "conflict:c-026"
+      ],
+      "issue": "Parked behaviours end up with three different statuses. D5 sets reference-number-prefix to status 'parked'. D1's competent-authority-routing keeps 'open-question' on the claim that 'the spec script accepts adopted | open-question only' — wrong: tools/journey-builder/spec-set-behaviour-status.sh accepts adopted|open-question|parked|rejected (only spec-add-behaviour.sh is limited to adopted|open-question at creation). Every other park ruling (D6, D7, D8) leaves the status field untouched at open-question with a PARKED prefix in detail. c-025 and c-026 create new behaviours as open-question while calling them PARKED. c-014's own dissent notes an open-question behaviour 're-enters the docket loop'.",
+      "proposedFix": "Every park ruling sets status 'parked' via spec-set-behaviour-status.sh (adding a specChange 'status -> parked' where missing); c-025's name-of-person-making-entry and c-026's consignor-typed-fallback are created open-question then set parked; competent-authority-routing's specChange text is corrected to remove the 'adopted | open-question only' claim."
+    },
+    {
+      "ids": ["conflict:c-002", "conflict:c-026"],
+      "issue": "Derived page-gate convention. c-002 nulls arrival-status's gate and moves the derived sentence to notes because a prose gate 'an implementor may read as an authored gate'. c-026 writes consignor-select's gate as { scope: 'consignor', detail: 'derived: ...' } — the object shape notification-view uses for its authored section gate (verified in journey-spec.json).",
+      "proposedFix": "consignor-select gate: null, with the sentence moved to notes prefixed 'Derived gate, not authored:' exactly as c-002 does for arrival-status."
+    },
+    {
+      "ids": [
+        "conflict:c-032",
+        "behaviour:nfr-accessible-wcag-2-2-aa",
+        "behaviour:nfr-gdpr",
+        "behaviour:service-name-feedback-and-support"
+      ],
+      "issue": "c-032 narrows chrome-placeholders-and-service-name to 'the four Sam-gated decisions' (service name, feedback address, helpdesk lines, link homes) and service-name-feedback-and-support repeats the four; D7 then appends a fifth (the footer accessibility-statement URL) and a sixth (the privacy-notice URL) to the same extra, leaving the count and the enumeration stale.",
+      "proposedFix": "c-032's detail (and service-name-feedback-and-support's) enumerate six items, or say 'the Sam-gated decisions' without a count and list (5) accessibility statement URL (nfr-accessible-wcag-2-2-aa) and (6) privacy notice URL (nfr-gdpr)."
+    },
+    {
+      "ids": [
+        "behaviour:reuse-previous-consignment",
+        "behaviour:notification-actions-after-submission",
+        "conflict:c-030"
+      ],
+      "issue": "D8's reuse-previous-consignment append is conditional — 'satisfied by Copy as new only if notification-actions-after-submission (c-030) rules Copy as new in ... if it does not, this stays parked' — and its rationale treats the post-submission action set as an unresolved gate question, while D5 has ruled Copy as new out and appends its own 'RULED (panel, D5): stays parked' to the same detail. Two appends, one stale.",
+      "proposedFix": "D8's append reads 'Ruled D8: parked; c-030 ruled Copy as new out of the first pass, so no increment; unparking is one increment copying the animals copy action; the prototype templates pattern is not adopted'."
+    },
+    {
+      "ids": [
+        "conflict:c-001",
+        "behaviour:guidance-before-you-start",
+        "conflict:c-032",
+        "behaviour:spot-check-scheduling",
+        "conflict:c-006"
+      ],
+      "issue": "Stale cross-references to rulings made in other dockets. guidance-before-you-start says 'Do not name England or Great Britain in the intro (c-001)' because 'that wording is the open conflict c-001' — c-001 is resolved (Great Britain) and lists 'dashboard intro' among GB strings (the dashboard body is null today, so no real conflict, but the instruction is wrongly grounded). spot-check-scheduling says the placeOfDestination hint 'This is where a plant health inspector may carry out a spot check.' stays 'as written' — c-006 replaced it with hintByState (which keeps the spot-check sentence).",
+      "proposedFix": "guidance-before-you-start: 'the intro need not name the territory; where it does it says Great Britain (c-001, resolved)'; c-001 drops 'dashboard intro' from its list. spot-check-scheduling cites placeOfDestination.input.hintByState (c-006) as the surviving copy."
+    },
+    {
+      "ids": [
+        "behaviour:nfr-accessible-wcag-2-2-aa",
+        "behaviour:nfr-gds-standards",
+        "behaviour:nfr-gdpr",
+        "behaviour:nfr-secure-internal-login",
+        "behaviour:nfr-available-24x7-and-load",
+        "behaviour:nfr-english-and-welsh",
+        "behaviour:nfr-minimise-trader-effort",
+        "behaviour:nfr-sustainable",
+        "behaviour:mi-metrics-eight",
+        "behaviour:equal-access-defra-policy-sg-fc"
+      ],
+      "issue": "All ten D7 rulings carry the id in the form 'behaviour:nfr-...' while every other docket uses the bare behaviour id ('nfr-...', 'bulk-upload'). Coverage is complete, but an applier matching rulings to spec ids by exact string will miss the whole of D7.",
+      "proposedFix": "Strip the 'behaviour:' prefix from the ten D7 ruling ids (the kind field already carries it)."
+    },
+    {
+      "ids": ["behaviour:nfr-minimise-trader-effort", "conflict:c-003"],
+      "issue": "nfr-minimise-trader-effort asserts 'no obligation is optional today (zero required: false)', but c-003 rules consignmentNumber an optional notifier reference labelled 'Consignment number (optional)' and the hub row is Optional for wood.",
+      "proposedFix": "Reword: 'consignmentNumber is the one optional obligation and already carries (optional) and never gates readiness (c-003); any later optional question follows the same rule'."
+    }
+  ],
+  "standingRulingBreaches": [
+    "conflict:c-038 (D8, decidedBy sam): builds a delegation-of-authority assertion in this phase — keeps the animals declaration sentence 'I can legally act on behalf of a third party in relation to the conditions of this declaration' verbatim. A declaration statement is a legal assertion the notifier signs, so this is delegation of authority (standing ruling 2), and it overrides c-028's explicit instruction that c-038 must not reinstate the clause. The retention is a panel choice (justified by standing ruling 5 at 'zero engine cost'), not a Sam ruling — drop the sentence.",
+    "behaviour:agent-acting-on-behalf (D8, decidedBy sam): same breach — 'The declaration keeps the one animals third-party sentence as copy (c-038)'; the park is right, the retained copy is not. Align with c-028's edit ('carries no third-party authority clause').",
+    "conflict:c-034 (D6, decidedBy panel): the declaration legal-limit note licenses statements asserting 'the notifier's standing as the professional operator or their authorised agent (c-028; NNS-UN-039)'. That is the GDS-judge sentence c-028 rejected under standing ruling 2 ('who is the notifier' and agent authority are out of phase); it also pre-empts c-038 by the back door. Remove the standing/agent wording.",
+    "Attribution drift (mixed rulings marked panel where a ruling-2 sub-park sits inside): conflict:c-003 (parks 'Name of person making entry as the signed-in user' under standing ruling 2), conflict:c-028 (parks the third-party clauses under standing ruling 2), conflict:c-033 (parks the session-only listing as 'a user-model matter outside this phase (standing ruling 2)'), behaviour:service-name-feedback-and-support (parks the Address book / Manage account link homes under standing ruling 2). The item-level decidedBy 'panel' is defensible because the primary decision is the panel's, but each parked component should be recorded 'decidedBy sam (standing ruling 2)' in the detail, as c-025 does for name-of-person-making-entry and D7 does for nfr-secure-internal-login and equal-access-defra-policy-sg-fc.",
+    "Correctly attributed, for the record: conflict:c-039, conflict:c-040, behaviour:bulk-upload, behaviour:plant-operator-registration, behaviour:nfr-secure-internal-login, behaviour:equal-access-defra-policy-sg-fc (sam, rulings 2/3); behaviour:reference-number-prefix, behaviour:import-from-existing-documents, behaviour:document-uploads-out-of-scope, behaviour:outbox-and-gbnag-publishing-out-of-scope, behaviour:combined-ins-list-out-of-scope (panel under ruling 1 — no standing ruling names them). No ruling builds users, sign-in, operator registration or bulk upload."
+  ],
+  "summary": "Coverage: all 83 docket items received exactly one ruling; no id is missing or duplicated. The only coverage blemish is that the ten D7 ids carry a 'behaviour:' prefix the other dockets do not use. Cross-docket consistency: six substantive contradictions need a decision — (1) lateNotificationIndicator is read-time-derived and unstored in D1 but stored as a system value at first finalise in D5, with c-031 and c-030 both rewriting the same input.derivation field (D5's shape should win because Amend is in and no first-submission timestamp exists; verified against stub/lifecycle/transition.js and the boot-guard SYSTEM_POPULATED rule); (2) D4 deletes contactNumber, contactEmail and the contact-details page while D3 rules validation on them and D6 keeps the page as run step 10 (D3/D6 conform to D4; run ends at consignment-contact-select as step 9); (3) the Balearic sentence is a page-side inset in D2 but an obligation-level hintByCategory with different copy in D3 (keep D2's inset); (4) countryOfOrigin is called same-as-animals in D3 while D3 itself changes its validation and D4 retags it variant-of-animals (tag variant once, with both divergences); (5) commodityType.valueHints is set to two different strings by c-031 and guidance-before-you-start, and D6's constants rule is not honoured by c-031/c-035 (single string reading the constants); (6) c-028 removes the declaration's third-party clause and forbids c-038 from reinstating it, c-038 reinstates it, and c-034 licenses a professional-operator/agent statement c-028 rejected (c-038/c-034 conform to c-028). Five vocabulary/convention drifts also need one answer each: provisionalCopy is the invented-title flag in D8 and the brief (verified) but an 'invented copy' flag in D3/D4/D6; parked behaviours are left open-question in D1/D6/D7/D8 but set 'parked' in D5, and D1's claim that the spec script rejects 'parked' is wrong (spec-set-behaviour-status.sh accepts it); c-026 writes a derived page gate as an authored-gate object where c-002 nulls it; c-032's 'four' Sam-gated chrome decisions become six after D7; and a handful of stale cross-references (reuse-previous-consignment's conditional on c-030, guidance-before-you-start treating c-001 as open and quoting the old arrivalStatus hint, spot-check-scheduling quoting the pre-c-006 destination hint, nfr-minimise-trader-effort's 'no optional obligation'). Standing rulings: three breaches of ruling 2, all the same clause — c-038 and D8's agent-acting-on-behalf keep an 'act on behalf of a third party' declaration sentence, and c-034 licenses a professional-operator/authorised-agent statement — plus attribution drift where four panel-marked items contain ruling-2 sub-parks (c-003, c-028, c-033, service-name-feedback-and-support). Nothing builds users, sign-in, operator registration or bulk upload; sam/panel attribution is otherwise correct."
+}

@@ -1,0 +1,569 @@
+{
+  "schema_version": 1,
+  "increments": [
+    {
+      "key": "lighthouse-scripts",
+      "type": "fix",
+      "repo": null,
+      "title": "Restore the Lighthouse audit scripts (audit-targets.js, seed-notification.js)",
+      "detail": "npm run lighthouse cannot start: scripts/lighthouse/seed-audit-targets.js imports auditUrls, reportNames and TARGETS_FILE from ./audit-targets.js and SEED_SHAPES, createNotification, fillNotification, submitNotification from ./seed-notification.js; run-audit.js imports TARGETS_FILE — neither module nor audit-targets.test.js exists (animals has all three). Write audit-targets.js with the plants route list and stable report names, seed-notification.js with SEED_SHAPES for the five mural use cases (use-cases-as-test-fixtures) filling a notification through the engine, and audit-targets.test.js; keep the floors (perf 0.60 / a11y 0.70 / best-practices 0.70) and add no SEO assertion. Each later page increment adds its seed shape and report name. Evidence: skeleton lighthouse-scripts-missing (seed-audit-targets.js:8,11-16; run-audit.js:15; docs/lighthouse.md).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "start": true
+      }
+    },
+    {
+      "key": "ci-fit-job",
+      "type": "fix",
+      "repo": null,
+      "title": "Add the FIT Tests job to check-pull-request.yml",
+      "detail": "check-pull-request.yml has no FIT job: animals runs a separate playwright job (npm run playwright:install, npm run test:fit:ci, uploads playwright-report/ and test-results/ for 14 days) so the frontend-owned Playwright projects run on every PR without a stack; plants has the test:fit:ci script but nothing calls it. Copy the job shape from animals check-pull-request.yml:60-128 with the plants image name. Evidence: skeleton ci-fit-and-audit-jobs (1).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:lighthouse-scripts"
+      }
+    },
+    {
+      "key": "ci-security-audit-non-gating",
+      "type": "fix",
+      "repo": null,
+      "title": "Split security-audit out of pr-validator as a non-gating job",
+      "detail": "security-audit is a step INSIDE pr-validator, so any new advisory blocks the merge check; animals keeps Security audit as a separate non-gating job for exactly that reason. Move it to its own job mirroring animals check-pull-request.yml. Evidence: skeleton ci-fit-and-audit-jobs (2).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-fit-job"
+      }
+    },
+    {
+      "key": "ci-weekly-schedule",
+      "type": "chore",
+      "repo": null,
+      "title": "Add the weekly schedule cron to check-pull-request.yml",
+      "detail": "No schedule trigger, so the audit and checks never re-run on an idle main; animals runs '0 7 * * 1'. Add the same cron. Evidence: skeleton ci-fit-and-audit-jobs (3).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-security-audit-non-gating"
+      }
+    },
+    {
+      "key": "ci-sonarcloud",
+      "type": "fix",
+      "repo": null,
+      "title": "Uncomment the SonarCloud scan in all three workflows",
+      "detail": "The SonarCloud Scan step is commented out in check-pull-request.yml, publish.yml and publish-hotfix.yml although sonar-project.properties (projectKey DEFRA_trade-imports-plants-frontend), the README badges, .mcp.json and .claude/settings.json all point at the project. Restore SonarSource/sonarqube-scan-action@master with SONAR_TOKEN, skipped for dependabot, as animals does. Evidence: skeleton ci-sonarcloud-commented-out (check-pull-request.yml:55-60; publish.yml:51-56; publish-hotfix.yml:47-51).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-weekly-schedule"
+      }
+    },
+    {
+      "key": "ci-publish-arm64",
+      "type": "fix",
+      "repo": null,
+      "title": "Add the publish-arm64 job to publish.yml",
+      "detail": "publish.yml has no publish-arm64 job; animals adds one after build (needs: build, uses DEFRA/trade-imports-workspace/.github/workflows/publish-multiarch.yml@main with the image name) that adds linux/arm64 to the Docker Hub tags. Without it the plants image is amd64-only and runs under Rosetta on Apple Silicon in the workspace stack. Evidence: skeleton ci-publish-arm64-missing (publish.yml:22-56; animals publish.yml:56-62).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-sonarcloud"
+      }
+    },
+    {
+      "key": "ci-publish-concurrency-group",
+      "type": "chore",
+      "repo": null,
+      "title": "Fix the literal concurrency group in publish.yml and publish-hotfix.yml",
+      "detail": "Both publish workflows carry a concurrency block whose group is the literal string '21660{{ github.workflow }}' (double dollar — the expression is never evaluated) with queue: max; animals has no such block. Either evaluate the expression properly or drop the block. Evidence: skeleton ci-publish-arm64-missing (publish.yml:8-11; publish-hotfix.yml:6-9).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-publish-arm64"
+      }
+    },
+    {
+      "key": "ci-publish-branch-workflow",
+      "type": "fix",
+      "repo": null,
+      "title": "Add publish-branch.yml (branch-tagged image for the stack --branch probe)",
+      "detail": "Animals has publish-branch.yml (on pull_request/dispatch -> DEFRA/trade-imports-workspace/.github/workflows/publish-branch.yml@main with image-name); it publishes the branch-tagged image the workspace stack's --branch probe and both the E2E and Lighthouse workflow_run triggers depend on. Plants has none. Evidence: skeleton ci-e2e-workflows-missing (animals publish-branch.yml:1-18; docs/test-ownership.md).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-publish-concurrency-group"
+      }
+    },
+    {
+      "key": "ci-e2e-tests-workflow",
+      "type": "fix",
+      "repo": null,
+      "title": "Add e2e-tests.yml (deployed E2E on workflow_run of Publish Branch Image)",
+      "detail": "Animals has e2e-tests.yml (workflow_run of 'Publish Branch Image' or dispatch -> pending status, workspace e2e-tests.yml with the branch, report-e2e-status action). Without it no deployed E2E result can appear on a plants PR. Depends on ci-publish-branch-workflow and on the tests-repo plants project (e2e-plants-project-scaffold). Evidence: skeleton ci-e2e-workflows-missing (animals e2e-tests.yml:1-57).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-publish-branch-workflow"
+      }
+    },
+    {
+      "key": "ci-cleanup-e2e-reports-workflow",
+      "type": "fix",
+      "repo": null,
+      "title": "Add cleanup-e2e-reports.yml (PR close / nightly)",
+      "detail": "Animals has cleanup-e2e-reports.yml (on PR close / nightly cron -> workspace cleanup-e2e-reports.yml with head-ref). Copy it with the plants names. Evidence: skeleton ci-e2e-workflows-missing (animals cleanup-e2e-reports.yml:1-18).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-e2e-tests-workflow"
+      }
+    },
+    {
+      "key": "ci-lighthouse-workflow",
+      "type": "fix",
+      "repo": null,
+      "title": "Add lighthouse.yml (Lighthouse CI on workflow_run of Publish Branch Image)",
+      "detail": "No .github/workflows/lighthouse.yml. Animals' runs on workflow_run of 'Publish Branch Image' or dispatch, reports a pending status, checks out the workspace, starts the stack for the branch, runs npm run lighthouse, tears the stack down, uploads the report for 14 days, publishes to GitHub Pages and passes result/report URL/flagged findings to the workspace status action. Depends on lighthouse-scripts and ci-publish-branch-workflow. Evidence: skeleton ci-lighthouse-workflow-missing (animals lighthouse.yml:1-40; docs/lighthouse.md CI ownership).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-cleanup-e2e-reports-workflow"
+      }
+    },
+    {
+      "key": "dependabot-frontend",
+      "type": "fix",
+      "repo": null,
+      "title": "Enable Dependabot in the plants frontend",
+      "detail": ".github/ holds only example.dependabot.yml (the CDP template). Add .github/dependabot.yml copied from animals: daily 10:30 Europe/London, one rolling patch-and-minor group over '*' excluding govuk-frontend (its own CHANGELOG-driven upgrade), majors raised individually, eslint ignored, direct deps only, plus the same policy for github-actions. Evidence: skeleton dependabot-absent (animals .github/dependabot.yml:1-69).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:ci-lighthouse-workflow"
+      }
+    },
+    {
+      "key": "dependabot-backend",
+      "type": "fix",
+      "repo": "repos/trade-imports-plants-backend",
+      "title": "Enable Dependabot in the plants backend",
+      "detail": "repos/trade-imports-plants-backend/.github/ holds only example.dependabot.yml while the animals backend has a live dependabot.yml. Add .github/dependabot.yml mirroring the animals backend policy (maven + github-actions). Evidence: skeleton dependabot-absent (repos/trade-imports-plants-backend/.github/example.dependabot.yml; repos/trade-imports-animals-backend/.github/dependabot.yml).",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:dependabot-frontend"
+      }
+    },
+    {
+      "key": "backend-ci-parity",
+      "type": "fix",
+      "repo": "repos/trade-imports-plants-backend",
+      "title": "Bring the plants backend CI to parity with the animals backend",
+      "detail": "trade-imports-plants-backend/.github/workflows has check-pull-request.yml, publish.yml, publish-hotfix.yml and sonarcloud.yml; the animals backend additionally has e2e-tests.yml, publish-branch.yml and cleanup-e2e-reports.yml (workspace delegations), a publish-arm64 job, and calls ./.github/workflows/sonarcloud.yml as a job from check-pull-request and publish (skipped for dependabot). In plants every call to sonarcloud.yml and the SonarCloud step are commented out; sonarcloud.yml hardcodes java-version 25 rather than .java-version; publish.yml runs mvn clean verify BEFORE the CDP build action. Add the three workflows, the arm64 job, restore the sonarcloud calls, read .java-version. Evidence: skeleton backend-ci-gaps-vs-animals.",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:dependabot-backend"
+      }
+    },
+    {
+      "key": "depcruise-known-violations",
+      "type": "chore",
+      "repo": null,
+      "title": "Resolve the three baselined bridge-to-flow depcruise violations",
+      "detail": "lint:arch passes only with --ignore-known against .dependency-cruiser-known-violations.json, which baselines three error-level bridge-no-up violations: bridge/obligation-source.js -> flow/journey-flow.js, bridge/readiness-config.js -> flow/section-status.js, bridge/scope.js -> flow/journey-flow.js. The architecture docs say the bridge never imports flow. Either invert the seams (flow-only keys and readiness reaching up from the bridge) or amend the rule and the docs; empty the baseline. Evidence: skeleton depcruise-known-violations-baselined.",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:backend-ci-parity"
+      }
+    },
+    {
+      "key": "unused-platform-services",
+      "type": "chore",
+      "repo": null,
+      "title": "Decide the fate of the unused platform services (import-reason-purpose, transport-reference, commercial-transporters)",
+      "detail": "services/import-reason-purpose serves nothing (both label maps {} with a 'Deliberately empty' comment, no real client); transport-reference and commercial-transporters (two fixed records, name-keyed) are animals transport concepts. No plants source asks a reason-for-import, purpose, means-of-transport or transporter question (import-reason-purpose-service-unused; customs-no-sps-hold-or-matching). Remove them from the plants engine or document them as dormant; update docs/services.md either way. Evidence: skeleton import-reason-purpose-empty; serviceOnly fields importReasonPurpose, transportReference, commercialTransporters.",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:depcruise-known-violations"
+      }
+    },
+    {
+      "key": "docs-drift-sweep",
+      "type": "chore",
+      "repo": null,
+      "title": "Sweep the documentation drift the skeleton extract found",
+      "detail": "shared/copy.js docblock says 'Only en exists until a second language is commissioned' while copy.cy.js exists and copy-parity enforces it; model/obligations/helpers/index.js header still calls itself part of a prototype and names a companion file that does not exist; add-a-page.md §7 has a garbled sentence; add-a-page.md and features.md restate the copy rules the tests enforce; README.md 'Current state' and the set README 'The served surface today' duplicate each other. Fix each; the two 'served surface' passages will also need updating after the first page. Evidence: skeleton readme-and-docs-drift.",
+      "milestone": "M0",
+      "gate": null,
+      "anchor": {
+        "after": "key:unused-platform-services"
+      }
+    },
+    {
+      "key": "wire-section-captions",
+      "type": "restore",
+      "repo": null,
+      "title": "Wire sectionCaption into configureJourneyFlow (first captioned page is the dashboard)",
+      "detail": "sectionCaption is not passed to configureJourneyFlow in routes.js nor in test/fixtures/index.js installFixture, and flow/section-captions/ does not exist, so every page renders no caption. Add journeys/linear/flow/section-captions/index.js with its own copy.en.js / copy.cy.js pair (captionSections map: Dashboard | About the consignment | Arrival | Destination | Consignment parties; bare pages listed explicitly so a new page needs a decision), pass sectionCaption in BOTH call sites, add the pair to copy-parity modulePairs, and render it with shared/section-caption.njk directly above the heading (govuk-caption-xl above the dashboard heading-xl). Evidence: skeleton section-captions-unwired (routes.js:47-55; test/fixtures/index.js:98-106; journey-flow.js:29-30); behaviour section-captions.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:dashboard"
+      }
+    },
+    {
+      "key": "e2e-plants-project-scaffold",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Add plants as a fourth Playwright project in the tests repo",
+      "detail": "utils/playwright/shared-config.ts gains a 'plants' project beside e2e, admin and ins; base URLs for the plants frontend in both playwright.config.ts and playwright.docker-compose.config.ts (workspace stack port per docker/stack/AGENTS.md); page-objects/plants/ scaffold (sign-in, dashboard, hub, a page-object base mirroring the animals objects); tests/e2e/features/plants/ folder with a smoke spec that signs in, reaches the dashboard and starts a notification to the commodity-type page. Runs through the standard npm run test:docker-compose script. Evidence: skeleton tests-repo-plants-project-absent (repos/trade-imports-animals-tests/playwright.config.ts:16-18; docs/test-ownership.md).",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:wire-section-captions"
+      }
+    },
+    {
+      "key": "exemplar-hub",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the hub EXEMPLAR PLACEHOLDER (add-a-page.md: the hub feature and flow/task-rows.test.js)",
+      "detail": "add-a-page.md carries an EXEMPLAR PLACEHOLDER for 'the hub feature + flow/task-rows.test.js'. With the hub page built (GROUPS, rows copy in both locales, five statuses, lock state, first-page link, task-rows.test.js proving blocked and complete states), replace the block with links to journeys/linear/features/hub and flow/task-rows.test.js and delete the note. Evidence: skeleton exemplar-placeholders, hub-and-check-answers-shape.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:hub"
+      }
+    },
+    {
+      "key": "e2e-start-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: start section (dashboard and overview)",
+      "detail": "tests/e2e/features/plants/start.spec.ts with page objects: sign in via the Defra ID stub, dashboard renders the plants service heading and Start a new notification, POST creates a notification with a reference in the journey strip, the overview renders with the journey strip (Draft tag and reference) and the Return to dashboard button; task rows and the Check and submit row are asserted by each section's spec and by e2e-review-section as their pages land (c-034 hub landing rule), Return to dashboard lists the new draft with Resume. Evidence: behaviours dashboard-listing, hub-task-list-and-row-status, journey-strip. Delete a draft (c-030): Delete on the dashboard card opens Delete this notification?, Yes soft-deletes and lands on the dashboard with the Notification deleted banner and the card gone; No returns to the dashboard untouched.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:exemplar-hub"
+      }
+    },
+    {
+      "key": "restore-entry-guard",
+      "type": "restore",
+      "repo": null,
+      "title": "Restore the entry guard with commodity-type as the entry page",
+      "detail": "flow/entry-guard.js exports entryGuardTarget = async () => null, so routes.js's onPreHandler never redirects and any deep link reaches a mid-journey page. Restore the documented shape: a guardedJourneyPath filter that ignores anything outside /notifications/<id>/, the create path, the amend/cancel-amend/copy/delete action slugs and the commodity-type page and its sub-paths; admit when openingRunStarted for that journey in this session OR hasCommittedNotificationAnswers; otherwise redirect to commodity-type. A bounced user saving commodity-type continues to the hub, not into the run. Tests in flow/entry-guard.test.js plus a fit case. Evidence: skeleton entry-guard-inert (entry-guard.js:1-5; routes.js:62-65; set README 'Gates on the first journey-page increment'); behaviour entry-guard.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:commodity-type"
+      }
+    },
+    {
+      "key": "restore-contract-and-coverage-tests",
+      "type": "restore",
+      "repo": null,
+      "title": "Recreate contract.test.js and obligations/coverage.test.js with the first collecting controller",
+      "detail": "src/server/app/contract.test.js (the L1 table pinning that each collecting controller's valid POST commits exactly the committable names in its meta.collects) was removed with the animals cases and does not exist; sets/high-risk-plants/obligations/coverage.test.js (manifest identity, within chains, group invariants, gate dependencies) does not exist either. Recreate both with the commodity-type case; every later collecting page adds a contract case. Evidence: skeleton contract-test-table, missing-tests-and-fixtures; behaviour contract-test-table.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:restore-entry-guard"
+      }
+    },
+    {
+      "key": "exemplar-single-field-page",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the single-field page and validated-field fit spec EXEMPLAR PLACEHOLDERs (add-a-page.md, features.md)",
+      "detail": "add-a-page.md carries placeholders for 'the smallest single-field collecting page' and 'the validated-field fit spec establishing the initial-plus-error axe pattern'; features.md carries one for 'the first collecting controller'. commodity-type is that page: replace the three blocks with links to journeys/linear/features/commodity-type (controller, template, copy, controller.test.js, commodity-type.fit.spec.js) and delete the notes. Evidence: skeleton exemplar-placeholders.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:restore-contract-and-coverage-tests"
+      }
+    },
+    {
+      "key": "exemplar-first-section",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the multi-page feature group EXEMPLAR PLACEHOLDERs (add-a-section.md)",
+      "detail": "add-a-section.md carries placeholders for 'a multi-page feature group with shared copy and fit/', 'the check-answers output' and 'the multi-page axe helper'. The commodities feature (list page + commodity-details entry sub-page, one copy/ pair, fit/ folder with a shared axe helper) is that group: replace the first and third blocks with links to journeys/linear/features/commodities and delete the notes; the check-answers output block closes with exemplar-check-answers. Evidence: skeleton exemplar-placeholders.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:commodity-details"
+      }
+    },
+    {
+      "key": "exemplar-first-collection",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the collection shapes EXEMPLAR PLACEHOLDER (add-a-collection.md)",
+      "detail": "add-a-collection.md carries one placeholder for 'the three collection shapes — single-page loop, two-page batch with a per-instance conditional and a floor, nested collection with a cap'. commodityLines is the two-page batch with per-instance conditionals (category reveals) and a minEntries floor: link it for that shape and say plainly that the single-page loop and the nested capped collection have no plants exemplar (animals documents and animalIdentifiers remain the references). Delete the note. Evidence: skeleton exemplar-placeholders, collections-engine-api.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:exemplar-first-section"
+      }
+    },
+    {
+      "key": "restore-whitelists-test",
+      "type": "restore",
+      "repo": null,
+      "title": "Create obligations/whitelists.test.js against the set-owned commodities service",
+      "detail": "The commodities increment introduces the first allow-lists (the per-category lists behind genus, species, commodityCode, potatoVariety, potatoIntendedUse, eppoCode, sizeOfTree, phytosanitaryTreatments gates, plus valuesByCommodityType). Every allow-list must come from sets/high-risk-plants/services/commodities and whitelists.test.js must check each against it so a hand-typed list cannot drift; the file does not exist. Evidence: skeleton set-owned-services-seam, missing-tests-and-fixtures; behaviour set-owned-commodities-service.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:exemplar-first-collection"
+      }
+    },
+    {
+      "key": "e2e-commodity-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: commodity section (type, lines, per-category reveals)",
+      "detail": "tests/e2e/features/plants/commodities.spec.ts with page objects for commodity-type, commodities and commodity-details: choose each of the three types and see only its categories offered; add a potato line (variety, quantity, intended use), a plants-for-planting line (genus autocomplete, species, commodity code, quantity, EPPO code), a wood line (phytosanitary treatments, size for cut trees); Remove and Change on the list; the at-least-one error; changing commodity type drops incompatible lines; hub row Completed. Evidence: behaviours collections-two-page-batch, commodity-type-change-reconciles-lines, use-cases-as-test-fixtures.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:restore-whitelists-test"
+      }
+    },
+    {
+      "key": "e2e-origin-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: origin section (country narrowing by commodity)",
+      "detail": "tests/e2e/features/plants/origin.spec.ts with an origin page object: autocomplete picks an EU country; a ware-potato notification rejects a country outside Poland, Portugal, Romania, Spain with the narrowing error; a seed-potato notification accepts any country in the origin block; a conifer-wood-without-bark line restricts to Italy, France, Portugal, Spain; the Balearic Islands inset appears for ware potatoes; hub row Completed; the 'animal' error copy is gone (c-027). Evidence: behaviours origin-value-list-by-commodity, enforced-at-continue. Also asserted (origin-value-list-by-commodity ruling, D3): a plants-for-planting line rejects Norway with the member-State error; adding a ware-potato line after origin was saved as France makes Check your answers raise the origin mismatch error with a Change link to origin and refuse submission",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:origin"
+      }
+    },
+    {
+      "key": "exemplar-multi-field-page",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the several-field conditional page and normalising-input EXEMPLAR PLACEHOLDERs (add-a-field.md)",
+      "detail": "add-a-field.md carries placeholders for 'a several-field feature with conditional scope, service-backed options, per-rule validation and check-answers rows' and 'a normalising-input field'. arrival-details is that page (date with switching label, time revealed for potatoes, place of landing over the ports service, per-rule validation, CYA rows) and its date/time parsing is the normalising input: replace both blocks with links to journeys/linear/features/arrival-details and delete the notes. The third add-a-field placeholder (check-answers view-model/) closes with exemplar-check-answers. Evidence: skeleton exemplar-placeholders.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:arrival-details"
+      }
+    },
+    {
+      "key": "e2e-arrival-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: arrival section (status, date, time, place of landing)",
+      "detail": "tests/e2e/features/plants/arrival.spec.ts with page objects for arrival-status and arrival-details: a potato notification skips arrival-status and shows expected date + time + place of landing; a plants notification asks Has the consignment arrived, then the expected-date label when No and the first-arrived label when Yes; switching Yes to No keeps the date (no wipe — the date is always in scope); a real-date error; a past date is accepted; hub row Completed. Evidence: behaviours consignment-status-selected-or-derived, date-and-time-entry, late-accepted-not-rejected.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:exemplar-multi-field-page"
+      }
+    },
+    {
+      "key": "restore-answers-read-sanitiser",
+      "type": "restore",
+      "repo": null,
+      "title": "Reinstate the answers-read sanitiser for address-book-backed parties",
+      "detail": "bridge/answers-read.js exposes configureAnswersForRead(sanitize) with an identity default and nothing calls it. With the first address-book party (placeOfDestination) built, add a set-owned sanitiser wired from routes.js so answers referencing a deleted address-book record (party() returns deleted: true) drop out of fulfilment and evaluation without the engine importing sets/**; CYA then renders Not provided and raises its party error. Tests in the set plus a fit case. Evidence: skeleton answers-read-sanitiser-unwired (bridge/answers-read.js:1-13; services/address-book/index.js:123-132); behaviour address-book-picker.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:place-of-destination"
+      }
+    },
+    {
+      "key": "e2e-destination-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: destination section (picker, label by arrival status)",
+      "detail": "tests/e2e/features/plants/destination.spec.ts with the address-picker page object: search the org address book, paginate at 5, select and see the Selected address inset; heading reads Place of destination for pre-arrival and potatoes, Where is the consignment now for already-arrived; a deleted record renders Not provided on CYA; hub row Completed. Evidence: behaviours address-book-picker, restore-answers-read-sanitiser.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:restore-answers-read-sanitiser"
+      }
+    },
+    {
+      "key": "e2e-parties-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: consignment parties section (consignor, identification numbers)",
+      "detail": "tests/e2e/features/plants/parties.spec.ts with page objects for consignor-select and identification-numbers: plants for planting and wood pick the consignor; potatoes never see consignor-select (the run skips it, the hub hides the row, Check your answers has no Consignor card); potatoes show producer and crop numbers, plants for planting show the supplier number, wood shows only the optional consignment number (row Optional); required and max-length errors; consignment number pattern error; hub rows Completed. Evidence: behaviours proportionate-questions-by-scope, track-and-trace-data, scope-and-wipe-on-exit.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:identification-numbers"
+      }
+    },
+    {
+      "key": "e2e-contact-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: contact section (address pick)",
+      "detail": "tests/e2e/features/plants/contact.spec.ts with a page object for consignment-contact-select: radios list every address-book record with name and address hint; save with nothing selected returns to the hub with the row In progress; picking a record completes the row; Check your answers Contact card shows the record's name, address, telephone number and email address. Evidence: behaviours lenient-page-validation, address-book-picker.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:consignment-contact-select"
+      }
+    },
+    {
+      "key": "exemplar-check-answers",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the check-answers EXEMPLAR PLACEHOLDERs (add-a-field.md view-model/, add-a-section.md output)",
+      "detail": "add-a-field.md carries a placeholder for 'the check-answers feature's view-model/ and spec' and add-a-section.md one for 'the check-answers output'. With notification-view built (view-model/ cards built with row() and changeAction() resolving the owning page through the dispatch index, out-of-scope rows omitted, labels in both copy bundles, service label functions for coded values), replace both blocks with links to journeys/linear/features/check-answers and delete the notes. Evidence: skeleton exemplar-placeholders, hub-and-check-answers-shape.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:notification-view"
+      }
+    },
+    {
+      "key": "backend-reference-prefix",
+      "type": "fix",
+      "repo": "repos/trade-imports-plants-backend",
+      "title": "Prepend the agreed plants type-code prefix to the reference number (backend generator, pattern, tests; frontend stub)",
+      "detail": "The plants backend ReferenceNumberGenerator mints {YY}-{XXXXXX} with no type-code prefix and REFERENCE_NUMBER_PATTERN '^\\d{2}-[0-9A-HJ-KM-NP-TV-Z]{6}$' validates controller path variables; the frontend stub adapter (services/persistence/records/stub/reference-number.js) mirrors it; both carry a PENDING REQUIREMENTS comment; referenceNumber has a unique index so this must land before real data exists. Animals uses GBN-AG-. BLOCKED until Sam supplies the plants type code (open question on epic EUDPA-407; c-023; behaviour reference-number-prefix): then change the generator, the pattern annotation, NotificationControllerTest, the frontend stub and any display copy in one cross-repo change (same branch name in both repos). Evidence: skeleton backend-reference-prefix-absent (ReferenceNumberGenerator.java:8,23,37-42; reference-number.js:9-23). RULED (panel, D5 c-023): parked, not a build blocker — the frontend never validates or parses the reference, so the journey builds on the unprefixed backend format and this lands whenever the type code is agreed. References are minted at record creation (dashboard Start POST), so the unique-index migration applies from the first draft whichever page this sits by; it must land before the first persistent deployed environment.",
+      "milestone": null,
+      "gate": "sam",
+      "anchor": {
+        "end": true
+      }
+    },
+    {
+      "key": "e2e-review-section",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Journey-level spec: check and submit section (CYA, declaration, confirmation)",
+      "detail": "tests/e2e/features/plants/review.spec.ts with page objects for notification-view, declaration and confirmation: Check and submit is Cannot start yet until every row is done; CYA shows the three numbered sections with Change links that round-trip back to CYA; the declaration checkbox is required; submission shows the panel with the reference, Date of notification, Status Submitted, and the late banner when the date implies lateness (potato notified inside two days; plants notified more than four days after arrival); a submitted journey is read-only on CYA; the dashboard lists it as Submitted. Evidence: behaviours declaration-and-submit-gate, timing-window-enforcement-and-late-highlight, cya-change-round-trip. Post-submission actions (c-030): Amend on a Submitted card moves the strip and card to Amending and opens the hub; Cancel amendment from the dashboard or CYA opens Cancel this amendment?, Yes restores the submitted answers and lands on CYA read-only with the amendment-cancelled banner and Status Submitted; Delete of a submitted notification from CYA lands on the dashboard with the Notification deleted banner; an amendment that moves the arrival date and is re-submitted does not change the late banner.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:confirmation"
+      }
+    },
+    {
+      "key": "restore-fit-journey-smoke",
+      "type": "restore",
+      "repo": null,
+      "title": "Land fit/journey-smoke.fit.spec.js and flow/fixtures/happy-path.json (journeys project)",
+      "detail": "playwright.config.js's journeys project matches fit/journey-smoke.fit.spec.js driven by journeys/linear/flow/fixtures/happy-path.json; neither exists and the project passes vacuously. With the journey walkable end to end, add both: the fixture carries the five mural use cases as seed shapes (use-cases-as-test-fixtures), the smoke spec walks each from dashboard to confirmation against the stub server (PORT=3053 with the stack up), and the Lighthouse seed-notification.js SEED_SHAPES reuse the fixture. Evidence: skeleton playwright-projects, missing-tests-and-fixtures; behaviour playwright-projects-and-journey-smoke.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:e2e-review-section"
+      }
+    },
+    {
+      "key": "e2e-full-journey",
+      "type": "e2e",
+      "repo": "repos/trade-imports-animals-tests",
+      "title": "Full happy-path journey spec for high-risk plants (tests repo)",
+      "detail": "tests/e2e/features/plants/journey.spec.ts: five end-to-end walks from sign-in to confirmation, one per mural use case — ware potatoes from Spain (pre-arrival, on time), ware potatoes from Portugal notified late, seed potatoes from the Netherlands, spruce (Picea) for planting from Germany with species and EPPO code, conifer wood without bark from Italy with treatments — asserting the reference on the confirmation, the late banner where expected, the dashboard card and the read-only CYA. Reuses the per-section page objects; runs through npm run test:docker-compose. Evidence: behaviour use-cases-as-test-fixtures; skeleton tests-repo-plants-project-absent.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:restore-fit-journey-smoke"
+      }
+    },
+    {
+      "key": "exemplar-readme-table",
+      "type": "chore",
+      "repo": null,
+      "title": "Close the README exemplar table placeholder and refresh the served-surface passages",
+      "detail": "README.md carries the last EXEMPLAR PLACEHOLDER ('the table' of exemplars this documentation still needs) and both README.md 'Current state' and the set README 'The served surface today' describe the empty set. With every shape built, fill the table with the real features per shape, delete the note, and rewrite the two served-surface passages once (docs-drift-sweep item 5). Evidence: skeleton exemplar-placeholders (README.md), readme-and-docs-drift.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "key:e2e-full-journey"
+      }
+    },
+    {
+      "key": "country-block-decision",
+      "type": "chore",
+      "repo": null,
+      "title": "Confirm whether plants keeps the animals origin block GBNAG_SPS_EX or gets its own reference-data block",
+      "detail": "Built on GBNAG_SPS_EX, whose captured membership is EU-27 + IS, LI, NO, CH (ruled c-022); the member-State and four-country narrowing lives in the set-owned commodities service, so nothing is blocked. Sam to confirm plants keeps sharing the animals block (risk: the block is owned for GBN-AG, and a membership change there reaches plants silently) or name a plants block in MDM/reference-data (CountriesController passes blocks through to MDM, whose fixture knows only GBNAG_SPS_EX and OMR). If a plants block is named: change the block in countries/index.js and capture.js, run npm run capture:high-risk-plants, update the countries stub, run-mode.test.js and the origin fit spec. Evidence: skeleton countries-block-and-capture-coupling (countries/index.js:11; _capture/capture.js:5-21).",
+      "milestone": null,
+      "gate": "sam",
+      "anchor": {
+        "end": true
+      }
+    },
+    {
+      "key": "chrome-placeholders-and-service-name",
+      "type": "chore",
+      "repo": null,
+      "title": "Resolve the animals chrome carried into plants: feedback address, placeholder links, unauthorised copy, help block",
+      "detail": "shared/layout.njk points Address book and Manage account at '#'; the phase-banner feedback link is mailto:APHAServiceDesk@apha.gov.uk and the service name 'Import notification service' — both shared with animals, both unverified for plants; the confirmation help block has no plants helpdesk. Sam-gated decisions nobody can make today: (1) the plants service name (keep 'Import notification service' until ruled), (2) the phase-banner feedback address, (3) the helpdesk contact lines for the confirmation help block, (4) the homes of the Address book and Manage account links (INS front door), (5) this service's accessibility-statement URL (appended under nfr-accessible-wcag-2-2-aa), (6) this service's privacy-notice URL (appended under nfr-gdpr). The auth/unauthorised.njk, compose.yml and check-workspace-stack items are removed from this extra — they move to the ungated extra unauthorised-view-copy-and-stack-check (c-032). Evidence: skeleton chrome-hardcoded-and-placeholder-links; behaviour service-name-feedback-and-support; mural Support TBC. First-pass ruling (c-032): chrome stays verbatim; confirmation help block names the three authorities with no contact details. Also the footer Accessibility statement link (shared/layout.njk:122 -> https://www.gov.uk/help/accessibility-statement, the generic GOV.UK page): replace with this service's own statement URL once the manual WCAG 2.2 audit has an owner (behaviour nfr-accessible-wcag-2-2-aa). Also the footer Privacy link (shared/layout.njk:114 -> https://www.gov.uk/help/privacy-notice, the generic GOV.UK notice): replace with this service's privacy notice URL once written (behaviour nfr-gdpr).",
+      "milestone": null,
+      "gate": "sam",
+      "anchor": {
+        "end": true
+      }
+    },
+    {
+      "key": "delete-notification-page",
+      "type": "chore",
+      "repo": null,
+      "title": "Copy the delete-notification confirmation page from animals",
+      "detail": "Feature delete-notification at /notifications/{journeyId}/delete — an action-slug controller, not a dispatch page (no page.js; the entry guard skips the slug). Copy from animals delete-notification: title Delete this notification? (cy machine-draft: Dileu'r hysbysiad hwn?), bare caption, body This cannot be undone. (Ni ellir dadwneud hyn.), buttons Yes, delete notification (POST, govuk-button--warning; Iawn, dileu'r hysbysiad) | No, return to dashboard (link; Na, dychwelyd i'r dangosfwrdd), back link dashboard. POST soft-deletes DRAFT, SUBMITTED or AMEND via engine softDeleteJourney then redirects to /?deleted=1 (banner from sharedCopy.notificationActions.delete); any other status redirects to the dashboard. copy.en.js / copy.cy.js / copy.test.js, controller.test.js, a fit spec with axe (initial + confirm). Evidence: live-animals notification-actions, deleteNotification (delete-notification/controller.js:20-22); skeleton actionSlugsReserved; ruled c-030.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "before": "key:e2e-start-section"
+      }
+    },
+    {
+      "key": "cancel-amend-page",
+      "type": "chore",
+      "repo": null,
+      "title": "Copy the cancel-amend confirmation page from animals",
+      "detail": "Feature cancel-amend at /notifications/{journeyId}/cancel-amend — an action-slug controller, not a dispatch page (entry guard skips the slug). Copy from animals cancel-amend: title Cancel this amendment? (cy machine-draft: Canslo’r diwygiad hwn?), bare caption, body Your changes since you started amending will be discarded and the submitted version restored. (Bydd eich newidiadau ers i chi ddechrau diwygio yn cael eu dileu a bydd y fersiwn a gyflwynwyd yn cael ei hadfer.), buttons Yes, cancel amendment (POST; Iawn, canslo’r diwygiad) | No, return to notification (link to notification-view; Na, dychwelyd i’r hysbysiad). POST calls engine cancelAmendJourney (backend restores the submitted baseline and keeps the original submittedAt; stub restores its snapshot) and redirects to notification-view?cancelled=1; a non-AMEND journey redirects to notification-view when SUBMITTED, else to the dashboard. Copy triple, controller.test.js, a fit spec with axe. Evidence: live-animals notification-actions, cancelAmend (cancel-amend/controller.js); stub/lifecycle/transition.js cancelAmend; NotificationService.cancelAmendNotification; ruled c-030.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "before": "key:e2e-review-section"
+      }
+    },
+    {
+      "key": "unauthorised-view-copy-and-stack-check",
+      "type": "chore",
+      "repo": null,
+      "title": "Move the unauthorised view into sharedCopy (en + cy), align compose.yml, chain the stack check",
+      "detail": "auth/unauthorised.njk hardcodes English (Sorry, we are unable to sign you in. / Please try again) and a /auth/sign-in link outside the copy convention. Move the two strings and the sign-in link text into shared/copy.en.js and shared/copy.cy.js under a top-level sharedCopy.unauthorised namespace, render them from sharedCopy, add the namespace to the chrome-namespace pin in copy-convention.test.js (the shared pair is already in copy-parity modulePairs so parity covers it at once). Replace the untouched CDP compose.yml (your-frontend, commented your-backend) with a pointer to the workspace stack or delete it, per README. Add an npm script that chains scripts/check-workspace-stack.js ahead of fit:start. Evidence: skeleton chrome-hardcoded-and-placeholder-links (1), (4), (5); annex:6/non-functional/item:7.",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:dashboard"
+      }
+    },
+    {
+      "key": "dashboard-date-submitted-real-list",
+      "type": "fix",
+      "repo": "both",
+      "title": "Carry submittedAt on the notifications list so Date submitted renders in real mode",
+      "detail": "GET /notifications returns NotificationPageResponse<NotificationView> and NotificationView (plants-backend .../notification/NotificationView.java:31-35) exposes only referenceNumber, concurrencyToken, status and created, so the frontend real list marshal (services/persistence/records/real/marshal/list-item.js:32) hardcodes submittedAt: null and every dashboard card shows an empty Date submitted in real mode; MI metric 6 cannot be read from the list. Backend: add LocalDateTime submittedAt to NotificationView (interface getter and Data field) so the list projection loads it — null unless the record has been submitted — with a controller test asserting a SUBMITTED item carries it. Frontend: map submittedAt: notification.submittedAt ?? null in list-item.js the way real/marshal/document.js:11 does for a single record (null unless status is SUBMITTED); real.requests.test.js list case asserts submittedAt for a SUBMITTED item; the dashboard fit spec asserts the Date submitted row. Animals has the same hole (animals list-item.js:32) — declared duplication, not shared; fix it there separately if wanted. Two repos: repos/trade-imports-plants-backend then repos/trade-imports-plants-frontend, same branch name in both (repo left null). Evidence: behaviour mi-metrics-eight; dateOfNotification displayedOn; dashboard-listing (Date created | Date submitted).",
+      "milestone": null,
+      "gate": null,
+      "anchor": {
+        "after": "page:dashboard"
+      }
+    }
+  ]
+}

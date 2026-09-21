@@ -5,15 +5,16 @@ import { fileURLToPath } from 'node:url'
 
 import { config } from '../config.js'
 import { context } from './context/context.js'
-import * as filters from './filters/filters.js'
 import * as globals from './globals/globals.js'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const nunjucksEnvironment = nunjucks.configure(
   [
     'node_modules/govuk-frontend/dist/',
-    path.resolve(dirname, '../../server/common/templates'),
-    path.resolve(dirname, '../../server/common/components')
+    'node_modules/@ministryofjustice/frontend/',
+    path.resolve(dirname, '../../server/common/components'),
+    path.resolve(dirname, '../../server/app'),
+    path.resolve(dirname, '../../server/app/sets')
   ],
   {
     autoescape: true,
@@ -40,16 +41,12 @@ export const nunjucksConfig = {
       environment: nunjucksEnvironment
     },
     relativeTo: path.resolve(dirname, '../..'),
-    path: 'server/routes',
-    isCached: config.get('isProduction'),
+    path: ['server/app', 'server/app/sets'],
+    isCached: !config.get('nunjucks.noCache'),
     context
   }
 }
 
 Object.entries(globals).forEach(([name, global]) => {
   nunjucksEnvironment.addGlobal(name, global)
-})
-
-Object.entries(filters).forEach(([name, filter]) => {
-  nunjucksEnvironment.addFilter(name, filter)
 })

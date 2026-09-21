@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "id": "c-001",
+      "fields": [
+        "arrivalStatus",
+        "arrivalDate",
+        "placeOfDestination",
+        "countryOfOrigin"
+      ],
+      "sources": ["phnns-policy", "confluence-user-needs", "mural"],
+      "detail": "Territorial scope is stated three ways. Draft SI reg 24A/26 (annex:5) says 'into England' / 'arrival in England' / 'landing in England'; reg 26(2)(b) says 'intended destination in Great Britain'; the Policy section (section:policy/para:6) says 'arrival in GB'; user needs say 'imports into Great Britain' / 'EU > GB' (panel:info, every Applies to cell); the mural service card says 'High risk Plants EU -> GB' (file:blueprint). Scottish Government is a competent authority yet the SI is England-only. Provisional pick: 'Great Britain' in all notifier-facing copy (closest to the Policy section and to reg 26(2)(b)); the arrival and destination labels carry it. Gate question: does a Scottish or Welsh destination notify through this service?",
+      "resolution": "'Great Britain' wins in every notifier-facing string (arrival-status heading and legend, arrivalDate labels by state, proposedPlaceOfLanding hint, confirmation body; the dashboard intro names no territory today — guidance-before-you-start) and the service applies no nation or territory check to the placeOfDestination address, so a Scottish or Welsh destination is notified through this service. The SI's England-only drafting is recorded as a legal note on the england-vs-great-britain behaviour, not rendered and not built.",
+      "resolvedBy": "panel",
+      "decision": "d-001"
+    },
+    {
+      "id": "c-002",
+      "fields": [
+        "arrivalTime",
+        "arrivalDate",
+        "arrivalStatus",
+        "lateNotificationIndicator"
+      ],
+      "sources": [
+        "phnns-policy",
+        "confluence-requirements",
+        "mural",
+        "confluence-user-needs"
+      ],
+      "detail": "Potatoes want 'the expected time and date of their arrival' (annex:5/reg:24A(2)(a); h4:Potatoes (seed and ware)/li:1; file:data-fields/region:Potatoes/item:1) and have no post-arrival wording; plants and wood want 'the expected date of landing ... or, if the consignment has arrived, the date on which it first arrived' (annex:5/reg:26(2)(a); h4:All other goods/li:1; file:data-fields/region:Other goods/item:1) with no time. The mural use case 'Ware potatoes from Spain/Portugal with a late notification' (file:blueprint/Use cases/bullet:2) proves late potato notifications happen, but no source says whether a late potato notification asks for the actual arrival time and date. NNS-UN-035 wants one date field whose label switches. Provisional pick: one arrivalDate for every commodity type; arrivalTime only when commodityType = potatoes; arrivalStatus (not arrived / already arrived) asked only for plants and wood; a potato notification is always framed as pre-arrival and a past date is accepted and flagged late rather than rejected (non-compliance-types).",
+      "resolution": "Collect exactly the statutory matters: one arrivalDate for every commodity type; arrivalTime only when commodityType = potatoes; arrivalStatus only for plants-for-planting and wood-and-cut-trees. A potato notification is always framed as pre-arrival ('Expected date of arrival'), a past date is accepted and flagged late by lateNotificationIndicator, never rejected, and no actual-arrival date or time is added for potatoes; the arrival-status page needs no authored gate because the derived gate hides it for potatoes.",
+      "resolvedBy": "panel",
+      "decision": "d-002"
+    },
+    {
+      "id": "c-003",
+      "fields": [
+        "contactAddress",
+        "contactNumber",
+        "contactEmail",
+        "consignmentNumber"
+      ],
+      "sources": ["phnns-policy", "confluence-user-needs"],
+      "detail": "'Common Data (if needed)' — Name of person making entry, Contact number, Contact address, Contact email, Consignment Number — appears in Annex 2 and Annex 6 (annex:6/common-data/item:1-5) but not in the draft SI, and the heading 'if needed' leaves its mandate undecided. 'Consignment Number' is undefined: no issuer, no format, and reg 24A never uses the word consignment. NNS-UN-040 independently requires 'nominated contact details for my consignment so that relevant parties can be informed about inspection activity' without naming the elements. Provisional pick: contact name+address (one address-book pick, same-as-animals contactAddress), contact number and contact email are required; consignment number is optional (mirroring animals' optional internalReferenceNumber). Gate question: confirm mandate of each Common Data element and define Consignment Number.",
+      "resolution": "The Common Data contact is required and is satisfied by the one same-as-animals contactAddress pick: the picked address-book record carries name, address, telephone number and email address (the address-book API refuses a record without phone and email, and the plants client folds both into the address block), so 'Name of person making entry', 'Contact number', 'Contact address' and 'Contact email' are all collected by that single answer and nothing is asked twice. Consignment Number stays an optional free-text notifier reference on identification-numbers with the animals internalReferenceNumber input contract; its definition (issuer, format, potato applicability, whether it ever becomes mandatory) is parked as an open question, not built. Reading 'Name of person making entry' as the signed-in user is parked under standing ruling 2; in this pass the picked record's name is the nominated contact. The sub-park of 'Name of person making entry' as the signed-in user is decidedBy sam (standing ruling 2).",
+      "resolvedBy": "panel",
+      "decision": "d-012"
+    },
+    {
+      "id": "c-004",
+      "fields": ["commodityType", "category"],
+      "sources": ["mural", "phnns-policy", "confluence-requirements"],
+      "detail": "Seed potatoes sit under 'Plants for planting' in the mural NNS high-risk plant list (file:list-image/row:16) but under 'Potatoes (ware and seed)' on the mural data-fields board (file:data-fields/region:Potatoes (ware and seed)), in the SI (annex:5/reg:24A(1)(a) — seed potatoes are potatoes) and on the Confluence requirements page (h4:Potatoes (seed and ware)). Provisional pick (policy): seed potatoes are commodityType = potatoes and take the potato data set (variety, quantity, intended use, producer and crop ids, time of arrival, place of landing); the per-line category offers 'seed potatoes' and 'ware potatoes' so the origin scope can differ (seed: any EU member state; ware: Poland, Portugal, Romania, Spain).",
+      "resolution": "Seed potatoes are potatoes: commodityType = potatoes, the per-line category offers seed-potatoes and ware-potatoes, and a seed-potato line takes the reg 24A matters (variety, quantity, intended use, producer and crop ids, time of arrival, place of landing) and the two-day pre-arrival window. The mural list-image's placement of seed potatoes under Plants for planting is not followed and 'Seed potatoes' is never a genus value.",
+      "resolvedBy": "panel",
+      "decision": "d-017"
+    },
+    {
+      "id": "c-005",
+      "fields": ["category"],
+      "sources": ["mural"],
+      "detail": "Transcription drift inside the mural: the Mural-native table (file:list-table/row:18) reads 'Conifer wood with mark and isolated conifer' where the embedded OFFSEN policy image (file:list-image/row:18) reads 'Conifer wood with bark and isolated conifer'; both are truncations of the SI wording 'conifer wood with bark and isolated bark of conifer from a member State' (annex:5/reg:26(1)(b)(i)). Provisional pick: the SI wording; the category value is conifer-wood-with-bark ('Conifer wood with bark, or isolated bark of conifer').",
+      "resolution": "The SI wording wins: the category value is conifer-wood-with-bark, labelled 'Conifer wood with bark, or isolated bark of conifer'. The mural table's 'with mark' is a transcription typo and carries no meaning.",
+      "resolvedBy": "panel",
+      "decision": "d-018"
+    },
+    {
+      "id": "c-006",
+      "fields": ["arrivalStatus", "arrivalDate", "placeOfDestination"],
+      "sources": ["confluence-user-needs", "phnns-policy"],
+      "detail": "Consignment status (pre or post movement): NNS-UN-001, NNS-UN-025 ('pre-nots' / 'post-nots') and NNS-UN-036 treat it as a state the importer must understand and that drives which information is asked; the page does not say whether the importer selects it or the service derives it. The SI frames it as an either/or inside the date and destination matters (annex:5/reg:26(2)(a) 'or, if the consignment has arrived'; reg 26(2)(b) 'or ... its current location'), which a service could derive from the arrival date being past or future — but not reliably on the day of arrival. Provisional pick: the importer selects arrivalStatus on its own page (radios: not yet arrived / already arrived) before the date and destination pages, whose labels switch on it; the service does not derive it. Gate question.",
+      "resolution": "The importer selects arrivalStatus on its own single-question page (plants and wood only, radios Yes first) before arrival-details and place-of-destination; the service never derives it from the date. Because the SI's two either/ors are not the same condition — the date turns on 'arrived in England', the location on 'arrived at its intended destination' — the destination page's already-arrived copy tells a notifier whose consignment has landed but not reached its destination to give the intended destination, so one binary status serves both clauses.",
+      "resolvedBy": "panel",
+      "decision": "d-003"
+    },
+    {
+      "id": "c-007",
+      "fields": ["category", "phytosanitaryTreatments", "sizeOfTree"],
+      "sources": ["confluence-requirements", "mural", "phnns-policy"],
+      "detail": "'Additional caveats for wood products' (h4:Additional caveats for wood products/li:1-4) sits under 'Notification Data Requirements' on the Confluence page and its four bullets describe wood-product categories (genus, origin, bark, preservative treatment, height, form), not data elements; the extractor could not tell whether they define which wood is in scope, which wood needs extra data, or both. The mural author says they are copied from the paper 'in case you need this level of detail' (file:data-fields/region:Wood/preamble) — scope refinement, not fields. The SI puts the same text in the scope paragraph (annex:5/reg:26(1)(b)(i)-(iv)) and the extra data (size of tree, phytosanitary treatments) in the matters (reg 26(2)(h)-(i)). Provisional pick (policy): the caveats are the per-line category value list for wood (five values) and the two extra elements are gated on those values; preservative-treated status and tree height are not asked as separate questions — they are scope conditions carried in guidance.",
+      "resolution": "The four wood caveats are scope conditions, not data elements: they become the five wood category values (with the bark, origin, height and form conditions in the value labels) and guidance copy; the only extra wood data collected is the two SI matters, size of tree and phytosanitary treatments, gated same-frame on category. No question is asked about preservative treatment, bark condition or the 3-metre threshold. The preservative exclusion moves from the treatments hint to a hint on the category question shown for wood notifications, worded with its cut-coniferous-trees exception.",
+      "resolvedBy": "panel",
+      "decision": "d-019"
+    },
+    {
+      "id": "c-008",
+      "fields": ["genus", "species"],
+      "sources": ["confluence-requirements", "phnns-policy", "mural"],
+      "detail": "'the category (e.g. plants for planting or cut wood), genus, species (for plants for planting)' (annex:5/reg:26(2)(c); h4:All other goods/li:3; file:data-fields/region:Other goods/item:3): the extractors read '(for plants for planting)' as qualifying species only, but it may qualify genus and species together. The SI scope list names hardwood genera for wood (Castanea, Fraxinus, Platanus — reg 26(1)(b)(iv)) and only 'conifer' for the other wood items, so genus is meaningful for hardwood lines but not for conifer lines. Provisional pick: genus is asked for plants for planting, trees for planting and the two hardwood wood categories; species only for plants for planting and trees for planting; conifer wood and cut coniferous trees ask neither.",
+      "resolution": "'(for plants for planting)' qualifies species only. Genus is asked for plants-for-planting, trees-for-planting, hardwood-round-surface and hardwood-chips lines; species only for plants-for-planting and trees-for-planting; the three conifer lines (conifer-wood-with-bark, conifer-wood-without-bark, cut-coniferous-trees) ask neither in the first pass. The literal reading that reg 26(2)(c) also wants a genus for conifer wood is recorded on the obligation as a parked policy check, not built.",
+      "resolvedBy": "panel",
+      "decision": "d-020"
+    },
+    {
+      "id": "c-009",
+      "fields": ["genus", "category"],
+      "sources": ["phnns-policy", "mural", "confluence-requirements"],
+      "detail": "Juglans and Pterocarya: the draft SI wood item lists only 'Castanea, Fraxinus and Platanus' (annex:5/reg:26(1)(b)(iv)) and footnotes 2 and 3 say Juglans and Pterocarya 'were included in the original scope but have now been removed as they are no longer considered to be hosts of Agrilus planipennis' (footnote:2, footnote:3). The mural list still reads 'Wood of Castanea, Juglens, Pterocarya, and Platanus (from all parts of the EU)' (file:list-image/row:22) and the Confluence wood caveats still read 'Wood, of Fraxinus, Castanea, Juglans, Pterocarya and Platanus' (h4:Additional caveats for wood products/li:4). Provisional pick (policy): the hardwood genus constraint is Castanea, Fraxinus, Platanus; Juglans and Pterocarya are not offered. Also note the mural spelling 'Juglens'.",
+      "resolution": "The hardwood genus constraint is Castanea, Fraxinus and Platanus only. Juglans and Pterocarya are not offered anywhere in the service; the mural and Confluence lists that still carry them (and the mural spelling 'Juglens') are superseded by the SI footnotes.",
+      "resolvedBy": "panel",
+      "decision": "d-021"
+    },
+    {
+      "id": "c-010",
+      "fields": [],
+      "sources": ["confluence-requirements", "confluence-user-needs"],
+      "detail": "Both Confluence pages defer to SharePoint workbooks no extractor could read: the requirements page says the catalogue 'connecting User Needs, Requirements & Data' lives in 'EU Reset Delivery Programme_Requirements Template.xlsx' (h2:Requirements catalogue/info, h2:Requirements catalogue/p) and the user-needs page says the 'live User Needs document' is the same workbook and that needs 'will be transferred to the table below at the conclusion of the NNS exploration phase' (para:sharepoint-link, panel:note). The requirements page also warns its data list is 'True at time of publishing' (h1:Notification Data Requirements/info). Every Confluence-derived fact in this spec is therefore a snapshot (requirements v5 2026-07-02, user needs v11 2026-06-30) that may lag the workbook. Provisional pick: proceed on the pages as read; the workbook is a candidate eighth source for the parent to decide on.",
+      "resolution": "Proceed on the two Confluence pages exactly as extracted (requirements v5 2026-07-02, user needs v11 2026-06-30). The SharePoint workbook 'EU Reset Delivery Programme_Requirements Template.xlsx' is not a source in this run, is not chased, and nothing in the spec waits on it; if it is ever read, each difference from the pages becomes a new conflict against the policy paper, which still wins.",
+      "resolvedBy": "panel",
+      "decision": "d-032"
+    },
+    {
+      "id": "c-011",
+      "fields": [
+        "commodityCode",
+        "quantity",
+        "potatoVariety",
+        "potatoIntendedUse",
+        "eppoCode",
+        "sizeOfTree",
+        "phytosanitaryTreatments",
+        "use",
+        "supplierIdentificationNumber",
+        "producerIdentificationNumber",
+        "cropIdentificationNumber",
+        "consignmentNumber",
+        "contactNumber",
+        "contactEmail",
+        "arrivalTime",
+        "species",
+        "proposedPlaceOfLanding"
+      ],
+      "sources": [
+        "phnns-policy",
+        "confluence-requirements",
+        "mural",
+        "confluence-user-needs"
+      ],
+      "detail": "No source gives a format, unit, value list or validation rule for any free-text element: quantity has no unit (both lists; 'as detailed in paragraph 1' dangles — h4:All other goods/li:5); 'commodity code' names no scheme (annex:5/reg:26(2)(c)); producer, supplier and crop identification numbers name no issuing register (reg 24A(2)(e)-(f), reg 26(2)(g)); EPPO code is named but not its format; 'size of the tree' has no unit beyond the scope threshold 'greater than 3 metres in height'; 'intended use' for potatoes has no options; 'confirmation of what phytosanitary treatments have been applied' is neither free text nor an enumeration; contact number and email have no format; 'Consignment Number' is undefined; 'Notification status' has no vocabulary (policy note on annex:5/reg:26(2)(c)). Annex 6 asks to 'Standardise information as much as is possible' and 'Include means of data validation' (annex:6/non-functional/item:8-9) and NNS-UN-016/017 want coded, consistent values. Provisional pick: every such element is a free-text input with validationRaw 'none given', max length 58 mirroring animals' text inputs, no format check; value lists come later from reference data (commodity-list-dynamic-and-maintainable).",
+      "resolution": "The provisional pick stands: every element no source gives a format, unit or list for is a free-text input, required or optional as the SI mandate says, with animals' max lengths (58; 400 for the treatments textarea) and no format check. Two rules beyond that, both buildable with lib/validate as it is: arrivalTime gets a HH:MM 24-hour rule (the one new factory), and quantity stays a whole number of 1 or more with its hint corrected so it stops promising weight or volume. contactEmail and contactNumber are removed under c-025 — the address-book API validates phone and email at source; the only new factory is time. No commodity-code, EPPO, identification-number or consignment-number format is built; those are parked under nfr-data-validation. The invented hint examples ship flagged provisionalCopy. || Conflict resolution (specChange, c-011): Free text with animals max lengths and no format check for every element without a sourced format; arrivalTime gets a HH:MM rule (new time factory); quantity hint aligned to the whole-number rule; contactEmail and contactNumber removed under c-025 (the address-book API validates phone and email at source); commodity-code, EPPO, identification-number and consignment-number formats parked under nfr-data-validation. || Fields (specChange from c-025): contactNumber and contactEmail are removed from this conflict's field list — the obligations no longer exist.",
+      "resolvedBy": "panel",
+      "decision": "d-049"
+    },
+    {
+      "id": "c-012",
+      "fields": ["commodityLines"],
+      "sources": ["confluence-user-needs", "phnns-policy", "mural"],
+      "detail": "One consignment line or many per notification? The SI speaks of 'the consignment' in the singular and lists one category/genus/species/commodity code/quantity (annex:5/reg:26(2)(c)-(d)) and one variety and quantity for potatoes (reg 24A(2)(d)); NNS-UN-005 needs 'to submit notifications for large shipments efficiently so that I can manage high volumes of consignments' and NNS-UN-006 'detailed and flexible product information'; the mural sizes the service at 59k notifications a year (file:blueprint/left header card). A single mixed consignment (several genera, or several potato varieties) cannot be described by one line. Provisional pick: a notification carries one or many commodity lines (collection commodityLines, at least one), modelled as a variant of animals' commodityLines; bulk upload (many notifications at once) stays a separate open question.",
+      "resolution": "A notification carries one or many commodity lines: commodityLines is a collection with minEntries 1 (error 'Add at least one commodity'), built as the two-page batch (list page plus Commodity details entry sub-page) as a variant of animals' commodityLines without its catalogue search. All lines share the one commodityType chosen first; a consignment mixing potatoes with plants or wood is two notifications. Bulk upload of many notifications is a separate matter already parked under c-040.",
+      "resolvedBy": "panel",
+      "decision": "d-022"
+    },
+    {
+      "id": "c-013",
+      "fields": ["commodityType", "category", "arrivalStatus"],
+      "sources": ["confluence-user-needs", "skeleton", "live-animals"],
+      "detail": "Wipe versus retain when a controlling answer changes. The engine default (skeleton docs/scope-and-wipe.md; live-animals scope-and-wipe) purges a value that leaves scope and never restores it, and this spec proposes wipeOnExit=true on every gated obligation. NNS-UN-006 wants 'detailed and flexible product information' (the word 'flexible' is coloured red on the page, meaning unstated) and NNS-UN-041 wants to 'reuse previously entered consignment information so that I don't have to input the same data repeatedly' — both imply that answers should survive a change of mind. Changing commodityType after commodity lines exist is the sharpest case: lines carry categories that only make sense for the old type, and scope-and-wipe cannot purge a collection on a value mismatch. Provisional pick: wipeOnExit everywhere; on a commodityType change the commodities page reconciles (drops) lines whose category is not in the new type's set. Gate question for every wipeOnExit.",
+      "resolution": "Wipe wins: wipeOnExit = true stays on every gated plants obligation and no answer is retained out of scope. A change of commodityType after lines exist is handled in the commodity-type page's POST, not on the list page's load: the page warns before the change when lines exist, the POST commits the type and then drops the lines whose category is not in the new type's set via reconcileEntriesAt, and redirects to the commodities list with ?removed=<n> where a notification banner names what was removed; the list page suppresses its zero-lines redirect for that load and never writes on GET.",
+      "resolvedBy": "panel",
+      "decision": "d-023"
+    },
+    {
+      "id": "c-014",
+      "fields": ["use", "potatoIntendedUse"],
+      "sources": ["confluence-requirements", "mural", "phnns-policy"],
+      "detail": "'Use (optional)' is the eleventh All-other-goods element on the Confluence requirements page (h4:All other goods/li:11) and on the mural data-fields board (file:data-fields/region:Other goods/item:11), but the draft SI reg 26(2) lists only matters (a)-(i) and Annex 2 / Annex 6 list nine plants/wood items — no 'use'. For potatoes 'their intended use' IS a statutory matter (annex:5/reg:24A(2)(b); h4:Potatoes (seed and ware)/li:4) with no options given. Article 9(7) of the Official Controls Regulation caps data at what is strictly necessary (section:legal-basis/para:1). Provisional pick: potatoIntendedUse is a required per-line element for potato lines; use is an optional per-line free-text element for plants and wood lines because both tier-2 sources carry it and it is optional; drop it if policy confirms the SI list is exhaustive.",
+      "resolution": "The policy paper wins: potatoIntendedUse stays a required free-text per-line element for potato lines, and the optional 'Use' for plants and wood lines is not collected in the first pass — delete the use obligation from the spec and from the commodityLines item list, and record it on the conflict as parked, to be reinstated as an optional per-line text input only if policy adds it to reg 26(2). || Conflict resolution (specChange, c-014): potatoIntendedUse required for potato lines (reg 24A(2)(b)); the plants/wood Use (optional) is not collected — parked: absent from reg 26(2), Annex 2 and Annex 6; reinstate as an optional per-line text input only if policy adds it to reg 26(2).",
+      "resolvedBy": "panel",
+      "decision": "d-050"
+    },
+    {
+      "id": "c-015",
+      "fields": [
+        "quantity",
+        "countryOfOrigin",
+        "placeOfDestination",
+        "arrivalDate"
+      ],
+      "sources": ["phnns-policy", "confluence-requirements", "mural"],
+      "detail": "Every source keeps the potato list and the plants/wood list as two separate field sets with overlapping concepts under different wording — potatoQuantity vs quantityOfPlantsOrWood, potatoCountryOfOrigin vs countryOfOrigin, potatoIntendedDestination vs intendedDestinationOrCurrentLocation, expectedTimeAndDateOfArrival vs expectedDateOfLandingOrDateFirstArrived (annex:5/reg:24A(2) vs reg:26(2); h4:Potatoes vs h4:All other goods; file:data-fields two row-label stickies) — and all three extractors flagged that whether they are one field with a conditional label is for the reconciler. Provisional pick: one obligation per concept (quantity per line; countryOfOrigin, placeOfDestination, arrivalDate per notification) with copy that switches on commodityType/arrivalStatus, so CYA, reporting ('by country and commodity') and the animals pointer each see one field. The potato-only extras (time, place of landing, producer and crop ids) stay separate gated obligations.",
+      "resolution": "One obligation per concept — quantity per line; countryOfOrigin, placeOfDestination and arrivalDate per notification — with the label, hint and CYA row label chosen page-side from the feature's copy keyed on commodityType and arrivalStatus (labelByState / headingByState), exactly as the spec already models; the potato-only extras (arrivalTime, proposedPlaceOfLanding, producer and crop ids) stay separate gated obligations. Check your answers, the hub and the dashboard must render the state label, never the generic one. || Conflict resolution (specChange, c-015): One obligation per concept (quantity per line; countryOfOrigin, placeOfDestination, arrivalDate per notification) with labels switching on commodityType and arrivalStatus; potato-only extras remain separate gated obligations.",
+      "resolvedBy": "panel",
+      "decision": "d-051"
+    },
+    {
+      "id": "c-016",
+      "fields": ["producerIdentificationNumber"],
+      "sources": ["confluence-requirements", "phnns-policy", "mural"],
+      "detail": "The Confluence requirements page reads 'Identification number of the potato produced and crop identification number' (h4:Potatoes (seed and ware)/li:7) where the SI (annex:5/reg:24A(2)(e)) and the mural (file:data-fields/region:Potatoes (ware and seed)/item:7) read 'the identification number of the producer of the potatoes'. Read as a typo for 'producer'. Provisional pick: producerIdentificationNumber, label 'Identification number of the producer of the potatoes'.",
+      "resolution": "'Identification number of the potato produced' on the Confluence page is a typo for 'producer': the obligation is producerIdentificationNumber, labelled 'Identification number of the producer of the potatoes', exactly as the spec already has it. No model change. || Conflict resolution (specChange, c-016): producer (SI wording, annex:5/reg:24A(2)(e)); the Confluence potato produced is a transcription error.",
+      "resolvedBy": "panel",
+      "decision": "d-052"
+    },
+    {
+      "id": "c-017",
+      "fields": ["genus"],
+      "sources": ["mural", "phnns-policy", "confluence-requirements"],
+      "detail": "Genus value list drift. The SI gives one flat statutory list of fifteen plants-for-planting entries (annex:5/reg:26(1)(a)(i)-(xv)); Annex 1 presents the same fifteen as 10 tree genera plus 5 'high risk Xylella shrub hosts' (annex:1/list/item:1-2) and four entries (Olea europaea, Nerium oleander, Polygala myrtifolia, Salvia rosmarinus) are species not genera. The mural list (file:list-image/rows:1-16) adds a sixteenth row 'Seed potatoes' under Plants for planting and spells 'Salvia Rosmarinus' and 'myrtle leaved milkwort'. The Confluence page gives no list. For hardwood wood lines the SI names only Castanea, Fraxinus and Platanus (reg 26(1)(b)(iv)). Provisional pick: input.values = the SI fifteen (policy spelling) for plants for planting and trees for planting; for the two hardwood categories the same control is constrained to Castanea, Fraxinus, Platanus by page-side validation; seed potatoes are not a genus. Annex 6 wants genus and species to be maintainable reference data (annex:6/functional/item:4/sub:2), so the list is a set-owned service, not a hard-coded enum.",
+      "resolution": "The genus list for plants-for-planting and trees-for-planting lines is the fifteen entries of reg 26(1)(a) with the SI's spelling and bracketed English names; the four species-level entries are offered as they stand; 'Seed potatoes' is not a genus; hardwood lines get the same control rendered with Castanea, Fraxinus and Platanus only. The list is set-owned reference data, not a hard-coded enum, and the details page offers only the entries allowed for the line's category — never fifteen with twelve rejected.",
+      "resolvedBy": "panel",
+      "decision": "d-024"
+    },
+    {
+      "id": "c-018",
+      "fields": ["category", "commodityType"],
+      "sources": ["phnns-policy", "mural", "confluence-requirements"],
+      "detail": "Category value list. The SI matter only says 'the category (e.g. plants for planting or cut wood)' (annex:5/reg:26(2)(c)); the policy extractor derived six values from the scope groups (reg 26(1)(a) plus the four wood sub-items with (iv) split into (aa)/(bb)); the mural list-image uses five category labels — Plants for planting, Ware potatoes, Bark, Wood, Cut Trees (file:list-image/column:1) — with seed potatoes under Plants for planting; the Confluence page gives only the example. Neither the SI nor the mural has a 'trees for planting' class although reg 26(2)(h) needs one (see c-019). Provisional pick: the notification-level commodityType has three values (potatoes / plants for planting / wood and cut trees — the mural data-fields split plus the SI's two regs) and the per-line category has nine values (seed potatoes, ware potatoes, plants for planting, trees for planting, conifer wood with bark or isolated bark, conifer wood without bark, cut coniferous trees over 3 metres, hardwood retaining its round surface, hardwood in unprocessed chips); the page offers only the categories that belong to the chosen commodityType.",
+      "resolution": "commodityType has three values (potatoes / plants-for-planting / wood-and-cut-trees) and the per-line category has nine (seed-potatoes, ware-potatoes, plants-for-planting, trees-for-planting, conifer-wood-with-bark, conifer-wood-without-bark, cut-coniferous-trees, hardwood-round-surface, hardwood-chips); the commodity-details page offers only the categories of the chosen type and POST rejects any other. The mural's five coarse labels are not a value list.",
+      "resolvedBy": "panel",
+      "decision": "d-025"
+    },
+    {
+      "id": "c-019",
+      "fields": ["sizeOfTree", "category"],
+      "sources": ["phnns-policy", "confluence-requirements", "mural"],
+      "detail": "'in the case of cut trees or trees for planting, the size of the tree' (annex:5/reg:26(2)(h); h4:All other goods/li:9; file:data-fields/region:Other goods/item:9) — 'trees for planting' is not a scope class in reg 26(1) or Annex 1 (which lists plants for planting by genus, and separately 'cut coniferous trees, greater than 3 metres in height'); Annex 1's grouping into 10 tree genera and 5 shrub hosts is the only hint that some plants for planting are trees. No source says which plants-for-planting lines count as trees. Provisional pick: add 'trees for planting' as a per-line category value beside 'plants for planting' so sizeOfTree can gate same-frame on category in [trees-for-planting, cut-coniferous-trees]; the alternative (ask size for every plants-for-planting line whose genus is one of the ten tree genera) needs a second gate the model cannot express. Gate question.",
+      "resolution": "Keep 'trees for planting' as a per-line category value beside 'plants for planting' so the notifier declares that the plants are trees and sizeOfTree gates same-frame on category in [trees-for-planting, cut-coniferous-trees]. Both options get a neutral hint that lets the trader self-classify without policy knowledge; the genus list is not narrowed for trees for planting. Which plants-for-planting lines legally count as trees is a parked policy question, and the genus-derived alternative is not built.",
+      "resolvedBy": "panel",
+      "decision": "d-026"
+    },
+    {
+      "id": "c-020",
+      "fields": ["proposedPlaceOfLanding"],
+      "sources": [
+        "confluence-requirements",
+        "phnns-policy",
+        "live-animals",
+        "skeleton"
+      ],
+      "detail": "'The proposed place of landing' appears only in the potato list (annex:5/reg:24A(2)(aa); h4:Potatoes (seed and ware)/li:2; file:data-fields/region:Potatoes/item:2); the plants/wood list has no place-of-landing or point-of-entry element and the Confluence extractor notes the page 'does not say whether that omission is deliberate'. Animals always collects portOfEntry (autocomplete over the ports-of-entry reference service); the skeleton notes reference-data marks /ports-of-entry as 'expected — endpoint not built' so the ports stub fixture may be a placeholder, and no source says a potato lorry from Spain lands at a 'port'. Provisional pick: proposedPlaceOfLanding is asked only when commodityType = potatoes, as a variant of animals' portOfEntry (same autocomplete-over-ports widget); its value source and whether plants/wood should also give a landing place are gate questions.",
+      "resolution": "proposedPlaceOfLanding is asked only when commodityType = potatoes — plants and wood notifications collect no landing place — as the animals portOfEntry autocomplete over the ports service backed by reference-data GET /ports-of-entry, which is built, not 'expected'. The capture script's 'expected — endpoint not built' marker is stale and is dropped in the arrival-details increment; the value source is no longer a gate question. || Conflict resolution (specChange, c-020): Potatoes only; variant of animals portOfEntry over the ports service backed by the built reference-data /ports-of-entry endpoint; capture.js optional marker dropped in the arrival-details increment.",
+      "resolvedBy": "panel",
+      "decision": "d-053"
+    },
+    {
+      "id": "c-021",
+      "fields": ["countryOfOrigin"],
+      "sources": ["mural", "phnns-policy"],
+      "detail": "Ware potato origin countries. The SI scopes ware potatoes to those 'grown or suspected of having been grown in Poland, Portugal, Romania or Spain' (annex:5/reg:24A(1)(b)) with Spain excluding the Balearic Islands (reg 24A(3)) and Annex 1 agrees ('Ware potatoes from Poland, Portugal, Romania or Spain'); the mural list reads 'Ware potatoes (from Spain & Poland)*' with an asterisk whose footnote is off-board (file:list-image/row:17) and the use cases name 'Ware potatoes from Spain/Poland' and 'from Spain/Portugal' (file:blueprint/Use cases/bullet:1-2). Provisional pick (policy): the ware-potato origin list is Poland, Portugal, Romania, Spain; 'Spain (excluding the Balearic Islands)' needs guidance text or a region option (spain-excludes-balearic-islands).",
+      "resolution": "The SI wins: the ware-potato origin list is Poland, Portugal, Romania and Spain (ISO PL, PT, RO, ES); the mural's 'Spain & Poland' loses. Spain is stored as the plain code ES, and 'Spain excludes the Balearic Islands' is carried by the origin page's govukInsetText ruled under potato-scope-guidance, rendered only when the notification has a ware-potato line, so countryOfOrigin's hint stays verbatim animals; no region option is built and a region-level value is parked. || Conflict resolution (specChange, c-021): Poland, Portugal, Romania, Spain (SI); Spain stored as ES; Balearic Islands exclusion is the origin-page inset for ware potatoes (potato-scope-guidance), no region option (parked).",
+      "resolvedBy": "panel",
+      "decision": "d-054"
+    },
+    {
+      "id": "c-022",
+      "fields": ["countryOfOrigin"],
+      "sources": ["skeleton", "phnns-policy", "mural", "live-animals"],
+      "detail": "Country list source and origin scope. The plants engine's countries service primes /countries?blocks=GBNAG_SPS_EX — the animals (GBN-AG) SPS origin block — and its captured stub fixture uses the same block (skeleton countries-block-and-capture-coupling, services/countries/index.js:11); animals' countryOfOrigin is 'always in scope' over that list. The policy scopes plants for planting to those 'grown in, or from, a member State', wood 'from a member State' except conifer wood without bark 'from Italy, France, Portugal and Spain' (annex:5/reg:26(1)), seed potatoes to 'another part of the Common SPS Area, other than the United Kingdom, the Channel Islands or the Isle of Man' (reg 24A(1)(a)) and ware potatoes to four countries (reg 24A(1)(b)); the mural frames the whole service as 'EU -> GB'. Whether plants shares the animals block, needs an EU-member-state block, or filters per commodity is unanswered by any source. Provisional pick: same-as-animals widget and service over an EU-member-state block to be named; the per-commodity filter (ware potatoes four countries; conifer wood without bark four countries; seed potatoes and everything else any member state) is page-side validation from a set-owned service, recorded on the obligation as valueConstraints, not a model gap.",
+      "resolution": "Build the first pass on the existing GBNAG_SPS_EX block: its captured membership is exactly the EU-27 plus Iceland, Liechtenstein, Norway and Switzerland, so every country the SI constrains to is already offered. countryOfOrigin stays on the animals widget and service (one always-in-scope autocomplete over services/countries), tagged variant-of-animals under c-027 because this narrowing changes its validation. The per-category narrowing is data in the set-owned commodities service applied as validation inside the origin POST over the intersection of the lists for the categories present in commodityLines — ware potatoes PL/PT/RO/ES; conifer wood without bark IT/FR/PT/ES; plants for planting, trees for planting and the other wood categories the EU-27 member-State list (block minus IS, LI, NO, CH); seed potatoes any primed country — with an out-of-scope origin rejected by an error naming the allowed countries, and Check your answers re-runs the same check. Naming a plants-specific reference-data block is parked in the end-anchored extra country-block-decision and blocks nothing. || Conflict resolution (specChange, c-022): Variant-of-animals (same widget and service) over GBNAG_SPS_EX (EU-27 + IS/LI/NO/CH) for the first pass; the SI scope lists (four-country lists and EU member States) held in the set-owned commodities service and validated inside the origin POST, re-checked on Check your answers; a plants-specific block parked (country-block-decision, end-anchored, blocks nothing).",
+      "resolvedBy": "panel",
+      "decision": "d-055"
+    },
+    {
+      "id": "c-023",
+      "fields": ["referenceNumber"],
+      "sources": ["skeleton", "live-animals", "phnns-policy"],
+      "detail": "Reference number format. Policy wants a 'Unique notification reference number' with no format (annex:6/generated-data/item:1). Animals mints GBN-AG-YY-XXXXXX (two-digit year, six Crockford base32 chars) and shows it as the journeyId in routes, the journey strip, the dashboard card title and the confirmation panel (live-animals reference-number-format). The plants backend ReferenceNumberGenerator and the frontend stub adapter mint {YY}-{XXXXXX} with NO type-code prefix and both carry a PENDING REQUIREMENTS comment; referenceNumber has a unique index so choosing the prefix after data exists is a migration (skeleton reference-number-format, backend-reference-prefix-absent). The plants type code is an open question on epic EUDPA-407. Provisional pick: same shape and display places as animals; prefix unknown; the backend prefix is a gated backlog extra.",
+      "resolution": "The reference keeps the animals shape, minting point and display places (journey strip, dashboard card title, confirmation panel, CYA read-only view) and the frontend prints exactly what the backend or stub mints — today {YY}-{XXXXXX} with no prefix — inventing, parsing and validating nothing. The type-code prefix is a parked backend-plus-stub decision: the backend-reference-prefix extra keeps its Sam gate but moves from before the confirmation page to the end of the backlog so the review section and every E2E behind it can ship.",
+      "resolvedBy": "panel",
+      "decision": "d-060"
+    },
+    {
+      "id": "c-024",
+      "fields": ["notificationStatus"],
+      "sources": ["phnns-policy", "live-animals", "skeleton"],
+      "detail": "Notification status vocabulary. Policy lists 'Notification status' as generated data with no values (annex:6/generated-data/item:3) and separately wants late notifications highlighted (annex:6/functional/item:2) and non-compliances recorded (section:non-compliance/para:2). Animals and the plants engine carry a lifecycle of DRAFT / SUBMITTED / AMEND / DELETED shown as the journey strip tags Draft / Submitted / Amending / Deleted (live-animals journey-strip; skeleton persistence-and-mapper). NNS-UN-020 wants compliance to be 'a reportable status rather than an inference'. Provisional pick: notificationStatus = the engine lifecycle value, with lateness carried by a separate system flag (lateNotificationIndicator) rather than folded into the status; the policy vocabulary is a gate question.",
+      "resolution": "notificationStatus is the engine lifecycle (DRAFT / SUBMITTED / AMEND / DELETED) rendered as the animals tags Draft / Submitted / Amending / Deleted with the same colours on the journey strip, dashboard card and confirmation page, and nothing richer in this run; lateness is the separate lateNotificationIndicator (Late tag beside the status on the dashboard card, banner on confirmation and CYA read-only) and is never folded into the status. All four values are reachable in the first pass because post-submission Amend is in scope (c-030). Where the confirmation prints the status it prints the tag label, never the raw constant. Any richer importer-facing vocabulary (late, selected for check, checked, non-compliant) is parked pending a policy vocabulary; check outcomes are inspector-side data outside the notifier journey.",
+      "resolvedBy": "panel",
+      "decision": "d-061"
+    },
+    {
+      "id": "c-025",
+      "fields": ["contactAddress", "contactNumber", "contactEmail"],
+      "sources": ["phnns-policy", "live-animals", "confluence-user-needs"],
+      "detail": "Contact elements versus the animals shape. Policy lists four separate Common Data elements — Name of person making entry, Contact number, Contact address, Contact email (annex:6/common-data/item:1-4) — and NNS-UN-040 wants 'nominated contact details for my consignment so that relevant parties can be informed about inspection activity and related updates' (elements, channels and parties unstated). Animals collects ONE obligation, contactAddress, as flat radios over the org's address-book records storing an inline copy { addressId, name, address } (live-animals contactAddress, misc.js:5), with no telephone or email on the picker page. The brief fixes the plants shape as same-as-animals contactAddress. Provisional pick: contactAddress (same-as-animals) covers the name and address; contactNumber and contactEmail are plants-only text inputs on a second contact page. Gate question: is 'name of person making entry' the nominated contact or the signed-in user, and does the address-book record already carry phone/email?",
+      "resolution": "The animals shape wins outright. contactAddress (same-as-animals: flat radios over the organisation's address book, inline copy { addressId, name, address }) is the whole contact section, because the copied address block already carries telephoneNumber and emailAddress and the address-book API guarantees both are present. Delete the contactNumber and contactEmail obligations and the contact-details page; the contact task row completes on the pick alone and the opening run ends at consignment-contact-select (runStep 9 after c-034's renumbering) before landing on the hub. The plants Check your answers Contact card adds Telephone number and Email address rows read from the inline copy so the trader can see what will be submitted — animals' card shows name and address lines only, so this is a plants-only addition grounded in annex:6/common-data/item:2,4 and NNS-UN-007. Whether 'Name of person making entry' should be the signed-in user rather than the picked contact is parked under standing ruling 2 and recorded as an open-question behaviour.",
+      "resolvedBy": "panel",
+      "decision": "d-013"
+    },
+    {
+      "id": "c-026",
+      "fields": ["consignor"],
+      "sources": ["phnns-policy", "skeleton", "live-animals"],
+      "detail": "Consignor as typed name and address versus an address-book reference. The SI wants 'the name and address of the consignor' (annex:5/reg:26(2)(f)) for plants and wood only — the potato list has no consignor at all (reg 24A(2)). Animals picks the consignor from the INS-owned, org-scoped, typeless address book and stores a reference { addressId } resolved on every read (live-animals consignor, address-book-picker); the skeleton lists 'whether the address book is the party source for plants' as an unsettled ambiguity (e) and notes writes to the book belong to the INS frontend. An EU consignor is unlikely to be in the importer's address book before the first notification. Provisional pick: variant-of-animals consignor via the address-book picker with fieldGroupRef address, asked for every commodity type (the potato omission is read as an oversight — a gate question), and an open question on whether a typed fallback is needed.",
+      "resolution": "The SI wins on scope: the consignor is required for plants for planting and for wood and cut trees only and is never asked for potatoes — the potato list traces the crop through producer and crop identification numbers instead. The shape stays the variant-of-animals address-book picker with fieldGroupRef address and reference storage { addressId } resolved on read, gated same-frame on commodityType (activatedBy includes [plants-for-planting, wood-and-cut-trees], wipeOnExit true — the includesGate shape arrivalStatus already uses), so consignor-select is skipped by the opening run and its hub row hidden for potatoes. A typed name-and-address fallback for an EU consignor not yet in the address book is parked, not built: the trader adds it in the INS address book first, as animals traders do.",
+      "resolvedBy": "panel",
+      "decision": "d-014"
+    },
+    {
+      "id": "c-027",
+      "fields": ["countryOfOrigin"],
+      "sources": ["live-animals", "phnns-policy"],
+      "detail": "The brief fixes countryOfOrigin as same-as-animals with the animals copy copied verbatim, but the animals error copy reads 'Select the country where the animal originates from' (live-animals origin.js:12, errorCopy/errorCopyCy) while the plants element is 'the country from which the plants or wood originate' / 'the potatoes originate' (annex:5/reg:26(2)(e), reg:24A(2)(ab)). Label, hint, widget and validation are identical; only the error sentence names animals. Provisional pick: keep the same-as-animals tag, id, widget, validation and label; carry the animals error copy verbatim on the obligation with this conflict so the copy pass replaces 'the animal' with 'the plants, wood or potatoes'.",
+      "resolution": "Keep the animals id, page, widget, validation, label, hint and Welsh label and hint verbatim; change only the error sentence to 'Select the country where the consignment originates from' — one noun swapped in the animals sentence — and drop the copied Welsh error rather than ship one that names an animal (the build's copy.cy.js carries a machine-draft leaf under the welsh-copy-seam banner so the parity tripwire still passes; no Welsh is invented in the spec). Because one copy string now differs, tag the obligation variant-of-animals — its divergence being this error sentence and the per-category origin narrowing ruled at c-022 — and flag the error sentence provisional copy.",
+      "resolvedBy": "panel",
+      "decision": "d-015"
+    },
+    {
+      "id": "c-028",
+      "fields": ["declaration"],
+      "sources": ["live-animals", "phnns-policy", "confluence-user-needs"],
+      "detail": "Declaration wording. Animals' declaration page carries five statements (contact for the authorities located in the UK; responsible until cleared border control checks or reached the place of destination; accountable for border-control payments, re-dispatch, quarantine or isolation of the animals, destruction and disposal; authorised when acting for a third party) above one checkbox 'I confirm that I have reviewed and comply with this declaration and that the information submitted in this notification is true and correct.' (live-animals declaration page + flow.js:29). The policy paper says nothing about a declaration; the SI only requires 'written notification' from the professional operator (annex:5/reg:24A(1), reg:26(1)) and the user needs are silent. The animals statements are animal-specific (border control checks do not apply — customs-no-sps-hold-or-matching; no quarantine of plants). Provisional pick: the declaration checkbox, its sentence and the flow-only submit gate are same-as-animals; the statement bullets are variant copy to be written for plants (who is the professional operator, agent authority per NNS-UN-039).",
+      "resolution": "Keep the declaration page and its machinery exactly as animals has them — the single checkbox, its confirmation sentence in English and Welsh, the error copy, the date line, Continue, the flow-only key and submit gate. Replace the five animals statements wholesale: none survives. The first pass carries three short plants statements grounded in the policy paper — (1) this submission is the written notification to the competent authority under the Plant Health National Notification Scheme; (2) the relevant plant health authority (APHA, the Forestry Commission or Scottish Government) may spot-check the consignment without prior notice at its place of destination or where it is currently held; (3) failing to notify, notifying late or giving incorrect details may be treated as a non-compliance — flagged provisional copy for policy and content-design sign-off, with no Welsh invented. The third-party / agent-authority clauses are parked with agent-acting-on-behalf under standing ruling 2, not written, and every spec line saying the plants declaration 'carries the third-party clause' is corrected. The sub-park of the third-party and agent-authority clauses is decidedBy sam (standing ruling 2).",
+      "resolvedBy": "panel",
+      "decision": "d-016"
+    },
+    {
+      "id": "c-029",
+      "fields": ["arrivalDate", "arrivalTime"],
+      "sources": ["live-animals", "phnns-policy", "mural"],
+      "detail": "Arrival date window. Animals validates arrivalDateAtPort with dateTextInRange over [today - 7 days, today + 6 months] in Europe/London (live-animals arrival.js:5). The plants timing rules are relative to the date, not bounds on it: potatoes at least two days before the expected date (section:policy/para:6/item:1; annex:5/reg:24A(1)); plants and wood before or no later than four days after arrival (section:policy/para:6/item:2; reg 26(1)); a late notification is a non-compliance to be highlighted, not rejected (annex:6/functional/item:2; section:non-compliance/para:2) and the mural use case 'Ware potatoes from Spain/Portugal with a late notification' (file:blueprint/Use cases/bullet:2) requires a past date to be accepted. No source gives a lower or upper bound. Provisional pick: real calendar date, no range validation, lateness computed at submission by lateNotificationIndicator; a sanity window (for example the animals -7 days / +6 months) is a gate question.",
+      "resolution": "arrivalDate validates as a real calendar date (dateText) with no sanity window and no animals-style bounds; the single bound is sourced — when arrivalStatus = already-arrived the date may not be after today in Europe/London (dateTextInRange, max only) because it is 'the date on which it first arrived' — and the picker carries data-max-date only in that state and no data-min-date in any state. Expected dates (potatoes, not-yet-arrived) accept any past or future date; lateness is computed, never validated; a typo sanity window is parked, not built.",
+      "resolvedBy": "panel",
+      "decision": "d-004"
+    },
+    {
+      "id": "c-030",
+      "fields": [],
+      "sources": ["live-animals", "phnns-policy", "confluence-user-needs"],
+      "detail": "Amending, copying and deleting after submission. Animals offers per-status actions — SUBMITTED: View, Amend (AMEND status, hub), Copy as new, Delete; DRAFT: Resume, Copy as new, Delete; AMEND: Resume, Copy as new, Cancel amendment, Delete — with cancel-amend and delete confirmation pages (live-animals notification-actions, cancelAmend, deleteNotification). The policy paper covers only 'Ability to amend the notification before submitting' (annex:6/functional/item:12) and its notes say it 'says nothing about amending a notification after submission, cancelling one, what happens if the consignment does not arrive'; the user needs are silent on amend/cancel but NNS-UN-041 ('reuse previously entered consignment information') maps onto Copy as new. Provisional pick: amend-before-submit (CYA Change links) is in scope; the post-submission action set, cancel-amend and delete pages are NOT spec pages — recorded as an open-question behaviour (notification-actions-after-submission) to be ruled at the gate; Copy as new is parked under NNS-UN-041.",
+      "resolution": "The animals post-submission action set is in scope minus Copy as new: dashboard SUBMITTED shows View | Amend | Delete; DRAFT shows Resume | Delete; AMEND shows Resume | Cancel amendment | Delete; the CYA read-only view offers Delete when SUBMITTED and the Cancel amendment link when AMEND; the confirmation page restores the animals 'How to view or amend this notification' block. The delete-notification and cancel-amend confirmation pages are copied from animals as chore extras (they are action-slug controllers, not dispatch pages), the delete page before the start-section E2E and the cancel-amend page before the review-section E2E. Copy as new and the Notification copied banner stay parked with reuse-previous-consignment (NNS-UN-041). The late flag is computed once, at the first submission from DRAFT, and left untouched on a re-submit from AMEND; dateOfNotification stays the record envelope's submittedAt (the latest submission, as animals shows Date submitted). Whether an amended arrival date should re-run the reg 24A / reg 26 test, and whether the backend should keep a first-submission timestamp, are recorded as parked policy questions, not blockers.",
+      "resolvedBy": "panel",
+      "decision": "d-062"
+    },
+    {
+      "id": "c-031",
+      "fields": ["arrivalDate", "arrivalStatus", "lateNotificationIndicator"],
+      "sources": ["phnns-policy", "confluence-user-needs"],
+      "detail": "Plants/wood timing wording differs inside the policy paper and against the user needs: the Policy section says 'no later than 4 days after date of arrival in GB' (section:policy/para:6/item:2), the SI says 'before or no later than four days after the date of their arrival in England' (annex:5/reg:26(1)) — only the SI explicitly allows a pre-arrival notification — and NNS-UN-001/025/036 assume both 'pre' and 'post' movement notifications exist for high-risk plants generally, without a commodity split. Provisional pick (SI): plants and wood may be notified before arrival or up to four days after; potatoes only before (two days). Lateness = potatoes: submitted later than two days before the expected date; plants/wood: submitted more than four days after the arrival date.",
+      "resolution": "The SI wording wins: plants and wood may be notified before arrival or no later than four days after the date of arrival; potatoes only before, at least two days before the expected date. Lateness is calendar-day arithmetic in Europe/London and ignores arrivalTime — potatoes are late when the notification day is after arrivalDate minus 2 days, plants and wood when it is after arrivalDate plus 4 days (notifying on arrivalDate minus 2, or on arrivalDate plus 4, is on time); a future date can still be late for potatoes but never for plants and wood, and the windows are shown up front as option hints on commodity-type and per state on arrival-status.",
+      "resolvedBy": "panel",
+      "decision": "d-005"
+    },
+    {
+      "id": "c-032",
+      "fields": [],
+      "sources": ["skeleton", "live-animals", "mural", "prototype"],
+      "detail": "Service name, feedback address and support route. The plants engine's shared chrome is carried over from animals unverified: service name 'Import notification service', Alpha phase banner with a mailto:APHAServiceDesk@apha.gov.uk feedback link, Address book and Manage account navigation links pointing at '#', an English-only hardcoded unauthorised view (skeleton chrome-hardcoded-and-placeholder-links, shared-chrome-copy). Animals' confirmation page names the APHA imports risk management mailbox and service desk for 'live animals or germinal products' (live-animals confirmation-page). The mural names the service 'High risk Plants EU -> GB (PHNNS)' and leaves Support 'TBC' on a pink sticky (file:blueprint/Support); the prototype's confirmation help block is animals wording and 'would need a plants-service equivalent'. Competent authorities for plants are APHA, the Forestry Commission and Scottish Government (section:policy/para:7). Provisional pick: keep the shared chrome verbatim (same service name and banner) and treat the confirmation help block, feedback address and the two placeholder links as a gated chore; no plants helpdesk is invented.",
+      "resolution": "The shared chrome ships verbatim in the first pass: service name 'Import notification service' (service navigation, page-title suffix, dashboard h1 and titleCy), the Alpha phase banner with the existing APHA service-desk feedback mailto, and Address book / Manage account at '#'. The confirmation help block says only 'contact the relevant plant health authority — APHA, the Forestry Commission or Scottish Government' with no email, telephone or opening-hours lines, and the page is flagged provisionalCopy. The Sam-gated extra chrome-placeholders-and-service-name is narrowed to the decisions nobody can make today — six after D7: service name, feedback address, helpdesk contact lines, the homes of the two links, and the footer accessibility-statement and privacy-notice URLs (nfr-accessible-wcag-2-2-aa, nfr-gdpr); the unauthorised-view copy move, the untouched compose.yml and the check-workspace-stack wiring come off that gate and build now as an ungated chore. || Conflict resolution (specChange, c-032): Shared chrome verbatim; confirmation help block names the relevant plant health authority (APHA, the Forestry Commission or Scottish Government) with no invented contact; the plants service name, feedback address, helpdesk lines and link homes stay on the Sam-gated extra chrome-placeholders-and-service-name; the unauthorised-view copy move, compose.yml and stack-check wiring build now as the ungated extra unauthorised-view-copy-and-stack-check.",
+      "resolvedBy": "panel",
+      "decision": "d-067"
+    },
+    {
+      "id": "c-033",
+      "fields": [],
+      "sources": ["prototype", "live-animals", "skeleton"],
+      "detail": "Shared cross-journey dashboard versus a per-set list. The design prototype's Design release 2 dashboard offered a 'By type' filter with Live animals / Plants / Products of animal origin and stamped a 'Plants' label on demo cards; Design release 2.1 withdrew the option (hidePlants: true), blanks ?type=plants and titles the dashboard 'Live animals and germinal products' (prototype dashboard-type-filter-plants-placeholder, app/routes.js:7779-7796, :7930). Animals' built dashboard lists only the journeys its own session cookie knows, scoped to the session organisation (live-animals dashboard-listing); the plants engine reserves '/' for a set-owned dashboard and routes.test.js pins it as 404 today (skeleton dashboardReserved). Epic EUDPA-407 rules a combined animals+plants list in INS out of this run. Provisional pick: the plants dashboard is a same-as-animals per-set page listing only plants notifications; the DR2 intent is evidence for a later INS front door, not a plants spec.",
+      "resolution": "The plants dashboard is a same-as-animals, set-owned page at '/' that lists only the plants notifications this session's highRiskPlantsKnownJourneys cookie knows, scoped to the session organisation and excluding DELETED, one summary card per notification with the Status tag and the Late tag. No 'By type' filter, no cross-journey rows and no journey-type label on the cards. The Design release 2 cross-journey dashboard is evidence for a later INS front door, not a plants requirement, and stays recorded under combined-ins-list-out-of-scope. The sub-park of the session-only listing as a user-model matter is decidedBy sam (standing ruling 2). || Conflict resolution (specChange, c-033): Per-set plants dashboard, same-as-animals, listing only the plants notifications this session knows for the session organisation; no By type filter, no cross-journey rows, no journey-type label on cards; a combined INS list is parked per EUDPA-407 (combined-ins-list-out-of-scope).",
+      "resolvedBy": "panel",
+      "decision": "d-068"
+    },
+    {
+      "id": "c-034",
+      "fields": [],
+      "sources": ["live-animals", "skeleton", "phnns-policy"],
+      "detail": "Whether plants has an opening run, a grouped hub, section captions and a declaration. Animals has all four (a seven-step opening run, a six-group task-list hub with five statuses, a captionSections map, a flow-only declaration page — live-animals opening-run, hub-task-list, section-captions, declaration-and-submit-gate). The plants engine supports all four but the set configures none — RUN_STEPS, taskRows, sections, FLOW_ONLY_KEYS all empty, sectionCaption unwired, entry guard inert — and the skeleton lists this as ambiguity (d) it cannot settle. The policy paper implies only 'amend before submitting' (annex:6/functional/item:12) and generated data on submission; NNS-UN-004 wants the process 'simple' with 'minimal effort' and NNS-UN-007 wants confidence that answers are complete. Provisional pick (brief: mirror animals): an opening run over the section order (commodity-type -> commodities -> origin -> arrival -> destination -> parties -> contact -> hub), a hub with grouped task rows, captions per section, and a flow-only declaration.",
+      "resolution": "Plants has all four, mirroring animals: an opening run over the spec's section order landing on the hub, a four-group govukTaskList hub with the five animals statuses, section captions from a captionSections map, and a flow-only declaration page as the submit gate. Two corrections to the spec: the commodity-details entry sub-page is not a run step (its Continue returns to the commodities list page, whose Continue advances the run), so its runStep is removed and the later steps renumbered; and because the hub builds before any collecting page, the hub increment lands with GROUPS and taskRows [] and each section's first page adds that section's task row, GROUPS placement and run step. The hub carries provisionalCopy because one of its Welsh group names is invented, and the declaration's statements may assert only what a plants source supports — no undertaking the SI does not impose. || Conflict resolution (specChange, c-034): All four adopted, mirroring animals: opening run in section order (the commodity entry sub-page is never a run step), grouped hub with the five statuses landing with taskRows [] and gaining one row per section increment, captionSections map, flow-only declaration limited to statements a plants source supports.",
+      "resolvedBy": "panel",
+      "decision": "d-069"
+    },
+    {
+      "id": "c-035",
+      "fields": ["lateNotificationIndicator"],
+      "sources": ["phnns-policy", "confluence-user-needs", "live-animals"],
+      "detail": "Where the late-notification highlight is shown. Policy: 'Highlight to the user (internal and external) when a notification was made outside of required timings' (annex:6/functional/item:2) — at or after submission, to both sides. NNS-UN-012 wants the importer to 'understand when my notification is late or non-compliant and what the rules are so that I can meet the rules correctly in future' and the extractor could not tell 'whether this is a page, a banner on submission, or a message afterwards'; NNS-UN-014 wants regulators to see late notifications. Animals has no lateness concept (its arrival window is validation). Provisional pick: a system-derived lateNotificationIndicator shown on the confirmation page (and CYA read-only view) as a notification banner naming the rule breached; never a blocking validation; no separate 'late' page. Whether to warn BEFORE submission (on CYA) when the date already implies lateness is a gate question.",
+      "resolution": "After submission the late highlight is shown in three places — a govukNotificationBanner naming the rule breached on the confirmation page and on the SUBMITTED read-only check-your-answers view, and a Late tag beside the status on the dashboard card; before submission the DRAFT check-your-answers page shows govukWarningText when the entered date would make the notification late if submitted today, computed by the same helper with the request clock, and says it can still be submitted. It never blocks and there is no separate late page. lateNotificationIndicator is a manifest obligation with system: true, listed in SYSTEM_POPULATED: one pure helper computes on-time | late from (clock, commodityType, arrivalDate) and is called twice — with the request clock for the DRAFT check-your-answers warning, and with the finalise clock in the declaration POST, whose result is committed as a system value in fulfilment immediately before submitJourney only when the journey is DRAFT (c-030); confirmation, the submitted check-your-answers view and the dashboard Late tag read the stored value and never recompute from submittedAt.",
+      "resolvedBy": "panel",
+      "decision": "d-006"
+    },
+    {
+      "id": "c-036",
+      "fields": ["species", "genus"],
+      "sources": ["phnns-policy", "confluence-user-needs"],
+      "detail": "Species as free text versus reference data. The SI requires 'species (for plants for planting)' with no list (annex:5/reg:26(2)(c)); Annex 6 asks to 'Allow easy maintenance of Genus & species in scope' (annex:6/functional/item:4/sub:2) implying species-level reference data, and the statutory scope is genus-level except for four species entries. NNS-UN-006 wants 'detailed and flexible product information' (free text) while NNS-UN-016/017 and Annex 6 'Standardise information' want coded values. Provisional pick: genus is a controlled list from a set-owned service; species is a free-text input (validationRaw none given) until a species catalogue exists; the four species-level scope entries are offered as genus values exactly as the SI spells them.",
+      "resolution": "Genus is a controlled list from the set-owned commodities service; species is required free text (requiredMaxText 58, no format check) on plants-for-planting and trees-for-planting lines until a species catalogue exists; the four species-level scope entries (Olea europaea, Nerium oleander, Polygala myrtifolia, Salvia rosmarinus) are offered as genus values exactly as the SI spells them.",
+      "resolvedBy": "panel",
+      "decision": "d-027"
+    },
+    {
+      "id": "c-037",
+      "fields": ["category", "countryOfOrigin"],
+      "sources": ["mural", "confluence-requirements", "phnns-policy"],
+      "detail": "Conifer wood bark condition by origin. The SI has two items: '(i) conifer wood with bark and isolated bark of conifer from a member State' and '(ii) conifer wood without bark from Italy, France, Portugal and Spain' (annex:5/reg:26(1)(b)); the mural data-fields wood caveats and the Confluence caveats phrase (ii) as 'Conifer wood with or without bark and isolated bark from Italy, France, Portugal and Spain' (file:data-fields/region:Wood/bullet:2; h4:Additional caveats for wood products/li:2) — i.e. the four-country item covers wood with bark too, which the SI already covers under (i) from any member State. The mural list-image row 19 reads 'Conifer wood (from Italy, France, Portugal & Spain)*' with an off-board footnote. Same practical scope, different wording. Provisional pick (SI): two category values — conifer-wood-with-bark (any member State) and conifer-wood-without-bark (Italy, France, Portugal, Spain only) — with the origin constraint on the second.",
+      "resolution": "The SI's two items win: conifer-wood-with-bark ('Conifer wood with bark, or isolated bark of conifer', any member State) and conifer-wood-without-bark ('Conifer wood without bark', Italy, France, Portugal and Spain only), with the four-country origin constraint on the second value alone. The Confluence and mural rephrasing is not modelled as a third value.",
+      "resolvedBy": "panel",
+      "decision": "d-028"
+    },
+    {
+      "id": "c-038",
+      "fields": [],
+      "sources": [
+        "confluence-user-needs",
+        "phnns-policy",
+        "mural",
+        "live-animals"
+      ],
+      "detail": "Who notifies: importer, agent or professional operator. The SI puts the duty on 'a professional operator who is bringing ... into England' (annex:5/reg:24A(1), reg:26(1)) and the Policy section says 'Importers will be required to complete a PHNSS notification' (section:policy/para:6); NNS-UN-039 wants 'an agent to act on my behalf' (text duplicated 'so that I can so that I can'; how the agent is identified, authorised or linked is unstated); the mural blueprint names the actor 'Importer, agent' at every importer-facing stage (file:blueprint/Setup actions, Import notification). Animals collects importer, consignee, consignor and place of origin as separate address-book parties and its declaration asserts third-party authority; the plants SI names only the consignor. Provisional pick: the signed-in organisation is the notifier; no agent or importer party is collected in the journey (agent authorisation is out of scope per the brief and parked as an open question under NNS-UN-039); the declaration copy carries the third-party clause.",
+      "resolution": "The SI wins: the notifier is the professional operator bringing the goods into England, and in this service that is the signed-in Defra ID organisation. The journey collects no importer, agent or notifier party; the consignor (reg 26(2)(f)) is the only party obligation. The declaration carries no third-party, standing, authority or agent sentence — both animals third-party statements are parked with agent-acting-on-behalf under standing ruling 2 (c-028) — and its statement bullets are the three plants statements ruled at c-028. Agent identification, authorisation and linking stay parked under agent-acting-on-behalf. || Detail note (specChange from c-028): the provisional pick's sentence 'the declaration copy carries the third-party clause' in this conflict's detail is superseded by c-028 — the clause is parked with agent-acting-on-behalf, not carried; this ruling does not reinstate it.",
+      "resolvedBy": "sam",
+      "decision": "d-033"
+    },
+    {
+      "id": "c-039",
+      "fields": [],
+      "sources": ["confluence-user-needs", "mural", "phnns-policy", "skeleton"],
+      "detail": "Plant-operator registration as a precondition. NNS-UN-038 ('register myself as a plant operator so that I can notify authorities') is one of two rows highlighted orange on the user-needs page with no legend; the mural Setup actions stage says 'Register for new [GB product] — Importer, agent' with the product name in placeholder brackets (file:blueprint/Setup actions); the policy paper says nothing about how external notifiers sign in and only requires userid and password for internal users (annex:6/non-functional/item:4). The plants engine already enforces Defra ID sign-in (skeleton authSignIn) and animals has no registration step. Provisional pick: sign-in via Defra ID is the only precondition built in this run; plant-operator registration is out of scope per the brief and parked (open-question behaviour plant-operator-registration) rather than rejected.",
+      "resolution": "Defra ID sign-in (real mode /auth/sign-in, /auth/sign-in-oidc, /auth/organisation; stub mode /auth/stub-sign-in) is the only precondition to notifying built in this run. No plant-operator registration page, registration check before the dashboard or onboarding step; the dashboard is reachable by any authenticated organisation. Plant-operator registration stays parked under plant-operator-registration.",
+      "resolvedBy": "sam",
+      "decision": "d-034"
+    },
+    {
+      "id": "c-040",
+      "fields": ["commodityLines"],
+      "sources": ["phnns-policy", "confluence-user-needs"],
+      "detail": "Bulk upload versus the one-notification form. Annex 6 requires 'the option to bulk upload (external) to or download data (internal) from the system' (annex:6/functional/item:6) with no format; NNS-UN-005 wants 'to submit notifications for large shipments efficiently ... high volumes of consignments' and the extractor could not tell whether that means one notification with many lines, many notifications at once, or both; NNS-UN-042 wants to import consignment information from existing documents. The brief and epic EUDPA-407 put bulk upload, import-from-documents and reuse-a-previous-consignment out of this run. Provisional pick: the many-lines reading is met by the commodityLines collection; bulk upload, document import and reuse are parked open-question behaviours citing their needs, not rejected.",
+      "resolution": "The many-lines reading of NNS-UN-005 is met by the commodityLines collection: one notification, one or many lines, at least one, no maximum (c-012). Bulk upload of many notifications at once, import from existing documents and reuse of a previous consignment are not built and each stays its own parked behaviour; no file page, upload route or format enters the start section, and nothing in the form is shaped around a future file route. Annex 6's bulk-upload line is recorded as met later, not now.",
+      "resolvedBy": "sam",
+      "decision": "d-035"
+    }
+  ]
+}

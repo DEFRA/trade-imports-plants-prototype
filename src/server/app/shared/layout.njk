@@ -1,0 +1,132 @@
+{% extends "govuk/template.njk" %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+{% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+
+{% set homeUrl = "/" %}
+{# Destination for the alpha phase banner's feedback link. A destination, not
+   copy, so it lives here beside the footer's meta links rather than in
+   copy.en.js/copy.cy.js — it is identical in both locales. #}
+{% set feedbackUrl = "mailto:APHAServiceDesk@apha.gov.uk" %}
+{% set signOutUrl = "/auth/sign-out" %}
+{# The address book and the account page have no home in this service yet, so
+   both point at a placeholder — as Design release 1 does for the account page.
+   Where the address book lives is settled separately. #}
+{% set addressBookUrl = "#" %}
+{% set manageAccountUrl = "#" %}
+
+{% block head %}
+  <meta name="csrf-token" content="{{ crumb }}">
+  <link href="{{ getAssetPath('stylesheets/application.scss') }}" rel="stylesheet">
+{% endblock %}
+
+{% block pageTitle %}{% if errorSummary %}{{ sharedCopy.layout.errorTitlePrefix }}{% endif %}{{ pageTitle }} | {{ sharedCopy.layout.serviceName }}{% endblock %}
+
+{% block govukHeader %}
+  {{ govukHeader({
+    homepageUrl: "https://www.gov.uk/",
+    classes: "app-header",
+    containerClasses: "govuk-width-container"
+  }) }}
+{% endblock %}
+
+{% block govukServiceNavigation %}
+  {% set navigationItems = [] %}
+  {% if userSession and userSession.isAuthenticated %}
+    {% set navigationItems = [
+      {
+        text: sharedCopy.layout.serviceNavigation.dashboard,
+        href: homeUrl,
+        active: activeNavigationItem == "dashboard"
+      },
+      {
+        text: sharedCopy.layout.serviceNavigation.addressBook,
+        href: addressBookUrl
+      },
+      {
+        text: sharedCopy.layout.serviceNavigation.manageAccount,
+        href: manageAccountUrl
+      },
+      {
+        text: sharedCopy.layout.serviceNavigation.logOut,
+        href: signOutUrl
+      }
+    ] %}
+  {% endif %}
+  {{ govukServiceNavigation({
+    serviceName: sharedCopy.layout.serviceName,
+    serviceUrl: homeUrl,
+    menuButtonText: sharedCopy.layout.serviceNavigation.menuButton,
+    navigation: navigationItems
+  }) }}
+{% endblock %}
+
+{% block beforeContent %}
+  {% set phaseBannerHtml %}{{ sharedCopy.layout.phaseBanner.bodyPrefix }} <a class="govuk-link" href="{{ feedbackUrl }}">{{ sharedCopy.layout.phaseBanner.feedbackLinkText }}</a>.{% endset %}
+  {# Grey tag to match Design release 1; the GDS phase-banner example leaves the tag blue. #}
+  {{ govukPhaseBanner({
+    tag: { text: sharedCopy.layout.phaseBanner.tag, classes: "govuk-tag--grey" },
+    html: phaseBannerHtml
+  }) }}
+  {# No breadcrumbs: Design release 1 gives a page one route backwards — the
+     back link — and one route up, the service navigation. #}
+  {% if backLink %}
+    {{ govukBackLink({ text: sharedCopy.layout.back, href: backLink }) }}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="{{ contentColumnClass | default("govuk-grid-column-two-thirds", true) }}">
+      {% if recoverableError %}
+        {{ govukNotificationBanner({
+          titleText: sharedCopy.recoverableError.title,
+          text: sharedCopy.recoverableError.body,
+          role: "alert"
+        }) }}
+      {% endif %}
+      {% if staleActionRejected %}
+        {{ govukNotificationBanner({
+          titleText: sharedCopy.staleActionRejected.title,
+          text: sharedCopy.staleActionRejected.body,
+          role: "alert"
+        }) }}
+      {% endif %}
+      {% if journeyStrip %}
+        <div class="app-journey-strip govuk-!-margin-bottom-4">
+          {{ govukTag({ text: journeyStrip.status.text, classes: journeyStrip.status.classes }) }}
+          <span class="govuk-body govuk-!-font-weight-bold">{{ journeyStrip.reference }}</span>
+        </div>
+      {% endif %}
+      {% block journeyContent %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block govukFooter %}
+  {{ govukFooter({
+    meta: {
+      items: [
+        {
+          href: "https://www.gov.uk/help/privacy-notice",
+          text: sharedCopy.layout.footer.privacy
+        },
+        {
+          href: "https://www.gov.uk/help/cookies",
+          text: sharedCopy.layout.footer.cookies
+        },
+        {
+          href: "https://www.gov.uk/help/accessibility-statement",
+          text: sharedCopy.layout.footer.accessibility
+        }
+      ]
+    }
+  }) }}
+{% endblock %}
+
+{% block bodyEnd %}
+  <script type="module" src="{{ getAssetPath('application.js') }}"></script>
+{% endblock %}

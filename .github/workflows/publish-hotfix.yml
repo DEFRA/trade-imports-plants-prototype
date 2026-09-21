@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: $${{ github.head_ref || github.ref_name }}
+  group: ${{ github.head_ref || github.ref_name }}
   cancel-in-progress: false
-  queue: max
 
 permissions:
   id-token: write
@@ -44,8 +43,14 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-#      - name: SonarCloud Scan
-#        uses: SonarSource/sonarqube-scan-action@v5.3.1 #  (or check latest version on https://github.com/marketplace/actions/official-sonarqube-scan)
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Check for a SonarCloud token
+        id: sonar-token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: echo "present=$([ -n "$SONAR_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: SonarCloud Scan
+        if: github.actor != 'dependabot[bot]' && steps.sonar-token.outputs.present == 'true'
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
