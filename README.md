@@ -1,8 +1,8 @@
-# CDP Node.js Frontend Template
+# trade-imports-plants-prototype
 
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_cdp-node-frontend-template&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=DEFRA_cdp-node-frontend-template)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_cdp-node-frontend-template&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_cdp-node-frontend-template)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_cdp-node-frontend-template&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_cdp-node-frontend-template)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
 
 Core delivery platform Node.js Frontend Template.
 
@@ -36,7 +36,7 @@ Please install Node Version Manager [nvm](https://github.com/creationix/nvm)
 To use the correct version of Node.js for this application, via nvm:
 
 ```bash
-cd cdp-node-frontend-template
+cd trade-imports-plants-prototype
 nvm use
 ```
 
@@ -141,18 +141,18 @@ git config --global core.autocrlf false
 
 > [!TIP]
 > For Apple Silicon users, you may need to add `--platform linux/amd64` to the `docker run` command to ensure
-> compatibility fEx: `docker build --platform=linux/arm64 --no-cache --tag cdp-node-frontend-template`
+> compatibility fEx: `docker build --platform=linux/arm64 --no-cache --tag trade-imports-plants-prototype`
 
 Build:
 
 ```bash
-docker build --target development --no-cache --tag cdp-node-frontend-template:development .
+docker build --target development --no-cache --tag trade-imports-plants-prototype:development .
 ```
 
 Run:
 
 ```bash
-docker run -p 3000:3000 cdp-node-frontend-template:development
+docker run -p 3000:3000 trade-imports-plants-prototype:development
 ```
 
 ### Production image
@@ -160,13 +160,13 @@ docker run -p 3000:3000 cdp-node-frontend-template:development
 Build:
 
 ```bash
-docker build --no-cache --tag cdp-node-frontend-template .
+docker build --no-cache --tag trade-imports-plants-prototype .
 ```
 
 Run:
 
 ```bash
-docker run -p 3000:3000 cdp-node-frontend-template
+docker run -p 3000:3000 trade-imports-plants-prototype
 ```
 
 ### Docker Compose
