@@ -48,7 +48,7 @@ jobs:
       - name: Test Docker Image Build
         run: |
           set +e
-          docker build --no-cache --tag trade-imports-plants-frontend .
+          docker build --no-cache --tag trade-imports-plants-prototype .
           exit $?
 
       - name: SonarCloud Scan

@@ -197,7 +197,7 @@ export const config = convict({
     serviceId: {
       doc: 'Defra ID service ID',
       format: String,
-      default: 'trade-imports-plants-frontend',
+      default: 'trade-imports-plants-prototype',
       env: 'DEFRA_ID_SERVICE_ID'
     },
     policy: {
@@ -281,7 +281,7 @@ export const config = convict({
     keyPrefix: {
       doc: 'Redis cache key prefix name used to isolate the cached results across multiple clients',
       format: String,
-      default: 'trade-imports-plants-frontend:',
+      default: 'trade-imports-plants-prototype:',
       env: 'REDIS_KEY_PREFIX'
     },
     useSingleInstanceCache: {

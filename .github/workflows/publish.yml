@@ -59,4 +59,4 @@ jobs:
     needs: build
     uses: DEFRA/trade-imports-workspace/.github/workflows/publish-multiarch.yml@main
     with:
-      image-name: trade-imports-plants-frontend
+      image-name: trade-imports-plants-prototype

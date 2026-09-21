@@ -1,5 +1,5 @@
 {
-  "name": "trade-imports-plants-frontend",
+  "name": "trade-imports-plants-prototype",
   "version": "0.0.0",
   "description": "Frontend for the high-risk plants and plant products import notification service",
   "sideEffects": false,

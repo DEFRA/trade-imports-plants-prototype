@@ -1,8 +1,8 @@
-# trade-imports-plants-frontend
+# trade-imports-plants-prototype
 
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-frontend&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-frontend)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-frontend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-frontend)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-frontend&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-frontend)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
 
 The frontend for the high-risk plants import notification journey. It runs on
 the same obligation and journey platform as the live-animals frontend: a
@@ -51,7 +51,7 @@ Node 24 or later, and npm 11.6.2 — the version pinned by `packageManager` in
 To use the correct version of Node.js for this application, via nvm:
 
 ```bash
-cd trade-imports-plants-frontend
+cd trade-imports-plants-prototype
 nvm use
 ```
 
@@ -184,18 +184,18 @@ production. The Playwright suite sets it for its own web server, so
 > [!TIP]
 > For Apple Silicon users, you may need to add `--platform linux/amd64` to the
 > `docker run` command to ensure compatibility, for example
-> `docker build --platform=linux/arm64 --no-cache --tag trade-imports-plants-frontend`
+> `docker build --platform=linux/arm64 --no-cache --tag trade-imports-plants-prototype`
 
 Build:
 
 ```bash
-docker build --target development --no-cache --tag trade-imports-plants-frontend:development .
+docker build --target development --no-cache --tag trade-imports-plants-prototype:development .
 ```
 
 Run:
 
 ```bash
-docker run -p 3003:3003 trade-imports-plants-frontend:development
+docker run -p 3003:3003 trade-imports-plants-prototype:development
 ```
 
 ### Production image
@@ -203,13 +203,13 @@ docker run -p 3003:3003 trade-imports-plants-frontend:development
 Build:
 
 ```bash
-docker build --no-cache --tag trade-imports-plants-frontend .
+docker build --no-cache --tag trade-imports-plants-prototype .
 ```
 
 Run:
 
 ```bash
-docker run -p 3003:3003 trade-imports-plants-frontend
+docker run -p 3003:3003 trade-imports-plants-prototype
 ```
 
 ### Local stack

@@ -30,7 +30,7 @@ describe('#buildRedisClient', () => {
         expect.objectContaining({
           db: 0,
           host: config.get('redis').host,
-          keyPrefix: 'trade-imports-plants-frontend:',
+          keyPrefix: 'trade-imports-plants-prototype:',
           port: 6379
         })
       )
@@ -53,7 +53,7 @@ describe('#buildRedisClient', () => {
         [{ host: config.get('redis').host, port: 6379 }],
         expect.objectContaining({
           dnsLookup: expect.any(Function),
-          keyPrefix: 'trade-imports-plants-frontend:',
+          keyPrefix: 'trade-imports-plants-prototype:',
           redisOptions: expect.objectContaining({
             db: 0,
             password: 'pass',
