@@ -1,0 +1,71 @@
+# Flow machinery and gates
+
+The platform owns the algorithms in `src/server/app/flow/`. A journey owns the page
+order and task-row policy that those algorithms consume.
+
+## Journey-flow configuration
+
+[`src/server/app/flow/journey-flow.js`](../flow/journey-flow.js) is the injection
+seam. `configureJourneyFlow()` receives:
+
+- `sections`
+- `taskRows`
+- `rowStatus`
+- `nextRunTarget`
+- `flowOnlyKeys`
+- `entryGuardTarget`
+- `layout`
+- `sectionCaption`
+
+The exported accessors fail when callable policy has not been configured. L1 calls
+this seam once during route registration.
+
+`sectionCaption` is chrome rather than topology: it maps a page id to the name of
+the section of the journey that page belongs to, which `kit.base()` puts in the
+view as `caption` and `shared/section-caption.njk` renders above the page heading.
+A journey that names no sections leaves it out and its pages render no caption.
+
+## Dispatch
+
+[`src/server/app/flow/dispatch.js`](../flow/dispatch.js) builds indexes from injected
+page descriptors. Each descriptor supplies an `id`, a `slug` and the obligation
+names in `collects`.
+
+At boot, `buildDispatch()` rejects invalid obligation names, duplicate page owners
+and uncovered obligations. At runtime, dispatch resolves page ownership and route
+targets without importing journey controllers.
+
+## Derived gates
+
+[`src/server/app/flow/gates.js`](../flow/gates.js) derives the normal gate for a page
+from its collected obligations and prerequisites. An authored page or section gate
+is only needed for policy that cannot be expressed by those facts.
+
+[`src/server/app/flow/prerequisites.js`](../flow/prerequisites.js) finds
+strictly-earlier fields that are enforced when the user continues. It reads the
+configured section list through the journey-flow seam.
+
+## Navigation and status
+
+[`src/server/app/flow/navigation.js`](../flow/navigation.js) finds the first
+gate-passing page in a section or task row. `nextInSection()` returns the next
+gate-passing page, or the hub when the section is finished. `rowGatePasses()`
+opens a task row when ANY of its pages passes, so a row whose opening question
+is out of scope for this notification still opens on the page that follows it.
+
+[`src/server/app/flow/section-status.js`](../flow/section-status.js) calculates
+section status from dispatch ownership. Submit readiness is the conjunction of the
+configured task-row statuses: fulfilled, not applicable and optional rows are
+ready.
+
+## Opening-run state
+
+[`src/server/app/flow/run-state.js`](../flow/run-state.js) stores whether a journey is
+in its opening run through the injected session port. The journey supplies
+`nextRunTarget`; shared controller helpers call it through the journey-flow seam.
+
+For the section order, task rows, authored gates and opening run this journey
+configures, see the
+[high-risk-plants journey flow guide](../sets/high-risk-plants/docs/journey-flow-and-gates.md).
+The high-risk-plants journey configures all of those as empty today, so every
+algorithm above runs over nothing until the first page lands.

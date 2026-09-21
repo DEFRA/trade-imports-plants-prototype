@@ -4,14 +4,20 @@ import { fileURLToPath } from 'node:url'
 
 import convictFormatWithValidator from 'convict-format-with-validator'
 
+const env = process.env.NODE_ENV
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const fourHoursMs = 14400000
 const oneWeekMs = 604800000
 
-const isProduction = process.env.NODE_ENV === 'production'
-const isTest = process.env.NODE_ENV === 'test'
-const isDevelopment = process.env.NODE_ENV === 'development'
+const isProduction = env === 'production'
+const isTest = env === 'test'
+const isDevelopment = env === 'development'
+const isLocal = isDevelopment || isTest
+const isPlatform = !isLocal // Deployed to CDP platform
+
+const authCookieSameSite = 'Lax'
+const csrfEnabled = !isTest
 
 convict.addFormats(convictFormatWithValidator)
 
@@ -32,7 +38,7 @@ export const config = convict({
   port: {
     doc: 'The port to bind.',
     format: 'port',
-    default: 3000,
+    default: 3003,
     env: 'PORT'
   },
   staticCacheTimeout: {
@@ -44,7 +50,7 @@ export const config = convict({
   serviceName: {
     doc: 'Applications Service Name',
     format: String,
-    default: 'trade-imports-plants-prototype'
+    default: 'Plants'
   },
   root: {
     doc: 'Project root',
@@ -96,8 +102,7 @@ export const config = convict({
       format: Array,
       default: isProduction
         ? ['req.headers.authorization', 'req.headers.cookie', 'res.headers']
-        : [],
-      env: 'LOG_REDACT'
+        : []
     }
   },
   httpProxy: {
@@ -132,6 +137,11 @@ export const config = convict({
         format: Number,
         default: fourHoursMs,
         env: 'SESSION_CACHE_TTL'
+      },
+      segment: {
+        doc: 'The cache segment.',
+        format: String,
+        default: 'session'
       }
     },
     cookie: {
@@ -142,9 +152,9 @@ export const config = convict({
         env: 'SESSION_COOKIE_TTL'
       },
       password: {
-        doc: 'session cookie password',
+        doc: 'The cookie password.',
         format: String,
-        default: 'the-password-must-be-at-least-32-characters-long',
+        default: 'replace-with-at-least-32-chars-long-string-1234567890',
         env: 'SESSION_COOKIE_PASSWORD',
         sensitive: true
       },
@@ -153,7 +163,99 @@ export const config = convict({
         format: Boolean,
         default: isProduction,
         env: 'SESSION_COOKIE_SECURE'
+      },
+      sameSite: {
+        doc: 'SameSite attribute for Bell OAuth state cookie',
+        format: ['Strict', 'Lax', 'None'],
+        default: authCookieSameSite,
+        env: 'AUTH_COOKIE_SAME_SITE'
       }
+    }
+  },
+  defraId: {
+    oidcDiscoveryUrl: {
+      doc: 'Defra ID OIDC well-known configuration URL',
+      format: String,
+      default:
+        'http://localhost:3007/idphub/b2c/b2c_1a_cui_cpdev_signupsigninsfi/.well-known/openid-configuration',
+      env: 'DEFRA_ID_OIDC_CONFIGURATION_URL'
+    },
+    clientId: {
+      doc: 'Defra ID client ID',
+      format: String,
+      default: 'test-client-id',
+      env: 'DEFRA_ID_CLIENT_ID',
+      nullable: false
+    },
+    clientSecret: {
+      doc: 'Defra ID client secret',
+      format: String,
+      default: 'test-secret',
+      env: 'DEFRA_ID_CLIENT_SECRET',
+      sensitive: true
+    },
+    serviceId: {
+      doc: 'Defra ID service ID',
+      format: String,
+      default: 'trade-imports-plants-frontend',
+      env: 'DEFRA_ID_SERVICE_ID'
+    },
+    policy: {
+      doc: 'Defra ID B2C policy name',
+      format: String,
+      default: 'b2c_1a_cui_cpdev_signupsigninsfi',
+      env: 'DEFRA_ID_POLICY'
+    },
+    redirectUrl: {
+      doc: 'Redirect URL after Defra ID sign-in (OIDC callback)',
+      format: String,
+      default: 'http://localhost:3003/auth/sign-in-oidc',
+      env: 'DEFRA_ID_REDIRECT_URL'
+    },
+    signOutRedirectUrl: {
+      doc: 'Redirect URL after Defra ID sign-out',
+      format: String,
+      default: 'http://localhost:3003/auth/sign-out-oidc',
+      env: 'DEFRA_ID_SIGN_OUT_REDIRECT_URL'
+    },
+    signOutHostnameRewrite: {
+      enabled: {
+        doc: 'Rewrite internal OIDC hostnames in sign-out URL for local environments',
+        format: Boolean,
+        default: !isProduction,
+        env: 'DEFRA_ID_SIGN_OUT_HOSTNAME_REWRITE_ENABLED'
+      },
+      from: {
+        doc: 'OIDC hostnames list for sign-out URL re-write',
+        format: Array,
+        default: ['host.docker.internal', 'trade-imports-defra-id-stub']
+      },
+      to: {
+        doc: 'Target hostname used for sign-out OIDC URL rewrite',
+        format: String,
+        default: 'localhost',
+        env: 'DEFRA_ID_SIGN_OUT_HOSTNAME_REWRITE_TO'
+      }
+    },
+    refreshTokens: {
+      doc: 'True if Defra Identity refresh tokens are enabled.',
+      format: Boolean,
+      default: true,
+      env: 'DEFRA_ID_REFRESH_TOKENS'
+    }
+  },
+  stubMode: {
+    doc: 'Run against stubs rather than real dependencies: stub data in place of the address book, backend and reference data, and a locally signed session in place of the Defra ID OIDC exchange. Auth is still enforced - only the external OIDC round-trip is bypassed. Ignored in production (see isStubMode).',
+    format: Boolean,
+    default: false,
+    env: 'STUB_MODE'
+  },
+  auth: {
+    enabled: {
+      doc: 'Enable authentication (Bell + session cookie)',
+      format: Boolean,
+      default: true,
+      env: 'AUTH_ENABLED'
     }
   },
   redis: {
@@ -179,7 +281,7 @@ export const config = convict({
     keyPrefix: {
       doc: 'Redis cache key prefix name used to isolate the cached results across multiple clients',
       format: String,
-      default: 'trade-imports-plants-prototype:',
+      default: 'trade-imports-plants-frontend:',
       env: 'REDIS_KEY_PREFIX'
     },
     useSingleInstanceCache: {
@@ -199,12 +301,28 @@ export const config = convict({
     watch: {
       doc: 'Reload templates when they are changed.',
       format: Boolean,
-      default: isDevelopment
+      default: isDevelopment,
+      env: 'NUNJUCKS_WATCH'
     },
     noCache: {
-      doc: 'Use a cache and recompile templates each time',
+      doc: 'Recompile every template on every render instead of caching it.',
       format: Boolean,
-      default: isDevelopment
+      default: isDevelopment,
+      env: 'NUNJUCKS_NO_CACHE'
+    }
+  },
+  csrf: {
+    enabled: {
+      doc: 'Enable CSRF protection (disabled during test runs)',
+      format: Boolean,
+      default: csrfEnabled
+    },
+    cookie: {
+      secure: {
+        doc: 'Set secure flag on CSRF cookie',
+        format: Boolean,
+        default: isPlatform
+      }
     }
   },
   tracing: {
@@ -213,6 +331,22 @@ export const config = convict({
       format: String,
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
+    }
+  },
+  tradeImportsPlantsBackendApi: {
+    baseUrl: {
+      doc: 'Trade Imports Plants Backend API base URL',
+      format: String,
+      default: 'http://localhost:8091',
+      env: 'TRADE_IMPORTS_PLANTS_BACKEND_URL'
+    }
+  },
+  tradeImportsReferenceDataApi: {
+    baseUrl: {
+      doc: 'Trade Imports Reference Data API base URL',
+      format: String,
+      default: 'http://localhost:8086',
+      env: 'TRADE_IMPORTS_REFERENCE_DATA_URL'
     }
   }
 })

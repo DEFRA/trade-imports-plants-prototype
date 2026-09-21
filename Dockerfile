@@ -1,5 +1,5 @@
-ARG PARENT_VERSION=3.0.5-node24.14.1
-ARG PORT=3000
+ARG PARENT_VERSION=2.10.1-node24.11.1
+ARG PORT=3003
 ARG PORT_DEBUG=9229
 
 FROM defradigital/node-development:${PARENT_VERSION} AS development
@@ -14,6 +14,23 @@ ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
 COPY --chown=node:node --chmod=755 package*.json ./
+COPY --chown=node:node --chmod=755 scripts/npm-version.js ./scripts/
+
+# Same pin as the GitHub Actions workflows: the npm that installs must be the
+# npm that generated package-lock.json, otherwise the resolved tree differs and
+# `npm ci` rejects the lockfile. Take it from `packageManager` rather than
+# inheriting whatever npm PARENT_VERSION's Node happens to bundle, so a base
+# image bump cannot silently reintroduce the mismatch. The helper validates the
+# field and strips any Corepack integrity suffix, so a malformed pin fails the
+# build instead of installing the wrong npm.
+#
+# Root is needed to write the global prefix; the cache is redirected so this
+# root-run install cannot leave root-owned files in the node user's npm cache.
+USER root
+RUN npm_config_cache=/tmp/npm-root-cache \
+    npm install --global "$(node scripts/npm-version.js)"
+USER node
+
 RUN npm install
 COPY --chown=node:node --chmod=755 . .
 RUN npm run build:frontend
@@ -39,8 +56,16 @@ RUN apk add --no-cache curl
 USER node
 
 COPY --from=production_build /home/node/package*.json ./
+COPY --from=production_build /home/node/scripts/npm-version.js ./scripts/
 COPY --from=production_build /home/node/src ./src/
 COPY --from=production_build /home/node/.public/ ./.public/
+
+# See the development stage: `npm ci` must run on the npm named in
+# `packageManager`, not the one the base image ships with.
+USER root
+RUN npm_config_cache=/tmp/npm-root-cache \
+    npm install --global "$(node scripts/npm-version.js)"
+USER node
 
 RUN npm ci --omit=dev
 

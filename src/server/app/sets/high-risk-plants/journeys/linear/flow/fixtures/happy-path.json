@@ -1,0 +1,367 @@
+{
+  "warePotatoes": {
+    "useCase": "Ware potatoes from Spain, notified before arrival",
+    "countryName": "Spain",
+    "partyName": "Tech Imports Ltd",
+    "late": false,
+    "steps": [
+      {
+        "slug": "commodity-type",
+        "fields": {
+          "commodityType": "potatoes"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "category": "ware-potatoes"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "index": "0",
+          "category": "ware-potatoes",
+          "potatoVariety": "Maris Piper",
+          "quantity": "250",
+          "potatoIntendedUse": "Eating"
+        }
+      },
+      {
+        "slug": "commodities",
+        "fields": {}
+      },
+      {
+        "slug": "origin",
+        "fields": {
+          "countryOfOrigin": "ES"
+        }
+      },
+      {
+        "slug": "arrival-details",
+        "fields": {
+          "arrivalDate": {
+            "daysFromToday": 7
+          },
+          "arrivalTime": "14:30",
+          "proposedPlaceOfLanding": "GB DVR"
+        }
+      },
+      {
+        "slug": "destinations/select",
+        "fields": {
+          "placeOfDestination": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "identification-numbers",
+        "fields": {
+          "producerIdentificationNumber": "P123",
+          "cropIdentificationNumber": "C123"
+        }
+      },
+      {
+        "slug": "consignment/contact/select",
+        "fields": {
+          "contactAddress": "tech-imports-ltd"
+        }
+      }
+    ]
+  },
+  "warePotatoesLate": {
+    "useCase": "Ware potatoes from Portugal, notified after arrival",
+    "countryName": "Portugal",
+    "partyName": "Tech Imports Ltd",
+    "late": true,
+    "steps": [
+      {
+        "slug": "commodity-type",
+        "fields": {
+          "commodityType": "potatoes"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "category": "ware-potatoes"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "index": "0",
+          "category": "ware-potatoes",
+          "potatoVariety": "Maris Piper",
+          "quantity": "250",
+          "potatoIntendedUse": "Eating"
+        }
+      },
+      {
+        "slug": "commodities",
+        "fields": {}
+      },
+      {
+        "slug": "origin",
+        "fields": {
+          "countryOfOrigin": "PT"
+        }
+      },
+      {
+        "slug": "arrival-details",
+        "fields": {
+          "arrivalDate": {
+            "daysFromToday": -1
+          },
+          "arrivalTime": "14:30",
+          "proposedPlaceOfLanding": "GB DVR"
+        }
+      },
+      {
+        "slug": "destinations/select",
+        "fields": {
+          "placeOfDestination": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "identification-numbers",
+        "fields": {
+          "producerIdentificationNumber": "P123",
+          "cropIdentificationNumber": "C123"
+        }
+      },
+      {
+        "slug": "consignment/contact/select",
+        "fields": {
+          "contactAddress": "tech-imports-ltd"
+        }
+      }
+    ]
+  },
+  "seedPotatoes": {
+    "useCase": "Seed potatoes from the Netherlands",
+    "countryName": "Netherlands (the)",
+    "partyName": "Tech Imports Ltd",
+    "late": false,
+    "steps": [
+      {
+        "slug": "commodity-type",
+        "fields": {
+          "commodityType": "potatoes"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "category": "seed-potatoes"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "index": "0",
+          "category": "seed-potatoes",
+          "potatoVariety": "Maris Piper",
+          "quantity": "250",
+          "potatoIntendedUse": "Planting"
+        }
+      },
+      {
+        "slug": "commodities",
+        "fields": {}
+      },
+      {
+        "slug": "origin",
+        "fields": {
+          "countryOfOrigin": "NL"
+        }
+      },
+      {
+        "slug": "arrival-details",
+        "fields": {
+          "arrivalDate": {
+            "daysFromToday": 7
+          },
+          "arrivalTime": "14:30",
+          "proposedPlaceOfLanding": "GB DVR"
+        }
+      },
+      {
+        "slug": "destinations/select",
+        "fields": {
+          "placeOfDestination": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "identification-numbers",
+        "fields": {
+          "producerIdentificationNumber": "P123",
+          "cropIdentificationNumber": "C123"
+        }
+      },
+      {
+        "slug": "consignment/contact/select",
+        "fields": {
+          "contactAddress": "tech-imports-ltd"
+        }
+      }
+    ]
+  },
+  "plantsForPlanting": {
+    "useCase": "Spruce (Picea) from Germany, with species and EPPO code",
+    "countryName": "Germany",
+    "partyName": "Tech Imports Ltd",
+    "late": false,
+    "steps": [
+      {
+        "slug": "commodity-type",
+        "fields": {
+          "commodityType": "plants-for-planting"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "category": "plants-for-planting"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "index": "0",
+          "category": "plants-for-planting",
+          "genus": "Picea",
+          "species": "Picea abies",
+          "commodityCode": "0602 20 20",
+          "quantity": "40",
+          "eppoCode": "PIEAB"
+        }
+      },
+      {
+        "slug": "commodities",
+        "fields": {}
+      },
+      {
+        "slug": "origin",
+        "fields": {
+          "countryOfOrigin": "DE"
+        }
+      },
+      {
+        "slug": "arrival-status",
+        "fields": {
+          "arrivalStatus": "not-yet-arrived"
+        }
+      },
+      {
+        "slug": "arrival-details",
+        "fields": {
+          "arrivalDate": {
+            "daysFromToday": 7
+          }
+        }
+      },
+      {
+        "slug": "destinations/select",
+        "fields": {
+          "placeOfDestination": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "consignors/select",
+        "fields": {
+          "consignor": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "identification-numbers",
+        "fields": {
+          "supplierIdentificationNumber": "DE-12345"
+        }
+      },
+      {
+        "slug": "consignment/contact/select",
+        "fields": {
+          "contactAddress": "tech-imports-ltd"
+        }
+      }
+    ]
+  },
+  "woodWithoutBark": {
+    "useCase": "Conifer wood without bark from Italy, with phytosanitary treatments",
+    "countryName": "Italy",
+    "partyName": "Tech Imports Ltd",
+    "late": false,
+    "steps": [
+      {
+        "slug": "commodity-type",
+        "fields": {
+          "commodityType": "wood-and-cut-trees"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "category": "conifer-wood-without-bark"
+        }
+      },
+      {
+        "slug": "commodities/details",
+        "fields": {
+          "index": "0",
+          "category": "conifer-wood-without-bark",
+          "commodityCode": "4403 21 10",
+          "quantity": "12",
+          "phytosanitaryTreatments": "Kiln dried (KD)"
+        }
+      },
+      {
+        "slug": "commodities",
+        "fields": {}
+      },
+      {
+        "slug": "origin",
+        "fields": {
+          "countryOfOrigin": "IT"
+        }
+      },
+      {
+        "slug": "arrival-status",
+        "fields": {
+          "arrivalStatus": "not-yet-arrived"
+        }
+      },
+      {
+        "slug": "arrival-details",
+        "fields": {
+          "arrivalDate": {
+            "daysFromToday": 7
+          }
+        }
+      },
+      {
+        "slug": "destinations/select",
+        "fields": {
+          "placeOfDestination": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "consignors/select",
+        "fields": {
+          "consignor": "tech-imports-ltd"
+        }
+      },
+      {
+        "slug": "identification-numbers",
+        "fields": {
+          "consignmentNumber": "WOOD_123"
+        }
+      },
+      {
+        "slug": "consignment/contact/select",
+        "fields": {
+          "contactAddress": "tech-imports-ltd"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,92 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "accessible-autocomplete/macro.njk" import appAccessibleAutocomplete %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.heading }}</h1>
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+    {% if hasIndex %}
+      <input type="hidden" name="index" value="{{ index }}" />
+    {% endif %}
+
+    {{ govukRadios({
+      name: "category",
+      fieldset: {
+        legend: {
+          text: copy.categoryLegend,
+          classes: "govuk-fieldset__legend--m"
+        }
+      },
+      hint: categoryHint and { text: categoryHint },
+      errorMessage: errors.category and { text: errors.category },
+      items: categoryItems
+    }) }}
+
+    {% for field in fieldViews %}
+      {% if field.widget == "select" %}
+        {{ appAccessibleAutocomplete({
+          id: field.name,
+          name: field.name,
+          label: { text: field.label, classes: "govuk-label--s" },
+          hint: { text: field.hint },
+          errorMessage: field.error and { text: field.error },
+          value: field.value,
+          items: field.items,
+          autocomplete: {
+            showAllValues: true,
+            noResults: copy.genusNoResults
+          }
+        }) }}
+      {% elif field.widget == "textarea" %}
+        {{ govukTextarea({
+          id: field.name,
+          name: field.name,
+          rows: 3,
+          label: { text: field.label, classes: "govuk-label--s" },
+          hint: { text: field.hint },
+          errorMessage: field.error and { text: field.error },
+          value: field.value
+        }) }}
+      {% else %}
+        {{ govukInput({
+          id: field.name,
+          name: field.name,
+          classes: field.classes,
+          inputmode: field.inputmode,
+          label: { text: field.label, classes: "govuk-label--s" },
+          hint: { text: field.hint },
+          errorMessage: field.error and { text: field.error },
+          value: field.value
+        }) }}
+      {% endif %}
+    {% endfor %}
+
+    {# An entry page ends with its write actions rather than the shared three
+       controls: it is reached from the list page, not the hub, and it has two
+       ways to save. Until a category is chosen there is nothing to save yet,
+       so the page offers Continue alone. #}
+    <div class="govuk-button-group">
+      {% if revealed %}
+        {{ govukButton({ text: sharedCopy.saveActions.saveAndContinue }) }}
+        {{ govukButton({
+          text: copy.saveAndAddAnother,
+          classes: "govuk-button--secondary",
+          name: "action",
+          value: "add"
+        }) }}
+      {% else %}
+        {{ govukButton({ text: copy.continue }) }}
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}

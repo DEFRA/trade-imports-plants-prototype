@@ -1,21 +1,31 @@
 import path from 'path'
+import Bell from '@hapi/bell'
 import hapi from '@hapi/hapi'
+import Cookie from '@hapi/cookie'
 import Scooter from '@hapi/scooter'
 
-import { router } from './plugins/router.js'
-import { config } from '#/config/config.js'
-import { pulse } from './plugins/pulse.js'
+import { router } from './router.js'
+import { csrf } from '../plugins/csrf.js'
+import { authPlugin } from '../plugins/auth.js'
+import { authRoutes } from './auth/index.js'
+import { stubSignInRoutes } from './auth/stub-sign-in.js'
+import { config } from '../config/config.js'
+import { isStubMode } from './common/services/mode.js'
+import { pulse } from './common/helpers/pulse.js'
 import { catchAll } from './common/helpers/errors.js'
-import { nunjucksConfig } from '#/config/nunjucks/nunjucks.js'
-import { requestTracing } from './plugins/request-tracing.js'
-import { requestLogger } from './plugins/request-logger.js'
-import { sessionCache } from './plugins/session-cache.js'
+import { nunjucksConfig } from '../config/nunjucks/nunjucks.js'
+import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
+import { requestTracing } from './common/helpers/request-tracing.js'
+import { requestLogger } from './common/helpers/logging/request-logger.js'
+import { sessionCache } from './common/helpers/session-cache/session-cache.js'
 import { getCacheEngine } from './common/helpers/session-cache/cache-engine.js'
 import { secureContext } from '@defra/hapi-secure-context'
-import { contentSecurityPolicy } from './plugins/content-security-policy.js'
+import { contentSecurityPolicy } from './common/helpers/content-security-policy.js'
 import { metrics } from '@defra/cdp-metrics'
 
 export async function createServer() {
+  setupProxy()
+  const authEnabled = config.get('auth.enabled')
   const server = hapi.server({
     host: config.get('host'),
     port: config.get('port'),
@@ -62,8 +72,20 @@ export async function createServer() {
     nunjucksConfig,
     Scooter,
     contentSecurityPolicy,
+    csrf,
+    Cookie,
+    Bell,
+    ...(authEnabled
+      ? [authPlugin, isStubMode() ? stubSignInRoutes : authRoutes]
+      : []),
     router // Register all the controllers/routes defined in src/server/router.js
   ])
+
+  server.app.cache = server.cache({
+    segment: 'auth-sessions',
+    cache: config.get('session.cache.name'),
+    expiresIn: config.get('session.cache.ttl')
+  })
 
   server.ext('onPreResponse', catchAll)
 

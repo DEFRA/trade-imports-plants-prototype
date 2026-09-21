@@ -1,0 +1,48 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "moj/components/date-picker/macro.njk" import mojDatePicker %}
+{% from "accessible-autocomplete/macro.njk" import appAccessibleAutocomplete %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.title }}</h1>
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+
+    {{ mojDatePicker(dateField) }}
+
+    {% if showPotatoFields %}
+      {# The 24-hour format needs a colon, which a numeric keypad has no key
+         for, so the field takes the full keyboard and the hint carries the
+         format. #}
+      {{ govukInput({
+        id: "arrivalTime",
+        name: "arrivalTime",
+        classes: "govuk-input--width-5",
+        label: { text: copy.time.label, classes: "govuk-label--s" },
+        hint: { text: copy.time.hint },
+        value: values.arrivalTime,
+        errorMessage: errors.arrivalTime and { text: errors.arrivalTime }
+      }) }}
+
+      {{ appAccessibleAutocomplete({
+        id: "proposedPlaceOfLanding",
+        name: "proposedPlaceOfLanding",
+        label: { text: copy.placeOfLanding.label, classes: "govuk-label--s" },
+        hint: { text: copy.placeOfLanding.hint },
+        value: values.proposedPlaceOfLanding,
+        errorMessage: errors.proposedPlaceOfLanding and { text: errors.proposedPlaceOfLanding },
+        items: portItems,
+        autocomplete: { showAllValues: true, noResults: copy.placeOfLanding.noResults }
+      }) }}
+    {% endif %}
+
+    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+  </form>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.title }}</h1>
+
+  <ul class="govuk-list govuk-list--bullet">
+    {% for item in copy.body %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+
+    {{ govukCheckboxes({
+      name: "declaration",
+      errorMessage: errors.declaration and { text: errors.declaration },
+      items: [
+        {
+          value: "confirmed",
+          text: copy.declarationLabel,
+          checked: values.declaration == "confirmed"
+        }
+      ]
+    }) }}
+
+    <p class="govuk-body">{{ copy.dateOfDeclaration }} {{ submissionDate }}</p>
+
+    {{ govukButton({ text: copy.continueButton }) }}
+  </form>
+{% endblock %}

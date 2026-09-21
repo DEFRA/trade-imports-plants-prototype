@@ -10,3 +10,15 @@ coverage
 .envrc
 tsconfig.tsbuildinfo
 .env
+lighthouse-report/
+.lighthouseci/
+.lighthouse/
+chromewebdata**
+localhost**
+test-results/
+*.iml
+
+# Playwright test output (videos + report)
+playwright-report/
+blob-report/
+.playwright/
