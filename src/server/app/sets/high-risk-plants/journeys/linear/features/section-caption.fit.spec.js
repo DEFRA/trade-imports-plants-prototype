@@ -1,3 +1,4 @@
+import { BASE } from '../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -11,7 +12,7 @@ test.describe('section caption above the page heading', () => {
   })
 
   test('names the dashboard above its heading', async ({ page }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     // The selector pins placement: the caption must be the element directly
     // above the page heading, not text floating elsewhere in the content.
@@ -26,7 +27,7 @@ test.describe('section caption above the page heading', () => {
   test('has no serious or critical axe violations with a caption on the page', async ({
     page
   }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await expect(page.locator('span.govuk-caption-xl')).toHaveText(
       sectionCaptionsCopy.sections.dashboard

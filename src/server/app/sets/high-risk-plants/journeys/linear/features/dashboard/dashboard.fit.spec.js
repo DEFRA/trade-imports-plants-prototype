@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -8,17 +12,13 @@ import { copy } from './copy/copy.en.js'
 const CREATED_AT_ASCENDING_SORT = 'createdAt,asc'
 const DEFAULT_SORT = 'arrivalDate,desc'
 const UNMATCHED_REFERENCE = '26-ZZZZZZ'
-const JOURNEY_ID_SEGMENT = 2
-
-const journeyIdFromPage = (page) =>
-  new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: copy.startButton }).click()
   await expect(page).toHaveURL(/\/notifications\/[^/]+\/commodity-type$/)
   const reference = journeyIdFromPage(page)
-  await page.goto('/')
+  await page.goto(BASE)
   return reference
 }
 
@@ -58,7 +58,7 @@ test.describe('dashboard feature — initial render', () => {
   test('renders the service heading, the intro body and the start button', async ({
     page
   }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await expect(
       page.getByRole('heading', { name: copy.title, level: 1 })
@@ -75,7 +75,7 @@ test.describe('dashboard feature — initial render', () => {
   test('omits the guidance sentence while no guidance URL is supplied', async ({
     page
   }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await expect(
       page.getByRole('heading', { name: copy.title, level: 1 })
@@ -90,7 +90,7 @@ test.describe('dashboard feature — initial render', () => {
   })
 
   test('renders the empty state and the default sort', async ({ page }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await expect(page.getByText(copy.emptyText)).toBeVisible()
     await expect(page.getByText(copy.pagination.results.none)).toBeVisible()
@@ -100,7 +100,7 @@ test.describe('dashboard feature — initial render', () => {
   test('starts a notification and lands on its first question', async ({
     page
   }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await page.getByRole('button', { name: copy.startButton }).click()
 
@@ -160,7 +160,7 @@ test.describe('dashboard feature — notification cards', () => {
   }) => {
     const reference = await startNotification(page)
 
-    await page.goto(`/?referenceNumber=${reference}`)
+    await page.goto(`${BASE}?referenceNumber=${reference}`)
 
     await expect(
       page.getByRole('heading', { name: reference, exact: true })
@@ -183,7 +183,7 @@ test.describe('dashboard feature — notification cards', () => {
   test('renders the deleted banner after a delete redirect', async ({
     page
   }) => {
-    await page.goto('/?deleted=1')
+    await page.goto(`${BASE}?deleted=1`)
 
     await expect(
       page.getByText(sharedCopy.notificationActions.delete.successTitle)
@@ -213,7 +213,7 @@ test.describe('dashboard feature — search and sort', () => {
     await page.getByRole('button', { name: copy.search.button }).click()
 
     await expect(page).toHaveURL(
-      `/?sort=createdAt%2Casc&referenceNumber=${firstReference}`
+      `${BASE}?sort=createdAt%2Casc&referenceNumber=${firstReference}`
     )
     await expect(page.getByLabel(copy.sort.label)).toHaveValue(
       CREATED_AT_ASCENDING_SORT
@@ -276,14 +276,14 @@ test.describe('dashboard feature — search and sort', () => {
   test('changing the sort round-trips through the query string', async ({
     page
   }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await page
       .getByLabel(copy.sort.label)
       .selectOption(CREATED_AT_ASCENDING_SORT)
     await page.getByRole('button', { name: copy.sort.update }).click()
 
-    await expect(page).toHaveURL('/?sort=createdAt%2Casc')
+    await expect(page).toHaveURL(`${BASE}?sort=createdAt%2Casc`)
     await expect(page.getByLabel(copy.sort.label)).toHaveValue(
       CREATED_AT_ASCENDING_SORT
     )
@@ -298,7 +298,7 @@ test.describe('dashboard feature — accessibility', () => {
   test('the dashboard has no serious or critical axe violations', async ({
     page
   }) => {
-    await page.goto('/')
+    await page.goto(BASE)
 
     await expectNoSeriousOrCriticalViolations(page, 'Dashboard initial render')
   })

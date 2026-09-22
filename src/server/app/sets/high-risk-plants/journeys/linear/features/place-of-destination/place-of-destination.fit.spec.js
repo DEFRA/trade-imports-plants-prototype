@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -20,7 +24,6 @@ const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
 const ARRIVAL_STATUS_URL = /\/notifications\/[^/]+\/arrival-status$/
 const HUB_URL = /\/notifications\/[^/]+$/
 const PAGE_URL = /\/notifications\/[^/]+\/destinations\/select/
-const JOURNEY_ID_SEGMENT = 2
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'
 const FIRST_ROW_RADIO = '#placeOfDestination'
@@ -74,13 +77,13 @@ const selectedInset = (page, name) =>
   page.getByText(`${copy.selectedAddressPrefix} ${name}`, { exact: true })
 
 const destinationPathOf = (reference) =>
-  `/notifications/${reference}/destinations/select`
+  `${BASE}/notifications/${reference}/destinations/select`
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
+  return journeyIdFromPage(page)
 }
 
 const chooseCommodityType = async (page, commodityType) => {
@@ -123,7 +126,7 @@ const chooseCountry = async (page, name) => {
 }
 
 const saveOrigin = async (page, reference, country) => {
-  await page.goto(`/notifications/${reference}/origin`)
+  await page.goto(`${BASE}/notifications/${reference}/origin`)
   await expect(page).toHaveURL(ORIGIN_URL)
   await chooseCountry(page, country)
   await saveAndContinue(page).click()
@@ -207,7 +210,7 @@ test.describe('place-of-destination feature', () => {
     page
   }) => {
     const reference = await startAtDestination(page)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await page
       .getByRole('link', { name: hubCopy.rows.destination.title })
@@ -251,7 +254,7 @@ test.describe('place-of-destination feature', () => {
 
     await expect(backLink(page)).toHaveAttribute(
       'href',
-      `/notifications/${reference}`
+      `${BASE}/notifications/${reference}`
     )
   })
 

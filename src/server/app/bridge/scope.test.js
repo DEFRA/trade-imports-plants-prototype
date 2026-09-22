@@ -1,3 +1,4 @@
+import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeAll, describe, it, expect } from 'vitest'
 import { configureReadyForCheckYourAnswers, makeScope } from '../engine/read.js'
 import { rawInScope } from './scope.js'
@@ -26,7 +27,7 @@ import {
 // the controllers consume.
 
 // Pin readiness false through the test override seam.
-beforeAll(() => configureReadyForCheckYourAnswers(() => false))
+beforeAll(() => configureReadyForCheckYourAnswers(SET_ID, () => false))
 
 const resolveToggle = (answers) => ({
   statusToggle: TOGGLE_YES,

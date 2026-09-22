@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -7,10 +11,6 @@ import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
 const HUB_URL = /\/notifications\/[^/]+$/
-const JOURNEY_ID_SEGMENT = 2
-
-const journeyIdFromPage = (page) =>
-  new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
 
 // The dashboard renders its notification actions inside a GOV.UK summary card,
 // which appends the card title — the reference — to each action's accessible name.
@@ -18,18 +18,18 @@ const cardLink = (page, action, reference) =>
   page.getByRole('link', { name: `${action} (${reference})` })
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(/\/notifications\/[^/]+\/commodity-type$/)
   const reference = journeyIdFromPage(page)
-  await page.goto(`/notifications/${reference}`)
+  await page.goto(`${BASE}/notifications/${reference}`)
   await expect(page).toHaveURL(HUB_URL)
   return reference
 }
 
 const openDeleteConfirmation = async (page) => {
   const reference = await startNotification(page)
-  await page.goto('/')
+  await page.goto(BASE)
   await cardLink(
     page,
     sharedCopy.notificationActions.delete.text,
@@ -74,10 +74,10 @@ test.describe('delete-notification feature', () => {
     ).toBeVisible()
     await expect(
       page.getByRole('button', { name: copy.noLink })
-    ).toHaveAttribute('href', '/')
+    ).toHaveAttribute('href', BASE)
     await expect(
       page.getByRole('link', { name: sharedCopy.layout.back, exact: true })
-    ).toHaveAttribute('href', '/')
+    ).toHaveAttribute('href', BASE)
   })
 
   test('No returns to the dashboard and keeps the notification', async ({
@@ -87,7 +87,7 @@ test.describe('delete-notification feature', () => {
 
     await page.getByRole('button', { name: copy.noLink }).click()
 
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL(BASE)
     await expect(
       page.getByRole('heading', { name: reference, exact: true })
     ).toBeVisible()
@@ -100,7 +100,7 @@ test.describe('delete-notification feature', () => {
 
     await page.getByRole('button', { name: copy.confirmButton }).click()
 
-    await expect(page).toHaveURL('/?deleted=1')
+    await expect(page).toHaveURL(`${BASE}?deleted=1`)
     await expect(
       page.getByText(sharedCopy.notificationActions.delete.successTitle)
     ).toBeVisible()
@@ -123,7 +123,7 @@ test.describe('delete-notification feature', () => {
     )
 
     await page.getByRole('button', { name: copy.confirmButton }).click()
-    await expect(page).toHaveURL('/?deleted=1')
+    await expect(page).toHaveURL(`${BASE}?deleted=1`)
 
     await expectNoSeriousOrCriticalViolations(
       page,

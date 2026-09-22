@@ -1,3 +1,4 @@
+import { BASE } from '../../../../../../../../../../fit/set-base.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../../fit/sign-in.js'
@@ -40,7 +41,7 @@ const fieldNamed = (page, field) =>
   page.getByLabel(copy.details.fields[field].label, { exact: true })
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
 }

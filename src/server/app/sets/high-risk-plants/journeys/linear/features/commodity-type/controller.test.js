@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -48,8 +49,8 @@ describe('#meta', () => {
 
 describe('GET commodity-type', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -122,7 +123,7 @@ describe('GET commodity-type', () => {
   it('Should send Back to the dashboard while nothing is committed', async () => {
     const result = await driveHandler(get)
 
-    expect(result.view.context.backLink).toBe('/')
+    expect(result.view.context.backLink).toBe(SET_BASE)
   })
 
   it('Should send Back to the overview once the notification has an answer', async () => {
@@ -136,8 +137,8 @@ describe('GET commodity-type', () => {
 
 describe('POST commodity-type — a rejected answer', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -190,8 +191,8 @@ describe('POST commodity-type — a rejected answer', () => {
 
 describe('POST commodity-type — an accepted answer', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -210,7 +211,7 @@ describe('POST commodity-type — an accepted answer', () => {
     })
 
     expect(result.response).toEqual({
-      redirect: `/notifications/${result.journeyId}/commodities`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities`
     })
   })
 
@@ -226,8 +227,8 @@ describe('POST commodity-type — an accepted answer', () => {
 
 describe('POST commodity-type — changing the type of a consignment with lines', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -249,7 +250,7 @@ describe('POST commodity-type — changing the type of a consignment with lines'
     })
 
     expect(result.response).toEqual({
-      redirect: `/notifications/${result.journeyId}/commodities?removed=1`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1`
     })
   })
 
@@ -263,7 +264,7 @@ describe('POST commodity-type — changing the type of a consignment with lines'
       COMPLETE_POTATO_CONSIGNMENT.commodityLines
     )
     expect(result.response).toEqual({
-      redirect: `/notifications/${result.journeyId}/commodities`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities`
     })
   })
 
@@ -275,7 +276,7 @@ describe('POST commodity-type — changing the type of a consignment with lines'
     })
 
     expect(result.response).toEqual({
-      redirect: `/notifications/${result.journeyId}/commodities?removed=1&change=1`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1&change=1`
     })
   })
 
@@ -289,15 +290,15 @@ describe('POST commodity-type — changing the type of a consignment with lines'
     })
 
     expect(result.response.redirect).toBe(
-      `/notifications/${result.journeyId}/commodities?removed=1`
+      `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1`
     )
   })
 })
 
 describe('GET commodity-type — a consignment with lines', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -321,7 +322,7 @@ describe('GET commodity-type — a consignment with lines', () => {
 
 describe('POST commodity-type — save failures', () => {
   beforeAll(() => {
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
 
@@ -338,13 +339,13 @@ describe('POST commodity-type — save failures', () => {
   })
 
   afterEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     vi.unstubAllGlobals()
   })
 
   const failingOnControllerCommit = (failure) => {
     let replaceCalls = 0
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       replaceFulfilment: (...args) => {
         replaceCalls += 1

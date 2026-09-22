@@ -1,3 +1,4 @@
+import { SET_ID } from './sets/high-risk-plants/set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   appendEntryAt,
@@ -55,9 +56,9 @@ const blockValue = compositeBlockValue('nested')
 
 const setupJourneyEngine = () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
-    buildDispatch(dispatchPages)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
+    buildDispatch(SET_ID, dispatchPages)
   })
   beforeEach(async () => {
     await store.clear()

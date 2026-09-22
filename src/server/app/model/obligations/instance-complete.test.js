@@ -1,3 +1,4 @@
+import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
 import { configureObligationSet } from './manifest.js'
@@ -60,13 +61,13 @@ const implications = (entries) =>
 
 describe('#instanceComplete', () => {
   beforeAll(() => {
-    configureObligationSet(syntheticSet)
+    configureObligationSet(SET_ID, syntheticSet)
   })
 
   afterAll(() => {
     // Vitest workers isolate module state per test file, so leaving the
     // configured set doesn't leak. Reset defensively anyway.
-    configureObligationSet(undefined)
+    configureObligationSet(SET_ID, undefined)
   })
 
   it('reads a fully-populated instance as complete', () => {

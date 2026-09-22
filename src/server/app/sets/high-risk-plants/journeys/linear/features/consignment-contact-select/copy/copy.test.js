@@ -1,3 +1,4 @@
+import { SET_ID } from '../../../../../set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
@@ -94,8 +95,8 @@ describe('#copy', () => {
 
 describe('GET contact — copy reaches the view', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())

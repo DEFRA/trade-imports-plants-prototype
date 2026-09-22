@@ -4,7 +4,18 @@ import {
   dashboardPath,
   pagePath
 } from '../../src/server/app/shared/paths.js'
+import { registerSetMount } from '../../src/server/app/shared/set-context.js'
+import {
+  SET_BASE,
+  SET_ID
+} from '../../src/server/app/sets/high-risk-plants/set.js'
 import { seedFields } from '../../fit/seed-fields.js'
+
+// This script drives a running server from the outside, so it never enters a
+// request's set context. Registering the mount makes it the sole mounted set,
+// which is what lets the path builders below resolve the prefix the server
+// actually serves on.
+registerSetMount(SET_ID, SET_BASE)
 const happyPaths = createRequire(import.meta.url)(
   '../../src/server/app/sets/high-risk-plants/journeys/linear/flow/fixtures/happy-path.json'
 )

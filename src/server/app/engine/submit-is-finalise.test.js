@@ -1,3 +1,4 @@
+import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { commit, submitJourney } from './index.js'
 import {
@@ -18,14 +19,14 @@ const buildRequest = () => journeyRequest(journeyId)
 
 describe('submit is finalise', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     await records.clear()
     journeyId = (await records.create()).journeyId
   })
 
   it('Should flip to submitted, keep answers byte-equal, and freeze further writes', async () => {
-    configureReadyForCheckYourAnswers(() => true)
+    configureReadyForCheckYourAnswers(SET_ID, () => true)
     await commit(buildRequest(), stubH(), { scalarField: VALUE_ONE })
     const committed = (await records.load({ journeyId })).fulfilment
 
@@ -41,7 +42,7 @@ describe('submit is finalise', () => {
   })
 
   it('Should be a no-op when not ready — journey stays in draft', async () => {
-    configureReadyForCheckYourAnswers(() => false)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
     await commit(buildRequest(), stubH(), { scalarField: VALUE_ONE })
 
     const result = await submitJourney(buildRequest(), stubH())

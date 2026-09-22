@@ -1,3 +1,4 @@
+import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { describe, it, expect } from 'vitest'
 import {
   computeReadyForCheckYourAnswers,
@@ -14,7 +15,7 @@ describe('bridge/readiness-config', () => {
   })
 
   it('Should return the injected roll-up once configured', () => {
-    configureReadyForCheckYourAnswers(() => true)
+    configureReadyForCheckYourAnswers(SET_ID, () => true)
     expect(computeReadyForCheckYourAnswers({}, new Set(), {})).toBe(true)
   })
 })

@@ -1,8 +1,12 @@
+import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { commit } from './index.js'
 import { get, configureReadyForCheckYourAnswers } from '../read.js'
 import { records, configureRecords } from '../persistence/records.js'
-import { configureSession, SESSION_COOKIES } from '../persistence/session.js'
+import {
+  configureSession,
+  flowOnlyAnswersCookie
+} from '../persistence/session.js'
 import { records as recordsStub } from '../../services/persistence/records/stub/index.js'
 import { session as sessionStub } from '../../services/persistence/session/stub.js'
 import { journeyRequest, recordingH } from '../test-support.js'
@@ -12,9 +16,9 @@ const FLOW_ONLY_VALUE = 'confirmed'
 
 describe('flow-only answers — session round-trip', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
-    configureReadyForCheckYourAnswers(() => false)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
     await records.clear()
   })
 
@@ -32,8 +36,7 @@ describe('flow-only answers — session round-trip', () => {
 
     const freshRequest = journeyRequest(journey.journeyId, {
       state: {
-        [SESSION_COOKIES.flowOnlyAnswers]:
-          writeH.cookies[SESSION_COOKIES.flowOnlyAnswers]
+        [flowOnlyAnswersCookie()]: writeH.cookies[flowOnlyAnswersCookie()]
       }
     })
     const fresh = await get(freshRequest, recordingH())
@@ -44,11 +47,11 @@ describe('flow-only answers — session round-trip', () => {
   it('Should load flow-only session state once when a request reads repeatedly', async () => {
     const journey = await records.create()
     const flowOnlyAnswers = vi.fn(sessionStub.flowOnlyAnswers)
-    configureSession({ ...sessionStub, flowOnlyAnswers })
+    configureSession(SET_ID, { ...sessionStub, flowOnlyAnswers })
     const request = journeyRequest(journey.journeyId, {
       app: {},
       state: {
-        [SESSION_COOKIES.flowOnlyAnswers]: {
+        [flowOnlyAnswersCookie()]: {
           [journey.journeyId]: { [FLOW_ONLY_KEY]: FLOW_ONLY_VALUE }
         }
       }

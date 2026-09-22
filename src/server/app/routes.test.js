@@ -1,3 +1,4 @@
+import { SET_BASE } from './sets/high-risk-plants/set.js'
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 
 import { createServer } from '../server.js'
@@ -80,16 +81,27 @@ describe('high-risk-plants plugin registration', () => {
     }
   })
 
-  it('Should serve health and the dashboard at /', async () => {
+  it('Should serve health unprefixed and the dashboard under the set prefix', async () => {
     const health = await server.inject({ method: 'GET', url: '/health' })
     const dashboard = await server.inject({
       method: 'GET',
-      url: '/',
+      url: SET_BASE,
       auth: { strategy: 'session', credentials: authenticatedCredentials }
     })
 
     expect(health.statusCode).toBe(statusCodes.ok)
     expect(dashboard.statusCode).toBe(statusCodes.ok)
     expect(dashboard.result).toContain(dashboardCopy.startButton)
+  })
+
+  it('Should redirect the root to the default set rather than serving one there', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/',
+      auth: { strategy: 'session', credentials: authenticatedCredentials }
+    })
+
+    expect(response.statusCode).toBe(statusCodes.redirectFound)
+    expect(response.headers.location).toBe(SET_BASE)
   })
 })

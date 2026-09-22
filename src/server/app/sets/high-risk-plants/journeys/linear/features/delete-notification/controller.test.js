@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -15,7 +16,7 @@ import {
   DRAFT,
   records
 } from '../../../../../../engine/persistence/records.js'
-import { SESSION_COOKIES } from '../../../../../../engine/journey.js'
+import { knownJourneysCookie } from '../../../../../../engine/journey.js'
 import { configureSession } from '../../../../../../engine/persistence/session.js'
 import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
@@ -41,16 +42,16 @@ const adoptingH = (request) => ({
 
 describe('delete notification routes', () => {
   beforeAll(() => {
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
   })
 
   beforeEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     records.clear()
   })
 
   afterEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     vi.unstubAllGlobals()
   })
 
@@ -63,7 +64,7 @@ describe('delete notification routes', () => {
     expect(response.context).toMatchObject({
       heading: 'Delete this notification?',
       deleteAction: pagePath(journey.journeyId, 'delete'),
-      noHref: '/'
+      noHref: SET_BASE
     })
     expect(response.context.copy.body).toBe('This cannot be undone.')
   })
@@ -73,7 +74,7 @@ describe('delete notification routes', () => {
 
     const response = await post(journeyRequest(journey.journeyId), stubH())
 
-    expect(response).toEqual({ redirect: '/?deleted=1' })
+    expect(response).toEqual({ redirect: `${SET_BASE}?deleted=1` })
     expect((await records.load({ journeyId: journey.journeyId })).status).toBe(
       DELETED
     )
@@ -87,10 +88,10 @@ describe('delete notification routes', () => {
     await records.softDelete(journey.journeyId)
 
     expect(await get(journeyRequest(journey.journeyId), stubH())).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
     expect(await post(journeyRequest(journey.journeyId), stubH())).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
   })
 
@@ -98,16 +99,16 @@ describe('delete notification routes', () => {
     const journey = await records.create()
     const foreign = () =>
       journeyRequest(journey.journeyId, {
-        state: { [SESSION_COOKIES.knownJourneys]: [] }
+        state: { [knownJourneysCookie()]: [] }
       })
     const getRequest = foreign()
     const postRequest = foreign()
 
     expect(await get(getRequest, adoptingH(getRequest))).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
     expect(await post(postRequest, adoptingH(postRequest))).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
     expect((await records.load({ journeyId: journey.journeyId })).status).toBe(
       DRAFT
@@ -115,7 +116,7 @@ describe('delete notification routes', () => {
   })
 
   it('Should re-render confirmation at 500 with the recoverable-save banner after a backend failure', async () => {
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       softDelete: realRecords.softDelete
     })

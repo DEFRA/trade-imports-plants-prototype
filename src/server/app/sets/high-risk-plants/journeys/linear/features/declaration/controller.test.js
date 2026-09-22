@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -42,16 +43,16 @@ const setup = async (seed = COMPLETE_NOTIFICATION) => {
 describe('declaration', () => {
   beforeAll(() => {
     installHighRiskPlantsJourney()
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     store.clear()
   })
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
   })
 
   it('Should own the flow-only declaration and leave lateness system-owned', () => {
@@ -67,7 +68,7 @@ describe('declaration', () => {
     expect(h.captured.view.context).toMatchObject({
       pageTitle: copy.title,
       values: { declaration: 'confirmed' },
-      backLink: `/notifications/${id}/notification-view`,
+      backLink: `${SET_BASE}/notifications/${id}/notification-view`,
       submissionDate: '2 June 2026',
       copy
     })
@@ -107,9 +108,9 @@ describe('declaration', () => {
         )
         return recordsStub.finalise(...args)
       })
-      configureRecords({ ...recordsStub, finalise })
+      configureRecords(SET_ID, { ...recordsStub, finalise })
       expect(await post(request, h)).toEqual({
-        redirect: `/notifications/${id}/confirmation`
+        redirect: `${SET_BASE}/notifications/${id}/confirmation`
       })
       expect(finalise).toHaveBeenCalledOnce()
       const saved = await store.get(id)
@@ -125,7 +126,7 @@ describe('declaration', () => {
     const { request, h, id } = await setup({ commodityType: 'potatoes' })
     request.payload = { declaration: 'confirmed' }
     expect(await post(request, h)).toEqual({
-      redirect: `/notifications/${id}/notification-view`
+      redirect: `${SET_BASE}/notifications/${id}/notification-view`
     })
     expect((await store.get(id)).status).toBe(state.DRAFT)
   })
@@ -139,7 +140,7 @@ describe('declaration', () => {
     request.app.clock = () => new Date('2027-01-01T00:00:00Z')
     for (const handler of [get, post]) {
       expect(await handler(request, h)).toEqual({
-        redirect: `/notifications/${id}/confirmation`
+        redirect: `${SET_BASE}/notifications/${id}/confirmation`
       })
     }
     expect((await store.get(id)).answers.lateNotificationIndicator).toBe(
@@ -174,7 +175,7 @@ describe('declaration', () => {
         statusText: 'Service Unavailable'
       }))
     )
-    configureRecords({ ...recordsStub, finalise: realRecords.finalise })
+    configureRecords(SET_ID, { ...recordsStub, finalise: realRecords.finalise })
     expect((await post(request, h)).statusCode).toBe(500)
     expect(h.captured.view.context).toMatchObject({
       recoverableError: true,
@@ -185,7 +186,7 @@ describe('declaration', () => {
   it('Should let unexpected persistence errors escape', async () => {
     const { request, h } = await setup()
     request.payload = { declaration: 'confirmed' }
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       finalise: async () => {
         throw new TypeError('unexpected')

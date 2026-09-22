@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -23,7 +27,6 @@ const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
 // A potato notification is never asked the arrival question, so Continue from
 // origin lands on the arrival details.
 const ARRIVAL_DETAILS_URL = /\/notifications\/[^/]+\/arrival-details$/
-const JOURNEY_ID_SEGMENT = 2
 
 // accessible-autocomplete enhances the native <select>: the visible combobox
 // input keeps the original id, and the hidden select still submits the value.
@@ -48,7 +51,7 @@ const backLink = (page) =>
 const saveAndContinue = (page) =>
   page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
 
-const originPathOf = (reference) => `/notifications/${reference}/origin`
+const originPathOf = (reference) => `${BASE}/notifications/${reference}/origin`
 
 const chooseCountry = async (page, name) => {
   const field = page.locator(COUNTRY_INPUT)
@@ -58,10 +61,10 @@ const chooseCountry = async (page, name) => {
 }
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
+  return journeyIdFromPage(page)
 }
 
 const chooseCommodityType = async (page, commodityType) => {
@@ -144,7 +147,7 @@ test.describe('origin feature', () => {
 
   test('is reachable from the overview origin task row', async ({ page }) => {
     const reference = await startAtOrigin(page)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await page.getByRole('link', { name: hubCopy.rows.origin.title }).click()
 
@@ -186,7 +189,7 @@ test.describe('origin feature', () => {
 
     await expect(backLink(page)).toHaveAttribute(
       'href',
-      `/notifications/${reference}`
+      `${BASE}/notifications/${reference}`
     )
   })
 

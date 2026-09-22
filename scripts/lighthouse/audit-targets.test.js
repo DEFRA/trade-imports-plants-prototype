@@ -1,3 +1,4 @@
+import { SET_BASE } from '../../src/server/app/sets/high-risk-plants/set.js'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -464,13 +465,15 @@ describe('#SEED_SHAPES', () => {
 
 describe('#journeyIdIn', () => {
   it('Should read the journey id from a redirect to the first journey page', () => {
-    expect(journeyIdIn('/notifications/PHN-26-0001/commodity-type')).toBe(
-      'PHN-26-0001'
-    )
+    expect(
+      journeyIdIn(`${SET_BASE}/notifications/PHN-26-0001/commodity-type`)
+    ).toBe('PHN-26-0001')
   })
 
   it('Should read the journey id from a redirect to the hub', () => {
-    expect(journeyIdIn('/notifications/PHN-26-0001')).toBe('PHN-26-0001')
+    expect(journeyIdIn(`${SET_BASE}/notifications/PHN-26-0001`)).toBe(
+      'PHN-26-0001'
+    )
   })
 
   it('Should read no journey id from a redirect somewhere else', () => {

@@ -1,3 +1,4 @@
+import { SET_ID } from '../../../sets/high-risk-plants/set.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { configureObligationSet } from '../../../model/obligations/manifest.js'
@@ -71,7 +72,7 @@ const stateWithSelector = (value) => ({
 
 describe('#emptyCollectionSatisfiesFloor', () => {
   beforeAll(() => {
-    configureObligationSet({
+    configureObligationSet(SET_ID, {
       obligations: [
         itemSelector,
         allowListedLeaf,
@@ -83,7 +84,7 @@ describe('#emptyCollectionSatisfiesFloor', () => {
   })
 
   afterAll(() => {
-    configureObligationSet(undefined)
+    configureObligationSet(SET_ID, undefined)
   })
 
   it('Should hold the floor open where the collection asks for no entry at all', () => {

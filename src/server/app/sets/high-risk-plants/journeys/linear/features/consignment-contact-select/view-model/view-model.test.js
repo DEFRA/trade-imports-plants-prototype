@@ -1,3 +1,4 @@
+import { SET_BASE } from '../../../../../set.js'
 import { describe, expect, it } from 'vitest'
 
 import { pagePath } from '../../../../../../../shared/paths.js'
@@ -104,14 +105,16 @@ describe('#resultsHref', () => {
         selectedId: TECH_IMPORTS_ID
       })
     ).toBe(
-      `/notifications/${JOURNEY_ID}/consignment/contact/select?q=imports&page=3&selected=${TECH_IMPORTS_ID}`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/consignment/contact/select?q=imports&page=3&selected=${TECH_IMPORTS_ID}`
     )
   })
 
   it('Should leave out a search term and a selection it does not have', () => {
     expect(
       resultsHref(JOURNEY_ID, { query: '', page: 2, selectedId: '' })
-    ).toBe(`/notifications/${JOURNEY_ID}/consignment/contact/select?page=2`)
+    ).toBe(
+      `${SET_BASE}/notifications/${JOURNEY_ID}/consignment/contact/select?page=2`
+    )
   })
 })
 

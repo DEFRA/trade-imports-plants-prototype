@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from './sets/high-risk-plants/set.js'
 import * as declaration from './sets/high-risk-plants/journeys/linear/features/declaration/controller.js'
 import { COMPLETE_NOTIFICATION } from './sets/high-risk-plants/journeys/linear/test-support.js'
 import * as state from './engine/index.js'
@@ -169,8 +170,8 @@ const cases = [
 describe('controller <-> model commit contract', () => {
   beforeAll(() => {
     installHighRiskPlantsJourney()
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   afterAll(() => installFixture())
   beforeEach(() => store.clear())
@@ -211,7 +212,9 @@ describe('controller <-> model commit contract', () => {
     const result = await driveHandler(postHandlerOf(checkAnswers), { seed })
     expect(result.after).toEqual(seed)
     expect(committedIds(result)).toEqual([])
-    expect(result.response.redirect).toBe(`/notifications/${result.journeyId}`)
+    expect(result.response.redirect).toBe(
+      `${SET_BASE}/notifications/${result.journeyId}`
+    )
   })
 
   // The collection splits the declaration from the write: the list page owns

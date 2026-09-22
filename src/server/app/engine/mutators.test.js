@@ -1,3 +1,4 @@
+import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   appendEntryAt,
@@ -57,9 +58,9 @@ const nestedPath = (entryIndex) => [
 
 describe('mutators — storage is positional, purge is evaluator-authoritative', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
-    configureReadyForCheckYourAnswers(() => false)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
   })
   beforeEach(async () => {
     await store.clear()

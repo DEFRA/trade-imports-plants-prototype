@@ -1,6 +1,8 @@
 import {
   createPath,
+  createRoutePath,
   dashboardPath,
+  dashboardRoutePath,
   hubPath,
   pagePath,
   pageRoutePath
@@ -112,7 +114,7 @@ const createPost = async (request, h) => {
 export const routes = [
   {
     method: 'GET',
-    path: dashboardPath(),
+    path: dashboardRoutePath(),
     options: kit.routeOptions,
     handler: listGet
   },
@@ -124,7 +126,7 @@ export const routes = [
   },
   {
     method: 'POST',
-    path: createPath(),
+    path: createRoutePath(),
     options: kit.routeOptions,
     handler: createPost
   }

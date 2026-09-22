@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
@@ -18,10 +22,10 @@ const VARIETY = 'Maris Piper'
 const contactName = 'Tech Imports Ltd'
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(/\/commodity-type$/)
-  const reference = new URL(page.url()).pathname.split('/')[2]
+  const reference = journeyIdFromPage(page)
   await page
     .getByRole('radio', { name: copy.typeLabels.potatoes, exact: true })
     .check()
@@ -92,7 +96,9 @@ const completeNotification = async (page) => {
   await save(page).click()
   // The opening run stops at the hub once every prerequisite section is
   // answered but the review gate itself needs a manual visit.
-  await expect(page).toHaveURL(new RegExp(`/notifications/${reference}$`))
+  await expect(page).toHaveURL(
+    new RegExp(`${BASE}/notifications/${reference}$`)
+  )
   await page
     .getByRole('link', { name: 'Check and submit', exact: true })
     .click()
@@ -162,7 +168,7 @@ test('renders saved answers, scoped cards and accessible Change links that retur
   await expect(page.getByText('300', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: copy.continue, exact: true }).click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/declaration$`)
+    new RegExp(`${BASE}/notifications/${reference}/declaration$`)
   )
 })
 
@@ -170,7 +176,7 @@ test('offers Back, Save and return, and Cancel to Overview', async ({
   page
 }) => {
   const reference = await completeNotification(page)
-  const hub = `/notifications/${reference}`
+  const hub = `${BASE}/notifications/${reference}`
   await expect(
     page.getByRole('link', { name: sharedCopy.layout.back, exact: true })
   ).toHaveAttribute('href', hub)
@@ -223,7 +229,7 @@ test('rechecks a saved origin after a commodity change and exposes an accessible
   const error = page.getByRole('link', { name: /Poland/ })
   await expect(error).toHaveAttribute(
     'href',
-    `/notifications/${reference}/origin?change=1`
+    `${BASE}/notifications/${reference}/origin?change=1`
   )
   await assertAccessible(page)
   await error.click()

@@ -1,3 +1,5 @@
+import { registerSetMount } from '../../../../shared/set-context.js'
+import { SET_BASE, SET_ID } from '../../set.js'
 /**
  * Install this journey in place of the synthetic fixture set.
  *
@@ -80,10 +82,11 @@ export const COMPLETE_NOTIFICATION = Object.freeze({
 })
 
 export const installHighRiskPlantsJourney = () => {
-  configureReadyForCheckYourAnswers(readyForCheckYourAnswers)
-  configureObligationSet(highRiskPlantsObligationSet)
-  configureFulfilmentRegistry(featureEvaluationBindings)
-  configureJourneyFlow({
+  registerSetMount(SET_ID, SET_BASE)
+  configureReadyForCheckYourAnswers(SET_ID, readyForCheckYourAnswers)
+  configureObligationSet(SET_ID, highRiskPlantsObligationSet)
+  configureFulfilmentRegistry(SET_ID, featureEvaluationBindings)
+  configureJourneyFlow(SET_ID, {
     sections,
     taskRows,
     rowStatus,
@@ -93,5 +96,5 @@ export const installHighRiskPlantsJourney = () => {
     sectionCaption: sectionCaptionOf,
     layout: LAYOUT
   })
-  buildDispatch(dispatchPages)
+  buildDispatch(SET_ID, dispatchPages)
 }

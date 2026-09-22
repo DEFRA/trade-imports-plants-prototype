@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import { copy as typeCopy } from '../commodity-type/copy/copy.en.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -8,7 +12,6 @@ import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
 const HUB_URL = /\/notifications\/[^/]+$/
-const JOURNEY_ID_SEGMENT = 2
 const CONSIGNMENT_GROUP_ID = 'about-the-consignment'
 const ARRIVAL_GROUP_ID = 'arrival-and-destination'
 const RENDERED_GROUP_IDS = [
@@ -18,9 +21,6 @@ const RENDERED_GROUP_IDS = [
   'check-and-submit'
 ]
 const RENDERED_GROUP_COUNT = RENDERED_GROUP_IDS.length
-
-const journeyIdFromPage = (page) =>
-  new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
 
 // Exact, because the phase banner's "give your feedback by email" link also
 // contains the word.
@@ -40,11 +40,11 @@ const taskRowByTitle = (page, title) =>
     .filter({ has: page.getByText(title, { exact: true }) })
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(/\/notifications\/[^/]+\/commodity-type$/)
   const reference = journeyIdFromPage(page)
-  await page.goto(`/notifications/${reference}`)
+  await page.goto(`${BASE}/notifications/${reference}`)
   await expect(page).toHaveURL(HUB_URL)
   return reference
 }
@@ -82,12 +82,12 @@ test.describe('overview hub feature', () => {
 
     await expect(
       page.getByRole('button', { name: copy.returnToDashboard })
-    ).toHaveAttribute('href', '/')
-    await expect(backLink(page)).toHaveAttribute('href', '/')
+    ).toHaveAttribute('href', BASE)
+    await expect(backLink(page)).toHaveAttribute('href', BASE)
 
     await backLink(page).click()
 
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL(BASE)
   })
 
   test('renders the first group and its commodities row, linked to the page', async ({
@@ -103,7 +103,10 @@ test.describe('overview hub feature', () => {
     )
     await expect(
       page.getByRole('link', { name: copy.rows.commodities.title })
-    ).toHaveAttribute('href', `/notifications/${reference}/commodity-type`)
+    ).toHaveAttribute(
+      'href',
+      `${BASE}/notifications/${reference}/commodity-type`
+    )
     await expect(taskRow(page, copy.rows.commodities.title)).toContainText(
       copy.statuses.notYetStarted
     )
@@ -201,7 +204,7 @@ test('shows consignor only for plants and wood notifications', async ({
     'wood-and-cut-trees',
     'potatoes'
   ]) {
-    await page.goto(`/notifications/${reference}/commodity-type`)
+    await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
     await page
       .getByRole('radio', {
         name: typeCopy.typeLabels[commodityType],
@@ -236,7 +239,7 @@ test('contact task is visible and gated before the origin is answered', async ({
   page
 }) => {
   await signIn(page)
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await page
     .getByRole('link', {

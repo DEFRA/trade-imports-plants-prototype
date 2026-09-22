@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -23,7 +27,6 @@ const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
 const HUB_URL = /\/notifications\/[^/]+$/
 const PAGE_URL = /\/notifications\/[^/]+\/arrival-status$/
 const ARRIVAL_DETAILS_URL = /\/notifications\/[^/]+\/arrival-details$/
-const JOURNEY_ID_SEGMENT = 2
 
 const STATUS_INPUT_SELECTOR = 'input[name="arrivalStatus"]'
 const COUNTRY_INPUT = 'input#countryOfOrigin'
@@ -58,13 +61,13 @@ const radioFor = (page, value) =>
   page.getByRole('radio', { name: copy.statusLabels[value], exact: true })
 
 const arrivalStatusPathOf = (reference) =>
-  `/notifications/${reference}/arrival-status`
+  `${BASE}/notifications/${reference}/arrival-status`
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
+  return journeyIdFromPage(page)
 }
 
 const chooseCommodityType = async (page, commodityType) => {
@@ -107,7 +110,7 @@ const chooseCountry = async (page, name) => {
 }
 
 const saveOrigin = async (page, reference, country) => {
-  await page.goto(`/notifications/${reference}/origin`)
+  await page.goto(`${BASE}/notifications/${reference}/origin`)
   await expect(page).toHaveURL(ORIGIN_URL)
   await chooseCountry(page, country)
   await saveAndContinue(page).click()
@@ -204,7 +207,7 @@ test.describe('arrival-status feature', () => {
     ).toBeVisible()
     await expect(backLink(page)).toHaveAttribute(
       'href',
-      `/notifications/${reference}`
+      `${BASE}/notifications/${reference}`
     )
   })
 
@@ -224,7 +227,7 @@ test.describe('arrival-status feature', () => {
 
   test('is reachable from the overview arrival task row', async ({ page }) => {
     const reference = await startAtArrivalStatus(page)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await page.getByRole('link', { name: hubCopy.rows.arrival.title }).click()
 
@@ -384,20 +387,23 @@ test.describe('arrival-status — the question potatoes are never asked', () => 
     await chooseCommodityType(page, POTATOES)
     await addLine(page, WARE_POTATOES, WARE_POTATO_LINE_FIELDS)
     await saveOrigin(page, reference, SPAIN)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await expect(
       page
         .locator('.govuk-task-list')
         .getByRole('link', { name: hubCopy.rows.arrival.title })
-    ).toHaveAttribute('href', `/notifications/${reference}/arrival-details`)
+    ).toHaveAttribute(
+      'href',
+      `${BASE}/notifications/${reference}/arrival-details`
+    )
   })
 
   test('opens the arrival row on the overview for a wood notification', async ({
     page
   }) => {
     const reference = await startAtArrivalStatus(page)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await expect(
       page

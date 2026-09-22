@@ -1,3 +1,4 @@
+import { BASE, journeyIdFromPage } from './set-base.js'
 import { createRequire } from 'node:module'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -81,14 +82,14 @@ const fillSteps = {
 for (const [name, shape] of Object.entries(happyPaths)) {
   test(`${name}: ${shape.useCase} reaches confirmation`, async ({ page }) => {
     await signIn(page)
-    await page.goto('/')
+    await page.goto(BASE)
     await page.getByRole('button', { name: dashboardCopy.startButton }).click()
     await expect(page).toHaveURL(/\/commodity-type$/)
-    const reference = new URL(page.url()).pathname.split('/')[2]
+    const reference = journeyIdFromPage(page)
 
     for (const step of shape.steps) {
       await test.step(step.slug, async () => {
-        const path = `/notifications/${reference}/${step.slug}`
+        const path = `${BASE}/notifications/${reference}/${step.slug}`
         await expect(page).toHaveURL((url) => url.pathname === path)
         await fillSteps[step.slug](page, seedFields(step), shape)
         const button =
@@ -99,7 +100,9 @@ for (const [name, shape] of Object.entries(happyPaths)) {
       })
     }
 
-    await expect(page).toHaveURL(new RegExp(`/notifications/${reference}$`))
+    await expect(page).toHaveURL(
+      new RegExp(`${BASE}/notifications/${reference}$`)
+    )
     await page
       .getByRole('link', { name: 'Check and submit', exact: true })
       .click()
@@ -121,7 +124,7 @@ for (const [name, shape] of Object.entries(happyPaths)) {
       })
       .click()
     await expect(page).toHaveURL(
-      new RegExp(`/notifications/${reference}/confirmation$`)
+      new RegExp(`${BASE}/notifications/${reference}/confirmation$`)
     )
     await expect(
       page.getByRole('heading', { name: confirmationCopy.title, level: 1 })

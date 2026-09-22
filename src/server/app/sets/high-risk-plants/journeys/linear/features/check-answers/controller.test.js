@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -51,8 +52,8 @@ const invalidOrigin = {
 }
 
 beforeAll(() => {
-  configureRecords(recordsStub)
-  configureSession(sessionStub)
+  configureRecords(SET_ID, recordsStub)
+  configureSession(SET_ID, sessionStub)
   installHighRiskPlantsJourney()
 })
 beforeEach(() => store.clear())
@@ -65,7 +66,7 @@ describe('Check your answers', () => {
     expect(result.view.context).toMatchObject({
       pageTitle: copy.title,
       readOnly: false,
-      backLink: `/notifications/${result.journeyId}`,
+      backLink: `${SET_BASE}/notifications/${result.journeyId}`,
       copy
     })
     expect(result.view.context.caption).toBeUndefined()
@@ -77,11 +78,15 @@ describe('Check your answers', () => {
     expect(cards[0].rows[1]).toMatchObject({
       value: { text: 'France' },
       actions: {
-        items: [{ href: `/notifications/${result.journeyId}/origin?change=1` }]
+        items: [
+          {
+            href: `${SET_BASE}/notifications/${result.journeyId}/origin?change=1`
+          }
+        ]
       }
     })
     expect(cards[1].actions.items[0].href).toBe(
-      `/notifications/${result.journeyId}/commodities/details?index=0&change=1`
+      `${SET_BASE}/notifications/${result.journeyId}/commodities/details?index=0&change=1`
     )
     expect(cards[1].rows.map(({ value }) => value.text)).toEqual([
       'Seed potatoes',
@@ -188,7 +193,7 @@ describe('Check your answers', () => {
     for (const handler of [get, post]) {
       const result = await driveHandler(handler, { seed: invalidOrigin })
       expect(result.view.context.errorSummary.errorList[0].href).toBe(
-        `/notifications/${result.journeyId}/origin?change=1`
+        `${SET_BASE}/notifications/${result.journeyId}/origin?change=1`
       )
       expect(result.view.context.errorSummary.errorList[0].text).toContain(
         'Poland'
@@ -207,7 +212,7 @@ describe('Check your answers', () => {
         payload
       })
       expect(result.response.redirect).toBe(
-        `/notifications/${result.journeyId}${payload.exit ? '' : '/declaration'}`
+        `${SET_BASE}/notifications/${result.journeyId}${payload.exit ? '' : '/declaration'}`
       )
       expect(result.after).toEqual(COMPLETE_NOTIFICATION)
     }
@@ -217,7 +222,9 @@ describe('Check your answers', () => {
     const result = await driveHandler(post, {
       seed: { commodityType: 'potatoes', countryOfOrigin: 'FR' }
     })
-    expect(result.response.redirect).toBe(`/notifications/${result.journeyId}`)
+    expect(result.response.redirect).toBe(
+      `${SET_BASE}/notifications/${result.journeyId}`
+    )
   })
 
   it('Should render a submitted notification read-only and refuse a forged Continue', async () => {
@@ -235,7 +242,7 @@ describe('Check your answers', () => {
       expect(card.rows.every((row) => !row.actions)).toBe(true)
     }
     expect(await post(request, h)).toEqual({
-      redirect: `/notifications/${journey.journeyId}/notification-view`
+      redirect: `${SET_BASE}/notifications/${journey.journeyId}/notification-view`
     })
   })
 })
@@ -293,7 +300,7 @@ describe('Check your answers lateness', () => {
     await get(journeyRequest(journeyId), submitted)
     expect(submitted.captured.view.context).toMatchObject({
       readOnly: true,
-      deleteHref: `/notifications/${journeyId}/delete`,
+      deleteHref: `${SET_BASE}/notifications/${journeyId}/delete`,
       cancelAmendHref: null,
       amendmentCancelled: false
     })
@@ -312,7 +319,7 @@ describe('Check your answers lateness', () => {
     expect(amending.captured.view.context).toMatchObject({
       readOnly: false,
       deleteHref: null,
-      cancelAmendHref: `/notifications/${journeyId}/cancel-amend`,
+      cancelAmendHref: `${SET_BASE}/notifications/${journeyId}/cancel-amend`,
       amendmentCancelled: false
     })
   })
@@ -334,10 +341,10 @@ describe('review navigation', () => {
     expect(sectionGatePasses(section, makeScope({}))).toBe(false)
     expect(sectionGatePasses(section, complete)).toBe(true)
     expect(sectionEntry('review', complete, 'j-1')).toBe(
-      '/notifications/j-1/notification-view'
+      `${SET_BASE}/notifications/j-1/notification-view`
     )
     expect(nextInSection('consignment-contact-select', complete, 'j-1')).toBe(
-      '/notifications/j-1'
+      `${SET_BASE}/notifications/j-1`
     )
     expect(
       STUB_BOOK.some(

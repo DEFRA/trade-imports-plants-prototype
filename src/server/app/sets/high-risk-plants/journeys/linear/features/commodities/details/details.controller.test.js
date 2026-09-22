@@ -1,3 +1,4 @@
+import { SET_ID } from '../../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -56,8 +57,8 @@ const POTATO_LINE = {
 const namesOf = (context) => context.fieldViews.map((field) => field.name)
 
 const install = () => {
-  configureRecords(recordsStub)
-  configureSession(sessionStub)
+  configureRecords(SET_ID, recordsStub)
+  configureSession(SET_ID, sessionStub)
   installHighRiskPlantsJourney()
 }
 
@@ -488,7 +489,7 @@ describe('POST commodities/details — saving a line', () => {
 
 describe('POST commodities/details — save failures', () => {
   beforeAll(() => {
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
 
@@ -505,13 +506,13 @@ describe('POST commodities/details — save failures', () => {
   })
 
   afterEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     vi.unstubAllGlobals()
   })
 
   const failingOnControllerCommit = (failure) => {
     let replaceCalls = 0
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       replaceFulfilment: (...args) => {
         replaceCalls += 1

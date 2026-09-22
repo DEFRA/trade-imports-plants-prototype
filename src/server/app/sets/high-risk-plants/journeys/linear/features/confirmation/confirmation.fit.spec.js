@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
@@ -19,10 +23,10 @@ const VARIETY = 'Maris Piper'
 const contactName = 'Tech Imports Ltd'
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(/\/commodity-type$/)
-  const reference = new URL(page.url()).pathname.split('/')[2]
+  const reference = journeyIdFromPage(page)
   await page
     .getByRole('radio', { name: copy.typeLabels.potatoes, exact: true })
     .check()
@@ -93,7 +97,9 @@ const completeNotification = async (page, late = false) => {
   await save(page).click()
   // The opening run stops at the hub once every prerequisite section is
   // answered but the review gate itself needs a manual visit.
-  await expect(page).toHaveURL(new RegExp(`/notifications/${reference}$`))
+  await expect(page).toHaveURL(
+    new RegExp(`${BASE}/notifications/${reference}$`)
+  )
   await page
     .getByRole('link', { name: 'Check and submit', exact: true })
     .click()
@@ -122,7 +128,7 @@ const openDeclaration = async (page, late = false) => {
   const reference = await completeNotification(page, late)
   await page.getByRole('button', { name: copy.continue, exact: true }).click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/declaration$`)
+    new RegExp(`${BASE}/notifications/${reference}/declaration$`)
   )
   return reference
 }
@@ -140,7 +146,7 @@ test('shows an accessible submitted receipt, survives reload and links to the no
     .getByRole('button', { name: declarationCopy.continueButton, exact: true })
     .click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/confirmation$`)
+    new RegExp(`${BASE}/notifications/${reference}/confirmation$`)
   )
   await expect(
     page.getByRole('heading', { name: confirmationCopy.title, level: 1 })
@@ -163,17 +169,17 @@ test('shows an accessible submitted receipt, survives reload and links to the no
     .getByRole('link', { name: confirmationCopy.viewNotification, exact: true })
     .click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/notification-view$`)
+    new RegExp(`${BASE}/notifications/${reference}/notification-view$`)
   )
   await expect(page.getByRole('link', { name: /^Change/ })).toHaveCount(0)
-  await page.goto(`/notifications/${reference}/confirmation`)
+  await page.goto(`${BASE}/notifications/${reference}/confirmation`)
   await page
     .getByRole('link', {
       name: confirmationCopy.returnToDashboard,
       exact: true
     })
     .click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(BASE)
   await expect(
     page.getByRole('button', { name: dashboardCopy.startButton })
   ).toBeVisible()
@@ -183,9 +189,9 @@ test('returns a draft to check answers instead of showing a receipt', async ({
   page
 }) => {
   const reference = await completeNotification(page)
-  await page.goto(`/notifications/${reference}/confirmation`)
+  await page.goto(`${BASE}/notifications/${reference}/confirmation`)
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/notification-view$`)
+    new RegExp(`${BASE}/notifications/${reference}/notification-view$`)
   )
   await expect(
     page.getByRole('heading', { name: copy.title, level: 1 })

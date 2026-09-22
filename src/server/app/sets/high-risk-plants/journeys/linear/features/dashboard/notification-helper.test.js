@@ -1,3 +1,4 @@
+import { SET_BASE } from '../../../../set.js'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -105,38 +106,51 @@ describe('#buildPaginationLinks', () => {
 
   it('Should answer nothing while everything fits on one page', () => {
     expect(
-      buildPaginationLinks(pagination(1, 1), '/', undefined, labels)
+      buildPaginationLinks(pagination(1, 1), SET_BASE, undefined, labels)
     ).toBeNull()
   })
 
   it('Should offer only next on the first page', () => {
-    const links = buildPaginationLinks(pagination(1, 3), '/', undefined, labels)
+    const links = buildPaginationLinks(
+      pagination(1, 3),
+      SET_BASE,
+      undefined,
+      labels
+    )
 
     expect(links.previous).toBeUndefined()
-    expect(links.next).toEqual({ href: '/?page=2', text: 'Next' })
+    expect(links.next).toEqual({ href: `${SET_BASE}?page=2`, text: 'Next' })
   })
 
   it('Should offer only previous on the last page', () => {
-    const links = buildPaginationLinks(pagination(3, 3), '/', undefined, labels)
+    const links = buildPaginationLinks(
+      pagination(3, 3),
+      SET_BASE,
+      undefined,
+      labels
+    )
 
     expect(links.next).toBeUndefined()
-    expect(links.previous).toEqual({ href: '/?page=2', text: 'Previous' })
+    expect(links.previous).toEqual({
+      href: `${SET_BASE}?page=2`,
+      text: 'Previous'
+    })
   })
 
   it('Should preserve the sort and the search term in both links', () => {
     const links = buildPaginationLinks(
       pagination(2, 3),
-      '/',
+      SET_BASE,
       CREATED_AT_ASCENDING_SORT,
       labels,
       '26-ABC123'
     )
 
     expect(links.previous.href).toBe(
-      '/?sort=createdAt%2Casc&referenceNumber=26-ABC123'
+      `${SET_BASE}?sort=createdAt%2Casc&referenceNumber=26-ABC123`
     )
     expect(links.next.href).toBe(
-      '/?page=3&sort=createdAt%2Casc&referenceNumber=26-ABC123'
+      `${SET_BASE}?page=3&sort=createdAt%2Casc&referenceNumber=26-ABC123`
     )
   })
 })

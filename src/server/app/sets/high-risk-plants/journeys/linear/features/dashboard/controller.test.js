@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
@@ -10,12 +11,14 @@ import {
 } from '../../../../../../engine/persistence/records.js'
 import {
   configureSession,
-  SESSION_COOKIES
+  knownJourneysCookie,
+  openingRunCookie
 } from '../../../../../../engine/persistence/session.js'
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
 import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import {
   createPath,
+  createRoutePath,
   hubPath,
   pagePath
 } from '../../../../../../shared/paths.js'
@@ -41,7 +44,7 @@ const handlerOf = (method, pathSuffix) =>
 const listGet = handlerOf('GET', '/')
 const amendPost = handlerOf('POST', '/amend')
 const startPost = routes.find(
-  (route) => route.method === 'POST' && route.path === createPath()
+  (route) => route.method === 'POST' && route.path === createRoutePath()
 ).handler
 
 const buildRequest = ({
@@ -55,8 +58,8 @@ const buildRequest = ({
   params: journeyId ? { journeyId } : {},
   query,
   state: {
-    [SESSION_COOKIES.knownJourneys]: knownJourneyIds,
-    ...(openingRun ? { [SESSION_COOKIES.openingRun]: openingRun } : {})
+    [knownJourneysCookie()]: knownJourneyIds,
+    ...(openingRun ? { [openingRunCookie()]: openingRun } : {})
   },
   headers: {},
   auth: { isAuthenticated: true, credentials },
@@ -103,8 +106,8 @@ const textOf = (row) => row.actions.map((action) => action.text)
 
 describe('dashboard notifications list', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => records.clear())
 
@@ -122,7 +125,7 @@ describe('dashboard notifications list', () => {
       contentColumnClass: SURFACES.display,
       journeyStrip: null,
       startAction: createPath(),
-      listAction: '/'
+      listAction: SET_BASE
     })
     expect(h.captured.view.context).toHaveProperty('caption')
     expect(h.captured.view.context.hubHref).toBeUndefined()
@@ -309,14 +312,14 @@ describe('dashboard notifications list', () => {
       resultsLabel: copy.pagination.results.many(1, PAGE_SIZE, OVER_ONE_PAGE)
     })
     expect(firstPage.captured.view.context.pagination.next.href).toBe(
-      '/?page=2&sort=createdAt%2Casc'
+      `${SET_BASE}?page=2&sort=createdAt%2Casc`
     )
     expect(secondPage.captured.view.context).toMatchObject({
       currentPage: 2,
       resultsLabel: copy.pagination.results.oneOf(OVER_ONE_PAGE, OVER_ONE_PAGE)
     })
     expect(secondPage.captured.view.context.pagination.previous.href).toBe(
-      '/?sort=createdAt%2Casc'
+      `${SET_BASE}?sort=createdAt%2Casc`
     )
     expect(secondPage.captured.view.context.pagination.next).toBeUndefined()
   })
@@ -337,8 +340,8 @@ describe('dashboard notifications list', () => {
 
 describe('dashboard row actions', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => records.clear())
 
@@ -453,11 +456,12 @@ describe('dashboard rows the records port supplies', () => {
     })
   })
 
-  beforeAll(() => configureSession(sessionStub))
-  afterEach(() => configureRecords(recordsStub))
+  beforeAll(() => configureSession(SET_ID, sessionStub))
+  afterEach(() => configureRecords(SET_ID, recordsStub))
 
   it('Should drop a DELETED row the port still returns', async () => {
     configureRecords(
+      SET_ID,
       listing([
         { journeyId: '26-ABC123', reference: '26-ABC123', status: DELETED },
         { journeyId: '26-DEF456', reference: '26-DEF456', status: DRAFT }
@@ -474,6 +478,7 @@ describe('dashboard rows the records port supplies', () => {
 
   it('Should carry the display cells and the late flag through to the view', async () => {
     configureRecords(
+      SET_ID,
       listing([
         {
           journeyId: '26-DEF456',
@@ -503,8 +508,8 @@ describe('dashboard rows the records port supplies', () => {
 
 describe('dashboard banners', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => records.clear())
 
@@ -530,8 +535,8 @@ describe('dashboard banners', () => {
 
 describe('dashboard amend POST', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => records.clear())
 
@@ -562,7 +567,7 @@ describe('dashboard amend POST', () => {
       h
     )
 
-    expect(h.captured.redirect).toBe('/')
+    expect(h.captured.redirect).toBe(SET_BASE)
     expect(
       (await records.load({ journeyId: submitted.journeyId })).status
     ).toBe(SUBMITTED)
@@ -571,8 +576,8 @@ describe('dashboard amend POST', () => {
 
 describe('dashboard create POST', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => records.clear())
 
@@ -581,12 +586,11 @@ describe('dashboard create POST', () => {
 
     await startPost(buildRequest(), h)
 
-    const newJourneyId =
-      h.captured.cookies[SESSION_COOKIES.knownJourneys].at(-1)
+    const newJourneyId = h.captured.cookies[knownJourneysCookie()].at(-1)
     expect(h.captured.redirect).toBe(
       pagePath(newJourneyId, commodityTypePage.slug)
     )
-    expect(h.captured.cookies[SESSION_COOKIES.openingRun]).toEqual({
+    expect(h.captured.cookies[openingRunCookie()]).toEqual({
       [newJourneyId]: RUN_ACTIVE
     })
   })
@@ -597,7 +601,7 @@ describe('dashboard create POST', () => {
 
     await startPost(buildRequest({ knownJourneyIds: [oldDraft.journeyId] }), h)
 
-    const knownJourneyIds = h.captured.cookies[SESSION_COOKIES.knownJourneys]
+    const knownJourneyIds = h.captured.cookies[knownJourneysCookie()]
     expect(knownJourneyIds).toHaveLength(2)
     expect(knownJourneyIds[0]).toBe(oldDraft.journeyId)
   })

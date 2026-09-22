@@ -24,6 +24,11 @@ import {
 } from '../../src/server/app/bridge/obligation-source.js'
 import { configureObligationSet } from '../../src/server/app/model/obligations/manifest.js'
 import { configureJourneyFlow } from '../../src/server/app/flow/journey-flow.js'
+import { registerSetMount } from '../../src/server/app/shared/set-context.js'
+import {
+  SET_BASE,
+  SET_ID
+} from '../../src/server/app/sets/high-risk-plants/set.js'
 import * as fixtureObligationSet from './obligations.js'
 import { featureEvaluationBindings } from './bindings.js'
 import {
@@ -37,6 +42,10 @@ import {
   taskRows
 } from './flow.js'
 
+export {
+  SET_BASE,
+  SET_ID
+} from '../../src/server/app/sets/high-risk-plants/set.js'
 export * from './obligations.js'
 export * from './values.js'
 export { dispatchPages, itemDetailPage, itemsPage } from './pages.js'
@@ -96,9 +105,14 @@ const mergeSetDeclarations = () => {
  */
 export const installFixture = () => {
   mergeSetDeclarations()
-  configureObligationSet(fixtureObligationSet)
-  configureFulfilmentRegistry(featureEvaluationBindings)
-  configureJourneyFlow({
+  // Registering the mount is what lets `currentSetId()` fall back to the sole
+  // mounted set, so a unit test that never enters a request's set context
+  // still resolves. The fixture takes the installed set's id rather than one
+  // of its own, so the URLs these tests see are the URLs production serves.
+  registerSetMount(SET_ID, SET_BASE)
+  configureObligationSet(SET_ID, fixtureObligationSet)
+  configureFulfilmentRegistry(SET_ID, featureEvaluationBindings)
+  configureJourneyFlow(SET_ID, {
     sections,
     taskRows,
     rowStatus,
