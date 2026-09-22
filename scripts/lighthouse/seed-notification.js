@@ -4,7 +4,10 @@ import {
   dashboardPath,
   pagePath
 } from '../../src/server/app/shared/paths.js'
-import { registerSetMount } from '../../src/server/app/shared/set-context.js'
+import {
+  registerSetMount,
+  withSetContext
+} from '../../src/server/app/shared/set-context.js'
 import {
   SET_BASE,
   SET_ID
@@ -12,10 +15,14 @@ import {
 import { seedFields } from '../../fit/seed-fields.js'
 
 // This script drives a running server from the outside, so it never enters a
-// request's set context. Registering the mount makes it the sole mounted set,
-// which is what lets the path builders below resolve the prefix the server
-// actually serves on.
+// request's set context. Registering the mount is what lets the path builders
+// below resolve the prefix the server actually serves on.
+//
+// This host serves more than one set, so the builders are called inside
+// `inTheSet` rather than bare: bare, they resolve only by the sole-set
+// fallback, and that holds only while this script imports a single set.
 registerSetMount(SET_ID, SET_BASE)
+const inTheSet = (build) => withSetContext(SET_ID, build)
 const happyPaths = createRequire(import.meta.url)(
   '../../src/server/app/sets/high-risk-plants/journeys/linear/flow/fixtures/happy-path.json'
 )
@@ -52,7 +59,7 @@ const fieldsFor = (step, page) => {
 }
 
 export const journeyIdIn = (location) => {
-  const prefix = `${createPath()}/`
+  const prefix = `${inTheSet(createPath)}/`
   if (!location?.startsWith(prefix)) {
     return ''
   }
@@ -60,8 +67,8 @@ export const journeyIdIn = (location) => {
 }
 
 export const createNotification = async (client) => {
-  const dashboard = await client.document(dashboardPath())
-  const created = await client.submit(createPath(), {}, dashboard.crumb)
+  const dashboard = await client.document(inTheSet(dashboardPath))
+  const created = await client.submit(inTheSet(createPath), {}, dashboard.crumb)
   const journeyId = journeyIdIn(created.location)
   if (created.status !== HTTP_FOUND || !journeyId) {
     throw new Error(
@@ -73,7 +80,7 @@ export const createNotification = async (client) => {
 
 export const fillNotification = async (client, journeyId, shape) => {
   for (const step of shape.steps) {
-    const path = pagePath(journeyId, step.slug)
+    const path = inTheSet(() => pagePath(journeyId, step.slug))
     const page = await client.document(path)
     if (page.status !== HTTP_OK) {
       throw new Error(`Seed step ${step.slug} did not render (${page.status})`)
@@ -89,14 +96,14 @@ export const fillNotification = async (client, journeyId, shape) => {
 }
 
 export const submitNotification = async (client, journeyId) => {
-  const path = pagePath(journeyId, DECLARATION_SLUG)
+  const path = inTheSet(() => pagePath(journeyId, DECLARATION_SLUG))
   const page = await client.document(path)
   const posted = await client.submit(
     path,
     { declaration: DECLARATION_VALUE },
     page.crumb
   )
-  const confirmation = pagePath(journeyId, CONFIRMATION_SLUG)
+  const confirmation = inTheSet(() => pagePath(journeyId, CONFIRMATION_SLUG))
   if (posted.location !== confirmation) {
     throw new Error(
       `Declaration did not submit the notification (went to ${posted.location}, ` +
