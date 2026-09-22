@@ -1,4 +1,6 @@
-import { SET_BASE } from './sets/high-risk-plants/set.js'
+import { SET_BASE, SET_ID } from './sets/high-risk-plants/set.js'
+import { withSetContext } from './shared/set-context.js'
+import { SET_BASE as SAMPLE_JOURNEY_BASE } from './sets/sample-journey/set.js'
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 
 import { createServer } from '../server.js'
@@ -35,21 +37,27 @@ describe('high-risk-plants plugin registration', () => {
     expect(server.registrations).toHaveProperty('high-risk-plants')
   })
 
+  // Every seam below is keyed by set, and this process mounts more than one, so
+  // each assertion has to name the set it means. Reading them bare resolved by
+  // the sole-set fallback while only high-risk-plants was mounted.
   it('Should pass every boot guard and build the dispatch index', () => {
-    expect(isDispatchBuilt()).toBe(true)
+    expect(withSetContext(SET_ID, () => isDispatchBuilt())).toBe(true)
   })
 
   it('Should inject the flow readiness roll-up into the bridge seam', () => {
-    expect(makeScope({}).readyForCheckYourAnswers).toBe(false)
+    const readiness = (answers) =>
+      withSetContext(SET_ID, () => makeScope(answers).readyForCheckYourAnswers)
+
+    expect(readiness({})).toBe(false)
     expect(
-      makeScope({ commodityType: 'potatoes' }).readyForCheckYourAnswers,
+      readiness({ commodityType: 'potatoes' }),
       'a commodity type with no line leaves the task unfinished'
     ).toBe(false)
     expect(
-      makeScope(COMPLETE_POTATO_CONSIGNMENT).readyForCheckYourAnswers,
+      readiness(COMPLETE_POTATO_CONSIGNMENT),
       'a complete commodity section with no country of origin leaves the notification unfinished'
     ).toBe(false)
-    expect(makeScope(COMPLETE_NOTIFICATION).readyForCheckYourAnswers).toBe(true)
+    expect(readiness(COMPLETE_NOTIFICATION)).toBe(true)
   })
 
   it('Should inject the set party sanitiser into the answers-read seam', async () => {
@@ -58,9 +66,11 @@ describe('high-risk-plants plugin registration', () => {
     // seam is only proved here: nothing else configures it.
     const request = { auth: { credentials: authenticatedCredentials } }
     const dangling = { placeOfDestination: { addressId: 'no-such-address' } }
+    const read = (answers) =>
+      withSetContext(SET_ID, () => answersForRead(request, answers))
 
-    await expect(answersForRead(request, dangling)).resolves.toEqual({})
-    await expect(answersForRead(request, COMPLETE_NOTIFICATION)).resolves.toBe(
+    await expect(read(dangling)).resolves.toEqual({})
+    await expect(read(COMPLETE_NOTIFICATION)).resolves.toBe(
       COMPLETE_NOTIFICATION
     )
   })
@@ -94,14 +104,17 @@ describe('high-risk-plants plugin registration', () => {
     expect(dashboard.result).toContain(dashboardCopy.startButton)
   })
 
-  it('Should redirect the root to the default set rather than serving one there', async () => {
+  it('Should list the sets at the root rather than serving one there', async () => {
     const response = await server.inject({
       method: 'GET',
       url: '/',
       auth: { strategy: 'session', credentials: authenticatedCredentials }
     })
 
-    expect(response.statusCode).toBe(statusCodes.redirectFound)
-    expect(response.headers.location).toBe(SET_BASE)
+    // This is the prototype host, so the root is a chooser rather than a
+    // redirect: with several prototypes running there is no default.
+    expect(response.statusCode).toBe(statusCodes.ok)
+    expect(response.result).toContain(`href="${SET_BASE}"`)
+    expect(response.result).toContain(`href="${SAMPLE_JOURNEY_BASE}"`)
   })
 })

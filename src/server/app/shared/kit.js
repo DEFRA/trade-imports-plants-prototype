@@ -1,4 +1,5 @@
 import { hubPath, pagePath, pageRoutePath } from './paths.js'
+import { hasSetContext } from './set-context.js'
 import { AMEND, DELETED, DRAFT, SUBMITTED } from '../engine/index.js'
 import { nextInSection } from '../flow/navigation.js'
 import {
@@ -124,6 +125,51 @@ export const nextTarget = async (request, page, scope) =>
     (await runTarget(request, page.id, scope)) ??
       nextInSection(page.id, scope, request.params.journeyId)
   )
+
+/**
+ * The layout a page outside every set renders in. Each set names the same
+ * template today, but a set may override it, and a server-wide page has no set
+ * to ask.
+ */
+export const SERVER_WIDE_LAYOUT = 'shared/layout.njk'
+
+/**
+ * The chrome a page outside every set shares — the chooser at `/`, the
+ * sign-in error page.
+ *
+ * `base` below cannot serve them: it reads `journeyLayout()` and
+ * `journeySectionCaption()`, which resolve through the active set, and a
+ * server-wide route never enters one. With a single set mounted that resolves
+ * by the sole-set fallback and the bug stays hidden; with two it throws.
+ *
+ * @param {string} title - the page title.
+ * @returns {object} the common view model, without anything set-owned.
+ */
+export const serverWideBase = (title) => ({
+  layout: SERVER_WIDE_LAYOUT,
+  pageTitle: title,
+  // A server-wide page has no journey, so no strip and no token. `backLink`
+  // and `hubHref` are simply absent, which the layout treats the same as the
+  // undefined `base` leaves them at.
+  journeyStrip: null,
+  concurrencyToken: null,
+  sharedCopy,
+  recoverableError: false,
+  contentColumnClass: SURFACES.form
+})
+
+/**
+ * The chrome for a page that may or may not be inside a set.
+ *
+ * The error page is the case: it is reached from a set's route and from a
+ * server-wide one alike, and only at render time is it known which.
+ *
+ * @param {string} title - the page title.
+ * @returns {object} the set's chrome inside a set, the server-wide chrome
+ * outside one.
+ */
+export const chromeFor = (title) =>
+  hasSetContext() ? base(title) : serverWideBase(title)
 
 /**
  * The chrome every journey page shares.

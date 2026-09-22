@@ -87,11 +87,18 @@ Two reasons, and they are the whole argument:
 
 Two consequences follow:
 
-- **`/` belongs to no set.** It is a server-wide 302 — never a 301 — to
-  `DEFAULT_SET_BASE`, declared with `server.route` in
-  [`../../router.js`](../../router.js), outside every gateway. It takes the
-  server's default auth strategy, so signing in with no stored redirect lands
-  on the default set's dashboard.
+- **`/` belongs to no set.** In this repo it is the chooser — a server-wide
+  page listing every mounted set, registered by
+  [`../../sets-index/index.js`](../../sets-index/index.js) outside every
+  gateway. This is the prototype host: with several prototypes running there is
+  no default to redirect to, and a reader arriving at the service needs to see
+  what is on offer. A set appears on it purely by mounting; there is no list to
+  keep in step. (The two frontends redirect instead, because each has one
+  default set.)
+- **A server-wide page has no set, so it cannot use `kit.base()`**, which reads
+  the set-keyed journey flow. Use `kit.serverWideBase()`, or `kit.chromeFor()`
+  on a page reached from both — the error page. With a single set mounted the
+  sole-set fallback hides the difference; with two, `base()` throws.
 - **`/health`, `/signout`, the `/auth/*` routes and the static-asset route are
   server-wide.** They must never sit inside a prefixed `server.register` call.
   `/signout` is the live trap: it registers perfectly happily at

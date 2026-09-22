@@ -1,0 +1,16 @@
+{% extends 'shared/layout.njk' %}
+
+{% set mainClasses = "govuk-main-wrapper--l" %}
+
+{% block journeyContent %}
+  <h1 class="govuk-heading-l">{{ heading }}</h1>
+  <p class="govuk-body">{{ body }}</p>
+
+  <ul class="govuk-list">
+    {% for set in sets %}
+      <li>
+        <a class="govuk-link" href="{{ set.href }}">{{ set.text }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

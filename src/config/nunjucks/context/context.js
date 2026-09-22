@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { config } from '../../config.js'
 import { createLogger } from '../../../server/common/helpers/logging/logger.js'
 import { inDashboardSection } from '../../../server/app/shared/paths.js'
+import { hasSetContext } from '../../../server/app/shared/set-context.js'
 
 const logger = createLogger()
 const assetPath = config.get('assetPath')
@@ -25,6 +26,12 @@ let webpackManifest
  * request is under none of them.
  */
 export function activeNavigationItem(requestPath = '') {
+  // A server-wide page — the chooser at `/`, `/signout`, the sign-in error
+  // page — belongs to no set, so no set's navigation item is active on it.
+  // Asking `inDashboardSection` there would throw for want of a set.
+  if (!hasSetContext()) {
+    return null
+  }
   return inDashboardSection(requestPath) ? 'dashboard' : null
 }
 

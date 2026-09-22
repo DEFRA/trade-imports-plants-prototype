@@ -1,14 +1,15 @@
 /**
- * Two obligation sets, one Node process.
+ * Several obligation sets, one Node process.
  *
  * This is the suite EUDPA-619 exists to satisfy, so it boots the PRODUCTION
  * router rather than hand-rolling the composition it is meant to be checking.
  * A hand-rolled boot would assert against the test's own wiring: prefixing
- * /signout in router.js, or dropping the / redirect, would leave it green.
+ * /signout in router.js, or dropping the chooser at /, would leave it green.
  *
- * The second set is a test fixture (test/fixtures/second-set.js) rather than a
- * real journey. Co-residency is a property of the platform, and shipping a
- * second real set would mean shipping a journey nobody asked for.
+ * Unlike the two frontends, this repo is the prototype host, so it really does
+ * ship two sets — high-risk-plants and sample-journey — and the root lists them
+ * rather than redirecting to one. The fixture set in test/fixtures is mounted
+ * on top of those, as a third, to keep the platform assertions readable.
  */
 import path from 'node:path'
 import Hapi from '@hapi/hapi'
@@ -16,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { config } from '../../config/config.js'
 import { nunjucksConfig } from '../../config/nunjucks/nunjucks.js'
-import { DEFAULT_SET_BASE, router } from '../router.js'
+import { router } from '../router.js'
 import { createServer } from '../server.js'
 import { authRoutes } from '../auth/index.js'
 import { mockOidcConfig } from '../common/test-helpers/mock-oidc-config.js'
@@ -34,6 +35,7 @@ import {
   SET_BASE as PLANTS_BASE,
   SET_ID as HIGH_RISK_PLANTS
 } from './sets/high-risk-plants/set.js'
+import { SET_BASE as SAMPLE_JOURNEY_BASE } from './sets/sample-journey/set.js'
 import { SESSION_COOKIE_NAMES as PLANTS_COOKIES } from './sets/high-risk-plants/journeys/linear/config.js'
 import {
   SESSION_COOKIE_NAMES as SECOND_SET_COOKIES,
@@ -121,9 +123,9 @@ beforeAll(async () => {
     }
   })
   await server.register([nunjucksConfig, router])
-  // Mounted the way router.js mounts high-risk-plants. Registering a set without
-  // its prefix collides with the root redirect, which is the namespace split
-  // working: no set may sit at the root.
+  // Mounted the way router.js mounts the shipped sets. Registering a set
+  // without its prefix collides with the chooser at the root, which is the
+  // namespace split working: no set may sit there.
   await server.register(secondSet, { routes: { prefix: SECOND_SET_BASE } })
   await server.register(foreignRealm)
   await server.initialize()
@@ -146,6 +148,7 @@ describe('co-residency — two sets mounted in one process', () => {
       .filter(
         (route) =>
           !route.path.startsWith(PLANTS_BASE) &&
+          !route.path.startsWith(SAMPLE_JOURNEY_BASE) &&
           !route.path.startsWith(SECOND_SET_BASE) &&
           !route.path.startsWith(FOREIGN_REALM_BASE)
       )
@@ -161,12 +164,25 @@ describe('co-residency — two sets mounted in one process', () => {
     ])
   })
 
-  it('Should redirect the root to the default set rather than serving a set there', async () => {
+  it('Should list every mounted set at the root rather than serving one there', async () => {
     const response = await server.inject('/')
 
-    expect(response.statusCode).toBe(302)
-    expect(response.headers.location).toBe(DEFAULT_SET_BASE)
-    expect(DEFAULT_SET_BASE).toBe(PLANTS_BASE)
+    expect(response.statusCode).toBe(200)
+    // This is the prototype host, so the root is a chooser rather than a
+    // redirect: with several prototypes running there is no default.
+    for (const setId of mountedSetIds()) {
+      expect(
+        response.result,
+        `${setId} is not linked from the chooser`
+      ).toMatch(new RegExp(`href="/${setId}"`))
+    }
+  })
+
+  it('Should link the sample journey alongside the plants journey', async () => {
+    const response = await server.inject('/')
+
+    expect(response.result).toContain(`href="${PLANTS_BASE}"`)
+    expect(response.result).toContain(`href="${SAMPLE_JOURNEY_BASE}"`)
   })
 })
 
@@ -220,6 +236,24 @@ describe('co-residency — each set answers with its own configuration', () => {
 
     expect(plantsBase).toBe(PLANTS_BASE)
     expect(secondSetBase).toBe(SECOND_SET_BASE)
+  })
+})
+
+describe('co-residency — a real set’s entry guard', () => {
+  it('Should run the shipped set’s entry guard with that set’s configuration', async () => {
+    // The guard is an `onPreHandler` registered on the server, so — unlike a
+    // route handler — `routeWithSetContext` does not wrap it. Authentication
+    // crosses an async boundary after the `onPreAuth` that entered the
+    // context, so the gateway has to re-enter it around the guard itself.
+    // Without that the guard resolves only by the sole-set fallback, and every
+    // journey page 500s as soon as a second set mounts.
+    const response = await server.inject(
+      `${PLANTS_BASE}/notifications/GBN-HRP-26-NOTREAL`
+    )
+
+    // 404 or a redirect are both the guard working. A 500 is it throwing for
+    // want of a set.
+    expect(response.statusCode).not.toBe(500)
   })
 })
 

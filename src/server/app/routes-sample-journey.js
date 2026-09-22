@@ -3,31 +3,24 @@ import {
   configureJourneyFlow,
   journeyEntryGuardTarget
 } from './flow/journey-flow.js'
-import { readyForCheckYourAnswers } from './flow/section-status.js'
-import { configureReadyForCheckYourAnswers } from './bridge/readiness-config.js'
-import { configureAnswersForRead } from './bridge/answers-read.js'
 import {
   allRoutes,
   dispatchPages
-} from './sets/high-risk-plants/journeys/linear/features/index.js'
-import { featureEvaluationBindings } from './sets/high-risk-plants/journeys/linear/features/evaluation.js'
+} from './sets/sample-journey/journeys/linear/features/index.js'
+import { featureEvaluationBindings } from './sets/sample-journey/journeys/linear/features/evaluation.js'
 import {
+  entryGuardTarget,
   FLOW_ONLY_KEYS,
-  sections
-} from './sets/high-risk-plants/journeys/linear/flow/flow.js'
-import {
+  nextRunTarget,
   rowStatus,
+  sections,
   taskRows
-} from './sets/high-risk-plants/journeys/linear/flow/task-rows.js'
-import { sectionCaptionOf } from './sets/high-risk-plants/journeys/linear/flow/section-captions/index.js'
-import { nextRunTarget } from './sets/high-risk-plants/journeys/linear/flow/run.js'
-import { entryGuardTarget } from './sets/high-risk-plants/journeys/linear/flow/entry-guard.js'
-import { withoutUnresolvedPartyRefs } from './sets/high-risk-plants/journeys/linear/parties/index.js'
+} from './sets/sample-journey/journeys/linear/flow/flow.js'
 import {
   LAYOUT,
   SESSION_COOKIE_NAMES
-} from './sets/high-risk-plants/journeys/linear/config.js'
-import * as highRiskPlantsObligationSet from './sets/high-risk-plants/obligations/index.js'
+} from './sets/sample-journey/journeys/linear/config.js'
+import * as sampleJourneyObligationSet from './sets/sample-journey/obligations/index.js'
 import { assertObligationPurity } from './obligation-purity.js'
 import {
   assertFulfilmentBindingCoverage,
@@ -45,9 +38,9 @@ import {
   routeWithSetContext,
   withSetContext
 } from './shared/set-context.js'
-import { SET_BASE, SET_ID } from './sets/high-risk-plants/set.js'
+import { SET_BASE, SET_ID } from './sets/sample-journey/set.js'
 
-export const highRiskPlants = {
+export const sampleJourney = {
   plugin: {
     name: SET_ID,
     register: async (server) => {
@@ -65,7 +58,7 @@ export const highRiskPlants = {
           },
           { sandbox: 'plugin' }
         )
-        configureObligationSet(SET_ID, highRiskPlantsObligationSet)
+        configureObligationSet(SET_ID, sampleJourneyObligationSet)
         configureFulfilmentRegistry(SET_ID, featureEvaluationBindings)
         configureJourneyFlow(SET_ID, {
           sections,
@@ -74,11 +67,8 @@ export const highRiskPlants = {
           nextRunTarget,
           flowOnlyKeys: FLOW_ONLY_KEYS,
           entryGuardTarget,
-          sectionCaption: sectionCaptionOf,
           layout: LAYOUT
         })
-        configureReadyForCheckYourAnswers(SET_ID, readyForCheckYourAnswers)
-        configureAnswersForRead(SET_ID, withoutUnresolvedPartyRefs)
         assertObligationPurity()
         assertFulfilmentBindingCoverage()
         buildDispatch(SET_ID, dispatchPages)
