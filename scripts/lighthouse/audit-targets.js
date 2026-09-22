@@ -140,6 +140,18 @@ export const auditPaths = (journeyIds, routes = allRoutes) =>
 export const auditUrls = (origin, journeyIds, routes = allRoutes) =>
   auditPaths(journeyIds, routes).map((path) => new URL(path, origin).toString())
 
+/**
+ * Where the run signs in before it seeds.
+ *
+ * Not the origin: `/` is the chooser on this host and is served without
+ * authentication, so the sign-in form never appears there and the session would
+ * stay anonymous while every seeding request bounced to sign-in. The set's own
+ * dashboard is behind the session strategy, so the stub's form appears and the
+ * cookies come back signed in.
+ */
+export const signInUrl = (origin) =>
+  new URL(inTheSet(dashboardPath), origin).toString()
+
 /** The report filename a URL earns, with the seeded journey id dropped so the
  * name is stable across runs and reports overwrite their predecessor instead of
  * piling up a fresh set on every one.

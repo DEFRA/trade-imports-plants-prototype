@@ -11,6 +11,7 @@ import {
   QUERY,
   reportName,
   reportNames,
+  signInUrl,
   SKIPPED
 } from './audit-targets.js'
 import { journeyIdIn, SEED_SHAPES } from './seed-notification.js'
@@ -303,6 +304,16 @@ describe('#assertTargetsAreCurrent', () => {
     expect(() => assertTargetsAreCurrent(routes)).toThrow(
       /cannot build a URL for \/notifications\/\{journeyId}\/lines\/\{lineId}/
     )
+  })
+})
+
+describe('#signInUrl', () => {
+  it('Should sign in inside the set, not at the root the chooser serves', () => {
+    expect(signInUrl(ORIGIN)).toBe(`${ORIGIN}${SET_BASE}`)
+  })
+
+  it('Should not sign in at a page served without authentication', () => {
+    expect(signInUrl(ORIGIN)).not.toBe(`${ORIGIN}/`)
   })
 })
 

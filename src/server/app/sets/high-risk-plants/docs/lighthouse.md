@@ -57,8 +57,11 @@ of use cases.
 `npm run lighthouse` is `run-s lighthouse:targets lighthouse:run`.
 
 `lighthouse:targets` (`seed-audit-targets.js`) signs in through
-`tests/lighthouse/auth-setup.cjs`, seeds one notification per shape in
-`SEED_SHAPES`, derives the audit URLs from the app's own registered routes and
+`tests/lighthouse/auth-setup.cjs` — at the set's own dashboard, not at the
+origin, because `/` is the chooser on this host and is served without
+authentication, so the sign-in form never appears there and the session would
+stay anonymous — seeds one notification per shape in `SEED_SHAPES`, derives the
+audit URLs from the app's own registered routes and
 writes them to `.lighthouse/targets.json`. It then re-fetches every URL in a
 session that has **not** walked the journey — the same standing Lighthouse
 itself has — and fails when a URL does not return 200 for its own page. A page
