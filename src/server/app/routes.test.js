@@ -1,3 +1,5 @@
+import { load } from 'cheerio'
+
 import { SET_BASE, SET_ID } from './sets/high-risk-plants/set.js'
 import { withSetContext } from './shared/set-context.js'
 import { SET_BASE as SAMPLE_JOURNEY_BASE } from './sets/sample-journey/set.js'
@@ -14,6 +16,7 @@ import {
   COMPLETE_POTATO_CONSIGNMENT
 } from './sets/high-risk-plants/journeys/linear/test-support.js'
 import { copy as dashboardCopy } from './sets/high-risk-plants/journeys/linear/features/dashboard/copy/copy.en.js'
+import { copy as sharedCopy } from './shared/copy.en.js'
 import { authenticatedCredentials } from './engine/test-support.js'
 import { mockOidcConfig } from '../common/test-helpers/mock-oidc-config.js'
 
@@ -105,16 +108,89 @@ describe('high-risk-plants plugin registration', () => {
   })
 
   it('Should list the sets at the root rather than serving one there', async () => {
-    const response = await server.inject({
-      method: 'GET',
-      url: '/',
-      auth: { strategy: 'session', credentials: authenticatedCredentials }
-    })
+    // No credentials: the chooser is reachable signed out (`auth` mode `try`),
+    // so passing them here would only mislead the reader.
+    const response = await server.inject({ method: 'GET', url: '/' })
 
     // This is the prototype host, so the root is a chooser rather than a
     // redirect: with several prototypes running there is no default.
     expect(response.statusCode).toBe(statusCodes.ok)
     expect(response.result).toContain(`href="${SET_BASE}"`)
     expect(response.result).toContain(`href="${SAMPLE_JOURNEY_BASE}"`)
+    // Signed out, so no signed-in navigation.
+    expect(response.result).not.toContain(
+      sharedCopy.layout.serviceNavigation.logOut
+    )
+  })
+
+  it('Should render the signed-in navigation on the chooser for a reader with a session', async () => {
+    // `auth` mode `try` rather than `false`: the chooser is reachable signed
+    // out, but a request that carries a session still reads it.
+    const sessionId = 'chooser-session'
+    await server.app.cache.set(sessionId, { email: 'trader@example.com' })
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/',
+      auth: {
+        strategy: 'session',
+        credentials: { ...authenticatedCredentials, sessionId }
+      }
+    })
+
+    expect(response.statusCode).toBe(statusCodes.ok)
+    expect(response.result).toContain('govuk-service-navigation__list')
+    expect(response.result).toContain(
+      sharedCopy.layout.serviceNavigation.logOut
+    )
+  })
+
+  it.each([
+    ['high-risk-plants', SET_BASE],
+    ['sample-journey', SAMPLE_JOURNEY_BASE]
+  ])(
+    'Should mark the Dashboard item active on the %s dashboard',
+    async (_setId, setBase) => {
+      // Both sets are mounted here, so nothing resolves by the sole-set
+      // fallback: the navigation item is marked from the set the REQUEST is
+      // in, and it points at that set's own dashboard.
+      const sessionId = `nav-session-${setBase}`
+      await server.app.cache.set(sessionId, { email: 'trader@example.com' })
+
+      const response = await server.inject({
+        method: 'GET',
+        url: setBase,
+        auth: {
+          strategy: 'session',
+          credentials: { ...authenticatedCredentials, sessionId }
+        }
+      })
+
+      expect(response.statusCode).toBe(statusCodes.ok)
+      const $ = load(response.result)
+      const dashboard = $('.govuk-service-navigation__link').filter(
+        (_, link) =>
+          $(link).text().trim() ===
+          sharedCopy.layout.serviceNavigation.dashboard
+      )
+
+      expect(dashboard).toHaveLength(1)
+      expect(dashboard.attr('aria-current')).toBe('true')
+      expect(dashboard.attr('href')).toBe(setBase)
+    }
+  )
+
+  it('Should serve the sample journey’s own page under its prefix', async () => {
+    // The chooser linking to a set proves nothing about the set answering.
+    // This renders the real template through the set's configured seams, so a
+    // broken template or an unconfigured seam fails here.
+    const response = await server.inject({
+      method: 'GET',
+      url: SAMPLE_JOURNEY_BASE,
+      auth: { strategy: 'session', credentials: authenticatedCredentials }
+    })
+
+    expect(response.statusCode).toBe(statusCodes.ok)
+    expect(response.result).toContain('Sample journey')
   })
 })

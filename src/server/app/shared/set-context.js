@@ -12,6 +12,15 @@ export const registerSetMount = (setId, prefix) => {
 
 export const mountedSetIds = () => [...mounts.keys()]
 
+/**
+ * Every mounted set as a `[setId, prefix]` pair, so a caller that needs the
+ * URL a set actually answers on reads it back rather than rebuilding it from
+ * the id.
+ *
+ * @returns {Array<[string, string]>} one pair per mounted set.
+ */
+export const mountedSets = () => [...mounts.entries()]
+
 const soleSetId = () => (mounts.size === 1 ? [...mounts.keys()][0] : undefined)
 
 /**

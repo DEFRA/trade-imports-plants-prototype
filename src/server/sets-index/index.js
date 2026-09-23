@@ -1,4 +1,4 @@
-import { mountedSetIds } from '../app/shared/set-context.js'
+import { mountedSets } from '../app/shared/set-context.js'
 import { setsIndexController } from './controller.js'
 
 /**
@@ -8,8 +8,10 @@ import { setsIndexController } from './controller.js'
  * rather than redirecting to one of them: there is no default here, and a
  * reader arriving at the service needs to see what is on offer.
  *
- * Server-wide, so it is registered outside every set's prefix. Register it
- * AFTER the sets, because it reads the mount registry they populate.
+ * Server-wide, so it is registered outside every set's prefix. The mount
+ * registry is read per request — the chooser is handed the lookup as a function
+ * and calls it inside the handler — so this plugin may be registered in any
+ * order relative to the sets.
  */
 export const setsIndex = {
   plugin: {
@@ -19,7 +21,7 @@ export const setsIndex = {
         {
           method: 'GET',
           path: '/',
-          ...setsIndexController(mountedSetIds)
+          ...setsIndexController(mountedSets)
         }
       ])
     }

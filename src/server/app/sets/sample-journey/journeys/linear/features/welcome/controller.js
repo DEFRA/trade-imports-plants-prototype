@@ -1,9 +1,6 @@
 import { dashboardRoutePath } from '../../../../../../shared/paths.js'
 import * as kit from '../../../../../../shared/kit.js'
 import { TEMPLATES } from '../../config.js'
-import { welcomePage as page } from './page.js'
-
-export const meta = { ...page, collects: ['consignmentReference'] }
 
 const view = `${TEMPLATES}/features/welcome/template`
 

@@ -12,9 +12,11 @@
  * on top of those, as a third, to keep the platform assertions readable.
  */
 import path from 'node:path'
+import Cookie from '@hapi/cookie'
 import Hapi from '@hapi/hapi'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { authPlugin } from '../../plugins/auth.js'
 import { config } from '../../config/config.js'
 import { nunjucksConfig } from '../../config/nunjucks/nunjucks.js'
 import { router } from '../router.js'
@@ -26,16 +28,22 @@ import {
   enterSetContext,
   mountedSetIds,
   registerSetMount,
+  routeWithSetContext,
   withSetContext
 } from './shared/set-context.js'
 import { obligations } from './model/obligations/manifest.js'
 import { journeySections } from './flow/journey-flow.js'
+import { records as setRecords } from './engine/persistence/records.js'
+import { authenticatedCredentials } from './engine/test-support.js'
 import { dashboardPath } from './shared/paths.js'
 import {
   SET_BASE as PLANTS_BASE,
   SET_ID as HIGH_RISK_PLANTS
 } from './sets/high-risk-plants/set.js'
-import { SET_BASE as SAMPLE_JOURNEY_BASE } from './sets/sample-journey/set.js'
+import {
+  SET_BASE as SAMPLE_JOURNEY_BASE,
+  SET_ID as SAMPLE_JOURNEY
+} from './sets/sample-journey/set.js'
 import { SESSION_COOKIE_NAMES as PLANTS_COOKIES } from './sets/high-risk-plants/journeys/linear/config.js'
 import {
   SESSION_COOKIE_NAMES as SECOND_SET_COOKIES,
@@ -48,6 +56,20 @@ import {
 vi.mock('../../auth/get-oidc-config.js', () => ({
   getOidcConfig: vi.fn(() => Promise.resolve(mockOidcConfig))
 }))
+
+/**
+ * The real `plugins/auth.js` is registered below, so every set's page routes
+ * inherit the `session` default through `kit.routeOptions` and a request
+ * crosses the strategy's async `validate()` between the gateway's `onPreAuth` —
+ * where `enterSetContext` runs — and its `onPreHandler` entry guard. That
+ * boundary is what the guard's own `withSetContext` wrap exists to survive.
+ */
+const SESSION_ID = 'co-residency-session'
+
+const SIGNED_IN = {
+  strategy: 'session',
+  credentials: { ...authenticatedCredentials, sessionId: SESSION_ID }
+}
 
 const FOREIGN_REALM = 'foreign-realm'
 const FOREIGN_REALM_BASE = `/${FOREIGN_REALM}`
@@ -73,12 +95,17 @@ const foreignRealm = {
         },
         { sandbox: 'plugin' }
       )
-      server.route({
-        method: 'GET',
-        path: `${FOREIGN_REALM_BASE}/probe`,
-        options: { auth: false },
-        handler: () => ({ setId: currentSetId() })
-      })
+      // Wrapped the way a real gateway wraps its routes: the authentication
+      // step between `onPreAuth` and the handler is async, so the handler has
+      // to re-enter the context rather than trust `enterWith` to survive it.
+      server.route(
+        routeWithSetContext(FOREIGN_REALM, {
+          method: 'GET',
+          path: `${FOREIGN_REALM_BASE}/probe`,
+          options: { auth: false },
+          handler: () => ({ setId: currentSetId() })
+        })
+      )
     }
   }
 }
@@ -122,7 +149,11 @@ beforeAll(async () => {
       files: { relativeTo: path.resolve(config.get('root'), '.public') }
     }
   })
-  await server.register([nunjucksConfig, router])
+  // The nunjucks context reads the signed-in reader's details from here, which
+  // is what makes the layout render its service navigation — and so the
+  // set-prefixed links each shipped set's page carries.
+  server.app.cache = { get: async () => ({ email: 'trader@example.test' }) }
+  await server.register([nunjucksConfig, Cookie, authPlugin, router])
   // Mounted the way router.js mounts the shipped sets. Registering a set
   // without its prefix collides with the chooser at the root, which is the
   // namespace split working: no set may sit there.
@@ -211,6 +242,11 @@ describe('co-residency — each set answers with its own configuration', () => {
 
     expect(secondSetObligations).toEqual(['shipmentReference'])
     expect(plantsObligations).not.toContain('shipmentReference')
+    // Positive as well as negative: `commodityType` is in the REAL
+    // high-risk-plants manifest and in neither the fixture set nor the
+    // synthetic manifest test/setup-obligation-set.js installs, so this fails
+    // if anything but the real manifest is what resolved.
+    expect(plantsObligations).toContain('commodityType')
     expect(plantsObligations.length).toBeGreaterThan(1)
   })
 
@@ -247,13 +283,23 @@ describe('co-residency — a real set’s entry guard', () => {
     // context, so the gateway has to re-enter it around the guard itself.
     // Without that the guard resolves only by the sole-set fallback, and every
     // journey page 500s as soon as a second set mounts.
-    const response = await server.inject(
-      `${PLANTS_BASE}/notifications/GBN-HRP-26-NOTREAL`
+    const journey = await withSetContext(HIGH_RISK_PLANTS, () =>
+      setRecords.create()
     )
 
-    // 404 or a redirect are both the guard working. A 500 is it throwing for
-    // want of a set.
-    expect(response.statusCode).not.toBe(500)
+    const response = await server.inject({
+      method: 'GET',
+      url: `${PLANTS_BASE}/notifications/${journey.journeyId}`,
+      auth: SIGNED_IN
+    })
+
+    // The guard's actual effect, not merely "did not throw": a deep link into
+    // a journey with no opening run and no committed answers goes to that
+    // SET'S entry page, prefix and all.
+    expect(response.statusCode).toBe(302)
+    expect(response.headers.location).toBe(
+      `${PLANTS_BASE}/notifications/${journey.journeyId}/commodity-type`
+    )
   })
 })
 
@@ -266,9 +312,26 @@ describe('co-residency — interleaved requests', () => {
       server.inject(`${SECOND_SET_BASE}/notifications/SUN-A/details`),
       server.inject(`${FOREIGN_REALM_BASE}/probe`),
       server.inject(`${SECOND_SET_BASE}/notifications/SUN-B/details`),
-      server.inject(`${FOREIGN_REALM_BASE}/probe`)
+      server.inject(`${FOREIGN_REALM_BASE}/probe`),
+      // The two SHIPPED sets overlapped too, not only the fixtures: these are
+      // the pages a reader actually sees, rendered through the shared layout.
+      server.inject({ method: 'GET', url: PLANTS_BASE, auth: SIGNED_IN }),
+      server.inject({
+        method: 'GET',
+        url: SAMPLE_JOURNEY_BASE,
+        auth: SIGNED_IN
+      })
     ]
-    const [first, foreignA, second, foreignB] = await Promise.all(inFlight)
+    const [first, foreignA, second, foreignB, plants, sample] =
+      await Promise.all(inFlight)
+
+    expect(plants.statusCode).toBe(200)
+    expect(sample.statusCode).toBe(200)
+    // Each shipped set's page carries its own prefix and none of the other's.
+    expect(plants.result).toContain(`${PLANTS_BASE}/notifications`)
+    expect(plants.result).not.toContain(SAMPLE_JOURNEY_BASE)
+    expect(sample.result).toContain(SAMPLE_JOURNEY_BASE)
+    expect(sample.result).not.toContain(PLANTS_BASE)
 
     expect(first.result.setId).toBe(SECOND_SET)
     expect(first.result.journeyId).toBe('SUN-A')
@@ -347,11 +410,48 @@ describe('co-residency — journey cookies are scoped to their set', () => {
       journey.journeyId
     ])
     // high-risk-plants reads its own store, which has never seen this id.
-    const acrossSets = await withSetContext(HIGH_RISK_PLANTS, async () => {
-      const { records } = await import('./engine/persistence/records.js')
-      return records.list({ journeyIds: [journey.journeyId] })
-    })
+    const acrossSets = await withSetContext(HIGH_RISK_PLANTS, () =>
+      setRecords.list({ journeyIds: [journey.journeyId] })
+    )
     expect(acrossSets.rows).toEqual([])
+  })
+
+  it('Should keep the two SHIPPED sets’ drafts apart as well', async () => {
+    // The fixture set brings its own hand-rolled store, so it proves only that
+    // a set MAY have one. These are the two real sets, both configured from
+    // the same module: each has to be handed an instance of its own.
+    const plantsJourney = await withSetContext(HIGH_RISK_PLANTS, () =>
+      setRecords.create()
+    )
+    const sampleJourney = await withSetContext(SAMPLE_JOURNEY, () =>
+      setRecords.create()
+    )
+
+    const plantsSeesSample = await withSetContext(HIGH_RISK_PLANTS, () => ({
+      has: setRecords.has(sampleJourney.journeyId),
+      load: setRecords.load({ journeyId: sampleJourney.journeyId })
+    }))
+    const sampleSeesPlants = await withSetContext(SAMPLE_JOURNEY, () => ({
+      has: setRecords.has(plantsJourney.journeyId),
+      load: setRecords.load({ journeyId: plantsJourney.journeyId })
+    }))
+
+    await expect(plantsSeesSample.has).resolves.toBe(false)
+    await expect(plantsSeesSample.load).resolves.toBeUndefined()
+    await expect(sampleSeesPlants.has).resolves.toBe(false)
+    await expect(sampleSeesPlants.load).resolves.toBeUndefined()
+
+    // Each set can still read back its own.
+    await expect(
+      withSetContext(HIGH_RISK_PLANTS, () =>
+        setRecords.has(plantsJourney.journeyId)
+      )
+    ).resolves.toBe(true)
+    await expect(
+      withSetContext(SAMPLE_JOURNEY, () =>
+        setRecords.has(sampleJourney.journeyId)
+      )
+    ).resolves.toBe(true)
   })
 })
 

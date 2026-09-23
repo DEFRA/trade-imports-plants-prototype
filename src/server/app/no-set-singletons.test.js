@@ -35,12 +35,16 @@ const gatewayFiles = () =>
       source: withoutComments(readFileSync(path.join(APP_DIR, name), 'utf8'))
     }))
 
-/** Every seam a set configures. A new one added without a set id would let the
- * second set overwrite the first, which is the whole defect class. */
+/** Every seam a gateway calls. A new one added without a set id would let the
+ * second set overwrite the first, which is the whole defect class.
+ *
+ * `configureFlowOnlyKeys` is NOT here: no gateway calls it —
+ * `flow/journey-flow.js` calls it from `configureJourneyFlow`, off that
+ * journey's `flowOnlyKeys` field — so a case for it would match zero calls and
+ * assert nothing. */
 const SEAMS = [
   'configureObligationSet',
   'configureFulfilmentRegistry',
-  'configureFlowOnlyKeys',
   'configureAnswersForRead',
   'configureReadyForCheckYourAnswers',
   'configureJourneyFlow',
@@ -55,10 +59,12 @@ describe('no set singletons — every gateway is keyed by its set', () => {
   })
 
   it.each(SEAMS)('Should pass the set id first to %s', (seam) => {
+    let called = 0
     for (const { name, source } of gatewayFiles()) {
       const calls = [
         ...source.matchAll(new RegExp(`\\b${seam}\\(([^,)]*)`, 'g'))
       ]
+      called += calls.length
       for (const [, firstArgument] of calls) {
         expect(
           firstArgument.trim(),
@@ -66,6 +72,13 @@ describe('no set singletons — every gateway is keyed by its set', () => {
         ).toBe('SET_ID')
       }
     }
+
+    // A seam no gateway calls matches nothing, so the loop above asserts
+    // nothing and the case reports green while pinning nothing. Fail loudly.
+    expect(
+      called,
+      `no gateway calls ${seam} — is it still a gateway seam?`
+    ).toBeGreaterThan(0)
   })
 
   it('Should sandbox every lifecycle extension a gateway registers', () => {
@@ -94,12 +107,40 @@ describe('no set singletons — every gateway is keyed by its set', () => {
     }
   })
 
+  it('Should enter its own set context on every request', () => {
+    // Rule 2 of the co-residency contract (docs/add-a-set.md): a request
+    // resolves its set from the owning plugin realm, never from the URL. The
+    // sandbox check above passes a gateway with no onPreAuth at all.
+    for (const { name, source } of gatewayFiles()) {
+      expect(source, `${name} registers no onPreAuth extension`).toMatch(
+        /server\.ext\(\s*'onPreAuth'/
+      )
+      expect(
+        source,
+        `${name} registers onPreAuth without entering its set context`
+      ).toContain('enterSetContext(SET_ID)')
+    }
+  })
+
   it('Should run its registration inside its own set context', () => {
     for (const { name, source } of gatewayFiles()) {
       expect(
         source,
         `${name} configures seams outside withSetContext`
       ).toContain('withSetContext(SET_ID')
+    }
+  })
+
+  it('Should run its entry guard inside its own set context', () => {
+    // The registration wrapper above does not cover this: the guard runs per
+    // request, after an authentication step that crosses an async boundary,
+    // and `routeWithSetContext` wraps route-owned extensions only — never a
+    // server-level `server.ext`.
+    for (const { name, source } of gatewayFiles()) {
+      expect(
+        source,
+        `${name} runs its onPreHandler entry guard outside withSetContext`
+      ).toMatch(/onPreHandler[\s\S]*?withSetContext\(SET_ID/)
     }
   })
 

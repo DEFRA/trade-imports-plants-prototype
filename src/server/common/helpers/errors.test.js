@@ -77,10 +77,13 @@ describe('#errors', () => {
 
   test('Should serve the shared error page as a 503 when a page reads reference data that will not load', async () => {
     // Flip to real mode for the length of this request so the reader tries
-    // to load; with no fetch stubbed the load rejects, the reader throws
+    // to load; with fetch forced to fail the load rejects regardless of what
+    // is (or isn't) listening on the reference-data host, the reader throws
     // Boom.serverUnavailable, and catchAll renders the shared error page.
     const originalStubMode = config.get('stubMode')
     config.set('stubMode', false)
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockRejectedValue(new Error('fetch failed'))
     try {
       const { result, statusCode } = await server.inject({
         method: 'GET',
@@ -96,6 +99,7 @@ describe('#errors', () => {
       expect(result).toEqual(expect.stringContaining('>503</h1>'))
     } finally {
       config.set('stubMode', originalStubMode)
+      global.fetch = originalFetch
     }
   })
 })

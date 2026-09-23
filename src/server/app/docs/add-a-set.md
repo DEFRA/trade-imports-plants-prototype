@@ -16,7 +16,11 @@ the kebab-case id you choose in step 1.
 
 ## Read these first
 
-`high-risk-plants` is the worked example. Read it in this order:
+`high-risk-plants` is the worked example of a full set. `sample-journey`
+([`../routes-sample-journey.js`](../routes-sample-journey.js),
+[`../sets/sample-journey/`](../sets/sample-journey/)) is the worked example of
+ADDING one: it is the smallest set this recipe produces, and it is the second
+real set this repo ships. Read them in this order:
 
 - [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js) — the gateway body
   step 4 reproduces for your set. [`../routes.js`](../routes.js) is only the
@@ -45,11 +49,15 @@ mounted and only surfaces when a second arrives, which is why each is pinned by
 **1. Every `configure*` seam takes the set id first.** Each stores its value
 per set behind `setKeyed`, and each read accessor resolves through
 `currentSetId()`. A seam that kept one module-level variable would let the
-second registration overwrite the first. The nine seams are
+second registration overwrite the first. The eight seams a gateway calls are
 `configureObligationSet`, `configureFulfilmentRegistry`,
-`configureFlowOnlyKeys`, `configureAnswersForRead`,
-`configureReadyForCheckYourAnswers`, `configureJourneyFlow`, `buildDispatch`,
-`configureRecords` and `configureSession`.
+`configureAnswersForRead`, `configureReadyForCheckYourAnswers`,
+`configureJourneyFlow`, `buildDispatch`, `configureRecords` and
+`configureSession`.
+
+`configureFlowOnlyKeys` is set-keyed too, but no gateway calls it:
+`configureJourneyFlow` calls it from the journey's own `flowOnlyKeys` field
+([`../flow/journey-flow.js`](../flow/journey-flow.js) lines 25-28).
 
 **2. A request resolves its set from the owning plugin realm, never from the
 URL.** Each gateway installs an `onPreAuth` extension that calls
@@ -68,6 +76,14 @@ inside `withSetContext(setId, …)` and pass every route through
 `routeWithSetContext(setId, route)`, which wraps the handler and any
 route-owned lifecycle extension. Server-wide routes stay outside every set
 context.
+
+The server-level `server.ext('onPreHandler', …)` entry guard must wrap its own
+body in `withSetContext(SET_ID, …)` as well. Neither wrapper above covers it:
+`routeWithSetContext` reaches route-owned lifecycle extensions only, and the
+registration-time wrapper has long since returned by the time a request runs.
+Copy the shape from [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js)
+lines 88-101. Without the wrap the guard resolves only by the sole-set fallback
+and throws the moment a second set mounts.
 
 ## The mount prefix is not a choice
 
@@ -104,12 +120,16 @@ Two consequences follow:
   `/signout` is the live trap: it registers perfectly happily at
   `/<set-id>/signout` and nothing fails until a user tries to sign out.
 
-The resulting mount table with two sets in the tree:
+The resulting mount table with the two shipped sets and yours in the tree:
 
 | Set                | Dashboard           | Create                            | Hub                                           | Page                                                 |
 | ------------------ | ------------------- | --------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
 | `high-risk-plants` | `/high-risk-plants` | `/high-risk-plants/notifications` | `/high-risk-plants/notifications/{journeyId}` | `/high-risk-plants/notifications/{journeyId}/{slug}` |
+| `sample-journey`   | `/sample-journey`   | `/sample-journey/notifications`   | `/sample-journey/notifications/{journeyId}`   | `/sample-journey/notifications/{journeyId}/{slug}`   |
 | `<set-id>`         | `/<set-id>`         | `/<set-id>/notifications`         | `/<set-id>/notifications/{journeyId}`         | `/<set-id>/notifications/{journeyId}/{slug}`         |
+
+`sample-journey` serves only its dashboard today — it is a placeholder set with
+one page — but its mount follows the same shape.
 
 ## Route builders against link builders
 
@@ -171,6 +191,12 @@ mount, open the set context, install the sandboxed `onPreAuth`, configure every
 seam this set uses with `SET_ID` first, register the journey cookies against
 `SET_BASE`, install the sandboxed entry guard, and wrap every route.
 
+The entry guard's own body goes inside `withSetContext(SET_ID, …)` — see rule 4
+above. Copy [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js)
+lines 88-101 verbatim, comment included: `routeWithSetContext` does not reach a
+server-level `server.ext`, and without the wrap the guard resolves only by the
+sole-set fallback and throws the moment a second set mounts.
+
 Then re-export it from [`../routes.js`](../routes.js), which is only a barrel.
 
 `registerJourneyCookie(server, { base: SET_BASE })` takes no cookie names: it
@@ -186,8 +212,12 @@ In [`../../router.js`](../../router.js):
 await server.register(yourSet, { routes: { prefix: YOUR_SET_BASE } })
 ```
 
-Leave the server-wide routes where they are. Do not move `/` — it stays a 302
-to `DEFAULT_SET_BASE`.
+Leave the server-wide routes where they are. Leave `/` as the chooser
+registered by [`../../sets-index/index.js`](../../sets-index/index.js), which
+returns 200 rather than redirecting: `/` belongs to no set (see "The mount
+prefix is not a choice" above). Your set appears on it purely by mounting, so
+there is no list to update, and the registry is read per request, so the
+registration order does not matter.
 
 ## 6. Widen the dependency rules
 
@@ -211,9 +241,10 @@ production:
   configuration, that interleaved requests keep their own set, that cookies are
   scoped per set, and that the server-wide surface stays unprefixed.
 
-The second set in those suites is `test/fixtures/second-set.js`, a fixture
-rather than a real journey. If you are adding a real set, the fixture stays:
-the suites are about the platform, not about any one set.
+Both shipped sets — `high-risk-plants` and `sample-journey` — are mounted in
+those suites, and `test/fixtures/second-set.js` is mounted on top of them as a
+THIRD set, a fixture rather than a real journey. If you are adding a real set,
+the fixture stays: the suites are about the platform, not about any one set.
 
 ## 8. Move the tests with the URLs
 

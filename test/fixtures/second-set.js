@@ -1,12 +1,13 @@
 /**
- * A second obligation set, defined only for tests.
+ * A further obligation set, defined only for tests.
  *
- * Co-residency is a property of the platform, not of any particular set, so
- * proving it needs two sets mounted in one process — but shipping a second
- * real set would mean shipping a journey nobody asked for. This fixture is the
- * smallest thing that satisfies every configure* seam and mounts under its own
- * prefix, so the co-residency and tripwire suites can register it alongside
- * live-animals.
+ * This repo is the prototype host, so it really does ship two sets —
+ * high-risk-plants and sample-journey — and the root lists them rather than
+ * redirecting to one. This fixture is mounted on top of those, as a THIRD set,
+ * to keep the platform assertions readable: it is the smallest thing that
+ * satisfies every configure* seam and mounts under its own prefix.
+ *
+ * It mirrors [`routes-high-risk-plants.js`](../../src/server/app/routes-high-risk-plants.js).
  *
  * Its routes deliberately echo the configuration they resolve rather than
  * render anything. A test asserting "this route saw its own set's obligations"
@@ -161,10 +162,11 @@ export const routes = [
 ]
 
 /**
- * Mirrors routes-live-animals.js: mount registration, a sandboxed onPreAuth to
- * enter the set context, every seam configured with this set's id, per-set
- * cookies scoped to the set base, a sandboxed entry guard, and routes wrapped
- * so handlers run inside the context.
+ * Mirrors routes-high-risk-plants.js: mount registration, a sandboxed
+ * onPreAuth to enter the set context, every seam configured with this set's
+ * id, per-set cookies scoped to the set base, a sandboxed entry guard wrapped
+ * in its own set context, and routes wrapped so handlers run inside the
+ * context.
  */
 export const secondSet = {
   plugin: {
@@ -206,7 +208,13 @@ export const secondSet = {
         server.ext(
           'onPreHandler',
           async (request, h) => {
-            const target = await journeyEntryGuardTarget(request, h)
+            // Wrapped, not left to the onPreAuth above: authentication crosses
+            // an async boundary in between, and `enterWith` does not always
+            // survive it. Bare, this resolves only by the sole-set fallback and
+            // throws the moment a second set mounts.
+            const target = await withSetContext(SET_ID, () =>
+              journeyEntryGuardTarget(request, h)
+            )
             return target ? h.redirect(target).takeover() : h.continue
           },
           { sandbox: 'plugin' }

@@ -10,10 +10,16 @@
  * arrives — that is where the modelling conventions live.
  */
 
+/**
+ * `system: true` because this placeholder set presents no page that collects
+ * it: `SYSTEM_POPULATED` reads system ownership straight off the manifest, so
+ * the flag is what exempts it from the dispatch index's full-coverage guard.
+ */
 export const consignmentReference = {
   id: '9c1f5d3a-7b24-4e18-9a6d-0f3b8c2e5a71',
   name: 'consignmentReference',
-  status: 'mandatory'
+  status: 'mandatory',
+  system: true
 }
 
 export const obligations = [consignmentReference]

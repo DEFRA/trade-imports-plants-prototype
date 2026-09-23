@@ -1,6 +1,7 @@
 import { SET_ID } from '../../../sets/high-risk-plants/set.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { installFixture } from '../../../../../../test/fixtures/index.js'
 import { configureObligationSet } from '../../../model/obligations/manifest.js'
 import {
   allowListed,
@@ -84,7 +85,11 @@ describe('#emptyCollectionSatisfiesFloor', () => {
   })
 
   afterAll(() => {
-    configureObligationSet(SET_ID, undefined)
+    // Put the journey-neutral fixture back rather than writing `undefined`
+    // under the set id: that leaves the key present, so a later `obligations()`
+    // throws a bare TypeError instead of the configured "not configured for
+    // set" message.
+    installFixture()
   })
 
   it('Should hold the floor open where the collection asks for no entry at all', () => {

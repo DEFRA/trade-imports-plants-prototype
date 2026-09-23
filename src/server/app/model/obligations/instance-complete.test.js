@@ -1,6 +1,7 @@
 import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
+import { installFixture } from '../../../../../test/fixtures/index.js'
 import { configureObligationSet } from './manifest.js'
 import { instanceComplete } from './instance-complete.js'
 
@@ -66,8 +67,11 @@ describe('#instanceComplete', () => {
 
   afterAll(() => {
     // Vitest workers isolate module state per test file, so leaving the
-    // configured set doesn't leak. Reset defensively anyway.
-    configureObligationSet(SET_ID, undefined)
+    // configured set doesn't leak. Put the journey-neutral fixture back
+    // defensively anyway: writing `undefined` under the set id would leave the
+    // key present, so a later `obligations()` would throw a bare TypeError
+    // rather than the configured "not configured for set" message.
+    installFixture()
   })
 
   it('reads a fully-populated instance as complete', () => {

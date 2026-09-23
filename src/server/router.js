@@ -39,8 +39,10 @@ export const router = {
 
       // `/` lists the sets rather than redirecting to one: with several
       // prototypes hosted there is no default, and a reader arriving at the
-      // service needs to see what is on offer. Registered after the sets,
-      // because it reads the mount registry they populate.
+      // service needs to see what is on offer. The mount registry is read per
+      // request — the chooser is handed the lookup as a function and calls it
+      // inside the handler — so this may be registered in any order relative
+      // to the sets.
       await server.register([setsIndex])
 
       // Static assets

@@ -13,9 +13,14 @@ The application has four layers:
 3. L3 — `sets/<set>/obligations/`: one set's obligation data
 4. L4 — `sets/<set>/journeys/<style>/`: one journey's pages and topology
 
-[`src/server/app/routes.js`](../routes.js) is the composition point. It selects
-the high-risk-plants set and linear journey, then supplies them to the platform through
-the `configure*` seams.
+[`src/server/app/routes.js`](../routes.js) is only the export barrel.
+Composition happens in the per-set gateways — this repo ships two, and both are
+mounted side by side:
+[`routes-high-risk-plants.js`](../routes-high-risk-plants.js) for the
+high-risk-plants set and its linear journey, and
+[`routes-sample-journey.js`](../routes-sample-journey.js) for the sample-journey
+set. Each supplies its own set to the platform through the `configure*` seams,
+keyed by its set id.
 
 The platform below is complete. The high-risk-plants set above it is empty, so
 everything these guides describe is live code that currently runs over nothing;
@@ -54,6 +59,10 @@ single indivisible change.
 - [High-risk-plants limits](../sets/high-risk-plants/docs/limits.md)
 - [Testing the set and journey](../sets/high-risk-plants/docs/testing.md)
 - [Lighthouse](../sets/high-risk-plants/docs/lighthouse.md)
+
+The `sample-journey` set (`../sets/sample-journey/`) is a minimal placeholder —
+one page, one obligation, enough to prove the host can serve more than one set
+— so it has no guides of its own.
 
 ## Recipes
 

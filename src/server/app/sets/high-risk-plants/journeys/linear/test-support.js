@@ -1,5 +1,3 @@
-import { registerSetMount } from '../../../../shared/set-context.js'
-import { SET_BASE, SET_ID } from '../../set.js'
 /**
  * Install this journey in place of the synthetic fixture set.
  *
@@ -13,6 +11,8 @@ import { SET_BASE, SET_ID } from '../../set.js'
  * Vitest gives each file its own module registry, so nothing leaks to another
  * file and there is nothing to restore.
  */
+import { registerSetMount } from '../../../../shared/set-context.js'
+import { SET_BASE, SET_ID } from '../../set.js'
 import { configureReadyForCheckYourAnswers } from '../../../../bridge/readiness-config.js'
 import { readyForCheckYourAnswers } from '../../../../flow/section-status.js'
 import { configureFulfilmentRegistry } from '../../../../bridge/fulfilment-registry.js'

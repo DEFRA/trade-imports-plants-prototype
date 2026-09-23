@@ -1,6 +1,7 @@
 import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
+import { installFixture } from '../../../../../test/fixtures/index.js'
 import { configureObligationSet } from './manifest.js'
 import {
   ancestorChain,
@@ -47,7 +48,11 @@ describe('#manifest-graph', () => {
   })
 
   afterAll(() => {
-    configureObligationSet(SET_ID, undefined)
+    // Put the journey-neutral fixture back rather than writing `undefined`
+    // under the set id: that leaves the key present, so a later `obligations()`
+    // throws a bare TypeError instead of the configured "not configured for
+    // set" message.
+    installFixture()
   })
 
   describe('#ancestorChain', () => {
