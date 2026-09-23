@@ -18,13 +18,13 @@ import { ALREADY_ARRIVED } from '../arrival-status/statuses.js'
 import { copy } from './copy/copy.en.js'
 
 const COMMODITY_TYPE_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/commodity-type$`
+  `${BASE}/notifications/[^/]+/commodity-type$`
 )
 const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
 const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
 const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
 const ARRIVAL_STATUS_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/arrival-status$`
+  `${BASE}/notifications/[^/]+/arrival-status$`
 )
 const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
 const PAGE_URL = new RegExp(`${BASE}/notifications/[^/]+/destinations/select`)

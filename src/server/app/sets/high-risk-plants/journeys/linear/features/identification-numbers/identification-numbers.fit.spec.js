@@ -17,17 +17,17 @@ import { copy } from './copy/copy.en.js'
 const PLANTS_FOR_PLANTING = 'plants-for-planting'
 
 const COMMODITY_TYPE_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/commodity-type$`
+  `${BASE}/notifications/[^/]+/commodity-type$`
 )
 const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
 const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
 const COMMODITY_REMOVED_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/commodities\\?removed=\\d+$`
+  `${BASE}/notifications/[^/]+/commodities\\?removed=\\d+$`
 )
 const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
 const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
 const PAGE_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/identification-numbers`
+  `${BASE}/notifications/[^/]+/identification-numbers`
 )
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'

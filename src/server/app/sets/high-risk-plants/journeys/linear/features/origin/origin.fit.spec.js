@@ -20,7 +20,7 @@ import { copy as hubCopy } from '../hub/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
 const COMMODITY_TYPE_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/commodity-type$`
+  `${BASE}/notifications/[^/]+/commodity-type$`
 )
 const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
 const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
@@ -29,7 +29,7 @@ const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
 // A potato notification is never asked the arrival question, so Continue from
 // origin lands on the arrival details.
 const ARRIVAL_DETAILS_URL = new RegExp(
-  `^${BASE}/notifications/[^/]+/arrival-details$`
+  `${BASE}/notifications/[^/]+/arrival-details$`
 )
 
 // accessible-autocomplete enhances the native <select>: the visible combobox
