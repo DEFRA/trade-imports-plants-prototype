@@ -1,9 +1,10 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { configureRecords } from '../../../../../../engine/persistence/records.js'
 import {
   configureSession,
-  SESSION_COOKIES
+  openingRunCookie
 } from '../../../../../../engine/persistence/session.js'
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
 import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
@@ -70,7 +71,7 @@ const renderHub = async ({ openingRun, seed = {} } = {}) => {
   await store.seedAnswers(journey.journeyId, seed)
   const h = buildH()
   const state = openingRun
-    ? { [SESSION_COOKIES.openingRun]: { [journey.journeyId]: openingRun } }
+    ? { [openingRunCookie()]: { [journey.journeyId]: openingRun } }
     : {}
   await hubGet(journeyRequest(journey.journeyId, { state }), h)
   return { journeyId: journey.journeyId, h }
@@ -78,8 +79,8 @@ const renderHub = async ({ openingRun, seed = {} } = {}) => {
 
 describe('#hubGet', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -107,8 +108,8 @@ describe('#hubGet', () => {
   it('Should point the back link and the Return to dashboard button at the dashboard', async () => {
     const { h } = await renderHub()
 
-    expect(h.captured.view.context.backLink).toBe('/')
-    expect(h.captured.view.context.dashboardHref).toBe('/')
+    expect(h.captured.view.context.backLink).toBe(SET_BASE)
+    expect(h.captured.view.context.dashboardHref).toBe(SET_BASE)
   })
 
   it('Should render no breadcrumbs, no progress line and no section caption', async () => {
@@ -141,7 +142,7 @@ describe('#hubGet', () => {
         items: [
           expect.objectContaining({
             title: { text: copy.rows.commodities.title },
-            href: `/notifications/${journeyId}/commodity-type`,
+            href: `${SET_BASE}/notifications/${journeyId}/commodity-type`,
             status: {
               tag: {
                 text: copy.statuses.notYetStarted,
@@ -209,7 +210,7 @@ describe('#hubGet', () => {
     })
 
     const [, originRow] = h.captured.view.context.groups[0].items
-    expect(originRow.href).toBe(`/notifications/${journeyId}/origin`)
+    expect(originRow.href).toBe(`${SET_BASE}/notifications/${journeyId}/origin`)
     expect(originRow.status).toEqual({
       tag: {
         text: copy.statuses.notYetStarted,
@@ -254,7 +255,9 @@ describe('#hubGet', () => {
     expect(row.status).toEqual({
       tag: { text: copy.statuses.completed, classes: COMPLETED_TAG_CLASS }
     })
-    expect(row.href).toBe(`/notifications/${journeyId}/commodity-type`)
+    expect(row.href).toBe(
+      `${SET_BASE}/notifications/${journeyId}/commodity-type`
+    )
   })
 
   it('Should render the review group after the answer groups', async () => {
@@ -277,7 +280,7 @@ describe('#hubGet', () => {
   it('Should complete an active opening run on GET', async () => {
     const { journeyId, h } = await renderHub({ openingRun: RUN_ACTIVE })
 
-    expect(h.captured.cookies[SESSION_COOKIES.openingRun]).toEqual({
+    expect(h.captured.cookies[openingRunCookie()]).toEqual({
       [journeyId]: RUN_COMPLETE
     })
   })
@@ -285,14 +288,14 @@ describe('#hubGet', () => {
   it('Should leave a journey that never began an opening run untouched', async () => {
     const { h } = await renderHub()
 
-    expect(h.captured.cookies).not.toHaveProperty(SESSION_COOKIES.openingRun)
+    expect(h.captured.cookies).not.toHaveProperty(openingRunCookie())
   })
 })
 
 describe('#hubGet — the arrival row', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -311,7 +314,9 @@ describe('#hubGet — the arrival row', () => {
       countryOfOrigin: FRANCE
     })
 
-    expect(arrivalRow.href).toBe(`/notifications/${journeyId}/arrival-details`)
+    expect(arrivalRow.href).toBe(
+      `${SET_BASE}/notifications/${journeyId}/arrival-details`
+    )
     expect(arrivalRow.status).toEqual({
       tag: {
         text: copy.statuses.notYetStarted,
@@ -335,7 +340,9 @@ describe('#hubGet — the arrival row', () => {
       countryOfOrigin: FRANCE
     })
 
-    expect(arrivalRow.href).toBe(`/notifications/${journeyId}/arrival-status`)
+    expect(arrivalRow.href).toBe(
+      `${SET_BASE}/notifications/${journeyId}/arrival-status`
+    )
     expect(arrivalRow.status).toEqual({
       tag: {
         text: copy.statuses.notYetStarted,
@@ -360,8 +367,8 @@ describe('#hubGet — the arrival row', () => {
 
 describe('#hubGet — the destination row', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -391,7 +398,7 @@ describe('#hubGet — the destination row', () => {
       })
 
       expect(destinationRow.href).toBe(
-        `/notifications/${journeyId}/destinations/select`
+        `${SET_BASE}/notifications/${journeyId}/destinations/select`
       )
       expect(destinationRow.status).toEqual({
         tag: {
@@ -417,8 +424,8 @@ describe('#hubGet — the destination row', () => {
 
 describe('#hubGet — consignor', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())
@@ -447,14 +454,14 @@ describe('#hubGet — consignor', () => {
       expect(group.items).toEqual([
         {
           title: { text: copy.rows.consignor.title },
-          href: `/notifications/${journeyId}/consignors/select`,
+          href: `${SET_BASE}/notifications/${journeyId}/consignors/select`,
           status: {
             tag: { text: copy.statuses.completed, classes: COMPLETED_TAG_CLASS }
           }
         },
         {
           title: { text: copy.rows.identificationNumbers.title },
-          href: `/notifications/${journeyId}/identification-numbers`,
+          href: `${SET_BASE}/notifications/${journeyId}/identification-numbers`,
           status:
             commodityType === 'wood-and-cut-trees'
               ? { text: copy.statuses.optional }
@@ -467,7 +474,7 @@ describe('#hubGet — consignor', () => {
         },
         {
           title: { text: copy.rows.contact.title },
-          href: `/notifications/${journeyId}/consignment/contact/select`,
+          href: `${SET_BASE}/notifications/${journeyId}/consignment/contact/select`,
           status: {
             tag: {
               text: copy.statuses.notYetStarted,

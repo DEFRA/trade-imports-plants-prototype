@@ -13,6 +13,7 @@ import { configureSession } from './persistence/session.js'
 import { obligationSet } from '../model/obligations/manifest.js'
 import {
   compositeBlockValue,
+  SET_ID,
   VALUE_ONE,
   VARIANT_ONE
 } from '../../../../test/fixtures/index.js'
@@ -21,15 +22,15 @@ const { scalarField, variantSelector } = obligationSet()
 
 describe('#get — per-request read view', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
-    configureReadyForCheckYourAnswers(() => false)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
   })
   afterEach(() => {
     store.clear()
     // The sanitiser is module-level state; leaving one installed would follow
     // the suite into every later test.
-    configureAnswersForRead((_request, answers) => answers)
+    configureAnswersForRead(SET_ID, (_request, answers) => answers)
   })
 
   test('Should return the seeded answers verbatim with scope derived from them', async () => {
@@ -61,7 +62,7 @@ describe('#get — per-request read view', () => {
     }
     const journey = await store.create()
     await store.seedAnswers(journey.journeyId, seed)
-    configureAnswersForRead((_request, answers) => {
+    configureAnswersForRead(SET_ID, (_request, answers) => {
       const { compositeBlockTwo: _dropped, ...rest } = answers
       return rest
     })

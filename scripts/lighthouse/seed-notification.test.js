@@ -1,3 +1,4 @@
+import { SET_BASE } from '../../src/server/app/sets/high-risk-plants/set.js'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import { load } from 'cheerio'
@@ -27,7 +28,7 @@ describe('shared journey seeds', () => {
     await fillNotification(client, 'PHN-26-0001', { steps: [step] })
     expect(submissions).toEqual([
       [
-        '/notifications/PHN-26-0001/consignors/select',
+        `${SET_BASE}/notifications/PHN-26-0001/consignors/select`,
         { consignor: 'real-address-id' },
         'csrf-token'
       ]

@@ -1,4 +1,28 @@
+import {
+  dashboardPath,
+  dashboardRoutePath,
+  setBase
+} from '../../src/server/app/shared/paths.js'
+import {
+  registerSetMount,
+  withSetContext
+} from '../../src/server/app/shared/set-context.js'
+import {
+  SET_BASE,
+  SET_ID
+} from '../../src/server/app/sets/high-risk-plants/set.js'
 import { allRoutes } from '../../src/server/app/sets/high-risk-plants/journeys/linear/features/index.js'
+
+// Lighthouse builds its URLs from outside the server, so it never enters a
+// request's set context. Registering the mount is what lets the link builders
+// below resolve the prefix the server actually serves on.
+//
+// This host serves more than one set, so nothing here leans on the sole-set
+// fallback: every call that has to resolve a set runs inside `inTheSet`, which
+// names the one this script audits. Bare, they would resolve only while this
+// script happens to import a single set, and throw the day it imports two.
+registerSetMount(SET_ID, SET_BASE)
+const inTheSet = (build) => withSetContext(SET_ID, build)
 
 const JOURNEY_PARAM = '{journeyId}'
 const OTHER_PARAM = /\{(?!journeyId})[^}]+}/
@@ -91,20 +115,51 @@ export const auditableRoutePaths = (routes = allRoutes) => {
   return getPathsOf(routes).filter((path) => !SKIPPED.has(path))
 }
 
+/**
+ * The route table holds prefix-free route SHAPES — Hapi supplies the set's
+ * mount when it registers them. Lighthouse fetches real URLs, so every shape
+ * becomes a link under the set's mount here. Without that every target 404s.
+ */
 export const auditPaths = (journeyIds, routes = allRoutes) =>
-  auditableRoutePaths(routes).map((path) => {
-    const resolved = path.includes(JOURNEY_PARAM)
-      ? path.replace(JOURNEY_PARAM, journeyIdFor(journeyIds, path))
-      : path
-    return `${resolved}${QUERY.get(path) ?? ''}`
-  })
+  inTheSet(() =>
+    auditableRoutePaths(routes).map((path) => {
+      const resolved = path.includes(JOURNEY_PARAM)
+        ? path.replace(JOURNEY_PARAM, journeyIdFor(journeyIds, path))
+        : path
+      // Hapi mounts the dashboard's `/` shape at the set base itself rather
+      // than at `<base>/`, so it is the one shape that is not a prefix plus a
+      // path.
+      const link =
+        resolved === dashboardRoutePath()
+          ? dashboardPath()
+          : `${setBase()}${resolved}`
+      return `${link}${QUERY.get(path) ?? ''}`
+    })
+  )
 
 export const auditUrls = (origin, journeyIds, routes = allRoutes) =>
   auditPaths(journeyIds, routes).map((path) => new URL(path, origin).toString())
 
+/**
+ * Where the run signs in before it seeds.
+ *
+ * Not the origin: `/` is the chooser on this host and is served without
+ * authentication, so the sign-in form never appears there and the session would
+ * stay anonymous while every seeding request bounced to sign-in. The set's own
+ * dashboard is behind the session strategy, so the stub's form appears and the
+ * cookies come back signed in.
+ */
+export const signInUrl = (origin) =>
+  new URL(inTheSet(dashboardPath), origin).toString()
+
 /** The report filename a URL earns, with the seeded journey id dropped so the
- * name is the page's route and nothing else. Reports then overwrite their
- * predecessor instead of piling up a fresh set on every run. */
+ * name is stable across runs and reports overwrite their predecessor instead of
+ * piling up a fresh set on every one.
+ *
+ * The set's mount stays in the name. This host serves more than one set, so the
+ * prefix says which prototype the report is for, and two sets that share a
+ * route — as every set forked from another does — would otherwise be given the
+ * same filename. */
 export const reportName = (url, journeyIds) => {
   const seeded = new Set(Object.values(journeyIds))
   const name = new URL(url).pathname

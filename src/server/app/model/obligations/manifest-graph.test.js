@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
+import { installFixture, SET_ID } from '../../../../../test/fixtures/index.js'
 import { configureObligationSet } from './manifest.js'
 import {
   ancestorChain,
@@ -42,11 +43,15 @@ const syntheticSet = {
 
 describe('#manifest-graph', () => {
   beforeAll(() => {
-    configureObligationSet(syntheticSet)
+    configureObligationSet(SET_ID, syntheticSet)
   })
 
   afterAll(() => {
-    configureObligationSet(undefined)
+    // Put the journey-neutral fixture back rather than writing `undefined`
+    // under the set id: that leaves the key present, so a later `obligations()`
+    // throws a bare TypeError instead of the configured "not configured for
+    // set" message.
+    installFixture()
   })
 
   describe('#ancestorChain', () => {

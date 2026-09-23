@@ -1,3 +1,4 @@
+import { SET_ID } from '../../../set.js'
 const ADDRESS_ID = 'tech-imports-ltd'
 import { consignmentContactSelectPage } from '../features/consignment-contact-select/page.js'
 import { identificationNumbersPage } from '../features/identification-numbers/page.js'
@@ -103,10 +104,10 @@ describe('#rowParts and #rowStatus', () => {
   const installedSet = obligationSet()
 
   beforeAll(() => {
-    configureObligationSet(NO_OBLIGATIONS)
-    buildDispatch([...dispatchPages, stubFirstPage, stubSecondPage])
+    configureObligationSet(SET_ID, NO_OBLIGATIONS)
+    buildDispatch(SET_ID, [...dispatchPages, stubFirstPage, stubSecondPage])
   })
-  afterAll(() => configureObligationSet(installedSet))
+  afterAll(() => configureObligationSet(SET_ID, installedSet))
 
   it('Should take the commodities row parts from the pages it holds', () => {
     // The entry sub-page collects nothing of its own — the list page owns the

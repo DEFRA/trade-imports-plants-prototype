@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -17,7 +21,6 @@ const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
 const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
 const HUB_URL = /\/notifications\/[^/]+$/
 const PAGE_URL = /\/notifications\/[^/]+\/consignment\/contact\/select/
-const JOURNEY_ID_SEGMENT = 2
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'
 
@@ -73,7 +76,7 @@ const errorSummaryLink = (page) =>
     .getByRole('link', { name: copy.errors.contactAddress })
 
 const contactPathOf = (reference) =>
-  `/notifications/${reference}/consignment/contact/select`
+  `${BASE}/notifications/${reference}/consignment/contact/select`
 
 const contactRow = (page) =>
   page.getByRole('listitem').filter({
@@ -84,10 +87,10 @@ const contactRow = (page) =>
   })
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
+  return journeyIdFromPage(page)
 }
 
 const chooseCommodityType = async (page, commodityType) => {
@@ -130,7 +133,7 @@ const chooseCountry = async (page, name) => {
 }
 
 const saveOrigin = async (page, reference, country) => {
-  await page.goto(`/notifications/${reference}/origin`)
+  await page.goto(`${BASE}/notifications/${reference}/origin`)
   await expect(page).toHaveURL(ORIGIN_URL)
   await chooseCountry(page, country)
   await saveAndContinue(page).click()
@@ -203,7 +206,7 @@ test.describe('consignment-contact-select feature', () => {
 
   test('is reachable from the overview contact task row', async ({ page }) => {
     const reference = await startAtContact(page)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await page
       .getByRole('link', { name: hubCopy.rows.contact.title, exact: true })
@@ -247,7 +250,7 @@ test.describe('consignment-contact-select feature', () => {
 
     await expect(backLink(page)).toHaveAttribute(
       'href',
-      `/notifications/${reference}`
+      `${BASE}/notifications/${reference}`
     )
     await backLink(page).click()
     await expect(page).toHaveURL(HUB_URL)

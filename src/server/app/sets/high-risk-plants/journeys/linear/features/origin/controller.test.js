@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -60,8 +61,8 @@ const consignmentOf = (commodityType, ...lines) => ({
 })
 
 const installStubs = () => {
-  configureRecords(recordsStub)
-  configureSession(sessionStub)
+  configureRecords(SET_ID, recordsStub)
+  configureSession(SET_ID, sessionStub)
   installHighRiskPlantsJourney()
 }
 
@@ -116,7 +117,7 @@ describe('GET origin', () => {
   it('Should send Back to the dashboard while nothing is committed', async () => {
     const result = await driveHandler(get)
 
-    expect(result.view.context.backLink).toBe('/')
+    expect(result.view.context.backLink).toBe(SET_BASE)
   })
 
   it('Should send Back to the overview once the notification has an answer', async () => {
@@ -326,7 +327,7 @@ describe('POST origin — an accepted answer', () => {
 
 describe('POST origin — save failures', () => {
   beforeAll(() => {
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
 
@@ -343,13 +344,13 @@ describe('POST origin — save failures', () => {
   })
 
   afterEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     vi.unstubAllGlobals()
   })
 
   const failingOnControllerCommit = (failure) => {
     let replaceCalls = 0
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       replaceFulfilment: (...args) => {
         replaceCalls += 1

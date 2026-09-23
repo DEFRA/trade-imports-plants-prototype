@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -12,15 +16,19 @@ import { copy } from './copy/copy.en.js'
 
 const PLANTS_FOR_PLANTING = 'plants-for-planting'
 
-const COMMODITY_TYPE_URL = /\/notifications\/[^/]+\/commodity-type$/
+const COMMODITY_TYPE_URL = new RegExp(
+  `${BASE}/notifications/[^/]+/commodity-type$`
+)
 const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
 const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
-const COMMODITY_REMOVED_URL =
-  /\/notifications\/[^/]+\/commodities\?removed=\d+$/
-const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
-const HUB_URL = /\/notifications\/[^/]+$/
-const PAGE_URL = /\/notifications\/[^/]+\/identification-numbers/
-const JOURNEY_ID_SEGMENT = 2
+const COMMODITY_REMOVED_URL = new RegExp(
+  `${BASE}/notifications/[^/]+/commodities\\?removed=\\d+$`
+)
+const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
+const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
+const PAGE_URL = new RegExp(
+  `${BASE}/notifications/[^/]+/identification-numbers`
+)
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'
 
@@ -42,13 +50,13 @@ const saveAndContinue = (page) =>
   page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
 
 const identificationPathOf = (reference) =>
-  `/notifications/${reference}/identification-numbers`
+  `${BASE}/notifications/${reference}/identification-numbers`
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
+  return journeyIdFromPage(page)
 }
 
 const pickCommodityType = async (page, commodityType) => {
@@ -70,7 +78,7 @@ const chooseCommodityType = async (page, commodityType) => {
 // Changing type once a line is saved drops the lines the new type cannot
 // hold, and the list page stays put to report the removal.
 const changeCommodityTypeTo = async (page, reference, commodityType) => {
-  await page.goto(`/notifications/${reference}/commodity-type`)
+  await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
   await pickCommodityType(page, commodityType)
   await expect(page).toHaveURL(COMMODITY_REMOVED_URL)
 }
@@ -104,7 +112,7 @@ const chooseCountry = async (page, name) => {
 }
 
 const saveOrigin = async (page, reference, country) => {
-  await page.goto(`/notifications/${reference}/origin`)
+  await page.goto(`${BASE}/notifications/${reference}/origin`)
   await expect(page).toHaveURL(ORIGIN_URL)
   await chooseCountry(page, country)
   await saveAndContinue(page).click()
@@ -316,14 +324,14 @@ test('changing commodity type purges the supplier number and preserves the commo
   await expect(page).toHaveURL(/\/consignment\/contact\/select$/)
   await saveAndContinue(page).click()
   await expect(page).toHaveURL(HUB_URL)
-  await page.goto(`/notifications/${reference}/commodity-type`)
+  await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
   await chooseCommodityType(page, 'potatoes')
   await page.goto(identificationPathOf(reference))
   await expect(input(page, 'supplierIdentificationNumber')).toHaveCount(0)
   await expect(input(page, 'producerIdentificationNumber')).toBeVisible()
   await expect(input(page, 'cropIdentificationNumber')).toBeVisible()
   await expect(input(page, 'consignmentNumber')).toHaveValue('REF')
-  await page.goto(`/notifications/${reference}/commodity-type`)
+  await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
   await chooseCommodityType(page, PLANTS_FOR_PLANTING)
   await page.goto(identificationPathOf(reference))
   await expect(input(page, 'supplierIdentificationNumber')).toHaveValue('')

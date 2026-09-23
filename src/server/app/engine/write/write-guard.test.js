@@ -8,6 +8,7 @@ import { configureReadyForCheckYourAnswers } from '../read.js'
 import { stubH, journeyRequest } from '../test-support.js'
 import {
   SELECTOR_BRAVO,
+  SET_ID,
   VALUE_ONE
 } from '../../../../../test/fixtures/index.js'
 
@@ -21,9 +22,9 @@ const buildRequest = () => journeyRequest(journeyId)
 
 describe('#write.js — answer-key guard', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
-    configureReadyForCheckYourAnswers(() => true)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
+    configureReadyForCheckYourAnswers(SET_ID, () => true)
     await records.clear()
     journeyId = (await records.create()).journeyId
   })

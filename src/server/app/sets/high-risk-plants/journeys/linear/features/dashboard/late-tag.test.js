@@ -1,3 +1,4 @@
+import { SET_ID } from '../../../../set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   configureRecords,
@@ -20,8 +21,8 @@ import { toRow } from './view-model/row/index.js'
 describe('dashboard late tag', () => {
   beforeAll(() => {
     installHighRiskPlantsJourney()
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => store.clear())
 

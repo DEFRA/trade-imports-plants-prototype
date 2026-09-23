@@ -13,6 +13,7 @@ import {
   CATEGORY_ONE,
   SELECTOR_ALPHA,
   SELECTOR_BRAVO,
+  SET_ID,
   VALUE_ONE
 } from '../../../../test/fixtures/index.js'
 
@@ -62,10 +63,10 @@ const wipeOf = (answers) => {
 
 describe('entry-write canonical purge', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     await records.clear()
-    configureReadyForCheckYourAnswers(() => false)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
     journeyId = (await records.create()).journeyId
   })
 

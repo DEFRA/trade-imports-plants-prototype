@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { nunjucksConfig } from '../../../config/nunjucks/nunjucks.js'
 import { base, SURFACES, surfaceClass } from './kit.js'
+import { dashboardPath } from './paths.js'
 import { copy as sharedCopy } from './copy.en.js'
 
 const environment = nunjucksConfig.options.compileOptions.environment
@@ -10,11 +11,17 @@ const environment = nunjucksConfig.options.compileOptions.environment
 const PHASE_BANNER = 'govuk-phase-banner'
 const BREADCRUMBS = 'govuk-breadcrumbs'
 
+// The global test setup mounts high-risk-plants as the sole set, so this is
+// that set's dashboard — the href the nunjucks context hands the layout on a
+// page inside a set.
+const SET_DASHBOARD = dashboardPath()
+
 const renderLayout = (userSession, context = {}) =>
   environment.render('shared/layout.njk', {
     pageTitle: 'Create an import notification',
     sharedCopy,
     userSession,
+    dashboardHref: SET_DASHBOARD,
     getAssetPath: (asset) => `/assets/${asset}`,
     ...context
   })
@@ -42,12 +49,24 @@ describe('service navigation', () => {
       serviceNavigation.manageAccount,
       serviceNavigation.logOut
     ])
+    // The Dashboard item leads back to the ACTIVE SET's dashboard, not to the
+    // chooser at the root.
     expect(links.map((_, a) => $(a).attr('href')).get()).toEqual([
-      '/',
+      SET_DASHBOARD,
       '#',
       '#',
       '/auth/sign-out'
     ])
+    expect(SET_DASHBOARD).toBe('/high-risk-plants')
+  })
+
+  it('Should fall back to the chooser when the page belongs to no set', () => {
+    // Nothing to fall back from on a server-wide page, so the layout's own
+    // default has to be the chooser.
+    const $ = load(renderLayout(signedIn, { dashboardHref: null }))
+    const dashboard = $('.govuk-service-navigation__item a').first()
+
+    expect(dashboard.attr('href')).toBe('/')
   })
 
   it('Should mark the dashboard item active inside the notifications section', () => {

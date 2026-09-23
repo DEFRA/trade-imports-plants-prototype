@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
@@ -20,10 +24,10 @@ const VARIETY = 'Maris Piper'
 const contactName = 'Tech Imports Ltd'
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(/\/commodity-type$/)
-  const reference = new URL(page.url()).pathname.split('/')[2]
+  const reference = journeyIdFromPage(page)
   await page
     .getByRole('radio', { name: copy.typeLabels.potatoes, exact: true })
     .check()
@@ -94,7 +98,9 @@ const completeNotification = async (page, late = false) => {
   await save(page).click()
   // The opening run stops at the hub once every prerequisite section is
   // answered but the review gate itself needs a manual visit.
-  await expect(page).toHaveURL(new RegExp(`/notifications/${reference}$`))
+  await expect(page).toHaveURL(
+    new RegExp(`${BASE}/notifications/${reference}$`)
+  )
   await page
     .getByRole('link', { name: 'Check and submit', exact: true })
     .click()
@@ -128,21 +134,21 @@ test.beforeEach(async ({ page }) => {
     .getByRole('button', { name: declarationCopy.continueButton, exact: true })
     .click()
   await expect(page).toHaveURL(/\/confirmation$/)
-  await page.goto('/')
+  await page.goto(BASE)
   await page
     .getByRole('button', {
       name: `Amend notification ${reference}`,
       exact: true
     })
     .click()
-  await page.goto(`/notifications/${reference}/identification-numbers`)
+  await page.goto(`${BASE}/notifications/${reference}/identification-numbers`)
   await page
     .getByLabel(idsCopy.fields.producerIdentificationNumber.label, {
       exact: true
     })
     .fill('DiscardMe99')
   await save(page).click()
-  await page.goto('/')
+  await page.goto(BASE)
   await page
     .getByRole('link', {
       name: `${dashboardCopy.actions.cancelAmend} (${reference})`,

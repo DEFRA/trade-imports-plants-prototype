@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../../fit/set-base.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../../fit/sign-in.js'
@@ -22,7 +26,6 @@ const SEED_POTATOES = 'seed-potatoes'
 const WARE_POTATOES = 'ware-potatoes'
 const MARIS_PIPER = 'Maris Piper'
 const KING_EDWARD = 'King Edward'
-const HUB_PATH_SEGMENTS = 3
 
 const saveAndContinue = (page) =>
   page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
@@ -30,15 +33,16 @@ const saveAndContinue = (page) =>
 const fieldNamed = (page, field) =>
   page.getByLabel(copy.details.fields[field].label, { exact: true })
 
-const hubUrlOf = (page) =>
-  new URL(page.url()).pathname.split('/').slice(0, HUB_PATH_SEGMENTS).join('/')
+// Built from the set base and the journey id rather than by slicing path
+// segments, which shifts silently when the mount prefix changes.
+const hubUrlOf = (page) => `${BASE}/notifications/${journeyIdFromPage(page)}`
 
 const commodityTypeUrlOf = (page) => `${hubUrlOf(page)}/commodity-type`
 
 const listUrlOf = (page) => `${hubUrlOf(page)}/commodities`
 
 const startAtDetails = async (page, commodityType) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
   await page

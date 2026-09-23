@@ -11,7 +11,7 @@ import { records as recordsStub } from '../services/persistence/records/stub/ind
 import { session as sessionStub } from '../services/persistence/session/stub.js'
 import { configureReadyForCheckYourAnswers } from './read.js'
 import { authenticatedActor, stubH, journeyRequest } from './test-support.js'
-import { VALUE_ONE } from '../../../../test/fixtures/index.js'
+import { SET_ID, VALUE_ONE } from '../../../../test/fixtures/index.js'
 
 // submitJourney reads its scope through `makeScope` and gates on that scope's
 // `readyForCheckYourAnswers`. `records.finalise` is the persistence layer.
@@ -23,16 +23,16 @@ const buildRequest = () => journeyRequest(journeyId)
 
 describe('submitJourney — gates on scope readiness, finalises via records', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     await records.clear()
     journeyId = (await records.create()).journeyId
   })
 
   it('Should finalise the CYA-ready journey by its journeyId', async () => {
     const finalise = vi.fn(recordsStub.finalise)
-    configureRecords({ ...recordsStub, finalise })
-    configureReadyForCheckYourAnswers(() => true)
+    configureRecords(SET_ID, { ...recordsStub, finalise })
+    configureReadyForCheckYourAnswers(SET_ID, () => true)
     await commit(buildRequest(), stubH(), { scalarField: VALUE_ONE })
 
     const result = await submitJourney(buildRequest(), stubH())
@@ -45,7 +45,7 @@ describe('submitJourney — gates on scope readiness, finalises via records', ()
   })
 
   it('Should return { ok: false } and leave the journey in draft when not CYA-ready', async () => {
-    configureReadyForCheckYourAnswers(() => false)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
     await commit(buildRequest(), stubH(), { scalarField: VALUE_ONE })
 
     const result = await submitJourney(buildRequest(), stubH())

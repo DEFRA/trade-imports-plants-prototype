@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
@@ -25,7 +29,6 @@ const HUB_URL = /\/notifications\/[^/]+$/
 // Continue from here goes on to the place of destination, the last step of the
 // opening run, rather than straight back to the overview.
 const DESTINATION_URL = /\/notifications\/[^/]+\/destinations\/select$/
-const JOURNEY_ID_SEGMENT = 2
 
 const DATE_INPUT = 'input#arrivalDate'
 const TIME_INPUT = 'input#arrivalTime'
@@ -68,13 +71,13 @@ const saveAndContinue = (page) =>
   page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
 
 const arrivalDetailsPathOf = (reference) =>
-  `/notifications/${reference}/arrival-details`
+  `${BASE}/notifications/${reference}/arrival-details`
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return new URL(page.url()).pathname.split('/')[JOURNEY_ID_SEGMENT]
+  return journeyIdFromPage(page)
 }
 
 const chooseCommodityType = async (page, commodityType) => {
@@ -115,7 +118,7 @@ const chooseFromAutocomplete = async (page, selector, name) => {
 }
 
 const saveOrigin = async (page, reference, country) => {
-  await page.goto(`/notifications/${reference}/origin`)
+  await page.goto(`${BASE}/notifications/${reference}/origin`)
   await expect(page).toHaveURL(ORIGIN_URL)
   await chooseFromAutocomplete(page, COUNTRY_INPUT, country)
   await saveAndContinue(page).click()
@@ -194,7 +197,7 @@ test.describe('arrival-details — a potato notification', () => {
     ).toBeVisible()
     await expect(backLink(page)).toHaveAttribute(
       'href',
-      `/notifications/${reference}`
+      `${BASE}/notifications/${reference}`
     )
   })
 
@@ -253,7 +256,7 @@ test.describe('arrival-details — a potato notification', () => {
     await page.locator(TIME_INPUT).fill(A_TIME)
     await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
     await saveAndContinue(page).click()
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     const taskList = page.locator('.govuk-task-list')
     const arrivalRow = taskList
@@ -264,7 +267,7 @@ test.describe('arrival-details — a potato notification', () => {
 
   test('is reachable from the overview arrival task row', async ({ page }) => {
     const reference = await startAtPotatoDetails(page)
-    await page.goto(`/notifications/${reference}`)
+    await page.goto(`${BASE}/notifications/${reference}`)
 
     await page.getByRole('link', { name: hubCopy.rows.arrival.title }).click()
 
@@ -329,7 +332,7 @@ test.describe('arrival-details — the question a plants notification is asked',
     await page.locator(DATE_INPUT).fill(A_PAST_DATE)
     await saveAndContinue(page).click()
 
-    await page.goto(`/notifications/${reference}/arrival-status`)
+    await page.goto(`${BASE}/notifications/${reference}/arrival-status`)
     await page
       .getByRole('radio', {
         name: arrivalStatusCopy.statusLabels[ALREADY_ARRIVED],

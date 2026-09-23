@@ -1,5 +1,5 @@
 import { statusCodes } from '../constants/status-codes.js'
-import { base } from '../../app/shared/kit.js'
+import { chromeFor } from '../../app/shared/kit.js'
 
 function statusCodeMessage(statusCode) {
   switch (statusCode) {
@@ -32,7 +32,7 @@ export function catchAll(request, h) {
 
   return h
     .view('shared/error', {
-      ...base(errorMessage),
+      ...chromeFor(errorMessage, request.path),
       heading: statusCode,
       message: errorMessage
     })

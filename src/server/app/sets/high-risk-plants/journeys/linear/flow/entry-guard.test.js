@@ -1,7 +1,7 @@
+import { SET_ID } from '../../../set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import {
-  BASE,
   createPath,
   dashboardPath,
   hubPath,
@@ -11,7 +11,7 @@ import { store } from '../../../../../engine/store.js'
 import { configureRecords } from '../../../../../engine/persistence/records.js'
 import {
   configureSession,
-  SESSION_COOKIES
+  openingRunCookie
 } from '../../../../../engine/persistence/session.js'
 import { records as recordsStub } from '../../../../../services/persistence/records/stub/index.js'
 import { session as sessionStub } from '../../../../../services/persistence/session/stub.js'
@@ -30,7 +30,7 @@ const ENTRY_SLUG = commodityTypePage.slug
 const OTHER_JOURNEY_ID = 'HRP-9999'
 
 const openingRunState = (record) => ({
-  [SESSION_COOKIES.openingRun]: record
+  [openingRunCookie()]: record
 })
 
 const guardOn = (journeyId, { path, record } = {}) =>
@@ -50,7 +50,7 @@ const freshJourney = async (seed = {}) => {
 
 describe('#guardedJourneyPath', () => {
   it('Should exempt anything outside a journey', () => {
-    expect(guardedJourneyPath(BASE)).toBe(false)
+    expect(guardedJourneyPath('/')).toBe(false)
     expect(guardedJourneyPath(dashboardPath())).toBe(false)
     expect(guardedJourneyPath(createPath())).toBe(false)
     expect(guardedJourneyPath('/some-other-service/commodity-type')).toBe(false)
@@ -102,8 +102,8 @@ describe('#hasCommittedNotificationAnswers', () => {
 
 describe('#entryGuardTarget', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub, SESSION_COOKIE_NAMES)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub, SESSION_COOKIE_NAMES)
     installHighRiskPlantsJourney()
   })
   beforeEach(() => store.clear())

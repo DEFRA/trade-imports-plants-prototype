@@ -1,3 +1,7 @@
+import {
+  BASE,
+  journeyIdFromPage
+} from '../../../../../../../../../fit/set-base.js'
 import { copy as confirmationCopy } from '../confirmation/copy/copy.en.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -20,10 +24,10 @@ const VARIETY = 'Maris Piper'
 const contactName = 'Tech Imports Ltd'
 
 const startNotification = async (page) => {
-  await page.goto('/')
+  await page.goto(BASE)
   await page.getByRole('button', { name: dashboardCopy.startButton }).click()
   await expect(page).toHaveURL(/\/commodity-type$/)
-  const reference = new URL(page.url()).pathname.split('/')[2]
+  const reference = journeyIdFromPage(page)
   await page
     .getByRole('radio', { name: copy.typeLabels.potatoes, exact: true })
     .check()
@@ -94,7 +98,9 @@ const completeNotification = async (page, late = false) => {
   await save(page).click()
   // The opening run stops at the hub once every prerequisite section is
   // answered but the review gate itself needs a manual visit.
-  await expect(page).toHaveURL(new RegExp(`/notifications/${reference}$`))
+  await expect(page).toHaveURL(
+    new RegExp(`${BASE}/notifications/${reference}$`)
+  )
   await page
     .getByRole('link', { name: 'Check and submit', exact: true })
     .click()
@@ -123,7 +129,7 @@ const openDeclaration = async (page, late = false) => {
   const reference = await completeNotification(page, late)
   await page.getByRole('button', { name: copy.continue, exact: true }).click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/declaration$`)
+    new RegExp(`${BASE}/notifications/${reference}/declaration$`)
   )
   return reference
 }
@@ -149,7 +155,7 @@ test('renders the plants declaration and Back navigation with no serious accessi
     .getByRole('link', { name: sharedCopy.layout.back, exact: true })
     .click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/notification-view$`)
+    new RegExp(`${BASE}/notifications/${reference}/notification-view$`)
   )
 })
 
@@ -187,12 +193,12 @@ test('accepts a late notification and shows the stored late banner on the read-o
     .getByRole('button', { name: declarationCopy.continueButton, exact: true })
     .click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/confirmation$`)
+    new RegExp(`${BASE}/notifications/${reference}/confirmation$`)
   )
   await expect(
     page.getByRole('heading', { name: confirmationCopy.title, level: 1 })
   ).toBeVisible()
-  await page.goto(`/notifications/${reference}/notification-view`)
+  await page.goto(`${BASE}/notifications/${reference}/notification-view`)
   await expect(
     page.getByRole('heading', { name: copy.late.heading })
   ).toBeVisible()
@@ -208,9 +214,9 @@ test('accepts a late notification and shows the stored late banner on the read-o
   await expect(
     page.getByRole('heading', { name: copy.late.heading })
   ).toBeVisible()
-  await page.goto(`/notifications/${reference}/declaration`)
+  await page.goto(`${BASE}/notifications/${reference}/declaration`)
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/confirmation$`)
+    new RegExp(`${BASE}/notifications/${reference}/confirmation$`)
   )
 })
 
@@ -225,12 +231,12 @@ test('submits an on-time notification without a late banner', async ({
     .getByRole('button', { name: declarationCopy.continueButton, exact: true })
     .click()
   await expect(page).toHaveURL(
-    new RegExp(`/notifications/${reference}/confirmation$`)
+    new RegExp(`${BASE}/notifications/${reference}/confirmation$`)
   )
   await expect(
     page.getByRole('heading', { name: confirmationCopy.title, level: 1 })
   ).toBeVisible()
-  await page.goto(`/notifications/${reference}/notification-view`)
+  await page.goto(`${BASE}/notifications/${reference}/notification-view`)
   await expect(
     page.getByRole('heading', { name: copy.title, level: 1 })
   ).toBeVisible()

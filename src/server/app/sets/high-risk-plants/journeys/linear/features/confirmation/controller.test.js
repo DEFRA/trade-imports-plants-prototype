@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import * as state from '../../../../../../engine/index.js'
 import { store } from '../../../../../../engine/store.js'
@@ -23,8 +24,8 @@ const get = routes[0].handler
 describe('confirmation', () => {
   beforeAll(() => {
     installHighRiskPlantsJourney()
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
   })
   beforeEach(() => store.clear())
 
@@ -49,8 +50,8 @@ describe('confirmation', () => {
         pageTitle: copy.title,
         copy,
         reference: journeyId,
-        notificationHref: `/notifications/${journeyId}/notification-view`,
-        dashboardHref: '/',
+        notificationHref: `${SET_BASE}/notifications/${journeyId}/notification-view`,
+        dashboardHref: SET_BASE,
         journeyStrip: { reference: journeyId }
       })
       expect(h.captured.view.context.backLink).toBeUndefined()
@@ -113,7 +114,7 @@ describe('confirmation', () => {
       }
       const h = stubH()
       expect(await get(journeyRequest(journeyId), h)).toEqual({
-        redirect: `/notifications/${journeyId}/notification-view`
+        redirect: `${SET_BASE}/notifications/${journeyId}/notification-view`
       })
       expect((await store.get(journeyId)).status).toBe(status)
     }

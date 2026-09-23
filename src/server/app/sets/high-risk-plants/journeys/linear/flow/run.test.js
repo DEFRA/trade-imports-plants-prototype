@@ -1,3 +1,4 @@
+import { SET_BASE } from '../../../set.js'
 import { consignmentContactSelectPage } from '../features/consignment-contact-select/page.js'
 import { identificationNumbersPage } from '../features/identification-numbers/page.js'
 import { consignorPage } from '../features/consignor-select/page.js'
@@ -69,7 +70,7 @@ describe('#RUN_STEPS — the opening run', () => {
 
   it('Should target the commodity-type page while its gate passes', () => {
     expect(RUN_STEPS[0].target(scopeOf('commodityType'), JOURNEY_ID)).toBe(
-      `/notifications/${JOURNEY_ID}/commodity-type`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/commodity-type`
     )
   })
 
@@ -79,7 +80,7 @@ describe('#RUN_STEPS — the opening run', () => {
         answering('commodityType', 'commodityLines'),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/commodities`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/commodities`)
   })
 
   it('Should target the origin page once a commodity type is answered', () => {
@@ -88,7 +89,7 @@ describe('#RUN_STEPS — the opening run', () => {
         answering('commodityType', 'countryOfOrigin'),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/origin`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/origin`)
   })
 
   it('Should skip a step whose gate fails', () => {
@@ -112,7 +113,7 @@ describe('#RUN_STEPS — the opening run', () => {
 
   it('Should target the arrival-status page for a plants or wood notification', () => {
     expect(RUN_STEPS[3].target(answering(...PLANTS_RUN), JOURNEY_ID)).toBe(
-      `/notifications/${JOURNEY_ID}/arrival-status`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/arrival-status`
     )
   })
 
@@ -147,19 +148,19 @@ describe('#RUN_STEPS — the opening run', () => {
 
   it('Should target the arrival-details page for every commodity type', () => {
     expect(RUN_STEPS[4].target(answering(...PLANTS_RUN), JOURNEY_ID)).toBe(
-      `/notifications/${JOURNEY_ID}/arrival-details`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/arrival-details`
     )
     expect(RUN_STEPS[4].target(answering(...POTATO_RUN), JOURNEY_ID)).toBe(
-      `/notifications/${JOURNEY_ID}/arrival-details`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/arrival-details`
     )
   })
 
   it('Should close the run on the place of destination for every commodity type', () => {
     expect(RUN_STEPS[5].target(answering(...PLANTS_RUN), JOURNEY_ID)).toBe(
-      `/notifications/${JOURNEY_ID}/destinations/select`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/destinations/select`
     )
     expect(RUN_STEPS[5].target(answering(...POTATO_RUN), JOURNEY_ID)).toBe(
-      `/notifications/${JOURNEY_ID}/destinations/select`
+      `${SET_BASE}/notifications/${JOURNEY_ID}/destinations/select`
     )
   })
 
@@ -186,7 +187,7 @@ describe('#nextRunTarget', () => {
         answering('commodityType', 'commodityLines'),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/commodities`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/commodities`)
   })
 
   it('Should send the commodities list on to origin', () => {
@@ -196,31 +197,31 @@ describe('#nextRunTarget', () => {
         answering('commodityType', 'commodityLines', 'countryOfOrigin'),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/origin`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/origin`)
   })
 
   it('Should send origin on to arrival status for a plants or wood notification', () => {
     expect(
       nextRunTarget(originPage.id, answering(...PLANTS_RUN), JOURNEY_ID)
-    ).toBe(`/notifications/${JOURNEY_ID}/arrival-status`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/arrival-status`)
   })
 
   it('Should send origin past arrival status to the details for a potato notification', () => {
     expect(
       nextRunTarget(originPage.id, answering(...POTATO_RUN), JOURNEY_ID)
-    ).toBe(`/notifications/${JOURNEY_ID}/arrival-details`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/arrival-details`)
   })
 
   it('Should send arrival status on to the arrival details', () => {
     expect(
       nextRunTarget(arrivalStatusPage.id, answering(...PLANTS_RUN), JOURNEY_ID)
-    ).toBe(`/notifications/${JOURNEY_ID}/arrival-details`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/arrival-details`)
   })
 
   it('Should send the arrival details on to the place of destination', () => {
     expect(
       nextRunTarget(arrivalDetailsPage.id, answering(...PLANTS_RUN), JOURNEY_ID)
-    ).toBe(`/notifications/${JOURNEY_ID}/destinations/select`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/destinations/select`)
   })
 
   it("Should fall through to the overview after the run's last step", () => {
@@ -230,7 +231,7 @@ describe('#nextRunTarget', () => {
         answering(...PLANTS_RUN),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}`)
   })
 
   it('Should fall through to the overview when the last step is out of scope', () => {
@@ -240,7 +241,7 @@ describe('#nextRunTarget', () => {
         answering('commodityType', 'commodityLines'),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}`)
   })
 
   it('Should fall through to the overview while the entry question is unanswered', () => {
@@ -250,7 +251,7 @@ describe('#nextRunTarget', () => {
         answering('commodityLines'),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}`)
   })
 
   it('Should decline a step id the run does not hold', () => {
@@ -269,14 +270,14 @@ describe('consignor opening-run step', () => {
         answering(...PLANTS_RUN),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/consignors/select`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/consignors/select`)
     expect(
       nextRunTarget(
         placeOfDestinationPage.id,
         answering(...POTATO_RUN),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/identification-numbers`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/identification-numbers`)
   })
 })
 
@@ -289,6 +290,6 @@ it('Should send every commodity type from identification numbers to contact', ()
         answering(...names),
         JOURNEY_ID
       )
-    ).toBe(`/notifications/${JOURNEY_ID}/consignment/contact/select`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/consignment/contact/select`)
   }
 })

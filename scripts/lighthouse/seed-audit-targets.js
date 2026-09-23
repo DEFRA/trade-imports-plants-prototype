@@ -9,6 +9,7 @@ import {
   auditableRoutePaths,
   auditUrls,
   reportNames,
+  signInUrl,
   TARGETS_FILE
 } from './audit-targets.js'
 import { createJourneyClient } from './journey-client.js'
@@ -29,7 +30,7 @@ const signedInCookies = async () => {
     args: ['--no-sandbox', '--disable-gpu']
   })
   try {
-    await signIn(browser, { url: origin })
+    await signIn(browser, { url: signInUrl(origin) })
     const { hostname } = new URL(origin)
     return (await browser.cookies()).filter(({ domain }) =>
       hostname.endsWith(domain.replace(/^\./, ''))

@@ -1,3 +1,4 @@
+import { SET_BASE, SET_ID } from '../../../../set.js'
 import {
   afterEach,
   beforeAll,
@@ -20,7 +21,7 @@ import {
 } from '../../../../../../engine/persistence/records.js'
 import {
   configureSession,
-  SESSION_COOKIES
+  knownJourneysCookie
 } from '../../../../../../engine/persistence/session.js'
 import { store } from '../../../../../../engine/store.js'
 import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
@@ -61,17 +62,17 @@ const startAmend = async () => {
 
 describe('cancel amendment routes', () => {
   beforeAll(() => {
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
 
   beforeEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     store.clear()
   })
 
   afterEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     vi.unstubAllGlobals()
   })
 
@@ -114,7 +115,7 @@ describe('cancel amendment routes', () => {
     await records.finalise(submitted.journeyId)
 
     expect(await get(journeyRequest(draft.journeyId), stubH())).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
     expect(await post(journeyRequest(submitted.journeyId), stubH())).toEqual({
       redirect: pagePath(submitted.journeyId, NOTIFICATION_VIEW_SLUG)
@@ -131,21 +132,21 @@ describe('cancel amendment routes', () => {
     const { journeyId } = await startAmend()
     const foreign = () =>
       journeyRequest(journeyId, {
-        state: { [SESSION_COOKIES.knownJourneys]: [] }
+        state: { [knownJourneysCookie()]: [] }
       })
     const getRequest = foreign()
     const postRequest = foreign()
 
     expect(await get(getRequest, adoptingH(getRequest))).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
     expect(await post(postRequest, adoptingH(postRequest))).toEqual({
-      redirect: '/'
+      redirect: SET_BASE
     })
 
     // no adoption into the caller's session
-    expect(getRequest.state[SESSION_COOKIES.knownJourneys]).toEqual([])
-    expect(postRequest.state[SESSION_COOKIES.knownJourneys]).toEqual([])
+    expect(getRequest.state[knownJourneysCookie()]).toEqual([])
+    expect(postRequest.state[knownJourneysCookie()]).toEqual([])
 
     // the amendment is untouched
     const after = await records.load({ journeyId })
@@ -157,13 +158,15 @@ describe('cancel amendment routes', () => {
 
   it('Should redirect a journeyId no record exists for', async () => {
     const request = journeyRequest('GBN-AG-26-UNKNOWN', {
-      state: { [SESSION_COOKIES.knownJourneys]: [] }
+      state: { [knownJourneysCookie()]: [] }
     })
-    expect(await post(request, adoptingH(request))).toEqual({ redirect: '/' })
+    expect(await post(request, adoptingH(request))).toEqual({
+      redirect: SET_BASE
+    })
   })
 
   it('Should re-render confirmation at 500 with the recoverable-save banner after a backend failure', async () => {
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       cancelAmend: realRecords.cancelAmend
     })

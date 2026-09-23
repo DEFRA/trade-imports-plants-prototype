@@ -1,3 +1,5 @@
+import { SET_BASE } from '../../src/server/app/sets/high-risk-plants/set.js'
+import { SET_BASE as SAMPLE_SET_BASE } from '../../src/server/app/sets/sample-journey/set.js'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -9,6 +11,7 @@ import {
   QUERY,
   reportName,
   reportNames,
+  signInUrl,
   SKIPPED
 } from './audit-targets.js'
 import { journeyIdIn, SEED_SHAPES } from './seed-notification.js'
@@ -49,7 +52,10 @@ const journeyIds = Object.fromEntries(
   Object.keys(SEED_SHAPES).map((shape, index) => [shape, `PHN-26-000${index}`])
 )
 
-const DASHBOARD_PATH = '/'
+// The dashboard's route SHAPE is '/'; Hapi mounts it at the set base, which is
+// the URL Lighthouse actually fetches. The two are not interchangeable here.
+const DASHBOARD_ROUTE_PATH = '/'
+const DASHBOARD_URL_PATH = SET_BASE
 const HUB_PATH = '/notifications/{journeyId}'
 const DELETE_PATH = '/notifications/{journeyId}/delete'
 const CANCEL_AMEND_PATH = '/notifications/{journeyId}/cancel-amend'
@@ -65,7 +71,7 @@ const PLACE_OF_DESTINATION_PATH =
   '/notifications/{journeyId}/destinations/select'
 
 const ROUTES = [
-  { method: 'GET', path: DASHBOARD_PATH },
+  { method: 'GET', path: DASHBOARD_ROUTE_PATH },
   { method: 'GET', path: HUB_PATH },
   { method: 'GET', path: CONFIRMATION_PATH },
   { method: 'GET', path: CANCEL_AMEND_PATH },
@@ -126,7 +132,7 @@ describe('#auditPaths', () => {
 
     expect(paths).toHaveLength(GET_PATHS.length - SKIPPED_PATH_COUNT)
     expect(paths).not.toContain(
-      `/notifications/${journeyIds.warePotatoes}/uploads/status`
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/uploads/status`
     )
     expect(paths.some((path) => path.includes('{'))).toBe(false)
   })
@@ -136,22 +142,26 @@ describe('#auditPaths', () => {
 
     expect(
       paths.filter((path) => path.includes(journeyIds.woodWithoutBark))
-    ).toEqual([`/notifications/${journeyIds.woodWithoutBark}/treatments`])
+    ).toEqual([
+      `${SET_BASE}/notifications/${journeyIds.woodWithoutBark}/treatments`
+    ])
     expect(
       paths.filter((path) => path.includes(journeyIds.warePotatoesLate))
-    ).toEqual([`/notifications/${journeyIds.warePotatoesLate}/late-reason`])
+    ).toEqual([
+      `${SET_BASE}/notifications/${journeyIds.warePotatoesLate}/late-reason`
+    ])
     expect(
       paths.filter((path) => path.includes(journeyIds.plantsForPlanting))
     ).toEqual([
-      `/notifications/${journeyIds.plantsForPlanting}/arrival-status`,
-      `/notifications/${journeyIds.plantsForPlanting}/consignors/select`
+      `${SET_BASE}/notifications/${journeyIds.plantsForPlanting}/arrival-status`,
+      `${SET_BASE}/notifications/${journeyIds.plantsForPlanting}/consignors/select`
     ])
     expect(
       paths.filter((path) => path.includes(journeyIds.warePotatoes))
     ).toEqual([
-      `/notifications/${journeyIds.warePotatoes}`,
-      `/notifications/${journeyIds.warePotatoes}/origin`,
-      `/notifications/${journeyIds.warePotatoes}/uploads/status`
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/origin`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/uploads/status`
     ])
   })
 
@@ -163,7 +173,7 @@ describe('#auditPaths', () => {
     )
 
     expect(paths).toContain(
-      `/notifications/${journeyIds.warePotatoes}/origin?change=1`
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/origin?change=1`
     )
   })
 
@@ -174,7 +184,7 @@ describe('#auditPaths', () => {
     ]
 
     expect(auditPaths(journeyIds, routes)).toContain(
-      `/notifications/${journeyIds.warePotatoes}/brand-new`
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/brand-new`
     )
   })
 
@@ -188,27 +198,27 @@ describe('#auditPaths', () => {
 
   it('Should audit every page the set registers today', () => {
     expect(auditPaths(journeyIds)).toEqual([
-      `/notifications/${journeyIds.warePotatoes}/declaration`,
-      `/notifications/${journeyIds.warePotatoes}/notification-view`,
-      `/notifications/${journeyIds.warePotatoes}/consignment/contact/select`,
-      `/notifications/${journeyIds.warePotatoes}/identification-numbers`,
-      DASHBOARD_PATH,
-      `/notifications/${journeyIds.warePotatoes}`,
-      `/notifications/${journeyIds.warePotatoes}/delete`,
-      `/notifications/${journeyIds.warePotatoes}/commodity-type`,
-      `/notifications/${journeyIds.warePotatoes}/commodities`,
-      `/notifications/${journeyIds.warePotatoes}/commodities/details`,
-      `/notifications/${journeyIds.warePotatoes}/origin`,
-      `/notifications/${journeyIds.plantsForPlanting}/arrival-status`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/declaration`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/notification-view`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/consignment/contact/select`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/identification-numbers`,
+      DASHBOARD_URL_PATH,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/delete`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/commodity-type`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/commodities`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/commodities/details`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/origin`,
+      `${SET_BASE}/notifications/${journeyIds.plantsForPlanting}/arrival-status`,
       // Audited on the ware-potato default: the date is asked of every
       // commodity type, and potatoes are the shape that also carries the time
       // and the place of landing, so the audit reads the fullest page.
-      `/notifications/${journeyIds.warePotatoes}/arrival-details`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/arrival-details`,
       // Audited on the ware-potato default too: the picker is the same page
       // whichever state it asks its question in, and the ware-potato shape is
       // the one that reaches it without an arrival status.
-      `/notifications/${journeyIds.plantsForPlanting}/consignors/select`,
-      `/notifications/${journeyIds.warePotatoes}/destinations/select`
+      `${SET_BASE}/notifications/${journeyIds.plantsForPlanting}/consignors/select`,
+      `${SET_BASE}/notifications/${journeyIds.warePotatoes}/destinations/select`
     ])
   })
 })
@@ -239,7 +249,7 @@ describe('#auditableRoutePaths', () => {
       '/notifications/{journeyId}/notification-view',
       '/notifications/{journeyId}/consignment/contact/select',
       '/notifications/{journeyId}/identification-numbers',
-      DASHBOARD_PATH,
+      DASHBOARD_ROUTE_PATH,
       HUB_PATH,
       DELETE_PATH,
       COMMODITY_TYPE_PATH,
@@ -297,27 +307,51 @@ describe('#assertTargetsAreCurrent', () => {
   })
 })
 
+describe('#signInUrl', () => {
+  it('Should sign in inside the set, not at the root the chooser serves', () => {
+    expect(signInUrl(ORIGIN)).toBe(`${ORIGIN}${SET_BASE}`)
+  })
+
+  it('Should not sign in at a page served without authentication', () => {
+    expect(signInUrl(ORIGIN)).not.toBe(`${ORIGIN}/`)
+  })
+})
+
 describe('#reportName', () => {
   it('Should name a report after its route, without the seeded journey id', () => {
     expect(
       reportName(
-        `${ORIGIN}/notifications/${journeyIds.warePotatoes}/uploads/status`,
+        `${ORIGIN}${SET_BASE}/notifications/${journeyIds.warePotatoes}/uploads/status`,
         journeyIds
       )
-    ).toBe('notifications_uploads_status')
+    ).toBe('high_risk_plants_notifications_uploads_status')
   })
 
-  it('Should name the report for the service start page', () => {
+  it("Should name the dashboard's report after the set it belongs to", () => {
+    expect(reportName(`${ORIGIN}${SET_BASE}`, journeyIds)).toBe(
+      'high_risk_plants'
+    )
+  })
+
+  it('Should name the report for the root, which is the chooser on this host', () => {
     expect(reportName(`${ORIGIN}/`, journeyIds)).toBe('home')
+  })
+
+  it('Should keep the set mount so two sets sharing a route get different reports', () => {
+    const route = `/notifications/${journeyIds.warePotatoes}/origin`
+
+    expect(reportName(`${ORIGIN}${SET_BASE}${route}`, journeyIds)).not.toBe(
+      reportName(`${ORIGIN}${SAMPLE_SET_BASE}${route}`, journeyIds)
+    )
   })
 
   it('Should drop the query string a route needs to render', () => {
     expect(
       reportName(
-        `${ORIGIN}/notifications/${journeyIds.warePotatoes}/origin?change=1`,
+        `${ORIGIN}${SET_BASE}/notifications/${journeyIds.warePotatoes}/origin?change=1`,
         journeyIds
       )
-    ).toBe('notifications_origin')
+    ).toBe('high_risk_plants_notifications_origin')
   })
 })
 
@@ -464,13 +498,15 @@ describe('#SEED_SHAPES', () => {
 
 describe('#journeyIdIn', () => {
   it('Should read the journey id from a redirect to the first journey page', () => {
-    expect(journeyIdIn('/notifications/PHN-26-0001/commodity-type')).toBe(
-      'PHN-26-0001'
-    )
+    expect(
+      journeyIdIn(`${SET_BASE}/notifications/PHN-26-0001/commodity-type`)
+    ).toBe('PHN-26-0001')
   })
 
   it('Should read the journey id from a redirect to the hub', () => {
-    expect(journeyIdIn('/notifications/PHN-26-0001')).toBe('PHN-26-0001')
+    expect(journeyIdIn(`${SET_BASE}/notifications/PHN-26-0001`)).toBe(
+      'PHN-26-0001'
+    )
   })
 
   it('Should read no journey id from a redirect somewhere else', () => {

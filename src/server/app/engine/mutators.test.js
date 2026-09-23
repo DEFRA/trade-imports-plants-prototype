@@ -20,6 +20,7 @@ import {
   SELECTOR_ALPHA,
   SELECTOR_BRAVO,
   SELECTOR_CHARLIE,
+  SET_ID,
   TOGGLE_NO
 } from '../../../../test/fixtures/index.js'
 
@@ -57,9 +58,9 @@ const nestedPath = (entryIndex) => [
 
 describe('mutators — storage is positional, purge is evaluator-authoritative', () => {
   beforeAll(() => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
-    configureReadyForCheckYourAnswers(() => false)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
   })
   beforeEach(async () => {
     await store.clear()

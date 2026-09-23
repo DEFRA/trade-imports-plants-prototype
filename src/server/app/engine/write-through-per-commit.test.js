@@ -7,7 +7,11 @@ import { session as sessionStub } from '../services/persistence/session/stub.js'
 import { configureReadyForCheckYourAnswers } from './read.js'
 import { stubH, journeyRequest } from './test-support.js'
 import { obligationSet } from '../model/obligations/manifest.js'
-import { VALUE_ONE, VALUE_TWO } from '../../../../test/fixtures/index.js'
+import {
+  SET_ID,
+  VALUE_ONE,
+  VALUE_TWO
+} from '../../../../test/fixtures/index.js'
 
 const { scalarField, optionalScalarField } = obligationSet()
 
@@ -16,10 +20,10 @@ const buildRequest = () => journeyRequest(journeyId)
 
 describe('#commit', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     await records.clear()
-    configureReadyForCheckYourAnswers(() => false)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
     journeyId = (await records.create()).journeyId
   })
 

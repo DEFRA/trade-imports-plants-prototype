@@ -7,14 +7,14 @@ import { configureSession } from './persistence/session.js'
 import { configureReadyForCheckYourAnswers } from './read.js'
 import { journeyRequest, recordingH } from './test-support.js'
 import { assembleFulfilments } from '../bridge/assemble-fulfilments.js'
-import { BRANCH_B, VALUE_ONE } from '../../../../test/fixtures/index.js'
+import { BRANCH_B, SET_ID, VALUE_ONE } from '../../../../test/fixtures/index.js'
 
 describe('re-entry self-heal (nothing derived is stored)', () => {
   beforeEach(async () => {
-    configureRecords(recordsStub)
-    configureSession(sessionStub)
+    configureRecords(SET_ID, recordsStub)
+    configureSession(SET_ID, sessionStub)
     await records.clear()
-    configureReadyForCheckYourAnswers(() => false)
+    configureReadyForCheckYourAnswers(SET_ID, () => false)
   })
 
   it('Should re-derive scope on re-entry, excluding a now-out-of-scope obligation', async () => {

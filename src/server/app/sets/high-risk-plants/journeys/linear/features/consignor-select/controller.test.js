@@ -1,3 +1,4 @@
+import { SET_ID } from '../../../../set.js'
 import * as commodityTypeController from '../commodity-type/controller.js'
 import {
   afterEach,
@@ -66,8 +67,8 @@ const plants = (answers = {}) => ({
 })
 
 const installStubs = () => {
-  configureRecords(recordsStub)
-  configureSession(sessionStub)
+  configureRecords(SET_ID, recordsStub)
+  configureSession(SET_ID, sessionStub)
   installHighRiskPlantsJourney()
 }
 
@@ -477,7 +478,7 @@ describe('POST consignor-select — accepted answers', () => {
 
 describe('POST consignor-select — save failures', () => {
   beforeAll(() => {
-    configureSession(sessionStub)
+    configureSession(SET_ID, sessionStub)
     installHighRiskPlantsJourney()
   })
 
@@ -494,13 +495,13 @@ describe('POST consignor-select — save failures', () => {
   })
 
   afterEach(() => {
-    configureRecords(recordsStub)
+    configureRecords(SET_ID, recordsStub)
     vi.unstubAllGlobals()
   })
 
   const failingOnControllerCommit = (failure) => {
     let replaceCalls = 0
-    configureRecords({
+    configureRecords(SET_ID, {
       ...recordsStub,
       replaceFulfilment: (...args) => {
         replaceCalls += 1

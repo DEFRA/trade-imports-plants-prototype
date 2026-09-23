@@ -1,36 +1,71 @@
 import Boom from '@hapi/boom'
-import { BASE } from '../shared/paths.js'
-import { session, SESSION_COOKIES } from './persistence/session.js'
+import {
+  flowOnlyAnswersCookie,
+  knownJourneysCookie,
+  openingRunCookie,
+  session,
+  sessionConfiguredFor
+} from './persistence/session.js'
+import { currentSetBase, currentSetId } from '../shared/set-context.js'
 import { AMEND, DRAFT, records, SUBMITTED } from './persistence/records.js'
 import { buildActor } from '../../common/helpers/actor-helpers.js'
 import { organisationIdOf } from '../../common/helpers/organisation-id.js'
 
-export { SESSION_COOKIES } from './persistence/session.js'
+export {
+  flowOnlyAnswersCookie,
+  knownJourneysCookie,
+  openingRunCookie
+} from './persistence/session.js'
 
-const cookieOptions = Object.freeze({
-  path: BASE || '/',
-  ttl: null,
-  encoding: 'none',
-  isSecure: false,
-  isHttpOnly: true,
-  isSameSite: 'Lax',
-  clearInvalid: true,
-  strictHeader: true
-})
-
+/**
+ * Registers the journey cookies a set reads in STUB mode, scoped to that set's
+ * own mount: stub mode keeps each value in a native cookie of its own, so a
+ * draft started in one set is invisible to another set's dashboard. Moving
+ * these off `/` invalidates existing browser sessions, which is the intended
+ * one-off cost of splitting the namespace.
+ *
+ * The `path` scoping applies to those per-name cookies only. In REAL mode the
+ * same values are keys inside the single @hapi/yar session cookie, which is
+ * registered server-wide at path `/`; isolation there comes from each set's
+ * cookie NAMES being distinct, not from the path. See
+ * services/persistence/session/real.js.
+ *
+ * Both the path and the names come from the active set — the mount it
+ * registered and the session seam it configured — rather than from arguments,
+ * so what is registered cannot drift from what the set actually uses. Call it
+ * inside the set's context, after `registerSetMount` and `configureSession`:
+ * called before the latter, the seam would hand back the shared default names
+ * and the set would register cookies it never reads, so it refuses here rather
+ * than registering them. `set-completeness.js` still compares the registered
+ * names against the configured ones as the last act of registration, which is
+ * what catches a gateway that skipped this call altogether.
+ */
 export const registerJourneyCookie = (server) => {
-  server.state(SESSION_COOKIES.knownJourneys, {
-    ...cookieOptions,
-    encoding: 'base64json'
+  const setId = currentSetId()
+  if (!sessionConfiguredFor(setId)) {
+    throw new Error(
+      `Session not configured for set "${setId}" — call configureSession before registerJourneyCookie`
+    )
+  }
+
+  const cookieOptions = Object.freeze({
+    path: currentSetBase(),
+    ttl: null,
+    encoding: 'base64json',
+    isSecure: false,
+    isHttpOnly: true,
+    isSameSite: 'Lax',
+    clearInvalid: true,
+    strictHeader: true
   })
-  server.state(SESSION_COOKIES.openingRun, {
-    ...cookieOptions,
-    encoding: 'base64json'
-  })
-  server.state(SESSION_COOKIES.flowOnlyAnswers, {
-    ...cookieOptions,
-    encoding: 'base64json'
-  })
+
+  for (const name of [
+    knownJourneysCookie(),
+    openingRunCookie(),
+    flowOnlyAnswersCookie()
+  ]) {
+    server.state(name, cookieOptions)
+  }
 }
 
 const JOURNEY_MEMO = Symbol('currentJourney')
