@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 const storage = new AsyncLocalStorage()
 const mounts = new Map()
+const seams = new Map()
 
 export const registerSetMount = (setId, prefix) => {
   if (!prefix?.startsWith('/')) {
@@ -96,8 +97,22 @@ export const routeWithSetContext = (setId, route) => {
   }
 }
 
+/**
+ * Whether the seam `label` names has been configured for `setId`, or
+ * `undefined` when no seam answers to that label — either nothing has imported
+ * the module that creates it, or its label has been renamed. The mount check
+ * in `set-mount.js` reads the seams through this rather than each seam module
+ * exporting a probe of its own.
+ *
+ * @param {string} label the label the seam passed to `setKeyed`.
+ * @param {string} setId the set to ask about.
+ * @returns {boolean|undefined} configured, not configured, or no such seam.
+ */
+export const seamConfiguredFor = (label, setId) => seams.get(label)?.(setId)
+
 export const setKeyed = (label) => {
   const bySet = new Map()
+  seams.set(label, (setId) => bySet.has(setId))
   return {
     configure: (setId, value) => bySet.set(setId, value),
     current: () => {

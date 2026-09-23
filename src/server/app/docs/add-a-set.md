@@ -209,8 +209,18 @@ and the cookies the session reads cannot drift apart. Call it after
 In [`../../router.js`](../../router.js):
 
 ```js
-await server.register(yourSet, { routes: { prefix: YOUR_SET_BASE } })
+await mountSet(server, yourSet, { setId: YOUR_SET_ID, base: YOUR_SET_BASE })
 ```
+
+`mountSet` — [`../set-mount.js`](../set-mount.js), re-exported by
+[`../routes.js`](../routes.js) — registers the set and then checks it
+configured every seam it cannot answer a request without, throwing with your
+set's id and the seam's name if it did not. Registering and checking are one
+call because the failure being guarded against is a gateway that forgot a step.
+Several sets share the process, so a seam that answers from its unconfigured
+default — the session cookie names, an empty journey flow — renders an empty
+dashboard to a reader instead of failing. Mount through `mountSet`, never
+`server.register` directly.
 
 Leave the server-wide routes where they are. Leave `/` as the chooser
 registered by [`../../sets-index/index.js`](../../sets-index/index.js), which

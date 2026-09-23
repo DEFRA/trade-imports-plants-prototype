@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { commit } from './index.js'
 import { records, configureRecords } from './persistence/records.js'
@@ -8,7 +7,11 @@ import { session as sessionStub } from '../services/persistence/session/stub.js'
 import { configureReadyForCheckYourAnswers } from './read.js'
 import { stubH, journeyRequest } from './test-support.js'
 import { obligationSet } from '../model/obligations/manifest.js'
-import { VALUE_ONE, VALUE_TWO } from '../../../../test/fixtures/index.js'
+import {
+  SET_ID,
+  VALUE_ONE,
+  VALUE_TWO
+} from '../../../../test/fixtures/index.js'
 
 const { scalarField, optionalScalarField } = obligationSet()
 

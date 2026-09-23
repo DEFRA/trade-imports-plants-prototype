@@ -1,10 +1,9 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { store, DRAFT, SUBMITTED } from './store.js'
 import { configureRecords } from './persistence/records.js'
 import { records as recordsStub } from '../services/persistence/records/stub/index.js'
 import { obligationSet } from '../model/obligations/manifest.js'
-import { VALUE_ONE } from '../../../../test/fixtures/index.js'
+import { SET_ID, VALUE_ONE } from '../../../../test/fixtures/index.js'
 
 const { scalarField, compositeBlockOne } = obligationSet()
 

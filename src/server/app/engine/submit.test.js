@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { commit, submitJourney } from './index.js'
 import {
@@ -12,7 +11,7 @@ import { records as recordsStub } from '../services/persistence/records/stub/ind
 import { session as sessionStub } from '../services/persistence/session/stub.js'
 import { configureReadyForCheckYourAnswers } from './read.js'
 import { authenticatedActor, stubH, journeyRequest } from './test-support.js'
-import { VALUE_ONE } from '../../../../test/fixtures/index.js'
+import { SET_ID, VALUE_ONE } from '../../../../test/fixtures/index.js'
 
 // submitJourney reads its scope through `makeScope` and gates on that scope's
 // `readyForCheckYourAnswers`. `records.finalise` is the persistence layer.

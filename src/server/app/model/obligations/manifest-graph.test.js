@@ -1,7 +1,6 @@
-import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 
-import { installFixture } from '../../../../../test/fixtures/index.js'
+import { installFixture, SET_ID } from '../../../../../test/fixtures/index.js'
 import { configureObligationSet } from './manifest.js'
 import {
   ancestorChain,

@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { afterEach, beforeAll, describe, expect, test } from 'vitest'
 import {
   configureAnswersForRead,
@@ -14,6 +13,7 @@ import { configureSession } from './persistence/session.js'
 import { obligationSet } from '../model/obligations/manifest.js'
 import {
   compositeBlockValue,
+  SET_ID,
   VALUE_ONE,
   VARIANT_ONE
 } from '../../../../test/fixtures/index.js'

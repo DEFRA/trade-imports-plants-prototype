@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   appendEntryAt,
@@ -21,6 +20,7 @@ import {
   SELECTOR_ALPHA,
   SELECTOR_BRAVO,
   SELECTOR_CHARLIE,
+  SET_ID,
   TOGGLE_NO
 } from '../../../../test/fixtures/index.js'
 

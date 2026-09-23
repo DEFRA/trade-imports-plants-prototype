@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { get } from './index.js'
 import { records, configureRecords } from './persistence/records.js'
@@ -8,7 +7,7 @@ import { configureSession } from './persistence/session.js'
 import { configureReadyForCheckYourAnswers } from './read.js'
 import { journeyRequest, recordingH } from './test-support.js'
 import { assembleFulfilments } from '../bridge/assemble-fulfilments.js'
-import { BRANCH_B, VALUE_ONE } from '../../../../test/fixtures/index.js'
+import { BRANCH_B, SET_ID, VALUE_ONE } from '../../../../test/fixtures/index.js'
 
 describe('re-entry self-heal (nothing derived is stored)', () => {
   beforeEach(async () => {

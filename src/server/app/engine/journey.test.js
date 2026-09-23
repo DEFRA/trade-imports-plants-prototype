@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   cancelAmendJourney,
@@ -26,6 +25,7 @@ import {
 import { obligationSet } from '../model/obligations/manifest.js'
 import {
   FLOW_ONLY_KEY,
+  SET_ID,
   VALUE_ONE,
   VALUE_TWO
 } from '../../../../test/fixtures/index.js'

@@ -1,4 +1,3 @@
-import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { commit, appendEntryAt, submitJourney } from './index.js'
 import { records, configureRecords, DRAFT } from '../persistence/records.js'
@@ -9,6 +8,7 @@ import { configureReadyForCheckYourAnswers } from '../read.js'
 import { stubH, journeyRequest } from '../test-support.js'
 import {
   SELECTOR_BRAVO,
+  SET_ID,
   VALUE_ONE
 } from '../../../../../test/fixtures/index.js'
 

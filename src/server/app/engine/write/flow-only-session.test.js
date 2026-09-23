@@ -1,4 +1,3 @@
-import { SET_ID } from '../../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { commit } from './index.js'
 import { get, configureReadyForCheckYourAnswers } from '../read.js'
@@ -10,7 +9,7 @@ import {
 import { records as recordsStub } from '../../services/persistence/records/stub/index.js'
 import { session as sessionStub } from '../../services/persistence/session/stub.js'
 import { journeyRequest, recordingH } from '../test-support.js'
-import { FLOW_ONLY_KEY } from '../../../../../test/fixtures/index.js'
+import { FLOW_ONLY_KEY, SET_ID } from '../../../../../test/fixtures/index.js'
 
 const FLOW_ONLY_VALUE = 'confirmed'
 

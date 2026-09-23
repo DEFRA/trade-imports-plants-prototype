@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { updateEntryAt } from './write/index.js'
 import { makeScope, configureReadyForCheckYourAnswers } from './read.js'
@@ -14,6 +13,7 @@ import {
   CATEGORY_ONE,
   SELECTOR_ALPHA,
   SELECTOR_BRAVO,
+  SET_ID,
   VALUE_ONE
 } from '../../../../test/fixtures/index.js'
 

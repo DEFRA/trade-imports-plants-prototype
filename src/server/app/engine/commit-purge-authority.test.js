@@ -1,4 +1,3 @@
-import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { commit } from './index.js'
 import { records, configureRecords } from './persistence/records.js'
@@ -13,6 +12,7 @@ import { stubH, journeyRequest } from './test-support.js'
 import {
   BRANCH_A,
   BRANCH_B,
+  SET_ID,
   TOGGLE_NO,
   TOGGLE_YES,
   VALUE_ONE,
