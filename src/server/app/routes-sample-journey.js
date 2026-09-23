@@ -3,6 +3,8 @@ import {
   configureJourneyFlow,
   journeyEntryGuardTarget
 } from './flow/journey-flow.js'
+import { readyForCheckYourAnswers } from './flow/section-status.js'
+import { configureReadyForCheckYourAnswers } from './bridge/readiness-config.js'
 import {
   allRoutes,
   dispatchPages
@@ -22,6 +24,7 @@ import {
 } from './sets/sample-journey/journeys/linear/config.js'
 import * as sampleJourneyObligationSet from './sets/sample-journey/obligations/index.js'
 import { assertObligationPurity } from './obligation-purity.js'
+import { assertSetConfigured } from './set-completeness.js'
 import {
   assertFulfilmentBindingCoverage,
   configureFulfilmentRegistry
@@ -69,6 +72,7 @@ export const sampleJourney = {
           entryGuardTarget,
           layout: LAYOUT
         })
+        configureReadyForCheckYourAnswers(SET_ID, readyForCheckYourAnswers)
         assertObligationPurity()
         assertFulfilmentBindingCoverage()
         buildDispatch(SET_ID, dispatchPages)
@@ -95,6 +99,10 @@ export const sampleJourney = {
         server.route(
           allRoutes.map((route) => routeWithSetContext(SET_ID, route))
         )
+        // Last act of the registration: a seam this set never configured would
+        // otherwise answer with its fallback at request time, and three of
+        // those fallbacks are silent. Refusing here stops the server instead.
+        assertSetConfigured(server, SET_ID)
       })
     }
   }

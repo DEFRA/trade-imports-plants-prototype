@@ -29,6 +29,7 @@ import {
 } from './sets/high-risk-plants/journeys/linear/config.js'
 import * as highRiskPlantsObligationSet from './sets/high-risk-plants/obligations/index.js'
 import { assertObligationPurity } from './obligation-purity.js'
+import { assertSetConfigured } from './set-completeness.js'
 import {
   assertFulfilmentBindingCoverage,
   configureFulfilmentRegistry
@@ -105,6 +106,10 @@ export const highRiskPlants = {
         server.route(
           allRoutes.map((route) => routeWithSetContext(SET_ID, route))
         )
+        // Last act of the registration: a seam this set never configured would
+        // otherwise answer with its fallback at request time, and three of
+        // those fallbacks are silent. Refusing here stops the server instead.
+        assertSetConfigured(server, SET_ID)
       })
     }
   }

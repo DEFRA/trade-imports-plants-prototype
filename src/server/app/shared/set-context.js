@@ -2,7 +2,6 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 const storage = new AsyncLocalStorage()
 const mounts = new Map()
-const seams = new Map()
 
 export const registerSetMount = (setId, prefix) => {
   if (!prefix?.startsWith('/')) {
@@ -98,21 +97,34 @@ export const routeWithSetContext = (setId, route) => {
 }
 
 /**
- * Whether the seam `label` names has been configured for `setId`, or
- * `undefined` when no seam answers to that label — either nothing has imported
- * the module that creates it, or its label has been renamed. The mount check
- * in `set-mount.js` reads the seams through this rather than each seam module
- * exporting a probe of its own.
+ * The seams a mounted set MUST configure, indexed by label as each seam module
+ * loads. A seam opts in by naming the function that configures it, so the
+ * completeness check at mount reads this rather than a hand-kept list a new
+ * seam could quietly fall out of.
  *
- * @param {string} label the label the seam passed to `setKeyed`.
- * @param {string} setId the set to ask about.
- * @returns {boolean|undefined} configured, not configured, or no such seam.
+ * Seams with a real default register nothing here: the answers-for-read
+ * sanitiser, whose default is identity, and the flow-only keys, which
+ * `configureJourneyFlow` forwards rather than a gateway configuring directly.
+ * A set that leaves those alone is correctly configured.
  */
-export const seamConfiguredFor = (label, setId) => seams.get(label)?.(setId)
+const requiredSeams = new Map()
 
-export const setKeyed = (label) => {
+/**
+ * A per-set store for one configuration seam.
+ *
+ * @param {string} label - the seam's name, as it appears in error messages.
+ * @param {object} [options] - seam options.
+ * @param {string} [options.configuredBy] - the configure function a set calls
+ * to fill this seam. Naming it marks the seam required, so a set that mounts
+ * without calling it is rejected at registration.
+ * @returns {{configure: Function, current: Function, has: Function}} the store.
+ */
+export const setKeyed = (label, { configuredBy } = {}) => {
   const bySet = new Map()
-  seams.set(label, (setId) => bySet.has(setId))
+  const has = (setId) => bySet.has(setId)
+  if (configuredBy) {
+    requiredSeams.set(label, { configuredBy, has })
+  }
   return {
     configure: (setId, value) => bySet.set(setId, value),
     current: () => {
@@ -122,6 +134,22 @@ export const setKeyed = (label) => {
       }
       return bySet.get(setId)
     },
-    has: (setId) => bySet.has(setId)
+    has
   }
 }
+
+/** Every required seam's label, in the order the seam modules declared them. */
+export const requiredSeamLabels = () => [...requiredSeams.keys()]
+
+/**
+ * The required seams a set has not configured, each named alongside the call
+ * that would configure it.
+ *
+ * @param {string} setId - the set to check.
+ * @returns {string[]} descriptions such as `journey flow (configureJourneyFlow)`,
+ * empty when the set has configured every required seam.
+ */
+export const unconfiguredSeamsOf = (setId) =>
+  [...requiredSeams]
+    .filter(([, seam]) => !seam.has(setId))
+    .map(([label, { configuredBy }]) => `${label} (${configuredBy})`)

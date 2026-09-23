@@ -27,6 +27,9 @@ import { configureFulfilmentRegistry } from '../../src/server/app/bridge/fulfilm
 import { configureRecords } from '../../src/server/app/engine/persistence/records.js'
 import { configureSession } from '../../src/server/app/engine/persistence/session.js'
 import { configureAnswersForRead } from '../../src/server/app/bridge/answers-read.js'
+import { configureReadyForCheckYourAnswers } from '../../src/server/app/bridge/readiness-config.js'
+import { readyForCheckYourAnswers } from '../../src/server/app/flow/section-status.js'
+import { assertSetConfigured } from '../../src/server/app/set-completeness.js'
 import { registerJourneyCookie } from '../../src/server/app/engine/journey.js'
 import {
   enterSetContext,
@@ -165,8 +168,8 @@ export const routes = [
  * Mirrors routes-high-risk-plants.js: mount registration, a sandboxed
  * onPreAuth to enter the set context, every seam configured with this set's
  * id, per-set cookies scoped to the set base, a sandboxed entry guard wrapped
- * in its own set context, and routes wrapped so handlers run inside the
- * context.
+ * in its own set context, routes wrapped so handlers run inside the context,
+ * and the completeness gate as its last act.
  */
 export const secondSet = {
   plugin: {
@@ -192,6 +195,7 @@ export const secondSet = {
           ])
         ])
         configureAnswersForRead(SET_ID, async (_request, answers) => answers)
+        configureReadyForCheckYourAnswers(SET_ID, readyForCheckYourAnswers)
         configureJourneyFlow(SET_ID, {
           sections,
           taskRows: [],
@@ -220,6 +224,7 @@ export const secondSet = {
           { sandbox: 'plugin' }
         )
         server.route(routes.map((route) => routeWithSetContext(SET_ID, route)))
+        assertSetConfigured(server, SET_ID)
       })
     }
   }

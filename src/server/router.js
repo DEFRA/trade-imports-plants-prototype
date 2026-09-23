@@ -5,15 +5,9 @@ import { signout } from './signout/index.js'
 import { setsIndex } from './sets-index/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { config } from '../config/config.js'
-import { highRiskPlants, mountSet, sampleJourney } from './app/routes.js'
-import {
-  SET_BASE as HIGH_RISK_PLANTS_BASE,
-  SET_ID as HIGH_RISK_PLANTS
-} from './app/sets/high-risk-plants/set.js'
-import {
-  SET_BASE as SAMPLE_JOURNEY_BASE,
-  SET_ID as SAMPLE_JOURNEY
-} from './app/sets/sample-journey/set.js'
+import { highRiskPlants, sampleJourney } from './app/routes.js'
+import { SET_BASE as HIGH_RISK_PLANTS_BASE } from './app/sets/high-risk-plants/set.js'
+import { SET_BASE as SAMPLE_JOURNEY_BASE } from './app/sets/sample-journey/set.js'
 
 export const router = {
   plugin: {
@@ -29,16 +23,15 @@ export const router = {
       // would make a link that doubles or drops the prefix still look right for
       // that set, and the mistake would only show up on another one.
       //
-      // `mountSet` registers the set and then checks it configured every seam
-      // it needs, so a set that forgot one refuses to boot here rather than
-      // rendering an empty dashboard to a reader. See app/set-mount.js.
-      await mountSet(server, highRiskPlants, {
-        setId: HIGH_RISK_PLANTS,
-        base: HIGH_RISK_PLANTS_BASE
+      // Each gateway checks itself: `assertSetConfigured` is the last act of
+      // its own plugin register, so a set that forgot a seam fails the
+      // `server.register` below rather than booting and rendering an empty
+      // dashboard to a reader. See app/set-completeness.js.
+      await server.register(highRiskPlants, {
+        routes: { prefix: HIGH_RISK_PLANTS_BASE }
       })
-      await mountSet(server, sampleJourney, {
-        setId: SAMPLE_JOURNEY,
-        base: SAMPLE_JOURNEY_BASE
+      await server.register(sampleJourney, {
+        routes: { prefix: SAMPLE_JOURNEY_BASE }
       })
 
       // Server-wide, NOT per set. /signout registers happily under a set's

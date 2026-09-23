@@ -193,7 +193,7 @@ seam this set uses with `SET_ID` first, register the journey cookies against
 
 The entry guard's own body goes inside `withSetContext(SET_ID, …)` — see rule 4
 above. Copy [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js)
-lines 88-101 verbatim, comment included: `routeWithSetContext` does not reach a
+lines 92-105 verbatim, comment included: `routeWithSetContext` does not reach a
 server-level `server.ext`, and without the wrap the guard resolves only by the
 sole-set fallback and throws the moment a second set mounts.
 
@@ -206,21 +206,35 @@ and the cookies the session reads cannot drift apart. Call it after
 
 ## 5. Mount it
 
-In [`../../router.js`](../../router.js):
+Your gateway checks itself. Make `assertSetConfigured` the LAST act of its
+plugin register, inside the `withSetContext` block, after the routes:
 
 ```js
-await mountSet(server, yourSet, { setId: YOUR_SET_ID, base: YOUR_SET_BASE })
+server.route(allRoutes.map((route) => routeWithSetContext(SET_ID, route)))
+assertSetConfigured(server, SET_ID)
 ```
 
-`mountSet` — [`../set-mount.js`](../set-mount.js), re-exported by
-[`../routes.js`](../routes.js) — registers the set and then checks it
-configured every seam it cannot answer a request without, throwing with your
-set's id and the seam's name if it did not. Registering and checking are one
-call because the failure being guarded against is a gateway that forgot a step.
+`assertSetConfigured` — [`../set-completeness.js`](../set-completeness.js) —
+throws with your set's id and the name of every required seam it left
+unconfigured, so the gap fails `server.register` and the server never starts.
 Several sets share the process, so a seam that answers from its unconfigured
-default — the session cookie names, an empty journey flow — renders an empty
-dashboard to a reader instead of failing. Mount through `mountSet`, never
-`server.register` directly.
+default — the session cookie names, an empty journey flow, a submit gate held
+shut — renders an empty dashboard or an un-submittable journey to a reader
+instead of failing.
+
+A seam declares itself required by naming its configure call:
+`setKeyed('journey flow', { configuredBy: 'configureJourneyFlow' })`. There is
+no hand-kept list to add to, and the check is behavioural — it compares the
+cookie names the server actually registered against the ones your session seam
+reports, which is how it catches `registerJourneyCookie` running before
+`configureSession`.
+
+Then in [`../../router.js`](../../router.js), register the set the ordinary
+way:
+
+```js
+await server.register(yourSet, { routes: { prefix: YOUR_SET_BASE } })
+```
 
 Leave the server-wide routes where they are. Leave `/` as the chooser
 registered by [`../../sets-index/index.js`](../../sets-index/index.js), which
