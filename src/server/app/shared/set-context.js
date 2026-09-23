@@ -64,37 +64,65 @@ const contextualMethod = (setId, method) =>
     ? (request, h) => withSetContext(setId, () => method(request, h))
     : method
 
-const contextualExtension = (setId, extension) => {
-  if (Array.isArray(extension)) {
-    return extension.map((item) => contextualExtension(setId, item))
+/**
+ * Wraps whatever shape a route's lifecycle entry takes — a bare function, an
+ * object carrying `method`, or an array of either. Route `ext` points and
+ * `pre` entries both use this grammar, so both go through here.
+ *
+ * @param {string} setId - the set the entry belongs to.
+ * @param {Function|object|Array} entry - the lifecycle entry to wrap.
+ * @returns {Function|object|Array} the entry, running inside the set.
+ */
+const contextualEntry = (setId, entry) => {
+  if (Array.isArray(entry)) {
+    return entry.map((item) => contextualEntry(setId, item))
   }
-  if (typeof extension === 'function') {
-    return contextualMethod(setId, extension)
+  if (typeof entry === 'function') {
+    return contextualMethod(setId, entry)
   }
   return {
-    ...extension,
-    method: contextualMethod(setId, extension.method)
+    ...entry,
+    method: contextualMethod(setId, entry.method)
   }
 }
 
-export const routeWithSetContext = (setId, route) => {
-  const ext = route.options?.ext
+const contextualOptions = (setId, options) => {
+  const { ext, handler, pre } = options
   return {
-    ...route,
+    ...options,
     ...(ext && {
-      options: {
-        ...route.options,
-        ext: Object.fromEntries(
-          Object.entries(ext).map(([point, extension]) => [
-            point,
-            contextualExtension(setId, extension)
-          ])
-        )
-      }
+      ext: Object.fromEntries(
+        Object.entries(ext).map(([point, extension]) => [
+          point,
+          contextualEntry(setId, extension)
+        ])
+      )
     }),
-    handler: contextualMethod(setId, route.handler)
+    // `options.handler` is the same handler by another name, and `options.pre`
+    // runs before it. Both would otherwise resolve whichever set happened to be
+    // ambient, so both are wrapped the way `route.handler` is.
+    ...(handler && { handler: contextualMethod(setId, handler) }),
+    ...(pre && { pre: contextualEntry(setId, pre) })
   }
 }
+
+/**
+ * A route declaration whose every declared method runs inside its own set.
+ *
+ * Each key is wrapped only where the route actually declares it: Hapi rejects a
+ * route that carries both `handler` and `options.handler`, so writing an
+ * `undefined` handler back would turn a valid `options.handler` route into a
+ * registration error.
+ *
+ * @param {string} setId - the set the route belongs to.
+ * @param {object} route - the route declaration.
+ * @returns {object} the same declaration, wrapped.
+ */
+export const routeWithSetContext = (setId, route) => ({
+  ...route,
+  ...(route.options && { options: contextualOptions(setId, route.options) }),
+  ...(route.handler && { handler: contextualMethod(setId, route.handler) })
+})
 
 /**
  * The seams a mounted set MUST configure, indexed by label as each seam module

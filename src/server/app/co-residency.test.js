@@ -31,7 +31,9 @@ import {
   routeWithSetContext,
   withSetContext
 } from './shared/set-context.js'
+import { catchAll } from '../common/helpers/errors.js'
 import { obligations } from './model/obligations/manifest.js'
+import { fulfilmentRegistry } from './bridge/fulfilment-registry.js'
 import { journeySections } from './flow/journey-flow.js'
 import { records as setRecords } from './engine/persistence/records.js'
 import { authenticatedCredentials } from './engine/test-support.js'
@@ -46,6 +48,7 @@ import {
 } from './sets/sample-journey/set.js'
 import { SESSION_COOKIE_NAMES as PLANTS_COOKIES } from './sets/high-risk-plants/journeys/linear/config.js'
 import {
+  FEATURE_NAME as SECOND_SET_FEATURE,
   SESSION_COOKIE_NAMES as SECOND_SET_COOKIES,
   SET_BASE as SECOND_SET_BASE,
   SET_ID as SECOND_SET,
@@ -154,6 +157,10 @@ beforeAll(async () => {
   // set-prefixed links each shipped set's page carries.
   server.app.cache = { get: async () => ({ email: 'trader@example.test' }) }
   await server.register([nunjucksConfig, Cookie, authPlugin, router])
+  // The shared error page, registered the way server.js registers it. Without
+  // it this server could not show what an unrouted path renders with several
+  // sets mounted, which is the case that used to 500.
+  server.ext('onPreResponse', catchAll)
   // Mounted the way router.js mounts the shipped sets. Registering a set
   // without its prefix collides with the chooser at the root, which is the
   // namespace split working: no set may sit there.
@@ -262,6 +269,22 @@ describe('co-residency — each set answers with its own configuration', () => {
     expect(plantsSections).not.toEqual(secondSetSections)
   })
 
+  it('Should give each set its own fulfilment registry', async () => {
+    const plantsFeatures = await withSetContext(HIGH_RISK_PLANTS, () =>
+      fulfilmentRegistry.features.map(({ name }) => name)
+    )
+    const secondSetFeatures = await withSetContext(SECOND_SET, () =>
+      fulfilmentRegistry.features.map(({ name }) => name)
+    )
+
+    expect(secondSetFeatures).toEqual([SECOND_SET_FEATURE])
+    // Positive as well as negative: `commodity-type` is a feature of the REAL
+    // high-risk-plants bindings, so this fails if the fixture's registry — or
+    // the synthetic one the vitest global setup installs — is what resolved.
+    expect(plantsFeatures).toContain('commodity-type')
+    expect(plantsFeatures).not.toContain(SECOND_SET_FEATURE)
+  })
+
   it('Should build every link inside the request’s own set', async () => {
     const plantsBase = await withSetContext(HIGH_RISK_PLANTS, () =>
       dashboardPath()
@@ -300,6 +323,54 @@ describe('co-residency — a real set’s entry guard', () => {
     expect(response.headers.location).toBe(
       `${PLANTS_BASE}/notifications/${journey.journeyId}/commodity-type`
     )
+  })
+})
+
+const UNROUTED_SLUG = 'no-such-page'
+const UNROUTED_IN_SET = `${PLANTS_BASE}/${UNROUTED_SLUG}`
+const UNROUTED_OUTSIDE_SETS = `/${UNROUTED_SLUG}`
+
+describe('co-residency — the error page resolves the request’s set', () => {
+  it.each([
+    ['inside a set', UNROUTED_IN_SET],
+    ['outside every set', UNROUTED_OUTSIDE_SETS]
+  ])(
+    'Should answer an unrouted path %s with 404 rather than 500',
+    async (_where, url) => {
+      // An unrouted path matches no route, so no set's sandboxed onPreAuth runs
+      // and no set context is entered. The error page still renders the shared
+      // chrome; resolving that chrome through a set would throw with several
+      // sets mounted, turning the 404 the reader should see into a 500.
+      const response = await server.inject({ method: 'GET', url })
+
+      expect(response.statusCode).toBe(404)
+    }
+  )
+
+  it('Should send the error page’s home link to the set whose mount the path names', async () => {
+    // The view is marshalled after the response is built, and an unrouted path
+    // entered no set context at all. The chrome still has to carry this set's
+    // own prefix rather than the chooser at the root.
+    const response = await server.inject({
+      method: 'GET',
+      url: UNROUTED_IN_SET,
+      auth: SIGNED_IN
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.result).toContain(`href="${PLANTS_BASE}"`)
+  })
+
+  it('Should send the error page’s home link to the root outside every set', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: UNROUTED_OUTSIDE_SETS,
+      auth: SIGNED_IN
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.result).not.toContain(`href="${PLANTS_BASE}"`)
+    expect(response.result).not.toContain(`href="${SAMPLE_JOURNEY_BASE}"`)
   })
 })
 
@@ -392,6 +463,14 @@ describe('co-residency — journey cookies are scoped to their set', () => {
       url: `${SECOND_SET_BASE}/notifications`
     })
     jar.absorb(created)
+
+    // The positive first. A set that issued no cookie at all would satisfy the
+    // negative below without proving anything, so the jar has to be shown to
+    // hold this set's journey cookie before it is shown not to travel.
+    expect(created.statusCode).toBe(302)
+    expect(jar.namesFor(`${SECOND_SET_BASE}/notifications`)).toContain(
+      SECOND_SET_COOKIES.knownJourneys
+    )
 
     // The browser rule: a cookie scoped to /sundry-goods never travels to
     // /high-risk-plants, so a draft started in one set cannot reach the other.
@@ -530,4 +609,20 @@ describe('co-residency — the real composition root', () => {
     expect(paths).toContain(PLANTS_BASE)
     expect(paths).toContain(`${PLANTS_BASE}/notifications`)
   })
+
+  it.each([
+    ['inside a set', `${PLANTS_BASE}/no-such-page`],
+    ['outside every set', '/no-such-page']
+  ])(
+    'Should answer an unrouted path %s with 404 rather than 500',
+    async (_where, url) => {
+      // `catchAll` is registered by server.js, so only the real composition
+      // root shows what an unrouted path does. The error page renders the
+      // shared chrome; resolving that chrome through a set would throw with
+      // several sets mounted, turning the 404 the reader should see into a 500.
+      const response = await realServer.inject(url)
+
+      expect(response.statusCode).toBe(404)
+    }
+  )
 })

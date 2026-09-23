@@ -25,7 +25,10 @@ import {
 import { configureObligationSet } from '../../src/server/app/model/obligations/manifest.js'
 import { configureFulfilmentRegistry } from '../../src/server/app/bridge/fulfilment-registry.js'
 import { configureRecords } from '../../src/server/app/engine/persistence/records.js'
-import { configureSession } from '../../src/server/app/engine/persistence/session.js'
+import {
+  configureSession,
+  session
+} from '../../src/server/app/engine/persistence/session.js'
 import { configureAnswersForRead } from '../../src/server/app/bridge/answers-read.js'
 import { configureReadyForCheckYourAnswers } from '../../src/server/app/bridge/readiness-config.js'
 import { readyForCheckYourAnswers } from '../../src/server/app/flow/section-status.js'
@@ -50,6 +53,10 @@ import { session as sessionStub } from '../../src/server/app/services/persistenc
 
 export const SET_ID = 'sundry-goods'
 export const SET_BASE = `/${SET_ID}`
+
+/** Named so it cannot collide with any shipped set's feature name — the point
+ * a per-set registry assertion turns on. */
+export const FEATURE_NAME = 'sundry-details'
 
 export const SESSION_COOKIE_NAMES = Object.freeze({
   knownJourneys: 'sundryGoodsKnownJourneys',
@@ -157,8 +164,13 @@ export const routes = [
     method: 'POST',
     path: createRoutePath(),
     options: { auth: false },
-    handler: async (_request, h) => {
+    handler: async (request, h) => {
       const journey = await records.create()
+      // A shipped gateway starts a journey through the engine, which records it
+      // in the session. Without this the set issues no journey cookie at all,
+      // and a test asserting the cookie does not cross into another set would
+      // pass on an empty jar.
+      await session.addKnownJourney(request, h, journey.journeyId)
       return h.redirect(pagePath(journey.journeyId, detailsPage.slug))
     }
   }
@@ -187,7 +199,7 @@ export const secondSet = {
         )
         configureObligationSet(SET_ID, { obligations, groups })
         configureFulfilmentRegistry(SET_ID, [
-          feature('details', [
+          feature(FEATURE_NAME, [
             scalar({
               field: shipmentReference.name,
               obligation: shipmentReference

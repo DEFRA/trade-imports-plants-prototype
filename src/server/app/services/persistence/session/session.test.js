@@ -1,16 +1,39 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { session } from './stub.js'
 import {
+  configureSession,
   flowOnlyAnswersCookie,
   knownJourneysCookie,
   openingRunCookie
 } from '../../../engine/persistence/session.js'
 import { recordingH } from '../../../engine/test-support.js'
+import {
+  registerSetMount,
+  withSetContext
+} from '../../../shared/set-context.js'
+import { SET_ID } from '../../../sets/high-risk-plants/set.js'
+import { SESSION_COOKIE_NAMES } from '../../../sets/high-risk-plants/journeys/linear/config.js'
 
 const DECLARATION_CONFIRMED = 'confirmed'
 
+// The seam under test, configured the way the gateway configures it. Without
+// this the accessors answer the shared UNCONFIGURED defaults, and every
+// assertion below would hold just as well if this set's names were wired to
+// another set.
+beforeAll(() => {
+  configureSession(SET_ID, session, SESSION_COOKIE_NAMES)
+})
+
 const requestKnowing = (...journeyIds) => ({
   state: { [knownJourneysCookie()]: journeyIds }
+})
+
+describe('per-set cookie names', () => {
+  it('Should answer high-risk-plants’ own names, not the shared defaults', () => {
+    expect(knownJourneysCookie()).toBe('highRiskPlantsKnownJourneys')
+    expect(openingRunCookie()).toBe('highRiskPlantsOpeningRun')
+    expect(flowOnlyAnswersCookie()).toBe('highRiskPlantsFlowOnlyAnswers')
+  })
 })
 
 describe('#session.knownJourneyIds', () => {
@@ -118,5 +141,41 @@ describe('#session.flowOnlyAnswers', () => {
       ...existing,
       'journey-2': { declaration: DECLARATION_CONFIRMED }
     })
+  })
+})
+
+// Mounted last on purpose: a second mount retires set-context.js's sole-set
+// fallback, so every accessor above would have to enter a context explicitly
+// from here on.
+describe('per-set cookie names with two sets mounted', () => {
+  const OTHER_SET = 'session-names-probe'
+  const OTHER_NAMES = Object.freeze({
+    knownJourneys: 'probeKnownJourneys',
+    openingRun: 'probeOpeningRun',
+    flowOnlyAnswers: 'probeFlowOnlyAnswers'
+  })
+
+  it('Should answer each set its own names', () => {
+    registerSetMount(OTHER_SET, `/${OTHER_SET}`)
+    configureSession(OTHER_SET, session, OTHER_NAMES)
+
+    expect(withSetContext(SET_ID, knownJourneysCookie)).toBe(
+      SESSION_COOKIE_NAMES.knownJourneys
+    )
+    expect(withSetContext(OTHER_SET, knownJourneysCookie)).toBe(
+      OTHER_NAMES.knownJourneys
+    )
+    expect(withSetContext(SET_ID, openingRunCookie)).toBe(
+      SESSION_COOKIE_NAMES.openingRun
+    )
+    expect(withSetContext(OTHER_SET, openingRunCookie)).toBe(
+      OTHER_NAMES.openingRun
+    )
+    expect(withSetContext(SET_ID, flowOnlyAnswersCookie)).toBe(
+      SESSION_COOKIE_NAMES.flowOnlyAnswers
+    )
+    expect(withSetContext(OTHER_SET, flowOnlyAnswersCookie)).toBe(
+      OTHER_NAMES.flowOnlyAnswers
+    )
   })
 })
