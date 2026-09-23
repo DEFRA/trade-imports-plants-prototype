@@ -88,7 +88,7 @@ export const highRiskPlants = {
         // every other set.
         configureRecords(SET_ID, createRecords())
         configureSession(SET_ID, session, SESSION_COOKIE_NAMES)
-        registerJourneyCookie(server, { base: SET_BASE })
+        registerJourneyCookie(server)
         server.ext(
           'onPreHandler',
           async (request, h) => {

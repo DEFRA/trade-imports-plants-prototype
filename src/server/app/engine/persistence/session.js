@@ -26,10 +26,13 @@ const store = setKeyed('session', { configuredBy: 'configureSession' })
 
 // Reading before configuration is the un-booted case, which must report itself
 // through `unconfigured` rather than through setKeyed's "no such set" error.
-// Cookie names still answer, because a set may register its cookies before it
-// configures its store.
 const current = () =>
   store.has(currentSetId()) ? store.current() : UNCONFIGURED
+
+/** Whether this set has been through `configureSession`. Callers that must run
+ * after it — `registerJourneyCookie` reads the configured cookie names — ask
+ * rather than silently taking the default names. */
+export const sessionConfiguredFor = (setId) => store.has(setId)
 
 export const configureSession = (setId, impl, cookieNames) => {
   store.configure(setId, {

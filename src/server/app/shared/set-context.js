@@ -21,6 +21,35 @@ export const mountedSetIds = () => [...mounts.keys()]
  */
 export const mountedSets = () => [...mounts.entries()]
 
+/**
+ * Which set a request path belongs to, read off the registered mounts.
+ *
+ * Longest match wins, so a set mounted at `/high-risk-plants/extra` would beat
+ * one at `/high-risk-plants` rather than depending on registration order.
+ *
+ * This is the one way to name a set when there is no ambient context to read:
+ * a path that matched no route ran no set's `onPreAuth`, and hapi-vision
+ * marshals a view after the handler's context has gone.
+ *
+ * @param {string} [path] - the request path.
+ * @returns {string|undefined} the set id, or undefined where the path is
+ * outside every mount — `/health`, `/signout`, `/auth/*`, or a genuinely
+ * unrouted URL.
+ */
+export const setIdForPath = (path) => {
+  if (typeof path !== 'string') {
+    return undefined
+  }
+  let match
+  for (const [setId, prefix] of mounts) {
+    const under = path === prefix || path.startsWith(`${prefix}/`)
+    if (under && (!match || prefix.length > mounts.get(match).length)) {
+      match = setId
+    }
+  }
+  return match
+}
+
 const soleSetId = () => (mounts.size === 1 ? [...mounts.keys()][0] : undefined)
 
 /**
@@ -50,10 +79,24 @@ export const currentSetId = () => {
   return id
 }
 
-export const currentSetBase = () =>
-  // Defensive default only: registered sets never have an empty prefix;
-  // `''` means an active set id has no registered mount, not a root-mounted set.
-  mounts.get(currentSetId()) ?? ''
+/**
+ * The mount prefix the active set registered.
+ *
+ * A missing entry is a wiring fault, not a root-mounted set: answering `''`
+ * would conflate the two, and every link the set builds would come out
+ * prefix-free and point at the root instead of at the set. Refusing here makes
+ * a set that skipped `registerSetMount` fail at boot.
+ *
+ * @returns {string} the active set's mount prefix.
+ */
+export const currentSetBase = () => {
+  const setId = currentSetId()
+  const base = mounts.get(setId)
+  if (base === undefined) {
+    throw new Error(`Set "${setId}" has no registered mount`)
+  }
+  return base
+}
 
 export const withSetContext = (setId, fn) => storage.run({ setId }, fn)
 

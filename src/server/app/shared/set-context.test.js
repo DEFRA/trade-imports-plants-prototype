@@ -10,11 +10,15 @@ import Hapi from '@hapi/hapi'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
+  currentSetBase,
   currentSetId,
   hasSetContext,
   registerSetMount,
-  routeWithSetContext
+  routeWithSetContext,
+  setIdForPath,
+  withSetContext
 } from './set-context.js'
+import { SET_BASE, SET_ID } from '../sets/high-risk-plants/set.js'
 
 const OTHER_SET = 'wrapped-routes-probe'
 const OTHER_BASE = `/${OTHER_SET}`
@@ -79,6 +83,44 @@ describe('#routeWithSetContext', () => {
     })
 
     expect('handler' in wrapped).toBe(false)
+  })
+})
+
+describe('#currentSetBase', () => {
+  it('Should give the active set the mount it registered', () => {
+    expect(withSetContext(OTHER_SET, currentSetBase)).toBe(OTHER_BASE)
+    expect(withSetContext(SET_ID, currentSetBase)).toBe(SET_BASE)
+  })
+
+  it('Should refuse an active set with no registered mount', () => {
+    // Answering `''` here would read as a root-mounted set, and every link the
+    // set builds would point at the root instead of at the set.
+    expect(() => withSetContext('never-mounted', currentSetBase)).toThrow(
+      'Set "never-mounted" has no registered mount'
+    )
+  })
+})
+
+describe('#setIdForPath', () => {
+  it('Should answer the set whose mount the path falls under', () => {
+    expect(setIdForPath(`${SET_BASE}/notifications/HRP-26-X`)).toBe(SET_ID)
+    expect(setIdForPath(SET_BASE)).toBe(SET_ID)
+    expect(setIdForPath(`${OTHER_BASE}/route-handler`)).toBe(OTHER_SET)
+  })
+
+  it('Should answer nothing for a path outside every mount', () => {
+    expect(setIdForPath('/health')).toBeUndefined()
+    expect(setIdForPath('/signout')).toBeUndefined()
+    expect(setIdForPath('/auth/sign-out')).toBeUndefined()
+    expect(setIdForPath('/no-such-page')).toBeUndefined()
+  })
+
+  it('Should not treat a longer sibling name as being under the mount', () => {
+    expect(setIdForPath(`${SET_BASE}-archive/notifications`)).toBeUndefined()
+  })
+
+  it('Should answer nothing when there is no path to read', () => {
+    expect(setIdForPath(undefined)).toBeUndefined()
   })
 })
 

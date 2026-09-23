@@ -3,8 +3,10 @@ import {
   flowOnlyAnswersCookie,
   knownJourneysCookie,
   openingRunCookie,
-  session
+  session,
+  sessionConfiguredFor
 } from './persistence/session.js'
+import { currentSetBase, currentSetId } from '../shared/set-context.js'
 import { AMEND, DRAFT, records, SUBMITTED } from './persistence/records.js'
 import { buildActor } from '../../common/helpers/actor-helpers.js'
 import { organisationIdOf } from '../../common/helpers/organisation-id.js'
@@ -28,17 +30,26 @@ export {
  * cookie NAMES being distinct, not from the path. See
  * services/persistence/session/real.js.
  *
- * The names come from the configured session seam rather than from a second
- * argument, so the registered cookies and the ones the session reads cannot
- * drift apart. Call it inside the set's context, after `configureSession` —
- * called before it, the seam hands back the shared default names and the set
- * registers cookies it will never read. `set-completeness.js` compares the
- * registered names against the configured ones as the last act of registration,
- * which catches both that ordering and a gateway that skipped this call.
+ * Both the path and the names come from the active set — the mount it
+ * registered and the session seam it configured — rather than from arguments,
+ * so what is registered cannot drift from what the set actually uses. Call it
+ * inside the set's context, after `registerSetMount` and `configureSession`:
+ * called before the latter, the seam would hand back the shared default names
+ * and the set would register cookies it never reads, so it refuses here rather
+ * than registering them. `set-completeness.js` still compares the registered
+ * names against the configured ones as the last act of registration, which is
+ * what catches a gateway that skipped this call altogether.
  */
-export const registerJourneyCookie = (server, { base }) => {
+export const registerJourneyCookie = (server) => {
+  const setId = currentSetId()
+  if (!sessionConfiguredFor(setId)) {
+    throw new Error(
+      `Session not configured for set "${setId}" — call configureSession before registerJourneyCookie`
+    )
+  }
+
   const cookieOptions = Object.freeze({
-    path: base,
+    path: currentSetBase(),
     ttl: null,
     encoding: 'base64json',
     isSecure: false,

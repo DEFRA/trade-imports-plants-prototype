@@ -61,13 +61,16 @@ const REQUIRED_SEAMS = [
 ]
 
 /**
- * The obligation set has to be configured before the fulfilment registry and
- * the dispatch index, because both validate themselves against it as they are
- * built. Leaving it out is therefore covered by the "configures nothing" probe
- * rather than by omitting it from an otherwise complete install.
+ * The seams an otherwise complete install can leave out one at a time.
+ *
+ * `Obligation set` cannot: the fulfilment registry and the dispatch index both
+ * validate themselves against it as they are built, so omitting it fails
+ * earlier than the gate. `session` cannot either: `registerJourneyCookie`
+ * refuses at its own point of use, which is covered on its own below. Both are
+ * still covered by the "configures nothing" probe.
  */
 const OMITTABLE_SEAMS = REQUIRED_SEAMS.filter(
-  (label) => label !== 'Obligation set'
+  (label) => label !== 'Obligation set' && label !== 'session'
 )
 
 const cookieNamesFor = (setId) => ({
@@ -121,27 +124,29 @@ const installSeams = (setId, omitted) => {
  * @param {object} [options] - what to get wrong.
  * @param {string} [options.omit] - a seam to leave unconfigured.
  * @param {boolean} [options.seams] - false to configure no seam at all.
+ * @param {boolean} [options.cookies] - false to skip registering the journey
+ * cookies, which is what a gateway that forgot the call looks like.
  * @param {boolean} [options.cookiesFirst] - true to register the journey
  * cookies before the session seam, which is the ordering the gate rejects.
  * @returns {object} a Hapi plugin.
  */
 const probeGateway = (
   setId,
-  { omit, seams = true, cookiesFirst = false } = {}
+  { omit, seams = true, cookies = true, cookiesFirst = false } = {}
 ) => ({
   plugin: {
     name: setId,
     register: async (server) => {
       registerSetMount(setId, `/${setId}`)
       await withSetContext(setId, async () => {
-        if (cookiesFirst) {
-          registerJourneyCookie(server, { base: `/${setId}` })
+        if (cookies && cookiesFirst) {
+          registerJourneyCookie(server)
         }
         if (seams) {
           installSeams(setId, omit)
         }
-        if (!cookiesFirst) {
-          registerJourneyCookie(server, { base: `/${setId}` })
+        if (cookies && !cookiesFirst) {
+          registerJourneyCookie(server)
         }
         assertSetConfigured(server, setId)
       })
@@ -163,9 +168,23 @@ describe('set completeness — a set that forgets a seam refuses to mount', () =
     }
   )
 
+  it('Should refuse to mount a set that never configured the session seam', async () => {
+    const setId = 'probe-no-session'
+
+    // Cookies skipped too: `registerJourneyCookie` refuses an unconfigured
+    // session at its own point of use, so the gate would never be reached.
+    await expect(
+      mount(probeGateway(setId, { omit: 'session', cookies: false }))
+    ).rejects.toThrow(
+      `Set "${setId}" mounted without configuring: session (configureSession)`
+    )
+  })
+
   it('Should name every seam when a set configured none of them', async () => {
     const setId = 'probe-no-seams'
-    const registration = mount(probeGateway(setId, { seams: false }))
+    const registration = mount(
+      probeGateway(setId, { seams: false, cookies: false })
+    )
 
     // The obligation set can only be missed this way: the fulfilment registry
     // and the dispatch index both validate against it as they are built, so an
@@ -202,16 +221,31 @@ describe('set completeness — a fully configured set mounts', () => {
 })
 
 describe('set completeness — journey cookies come after the session seam', () => {
+  it('Should refuse a set that never registered its journey cookies', async () => {
+    const setId = 'probe-no-cookies'
+
+    // Every seam configured, so the seam check passes and the cookie check is
+    // the only thing left to catch it. Nothing else would: the set reads
+    // cookies the server never registered, and loses drafts at request time.
+    await expect(
+      mount(probeGateway(setId, { cookies: false }))
+    ).rejects.toThrow(
+      `Set "${setId}" mounted without its journey cookies: ${setId}-known`
+    )
+  })
+
   it('Should refuse a set that registered its journey cookies first', async () => {
     const setId = 'probe-cookies-first'
 
     // registerJourneyCookie reads the names off the session seam, so running it
-    // first silently registers the shared defaults. The set then reads cookies
-    // nobody set — invisible until a user loses their draft.
+    // first would silently register the shared defaults. It now refuses at the
+    // point of use rather than waiting for the gate — the cookie check in
+    // set-completeness.js is the backstop for a gateway that skipped the call
+    // altogether, covered above.
     await expect(
       mount(probeGateway(setId, { cookiesFirst: true }))
     ).rejects.toThrow(
-      `Set "${setId}" mounted without its journey cookies: ${setId}-known`
+      `Session not configured for set "${setId}" — call configureSession before registerJourneyCookie`
     )
   })
 })

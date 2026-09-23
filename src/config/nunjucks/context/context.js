@@ -9,7 +9,7 @@ import {
 } from '../../../server/app/shared/paths.js'
 import {
   hasSetContext,
-  mountedSets,
+  setIdForPath,
   withSetContext
 } from '../../../server/app/shared/set-context.js'
 
@@ -53,21 +53,6 @@ export function activeNavigationItem(requestPath = '') {
 export function dashboardHref() {
   return hasSetContext() ? dashboardPath() : '/'
 }
-
-/**
- * The set whose mount a request path sits under, longest prefix first so a set
- * mounted below another still resolves to itself.
- *
- * @param {string} [requestPath] - the request path.
- * @returns {string|undefined} the set id, or undefined outside every mount.
- */
-const setIdForPath = (requestPath = '') =>
-  mountedSets()
-    .filter(
-      ([, prefix]) =>
-        requestPath === prefix || requestPath.startsWith(`${prefix}/`)
-    )
-    .toSorted(([, a], [, b]) => b.length - a.length)[0]?.[0]
 
 /**
  * Read a set-owned fact for the request being rendered.

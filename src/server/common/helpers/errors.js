@@ -32,7 +32,7 @@ export function catchAll(request, h) {
 
   return h
     .view('shared/error', {
-      ...chromeFor(errorMessage),
+      ...chromeFor(errorMessage, request.path),
       heading: statusCode,
       message: errorMessage
     })

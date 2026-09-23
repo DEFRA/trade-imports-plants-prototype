@@ -112,9 +112,11 @@ Two consequences follow:
   keep in step. (The two frontends redirect instead, because each has one
   default set.)
 - **A server-wide page has no set, so it cannot use `kit.base()`**, which reads
-  the set-keyed journey flow. Use `kit.serverWideBase()`, or `kit.chromeFor()`
-  on a page reached from both — the error page. With a single set mounted the
-  sole-set fallback hides the difference; with two, `base()` throws.
+  the set-keyed journey flow. Use `kit.serverWideBase()`, or
+  `kit.chromeFor(title, request.path)` on a page reached from both — the error
+  page, which resolves its set from the path because an unrouted 404 ran no
+  set's `onPreAuth`. With a single set mounted the sole-set fallback hides the
+  difference; with two, `base()` throws.
 - **`/health`, `/signout`, the `/auth/*` routes and the static-asset route are
   server-wide.** They must never sit inside a prefixed `server.register` call.
   `/signout` is the live trap: it registers perfectly happily at
@@ -188,18 +190,19 @@ Two sets sharing a cookie name would share the draft list behind it.
 
 Those names reach the registered cookies through the configured session seam,
 not through an argument, so `configureSession` must run before
-`registerJourneyCookie` in step 4. Get that order wrong and the set registers
-the shared default names and then reads cookies nobody set;
-[`../set-completeness.js`](../set-completeness.js) refuses the mount rather than
-letting it boot.
+`registerJourneyCookie` in step 4. Get that order wrong and the set would
+register the shared default names and then read cookies nobody set;
+`registerJourneyCookie` refuses at its own point of use rather than registering
+them, and [`../set-completeness.js`](../set-completeness.js) still refuses the
+mount of a gateway that skipped the call altogether.
 
 ## 4. Write the gateway
 
 Create `routes-<set-id>.js` following
 [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js) exactly: register the
 mount, open the set context, install the sandboxed `onPreAuth`, configure every
-seam this set uses with `SET_ID` first, register the journey cookies against
-`SET_BASE`, install the sandboxed entry guard, and wrap every route.
+seam this set uses with `SET_ID` first, register the journey cookies, install
+the sandboxed entry guard, and wrap every route.
 
 The entry guard's own body goes inside `withSetContext(SET_ID, …)` — see rule 4
 above. Copy [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js)
@@ -209,10 +212,11 @@ sole-set fallback and throws the moment a second set mounts.
 
 Then re-export it from [`../routes.js`](../routes.js), which is only a barrel.
 
-`registerJourneyCookie(server, { base: SET_BASE })` takes no cookie names: it
-reads them back from the configured session seam, so the cookies Hapi registers
-and the cookies the session reads cannot drift apart. Call it after
-`configureSession`.
+`registerJourneyCookie(server)` takes neither a base nor cookie names: it reads
+the path back from the registered mount and the names back from the configured
+session seam, so the cookies Hapi registers and the ones the set actually uses
+cannot drift apart. Call it inside the set context, after `registerSetMount`
+and `configureSession` — it throws if the session seam is not configured yet.
 
 ## 5. Mount it
 
@@ -236,8 +240,8 @@ A seam declares itself required by naming its configure call:
 `setKeyed('journey flow', { configuredBy: 'configureJourneyFlow' })`. There is
 no hand-kept list to add to, and the check is behavioural — it compares the
 cookie names the server actually registered against the ones your session seam
-reports, which is how it catches `registerJourneyCookie` running before
-`configureSession`.
+reports, which is how it catches a gateway that never called
+`registerJourneyCookie` at all.
 
 Then in [`../../router.js`](../../router.js), register the set the ordinary
 way:
