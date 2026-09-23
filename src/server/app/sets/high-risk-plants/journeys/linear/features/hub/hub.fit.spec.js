@@ -11,7 +11,7 @@ import { copy as sharedCopy } from '../../../../../../shared/copy.en.js'
 import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
-const HUB_URL = new RegExp(`^${BASE}/notifications/[^/]+$`)
+const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
 const CONSIGNMENT_GROUP_ID = 'about-the-consignment'
 const ARRIVAL_GROUP_ID = 'arrival-and-destination'
 const RENDERED_GROUP_IDS = [

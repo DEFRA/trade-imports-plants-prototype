@@ -24,8 +24,8 @@ const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
 const COMMODITY_REMOVED_URL = new RegExp(
   `^${BASE}/notifications/[^/]+/commodities\\?removed=\\d+$`
 )
-const ORIGIN_URL = new RegExp(`^${BASE}/notifications/[^/]+/origin$`)
-const HUB_URL = new RegExp(`^${BASE}/notifications/[^/]+$`)
+const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
+const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
 const PAGE_URL = new RegExp(
   `^${BASE}/notifications/[^/]+/identification-numbers`
 )

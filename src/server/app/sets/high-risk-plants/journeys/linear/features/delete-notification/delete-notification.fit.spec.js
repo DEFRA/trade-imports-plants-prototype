@@ -10,7 +10,7 @@ import { copy as sharedCopy } from '../../../../../../shared/copy.en.js'
 import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
-const HUB_URL = new RegExp(`^${BASE}/notifications/[^/]+$`)
+const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
 
 // The dashboard renders its notification actions inside a GOV.UK summary card,
 // which appends the card title — the reference — to each action's accessible name.

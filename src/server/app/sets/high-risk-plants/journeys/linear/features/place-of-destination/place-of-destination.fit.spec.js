@@ -22,12 +22,12 @@ const COMMODITY_TYPE_URL = new RegExp(
 )
 const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
 const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
-const ORIGIN_URL = new RegExp(`^${BASE}/notifications/[^/]+/origin$`)
+const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
 const ARRIVAL_STATUS_URL = new RegExp(
   `^${BASE}/notifications/[^/]+/arrival-status$`
 )
-const HUB_URL = new RegExp(`^${BASE}/notifications/[^/]+$`)
-const PAGE_URL = new RegExp(`^${BASE}/notifications/[^/]+/destinations/select`)
+const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
+const PAGE_URL = new RegExp(`${BASE}/notifications/[^/]+/destinations/select`)
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'
 const FIRST_ROW_RADIO = '#placeOfDestination'
