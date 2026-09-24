@@ -1,6 +1,7 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  setUrl
 } from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -17,11 +18,13 @@ import {
 } from '../timing-windows.js'
 import { copy } from './copy/copy.en.js'
 
-const HUB_URL = /\/notifications\/[^/]+$/
-const PAGE_URL = /\/notifications\/[^/]+\/commodity-type$/
+const HUB_URL = setUrl('/notifications/[^/]+$')
+const PAGE_URL = setUrl('/notifications/[^/]+/commodity-type$')
 // The opening run goes on to the commodities list, and a consignment with no
 // line goes straight on to the entry sub-page.
-const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details$/
+const COMMODITY_DETAILS_URL = setUrl(
+  '/notifications/[^/]+/commodities/details$'
+)
 const TYPE_INPUT_SELECTOR = 'input[name="commodityType"]'
 
 const HINT_DAYS = {

@@ -22,6 +22,8 @@ export const copy = {
   },
   errors: {
     countryRequired: 'Dewiswch y wlad y mae’r llwyth yn tarddu ohoni',
+    countryNoLongerAvailable:
+      "Nid yw'r wlad a arbedwyd ar gael mwyach. Dewiswch wlad o’r rhestr.",
     narrowing: {
       'ware-potatoes':
         'Dewiswch Wlad Pwyl, Portiwgal, Rwmania neu Sbaen – nid oes angen hysbysu am datws bwyd o wledydd eraill',

@@ -1,4 +1,4 @@
-import { BASE } from '../../../../../../../../../../fit/set-base.js'
+import { BASE, setUrl } from '../../../../../../../../../../fit/set-base.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../../fit/sign-in.js'
@@ -9,11 +9,12 @@ import { copy as typeCopy } from '../../commodity-type/copy/copy.en.js'
 import { copy } from '../copy/copy.en.js'
 import { expectNoSeriousOrCriticalViolations } from './axe.js'
 
-const COMMODITY_TYPE_URL = /\/notifications\/[^/]+\/commodity-type$/
-const DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details$/
-const DETAILS_EDIT_URL =
-  /\/notifications\/[^/]+\/commodities\/details\?index=\d+$/
-const LIST_URL = /\/notifications\/[^/]+\/commodities$/
+const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
+const DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details$')
+const DETAILS_EDIT_URL = setUrl(
+  '/notifications/[^/]+/commodities/details\\?index=\\d+$'
+)
+const LIST_URL = setUrl('/notifications/[^/]+/commodities$')
 
 const POTATOES = 'potatoes'
 const PLANTS = 'plants-for-planting'

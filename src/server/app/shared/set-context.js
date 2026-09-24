@@ -13,15 +13,6 @@ export const registerSetMount = (setId, prefix) => {
 export const mountedSetIds = () => [...mounts.keys()]
 
 /**
- * Every mounted set as a `[setId, prefix]` pair, so a caller that needs the
- * URL a set actually answers on reads it back rather than rebuilding it from
- * the id.
- *
- * @returns {Array<[string, string]>} one pair per mounted set.
- */
-export const mountedSets = () => [...mounts.entries()]
-
-/**
  * Which set a request path belongs to, read off the registered mounts.
  *
  * Longest match wins, so a set mounted at `/high-risk-plants/extra` would beat
@@ -55,9 +46,12 @@ const soleSetId = () => (mounts.size === 1 ? [...mounts.keys()][0] : undefined)
 /**
  * Whether a set can be resolved at all.
  *
- * A server-wide route — the chooser at `/`, `/signout`, the sign-in error page
- * — belongs to no set, so anything set-owned has no answer for it. Ask this
- * before reaching for a set rather than catching the throw.
+ * A server-wide route — the root redirect, `/signout`, the sign-in error page,
+ * the shared error page reached from outside every set — belongs to no set, so
+ * anything set-owned has no answer for it. Ask this before reaching for a set
+ * rather than catching the throw.
+ *
+ * @returns {boolean} true when `currentSetId()` would answer.
  */
 export const hasSetContext = () =>
   (storage.getStore()?.setId ?? soleSetId()) !== undefined
@@ -79,16 +73,6 @@ export const currentSetId = () => {
   return id
 }
 
-/**
- * The mount prefix the active set registered.
- *
- * A missing entry is a wiring fault, not a root-mounted set: answering `''`
- * would conflate the two, and every link the set builds would come out
- * prefix-free and point at the root instead of at the set. Refusing here makes
- * a set that skipped `registerSetMount` fail at boot.
- *
- * @returns {string} the active set's mount prefix.
- */
 export const currentSetBase = () => {
   const setId = currentSetId()
   const base = mounts.get(setId)
@@ -102,6 +86,27 @@ export const withSetContext = (setId, fn) => storage.run({ setId }, fn)
 
 export const enterSetContext = (setId) => storage.enterWith({ setId })
 
+/**
+ * Server-wide set context, registered once by the composition root.
+ *
+ * Each set's own sandboxed `onPreAuth` enters the context for that set's
+ * routes, but a request can need the context where no set route runs: the
+ * shared error page on an unrouted path under a set's mount, and the view
+ * marshal step, which runs after the handler's context has gone. Resolving the
+ * set from the path before routing covers both without any set owning
+ * server-wide state.
+ */
+export const setContextExtension = {
+  type: 'onRequest',
+  method: (request, h) => {
+    const setId = setIdForPath(request.path)
+    if (setId) {
+      enterSetContext(setId)
+    }
+    return h.continue
+  }
+}
+
 const contextualMethod = (setId, method) =>
   typeof method === 'function'
     ? (request, h) => withSetContext(setId, () => method(request, h))
@@ -109,12 +114,8 @@ const contextualMethod = (setId, method) =>
 
 /**
  * Wraps whatever shape a route's lifecycle entry takes — a bare function, an
- * object carrying `method`, or an array of either. Route `ext` points and
- * `pre` entries both use this grammar, so both go through here.
- *
- * @param {string} setId - the set the entry belongs to.
- * @param {Function|object|Array} entry - the lifecycle entry to wrap.
- * @returns {Function|object|Array} the entry, running inside the set.
+ * object carrying `method`, or an array of either. Route `ext` points and `pre`
+ * entries both use this grammar, so both go through here.
  */
 const contextualEntry = (setId, entry) => {
   if (Array.isArray(entry)) {
@@ -150,16 +151,15 @@ const contextualOptions = (setId, options) => {
 }
 
 /**
- * A route declaration whose every declared method runs inside its own set.
+ * A route registered so every method it declares runs inside its own set.
  *
- * Each key is wrapped only where the route actually declares it: Hapi rejects a
- * route that carries both `handler` and `options.handler`, so writing an
- * `undefined` handler back would turn a valid `options.handler` route into a
- * registration error.
+ * Each key is copied only when the route declares it: setting `handler` on a
+ * route that puts its handler in `options` would hand Hapi a route with both,
+ * one of them undefined.
  *
  * @param {string} setId - the set the route belongs to.
- * @param {object} route - the route declaration.
- * @returns {object} the same declaration, wrapped.
+ * @param {object} route - the route as the set declared it.
+ * @returns {object} the same route with every declared method wrapped.
  */
 export const routeWithSetContext = (setId, route) => ({
   ...route,
@@ -173,10 +173,9 @@ export const routeWithSetContext = (setId, route) => ({
  * completeness check at mount reads this rather than a hand-kept list a new
  * seam could quietly fall out of.
  *
- * Seams with a real default register nothing here: the answers-for-read
- * sanitiser, whose default is identity, and the flow-only keys, which
- * `configureJourneyFlow` forwards rather than a gateway configuring directly.
- * A set that leaves those alone is correctly configured.
+ * Seams with a real default — the answers-for-read sanitiser, the flow-only
+ * keys the journey flow forwards — register nothing here: a set that leaves
+ * them alone is correctly configured.
  */
 const requiredSeams = new Map()
 

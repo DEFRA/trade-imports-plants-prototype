@@ -54,6 +54,9 @@ describe('#guardedJourneyPath', () => {
     expect(guardedJourneyPath(dashboardPath())).toBe(false)
     expect(guardedJourneyPath(createPath())).toBe(false)
     expect(guardedJourneyPath('/some-other-service/commodity-type')).toBe(false)
+    // Another set's journey path: the guard matches on this set's full mount
+    // prefix, not on the `/notifications/` substring every set shares.
+    expect(guardedJourneyPath('/another-set/notifications/j-1')).toBe(false)
   })
 
   it('Should exempt the entry page and its sub-paths, so there is no redirect loop', () => {

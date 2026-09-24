@@ -7,10 +7,15 @@ journey presentation. Dependency Cruiser enforces the boundaries in
 ## L1: composition and registry
 
 The files directly under `src/server/app/` compose the application.
-[`src/server/app/routes.js`](../routes.js) is the only production module outside a
-set that imports `sets/**`.
+[`src/server/app/routes.js`](../routes.js) is only the export barrel; the per-set
+gateways it re-exports — today
+[`routes-high-risk-plants.js`](../routes-high-risk-plants.js) — are the only
+production modules outside a set that import `sets/**`.
+[`src/server/router.js`](../../router.js) mounts each gateway under its own
+prefix and redirects `/` to the default set.
 
-At boot, `routes.js`:
+At boot, `routes-high-risk-plants.js` registers its mount and, inside its own
+set context:
 
 - gives the high-risk-plants manifest to
   [`configureObligationSet()`](../model/obligations/manifest.js)
@@ -85,7 +90,7 @@ export const LAYOUT = 'shared/layout.njk'
 Dependency Cruiser scans all of `src/server/app`. Its error-level rules prevent:
 
 - L2 production imports from `sets/**`
-- set imports outside `routes.js`
+- set imports outside `routes.js` and the per-set `routes-<set-id>.js` gateways
 - obligations importing journeys
 - one journey importing a sibling journey
 - one set importing another set
@@ -99,6 +104,7 @@ nothing in `flow`: the journey's flow-only keys are held in
 [`bridge/flow-only-keys.js`](../bridge/flow-only-keys.js) and forwarded there by
 `configureJourneyFlow`, and the check-your-answers readiness roll-up reaches
 [`bridge/readiness-config.js`](../bridge/readiness-config.js) by injection from
-`routes.js`. Unconfigured, that seam is fail-closed.
+the set's gateway, `routes-high-risk-plants.js`. Unconfigured, that seam is
+fail-closed.
 
 Tests may compose real layers, but production code cannot use test exemptions.

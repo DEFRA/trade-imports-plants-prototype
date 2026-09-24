@@ -43,6 +43,8 @@ export const copy = {
       inFuture: 'The date the consignment arrived cannot be in the future'
     },
     arrivalTime: 'Enter the expected time of arrival',
-    proposedPlaceOfLanding: 'Select the proposed place of landing'
+    proposedPlaceOfLanding: 'Select the proposed place of landing',
+    proposedPlaceOfLandingNoLongerAvailable:
+      'The saved port of landing is no longer available. Select a port from the list.'
   }
 }

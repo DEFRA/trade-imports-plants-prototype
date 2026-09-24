@@ -31,7 +31,7 @@ import {
 } from './bridge/fulfilment-registry.js'
 import { configureObligationSet } from './model/obligations/manifest.js'
 import { configureRecords } from './engine/persistence/records.js'
-import { createRecords } from './services/persistence/records/index.js'
+import { records } from './services/persistence/records/index.js'
 import { configureSession } from './engine/persistence/session.js'
 import { session } from './services/persistence/session/index.js'
 import { registerJourneyCookie } from './engine/journey.js'
@@ -76,10 +76,7 @@ export const sampleJourney = {
         assertObligationPurity()
         assertFulfilmentBindingCoverage()
         buildDispatch(SET_ID, dispatchPages)
-        // Its own instance, not the module's shared one: in stub mode that is
-        // a store of this set's own, so a draft started here is invisible to
-        // every other set.
-        configureRecords(SET_ID, createRecords())
+        configureRecords(SET_ID, records)
         configureSession(SET_ID, session, SESSION_COOKIE_NAMES)
         registerJourneyCookie(server)
         server.ext(

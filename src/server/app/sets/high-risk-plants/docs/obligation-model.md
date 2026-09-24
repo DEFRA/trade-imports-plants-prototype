@@ -81,15 +81,18 @@ names. Copy belongs to the feature; validation belongs to the controller.
 
 [`src/server/app/obligation-purity.js`](../../../obligation-purity.js) and
 [`src/server/app/model/no-display-keys.js`](../../../model/no-display-keys.js)
-enforce this at boot. `assertObligationPurity()` runs in
-[`routes.js`](../../../routes.js) before routes are added, so a display-shaped
-key in the model fails the server start, not a test.
+enforce this at boot. `assertObligationPurity()` runs in this set's gateway,
+[`routes-high-risk-plants.js`](../../../routes-high-risk-plants.js), before
+routes are added, so a display-shaped key in the model fails the server start,
+not a test.
 
 ## Registration
 
-[`src/server/app/routes.js`](../../../routes.js) imports the manifest namespace
-and passes it to `configureObligationSet()`. Generic model and bridge code then
-reads the set through
+This set's gateway,
+[`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
+(the [`routes.js`](../../../routes.js) barrel only re-exports it), imports the
+manifest namespace and passes it to `configureObligationSet()` under this set's
+id. Generic model and bridge code then reads the set through
 [`src/server/app/model/obligations/manifest.js`](../../../model/obligations/manifest.js).
 
 The journey's feature bindings import the same obligation objects from this set.

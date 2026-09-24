@@ -1,6 +1,7 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  setUrl
 } from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -17,7 +18,7 @@ const save = (page) =>
     name: sharedCopy.saveActions.saveAndContinue,
     exact: true
   })
-const cyaUrl = /\/notification-view$/
+const cyaUrl = setUrl('/notifications/[^/]+/notification-view$')
 const VARIETY = 'Maris Piper'
 const contactName = 'Tech Imports Ltd'
 

@@ -6,9 +6,8 @@
  * itself fails first. The three that matter most answer benignly rather than
  * throwing (`flow/journey-flow.js` returns no sections and no task rows,
  * `engine/persistence/session.js` returns the shared default cookie names, and
- * `bridge/readiness-config.js` holds the submit gate shut), so before this gate
- * a forgotten seam showed up as an empty dashboard or an un-submittable
- * journey.
+ * `bridge/readiness-config.js` answers false forever), so before this gate a
+ * forgotten seam showed up as an empty dashboard or a jammed submit gate.
  *
  * The probes below are minimal gateways built here rather than in
  * `test/fixtures/second-set.js`: that fixture is a correctly wired set by
@@ -26,7 +25,6 @@ import { configureFulfilmentRegistry } from './bridge/fulfilment-registry.js'
 import { configureReadyForCheckYourAnswers } from './bridge/readiness-config.js'
 import { buildDispatch } from './flow/dispatch.js'
 import { configureJourneyFlow } from './flow/journey-flow.js'
-import { readyForCheckYourAnswers } from './flow/section-status.js'
 import { configureObligationSet } from './model/obligations/manifest.js'
 import { configureRecords } from './engine/persistence/records.js'
 import { configureSession } from './engine/persistence/session.js'
@@ -53,8 +51,8 @@ const APP_DIR = path.dirname(fileURLToPath(import.meta.url))
 const REQUIRED_SEAMS = [
   'Obligation set',
   'Fulfilment registry',
-  'Ready-for-check-your-answers',
   'journey flow',
+  'Ready-for-check-your-answers',
   'dispatch',
   'records',
   'session'
@@ -98,9 +96,9 @@ const seamInstallers = {
         scalar({ field: shipmentReference.name, obligation: shipmentReference })
       ])
     ]),
-  'Ready-for-check-your-answers': (setId) =>
-    configureReadyForCheckYourAnswers(setId, readyForCheckYourAnswers),
   'journey flow': (setId) => configureJourneyFlow(setId, journeyFlowFor()),
+  'Ready-for-check-your-answers': (setId) =>
+    configureReadyForCheckYourAnswers(setId, () => true),
   dispatch: (setId) => buildDispatch(setId, dispatchPages),
   records: (setId) => configureRecords(setId, recordsStub),
   session: (setId) =>
@@ -116,8 +114,8 @@ const installSeams = (setId, omitted) => {
 }
 
 /**
- * A gateway shaped like the shipped ones: mount, seams, journey cookies, and
- * the completeness gate as its last act.
+ * A gateway shaped like the shipped one: mount, seams, journey cookies, and the
+ * completeness gate as its last act.
  *
  * @param {string} setId - the probe's set id, unique per test so the shared
  * mount registry never sees the same set twice.
@@ -238,8 +236,8 @@ describe('set completeness — journey cookies come after the session seam', () 
     const setId = 'probe-cookies-first'
 
     // registerJourneyCookie reads the names off the session seam, so running it
-    // first would silently register the shared defaults. It now refuses at the
-    // point of use rather than waiting for the gate — the cookie check in
+    // first would silently register the shared defaults. This repo refuses at
+    // the point of use rather than waiting for the gate — the cookie check in
     // set-completeness.js is the backstop for a gateway that skipped the call
     // altogether, covered above.
     await expect(
@@ -259,10 +257,6 @@ describe('set completeness — the seam list is the one the seams declare', () =
     [
       'routes-high-risk-plants.js',
       path.join(APP_DIR, 'routes-high-risk-plants.js')
-    ],
-    [
-      'routes-sample-journey.js',
-      path.join(APP_DIR, 'routes-sample-journey.js')
     ],
     [
       'the second-set fixture',

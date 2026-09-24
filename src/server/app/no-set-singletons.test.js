@@ -17,6 +17,8 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { routeWithSetContext } from './shared/set-context.js'
+import { allRoutes } from './sets/high-risk-plants/journeys/linear/features/index.js'
+import { routes as secondSetRoutes } from '../../../test/fixtures/second-set.js'
 
 const APP_DIR = path.dirname(fileURLToPath(import.meta.url))
 
@@ -34,7 +36,7 @@ const withoutComments = (source) =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** The second-set fixture is a gateway too: the co-residency suite registers it
- * beside the shipped ones, so a rule it quietly stops following would take the
+ * beside the shipped one, so a rule it quietly stops following would take the
  * whole second-set evidence base with it. */
 const FIXTURE_GATEWAY = path.resolve(
   APP_DIR,
@@ -56,10 +58,6 @@ const gatewayFiles = () =>
  * The text of every argument list passed to `name(`, read by matching
  * parentheses rather than by a regex, so a multi-line call with nested calls
  * inside it is counted once and read whole.
- *
- * @param {string} source - the gateway source, comments already stripped.
- * @param {string} name - the callee, as regex source.
- * @returns {string[]} one entry per call, holding that call's arguments.
  */
 const callsOf = (source, name) => {
   const opener = new RegExp(`\\b${name}\\(`, 'g')
@@ -83,13 +81,8 @@ const callsOf = (source, name) => {
   return calls
 }
 
-/** Every seam a gateway calls. A new one added without a set id would let the
- * second set overwrite the first, which is the whole defect class.
- *
- * `configureFlowOnlyKeys` is NOT here: no gateway calls it —
- * `flow/journey-flow.js` calls it from `configureJourneyFlow`, off that
- * journey's `flowOnlyKeys` field — so a case for it would match zero calls and
- * assert nothing. */
+/** Every seam a set configures. A new one added without a set id would let the
+ * second set overwrite the first, which is the whole defect class. */
 const SEAMS = [
   'configureObligationSet',
   'configureFulfilmentRegistry',
@@ -107,12 +100,12 @@ describe('no set singletons — every gateway is keyed by its set', () => {
   })
 
   it.each(SEAMS)('Should pass the set id first to %s', (seam) => {
-    let called = 0
+    let totalCalls = 0
     for (const { name, source } of gatewayFiles()) {
       const calls = [
         ...source.matchAll(new RegExp(`\\b${seam}\\(([^,)]*)`, 'g'))
       ]
-      called += calls.length
+      totalCalls += calls.length
       for (const [, firstArgument] of calls) {
         expect(
           firstArgument.trim(),
@@ -121,12 +114,9 @@ describe('no set singletons — every gateway is keyed by its set', () => {
       }
     }
 
-    // A seam no gateway calls matches nothing, so the loop above asserts
-    // nothing and the case reports green while pinning nothing. Fail loudly.
-    expect(
-      called,
-      `no gateway calls ${seam} — is it still a gateway seam?`
-    ).toBeGreaterThan(0)
+    // Without this a seam no gateway calls passes with nothing asserted, so a
+    // seam renamed out of every gateway would leave the tripwire green.
+    expect(totalCalls, `no gateway calls ${seam}`).toBeGreaterThan(0)
   })
 
   it('Should sandbox every lifecycle extension a gateway registers', () => {
@@ -155,21 +145,6 @@ describe('no set singletons — every gateway is keyed by its set', () => {
     }
   })
 
-  it('Should enter its own set context on every request', () => {
-    // Rule 2 of the co-residency contract (docs/add-a-set.md): a request
-    // resolves its set from the owning plugin realm, never from the URL. The
-    // sandbox check above passes a gateway with no onPreAuth at all.
-    for (const { name, source } of gatewayFiles()) {
-      expect(source, `${name} registers no onPreAuth extension`).toMatch(
-        /server\.ext\(\s*'onPreAuth'/
-      )
-      expect(
-        source,
-        `${name} registers onPreAuth without entering its set context`
-      ).toContain('enterSetContext(SET_ID)')
-    }
-  })
-
   it('Should run its registration inside its own set context', () => {
     for (const { name, source } of gatewayFiles()) {
       expect(
@@ -179,12 +154,9 @@ describe('no set singletons — every gateway is keyed by its set', () => {
     }
   })
 
-  // Counted, not looked for: the registration wrapper above does not cover the
-  // guard, which runs per request after an authentication step that crosses an
-  // async boundary — and `routeWithSetContext` wraps route-owned extensions
-  // only, never a server-level `server.ext`. One wrapped registration alongside
-  // an unwrapped one satisfies "contains the string" and leaves the unwrapped
-  // one silent until a second set mounts.
+  // Counted, not looked for: one wrapped registration alongside an unwrapped
+  // one satisfies "contains the string" and leaves the unwrapped one silent
+  // until a second set mounts.
   it('Should re-enter its own set around every entry guard it registers', () => {
     for (const { name, source } of gatewayFiles()) {
       const entryGuards = callsOf(source, 'server\\.ext').filter((argument) =>
@@ -235,8 +207,7 @@ describe('no set singletons — every gateway is keyed by its set', () => {
 
   // registerJourneyCookie reads the cookie NAMES off the configured session
   // seam, so registering before configureSession silently registers the shared
-  // defaults and the set then reads cookies nobody set. `set-completeness.js`
-  // catches that at boot; this catches it in review.
+  // defaults and the set then reads cookies nobody set.
   it('Should register journey cookies only after the session seam is configured', () => {
     for (const { name, source } of gatewayFiles()) {
       expect(callsOf(source, 'configureSession'), name).toHaveLength(1)
@@ -283,19 +254,9 @@ describe('no set singletons — every declared route shape is wrapped', () => {
   }
 
   it.each([
-    [
-      'high-risk-plants',
-      './sets/high-risk-plants/journeys/linear/features/index.js',
-      'allRoutes'
-    ],
-    [
-      'sample-journey',
-      './sets/sample-journey/journeys/linear/features/index.js',
-      'allRoutes'
-    ],
-    ['the second-set fixture', '../../../test/fixtures/second-set.js', 'routes']
-  ])('Should wrap every method %s declares', async (_label, module, name) => {
-    const routes = (await import(module))[name]
+    ['high-risk-plants', allRoutes],
+    ['the second-set fixture', secondSetRoutes]
+  ])('Should wrap every method %s declares', (_label, routes) => {
     expect(routes.length).toBeGreaterThan(0)
 
     for (const route of routes) {

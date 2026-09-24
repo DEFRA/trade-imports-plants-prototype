@@ -1,6 +1,8 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  setPath,
+  setUrl
 } from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -19,7 +21,10 @@ const save = (page) =>
     name: sharedCopy.saveActions.saveAndContinue,
     exact: true
   })
-const cyaUrl = /\/notification-view$/
+const CYA_PATTERN = '/notifications/[^/]+/notification-view$'
+const cyaUrl = setUrl(CYA_PATTERN)
+/** A rendered `href` is the path the template wrote, not a whole URL. */
+const cyaHref = setPath(CYA_PATTERN)
 const VARIETY = 'Maris Piper'
 const contactName = 'Tech Imports Ltd'
 
@@ -170,10 +175,10 @@ test('renders accessible confirmation copy, actions and a bare heading', async (
   ).toBeVisible()
   await expect(
     page.getByRole('button', { name: cancelCopy.noLink })
-  ).toHaveAttribute('href', cyaUrl)
+  ).toHaveAttribute('href', cyaHref)
   await expect(
     page.getByRole('link', { name: sharedCopy.layout.back, exact: true })
-  ).toHaveAttribute('href', cyaUrl)
+  ).toHaveAttribute('href', cyaHref)
   await expect(page.locator('.govuk-caption-l')).toHaveCount(0)
   await assertAccessible(page)
 })

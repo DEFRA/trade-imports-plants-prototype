@@ -28,19 +28,6 @@ longer empty. Each further page increment adds its own URL, its own step to the
 seed shapes whose use case reaches that page, and its own entry in `SKIPPED`,
 `FILLED_BY` or `QUERY` where the page needs one.
 
-The route table holds prefix-free route **shapes** — Hapi supplies the set's
-mount when it registers them — while Lighthouse fetches real URLs. `auditPaths`
-turns each shape into a link under the set's mount, so the audited URLs are
-`/high-risk-plants/...`, and the dashboard's `/` shape becomes the set base
-itself rather than `<base>/`. Report names keep the mount: this host serves more
-than one set, so the prefix says which prototype a report is for, and two sets
-that share a route would otherwise claim the same filename.
-
-Both scripts run outside any request, so they register the set mount at import
-and call the path builders inside `withSetContext(SET_ID, …)`. Called bare they
-would resolve only by the sole-set fallback, which holds only while a script
-imports a single set.
-
 A seed step is not only there to reach the pages below it. The re-fetch below
 runs in a session that never created the notification, so the entry guard
 (`journeys/linear/flow/entry-guard.js`) admits it only on a committed user
@@ -57,11 +44,8 @@ of use cases.
 `npm run lighthouse` is `run-s lighthouse:targets lighthouse:run`.
 
 `lighthouse:targets` (`seed-audit-targets.js`) signs in through
-`tests/lighthouse/auth-setup.cjs` — at the set's own dashboard, not at the
-origin, because `/` is the chooser on this host and is served without
-authentication, so the sign-in form never appears there and the session would
-stay anonymous — seeds one notification per shape in `SEED_SHAPES`, derives the
-audit URLs from the app's own registered routes and
+`tests/lighthouse/auth-setup.cjs`, seeds one notification per shape in
+`SEED_SHAPES`, derives the audit URLs from the app's own registered routes and
 writes them to `.lighthouse/targets.json`. It then re-fetches every URL in a
 session that has **not** walked the journey — the same standing Lighthouse
 itself has — and fails when a URL does not return 200 for its own page. A page
@@ -150,15 +134,6 @@ workspace, starts the stack for the chosen branch, installs the frontend, runs
 `npm run lighthouse`, always tears the stack down, uploads the report for 14
 days, publishes it to GitHub Pages and passes the result, report URL and
 flagged findings to the workspace status action.
-
-**The frontend it installs is `DEFRA/trade-imports-plants-frontend`, not this
-repository.** The workflow was copied from that repo and its checkout step was
-never re-pointed, and the workspace stack has no service for this prototype to
-run against, so the scripts under `scripts/lighthouse/` here are exercised by
-their unit tests and by `npm run lighthouse` locally, never by this check. A red
-Lighthouse check on a pull request here is therefore a statement about the
-plants frontend at the same branch name. Re-pointing it needs a prototype
-service in the workspace stack first.
 
 The set registers the dashboard, so `lighthouse:targets` now derives one URL and
 seeds the notifications behind it. The check is expected to pass, and a red

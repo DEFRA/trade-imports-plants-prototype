@@ -22,8 +22,9 @@ Platform services are:
 - [`ports`](../services/ports/index.js)
 - [`address-book`](../services/address-book/index.js)
 
-Countries and ports expose `prime()` operations. `routes.js` primes them when the
-application runs in real mode, before Hapi routes are registered.
+Countries and ports expose `prime()` operations. The set's gateway
+(`routes-<set-id>.js`, re-exported by the `routes.js` barrel) primes them when
+the application runs in real mode, before Hapi routes are registered.
 
 The reason-for-import/purpose service and the transport and transporter services
 were removed because the high-risk-plants journey asks no such question:

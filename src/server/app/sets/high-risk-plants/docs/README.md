@@ -71,8 +71,10 @@ collide; `npm run test:fit:ci` does this for you.
 | `journeys/linear/flow/entry-guard.js`            | `entryGuardTarget`                                | `server.ext('onPreHandler')`                                |
 | `journeys/linear/parties/index.js`               | `REFERENCE_PARTIES`, `withoutUnresolvedPartyRefs` | `configureAnswersForRead`                                   |
 
-[`src/server/app/routes.js`](../../../routes.js) is the composition seam that
-wires all ten. The unit suite installs a synthetic journey-neutral fixture
+This set's gateway,
+[`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
+(the [`routes.js`](../../../routes.js) barrel only re-exports it), is the
+composition seam that wires all ten. The unit suite installs a synthetic journey-neutral fixture
 from `test/fixtures/` instead — the engine must not depend on the set.
 
 ## The served surface today
@@ -141,7 +143,7 @@ reaches a mid-journey page or bypasses the opening run. See
 [Journey flow and gates](journey-flow-and-gates.md).
 
 **`configureAnswersForRead` is wired — gate closed.**
-`parties/index.js` holds the set's sanitiser, and `routes.js` passes
+`parties/index.js` holds the set's sanitiser, and `routes-high-risk-plants.js` passes
 `withoutUnresolvedPartyRefs` to `configureAnswersForRead`. Every answer
 in `REFERENCE_PARTIES` holds an address-book `{ addressId }` and nothing
 more, so an id the book no longer resolves — a record deleted, or one
@@ -153,7 +155,7 @@ because a copy cannot dangle.
 **`sectionCaption` is wired — gate closed.**
 `flow/section-captions/index.js` holds the caption map with its
 `copy.en.js`/`copy.cy.js` pair, and `sectionCaption` is passed in the
-`configureJourneyFlow` call in both `routes.js` and
+`configureJourneyFlow` call in both `routes-high-risk-plants.js` and
 `test/fixtures/index.js` (the fixture with a synthetic map of its own).
 The dashboard is the only captioned section so far; each page increment
 files its own page there or lists it as bare.

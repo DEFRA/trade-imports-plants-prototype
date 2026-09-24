@@ -129,13 +129,28 @@ const render = async (h, current, values, options = {}) => {
   })
 }
 
+const isCountryStale = async (code) => {
+  if (!code) {
+    return false
+  }
+  const offered = new Set(await countryValues())
+  return !offered.has(code)
+}
+
 const get = async (request, h) => {
   const current = await state.get(request, h)
+  const stored = current.answers[COUNTRY_FIELD] ?? ''
+  const staleCountry = await isCountryStale(stored)
   return render(
     h,
     current,
-    { [COUNTRY_FIELD]: current.answers[COUNTRY_FIELD] ?? '' },
-    { constraints: constraintsOn(categoriesOf(current)) }
+    { [COUNTRY_FIELD]: staleCountry ? '' : stored },
+    {
+      constraints: constraintsOn(categoriesOf(current)),
+      errors: staleCountry
+        ? { [COUNTRY_FIELD]: copy.errors.countryNoLongerAvailable }
+        : {}
+    }
   )
 }
 

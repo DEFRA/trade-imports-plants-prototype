@@ -16,11 +16,7 @@ the kebab-case id you choose in step 1.
 
 ## Read these first
 
-`high-risk-plants` is the worked example of a full set. `sample-journey`
-([`../routes-sample-journey.js`](../routes-sample-journey.js),
-[`../sets/sample-journey/`](../sets/sample-journey/)) is the worked example of
-ADDING one: it is the smallest set this recipe produces, and it is the second
-real set this repo ships. Read them in this order:
+`high-risk-plants` is the worked example. Read it in this order:
 
 - [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js) — the gateway body
   step 4 reproduces for your set. [`../routes.js`](../routes.js) is only the
@@ -49,15 +45,11 @@ mounted and only surfaces when a second arrives, which is why each is pinned by
 **1. Every `configure*` seam takes the set id first.** Each stores its value
 per set behind `setKeyed`, and each read accessor resolves through
 `currentSetId()`. A seam that kept one module-level variable would let the
-second registration overwrite the first. The eight seams a gateway calls are
+second registration overwrite the first. The eight seams are
 `configureObligationSet`, `configureFulfilmentRegistry`,
 `configureAnswersForRead`, `configureReadyForCheckYourAnswers`,
 `configureJourneyFlow`, `buildDispatch`, `configureRecords` and
 `configureSession`.
-
-`configureFlowOnlyKeys` is set-keyed too, but no gateway calls it:
-`configureJourneyFlow` calls it from the journey's own `flowOnlyKeys` field
-([`../flow/journey-flow.js`](../flow/journey-flow.js) lines 25-28).
 
 **2. A request resolves its set from the owning plugin realm, never from the
 URL.** Each gateway installs an `onPreAuth` extension that calls
@@ -77,14 +69,6 @@ inside `withSetContext(setId, …)` and pass every route through
 route-owned lifecycle extension. Server-wide routes stay outside every set
 context.
 
-The server-level `server.ext('onPreHandler', …)` entry guard must wrap its own
-body in `withSetContext(SET_ID, …)` as well. Neither wrapper above covers it:
-`routeWithSetContext` reaches route-owned lifecycle extensions only, and the
-registration-time wrapper has long since returned by the time a request runs.
-Copy the shape from [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js)
-lines 88-101. Without the wrap the guard resolves only by the sole-set fallback
-and throws the moment a second set mounts.
-
 ## The mount prefix is not a choice
 
 **It is `'/' + setId`.** Every set mounts under its own prefix, and no set is
@@ -101,37 +85,34 @@ Two reasons, and they are the whole argument:
   produce the same correct-looking string for that set and stay hidden until
   somebody opened another set.
 
-Two consequences follow:
+Three consequences follow:
 
-- **`/` belongs to no set.** In this repo it is the chooser — a server-wide
-  page listing every mounted set, registered by
-  [`../../sets-index/index.js`](../../sets-index/index.js) outside every
-  gateway. This is the prototype host: with several prototypes running there is
-  no default to redirect to, and a reader arriving at the service needs to see
-  what is on offer. A set appears on it purely by mounting; there is no list to
-  keep in step. (The two frontends redirect instead, because each has one
-  default set.)
-- **A server-wide page has no set, so it cannot use `kit.base()`**, which reads
-  the set-keyed journey flow. Use `kit.serverWideBase()`, or
-  `kit.chromeFor(title, request.path)` on a page reached from both — the error
-  page, which resolves its set from the path because an unrouted 404 ran no
-  set's `onPreAuth`. With a single set mounted the sole-set fallback hides the
-  difference; with two, `base()` throws.
+- **`/` belongs to no set.** It is a server-wide 302 — never a 301 — to
+  `DEFAULT_SET_BASE`, declared with `server.route` in
+  [`../../router.js`](../../router.js), outside every gateway. It takes the
+  server's default auth strategy, so signing in with no stored redirect lands
+  on the default set's dashboard.
 - **`/health`, `/signout`, the `/auth/*` routes and the static-asset route are
   server-wide.** They must never sit inside a prefixed `server.register` call.
   `/signout` is the live trap: it registers perfectly happily at
   `/<set-id>/signout` and nothing fails until a user tries to sign out.
+- **A server-wide page has no set, so it cannot use `kit.base()`**, which reads
+  the set-keyed journey flow. Use `kit.serverWideBase()`, or
+  `kit.chromeFor(title, request.path)` on a page reached from both — the shared
+  error page. With a single set mounted the sole-set fallback hides the
+  difference; with two, `base()` throws. The same applies to anything else
+  set-owned a server-wide request touches:
+  [`../../../config/nunjucks/context/context.js`](../../../config/nunjucks/context/context.js)
+  resolves `homeUrl` and `activeNavigationItem` through `setIdForPath()` for
+  exactly this reason — a path is the only thing left to read once the handler
+  has returned and the view is being marshalled.
 
-The resulting mount table with the two shipped sets and yours in the tree:
+The resulting mount table with two sets in the tree:
 
 | Set                | Dashboard           | Create                            | Hub                                           | Page                                                 |
 | ------------------ | ------------------- | --------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
 | `high-risk-plants` | `/high-risk-plants` | `/high-risk-plants/notifications` | `/high-risk-plants/notifications/{journeyId}` | `/high-risk-plants/notifications/{journeyId}/{slug}` |
-| `sample-journey`   | `/sample-journey`   | `/sample-journey/notifications`   | `/sample-journey/notifications/{journeyId}`   | `/sample-journey/notifications/{journeyId}/{slug}`   |
 | `<set-id>`         | `/<set-id>`         | `/<set-id>/notifications`         | `/<set-id>/notifications/{journeyId}`         | `/<set-id>/notifications/{journeyId}/{slug}`         |
-
-`sample-journey` serves only its dashboard today — it is a placeholder set with
-one page — but its mount follows the same shape.
 
 ## Route builders against link builders
 
@@ -188,14 +169,6 @@ export const SESSION_COOKIE_NAMES = {
 
 Two sets sharing a cookie name would share the draft list behind it.
 
-Those names reach the registered cookies through the configured session seam,
-not through an argument, so `configureSession` must run before
-`registerJourneyCookie` in step 4. Get that order wrong and the set would
-register the shared default names and then read cookies nobody set;
-`registerJourneyCookie` refuses at its own point of use rather than registering
-them, and [`../set-completeness.js`](../set-completeness.js) still refuses the
-mount of a gateway that skipped the call altogether.
-
 ## 4. Write the gateway
 
 Create `routes-<set-id>.js` following
@@ -203,12 +176,6 @@ Create `routes-<set-id>.js` following
 mount, open the set context, install the sandboxed `onPreAuth`, configure every
 seam this set uses with `SET_ID` first, register the journey cookies, install
 the sandboxed entry guard, and wrap every route.
-
-The entry guard's own body goes inside `withSetContext(SET_ID, …)` — see rule 4
-above. Copy [`../routes-high-risk-plants.js`](../routes-high-risk-plants.js)
-lines 92-105 verbatim, comment included: `routeWithSetContext` does not reach a
-server-level `server.ext`, and without the wrap the guard resolves only by the
-sole-set fallback and throws the moment a second set mounts.
 
 Then re-export it from [`../routes.js`](../routes.js), which is only a barrel.
 
@@ -220,42 +187,14 @@ and `configureSession` — it throws if the session seam is not configured yet.
 
 ## 5. Mount it
 
-Your gateway checks itself. Make `assertSetConfigured` the LAST act of its
-plugin register, inside the `withSetContext` block, after the routes:
-
-```js
-server.route(allRoutes.map((route) => routeWithSetContext(SET_ID, route)))
-assertSetConfigured(server, SET_ID)
-```
-
-`assertSetConfigured` — [`../set-completeness.js`](../set-completeness.js) —
-throws with your set's id and the name of every required seam it left
-unconfigured, so the gap fails `server.register` and the server never starts.
-Several sets share the process, so a seam that answers from its unconfigured
-default — the session cookie names, an empty journey flow, a submit gate held
-shut — renders an empty dashboard or an un-submittable journey to a reader
-instead of failing.
-
-A seam declares itself required by naming its configure call:
-`setKeyed('journey flow', { configuredBy: 'configureJourneyFlow' })`. There is
-no hand-kept list to add to, and the check is behavioural — it compares the
-cookie names the server actually registered against the ones your session seam
-reports, which is how it catches a gateway that never called
-`registerJourneyCookie` at all.
-
-Then in [`../../router.js`](../../router.js), register the set the ordinary
-way:
+In [`../../router.js`](../../router.js):
 
 ```js
 await server.register(yourSet, { routes: { prefix: YOUR_SET_BASE } })
 ```
 
-Leave the server-wide routes where they are. Leave `/` as the chooser
-registered by [`../../sets-index/index.js`](../../sets-index/index.js), which
-returns 200 rather than redirecting: `/` belongs to no set (see "The mount
-prefix is not a choice" above). Your set appears on it purely by mounting, so
-there is no list to update, and the registry is read per request, so the
-registration order does not matter.
+Leave the server-wide routes where they are. Do not move `/` — it stays a 302
+to `DEFAULT_SET_BASE`.
 
 ## 6. Check the dependency rules
 
@@ -280,17 +219,16 @@ production:
   configuration, that interleaved requests keep their own set, that cookies are
   scoped per set, and that the server-wide surface stays unprefixed.
 
-Both shipped sets — `high-risk-plants` and `sample-journey` — are mounted in
-those suites, and `test/fixtures/second-set.js` is mounted on top of them as a
-THIRD set, a fixture rather than a real journey. If you are adding a real set,
-the fixture stays: the suites are about the platform, not about any one set.
+The second set in those suites is `test/fixtures/second-set.js`, a fixture
+rather than a real journey. If you are adding a real set, the fixture stays:
+the suites are about the platform, not about any one set.
 
-Do **not** register your set in `test/setup-obligation-set.js`, the vitest
-global setup file. That file mounts exactly one set, and the whole unit suite
-leans on that: with one mount, `shared/set-context.js`'s `soleSetId()` fallback
-resolves `currentSetId()` for a test that never enters a request's context. A
-second mount there retires the fallback and makes `currentSetId()` throw across
-the suite.
+Do **not** register your set in `test/fixtures/index.js`, which the vitest
+global setup (`test/setup-obligation-set.js`) calls. That file mounts exactly
+one set, and the whole unit suite leans on that: with one mount,
+`shared/set-context.js`'s `soleSetId()` fallback resolves `currentSetId()` for a
+test that never enters a request's context. A second mount there retires the
+fallback and makes `currentSetId()` throw across the suite.
 
 Your set's own unit tests mount their set and enter its context themselves, the
 way [`../co-residency.test.js`](../co-residency.test.js) does —
@@ -299,8 +237,8 @@ way [`../co-residency.test.js`](../co-residency.test.js) does —
 
 ## 8. Add the set to the test matrix
 
-Three config files name each set's directories literally, so a new set has to be
-added to each by hand:
+Two config files name each set's directories literally, so a new set has to be
+added to both by hand:
 
 - `playwright.config.js` — a per-set project whose `testDir` is that set's
   features directory (today
@@ -310,9 +248,9 @@ added to each by hand:
 - `vitest.config.js` — a per-set `exclude` entry for that set's
   `**/*.fit.spec.js`. Skip it and vitest tries to run the Playwright specs as
   unit tests, and the unit suite fails on `test` not being defined.
-- `webpack.config.js` — a per-set client entry, for a set that ships
-  client-side JS. Skip it and the set's pages render without their
-  progressive enhancement, with no build error to say so.
+
+`webpack.config.js` needs nothing: the client bundle is built from
+`src/client/`, which every set shares.
 
 ## 9. Move the tests with the URLs
 

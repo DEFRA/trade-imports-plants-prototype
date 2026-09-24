@@ -1,6 +1,7 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  setUrl
 } from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -19,18 +20,14 @@ import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
 import { copy as hubCopy } from '../hub/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
-const COMMODITY_TYPE_URL = new RegExp(
-  `${BASE}/notifications/[^/]+/commodity-type$`
-)
-const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
-const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
-const HUB_URL = new RegExp(`${BASE}/notifications/[^/]+$`)
-const ORIGIN_URL = new RegExp(`${BASE}/notifications/[^/]+/origin$`)
+const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
+const COMMODITY_DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details')
+const COMMODITY_LIST_URL = setUrl('/notifications/[^/]+/commodities$')
+const HUB_URL = setUrl('/notifications/[^/]+$')
+const ORIGIN_URL = setUrl('/notifications/[^/]+/origin$')
 // A potato notification is never asked the arrival question, so Continue from
 // origin lands on the arrival details.
-const ARRIVAL_DETAILS_URL = new RegExp(
-  `${BASE}/notifications/[^/]+/arrival-details$`
-)
+const ARRIVAL_DETAILS_URL = setUrl('/notifications/[^/]+/arrival-details$')
 
 // accessible-autocomplete enhances the native <select>: the visible combobox
 // input keeps the original id, and the hidden select still submits the value.

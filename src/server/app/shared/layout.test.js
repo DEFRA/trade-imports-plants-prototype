@@ -3,25 +3,22 @@ import { describe, expect, it } from 'vitest'
 
 import { nunjucksConfig } from '../../../config/nunjucks/nunjucks.js'
 import { base, SURFACES, surfaceClass } from './kit.js'
-import { dashboardPath } from './paths.js'
 import { copy as sharedCopy } from './copy.en.js'
+import { SET_BASE } from '../sets/high-risk-plants/set.js'
 
 const environment = nunjucksConfig.options.compileOptions.environment
 
 const PHASE_BANNER = 'govuk-phase-banner'
 const BREADCRUMBS = 'govuk-breadcrumbs'
 
-// The global test setup mounts high-risk-plants as the sole set, so this is
-// that set's dashboard — the href the nunjucks context hands the layout on a
-// page inside a set.
-const SET_DASHBOARD = dashboardPath()
-
+// `homeUrl` comes from the view model, the way kit.base() supplies it, so the
+// rendered chrome carries the set's own prefix rather than a bare `/`.
 const renderLayout = (userSession, context = {}) =>
   environment.render('shared/layout.njk', {
     pageTitle: 'Create an import notification',
     sharedCopy,
     userSession,
-    dashboardHref: SET_DASHBOARD,
+    homeUrl: SET_BASE,
     getAssetPath: (asset) => `/assets/${asset}`,
     ...context
   })
@@ -49,24 +46,23 @@ describe('service navigation', () => {
       serviceNavigation.manageAccount,
       serviceNavigation.logOut
     ])
-    // The Dashboard item leads back to the ACTIVE SET's dashboard, not to the
-    // chooser at the root.
     expect(links.map((_, a) => $(a).attr('href')).get()).toEqual([
-      SET_DASHBOARD,
+      SET_BASE,
       '#',
       '#',
       '/auth/sign-out'
     ])
-    expect(SET_DASHBOARD).toBe('/high-risk-plants')
   })
 
-  it('Should fall back to the chooser when the page belongs to no set', () => {
-    // Nothing to fall back from on a server-wide page, so the layout's own
-    // default has to be the chooser.
-    const $ = load(renderLayout(signedIn, { dashboardHref: null }))
-    const dashboard = $('.govuk-service-navigation__item a').first()
+  it('Should point the dashboard link and the service name at the set’s own base', () => {
+    const $ = load(renderLayout(signedIn))
 
-    expect(dashboard.attr('href')).toBe('/')
+    expect(
+      $(`.govuk-service-navigation__item a[href="${SET_BASE}"]`)
+    ).toHaveLength(1)
+    expect($('.govuk-service-navigation__service-name a').attr('href')).toBe(
+      SET_BASE
+    )
   })
 
   it('Should mark the dashboard item active inside the notifications section', () => {

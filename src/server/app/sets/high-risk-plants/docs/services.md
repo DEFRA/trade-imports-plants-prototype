@@ -21,7 +21,8 @@ It landed with the commodity-type page because the lists are volatile enough
 that retyping one into an obligation or a copy module would leave two copies
 with nothing holding them in step, and the commodities collection extended it
 rather than replacing it. Still to come: the origin narrowing, and the stub and
-real clients behind a `configure*` seam in [`routes.js`](../../../routes.js).
+real clients behind a `configure*` seam in this set's gateway,
+[`routes-high-risk-plants.js`](../../../routes-high-risk-plants.js).
 
 A set-owned service is the right home for vocabulary that belongs to this
 journey rather than to the platform — a commodity catalogue, the options behind
@@ -29,9 +30,11 @@ a select, the allow-lists an obligation's gate reads. That vocabulary is domain
 data, not a generic platform contract, which is why it lives in the set rather
 than under `src/server/app/services/`.
 
-The seam for one that generic code has to reach is a `configure*` call in
-[`src/server/app/routes.js`](../../../routes.js): the set's module is passed
-in at boot, so generic code never imports the set. The commodities service
+The seam for one that generic code has to reach is a `configure*` call in this
+set's gateway,
+[`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js):
+the set's module is passed in at boot under this set's id, so generic code never
+imports the set. The commodities service
 needs no such seam yet — only this journey's own pages and this set's own
 obligations read it. Follow that shape when generic code first needs it. The
 first obligation allow-lists landed with the commodity section, and they read

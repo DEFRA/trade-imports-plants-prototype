@@ -1,12 +1,10 @@
 /**
  * The answers-for-read seam, with two sets mounted.
  *
- * It is one of the few seams that answers for an unconfigured set rather than
- * throwing: a set that configures no sanitiser reads its answers unchanged.
- * That is not hypothetical here — `routes-sample-journey.js` configures no
- * sanitiser while `routes-high-risk-plants.js` does. Proving it needs a second
- * set deliberately left unconfigured, because with one set mounted the identity
- * fallback and a configured sanitiser cannot be told apart.
+ * It is the one seam that answers for an unconfigured set rather than throwing:
+ * a set that configures no sanitiser reads its answers unchanged. Proving that
+ * needs a second set that is deliberately left unconfigured, because with one
+ * set mounted the identity fallback and a bare `store.current()` behave alike.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 

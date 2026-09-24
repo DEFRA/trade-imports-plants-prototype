@@ -56,7 +56,8 @@ Trace registration through these:
 - [`journeys/linear/flow/task-rows.js`](../journeys/linear/flow/task-rows.js)
 - [`journeys/linear/config.js`](../journeys/linear/config.js)
 - [`src/server/app/flow/journey-flow.js`](../../../flow/journey-flow.js)
-- [`src/server/app/routes.js`](../../../routes.js)
+- [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js) —
+  this set's gateway; [`routes.js`](../../../routes.js) only re-exports it
 
 The hub feature and `flow/task-rows.test.js` already exist. The hub lands with
 `GROUPS` carrying its four numbered groups, each with an empty `rows` array, and
@@ -252,7 +253,10 @@ and complete states in `journeys/linear/flow/task-rows.test.js`.
 prefix, shared layout name and three session cookie names. A new feature group,
 flow section or task row does not add a config entry.
 
-[`src/server/app/routes.js`](../../../routes.js) already imports the journey's
+This set's gateway,
+[`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
+(the [`routes.js`](../../../routes.js) barrel only re-exports it), already
+imports the journey's
 `sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`,
 `entryGuardTarget`, `sectionCaptionOf` and `LAYOUT`. It passes them to
 [`configureJourneyFlow()`](../../../flow/journey-flow.js). Because it injects the
@@ -270,7 +274,8 @@ Registration work for the feature group is therefore limited to:
 Change `journeys/linear/config.js` or the `configureJourneyFlow()` call only when
 the journey's template identity, cookie identity or injected policy surface
 itself changes. `sectionCaption` was supplied that way, and needed the same new
-argument in both `routes.js` and the test fixture at `test/fixtures/index.js`.
+argument in both `routes-high-risk-plants.js` and the test fixture at
+`test/fixtures/index.js`.
 
 ## 7. Add check-answers output
 

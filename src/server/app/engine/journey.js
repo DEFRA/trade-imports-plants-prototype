@@ -33,12 +33,7 @@ export {
  * Both the path and the names come from the active set — the mount it
  * registered and the session seam it configured — rather than from arguments,
  * so what is registered cannot drift from what the set actually uses. Call it
- * inside the set's context, after `registerSetMount` and `configureSession`:
- * called before the latter, the seam would hand back the shared default names
- * and the set would register cookies it never reads, so it refuses here rather
- * than registering them. `set-completeness.js` still compares the registered
- * names against the configured ones as the last act of registration, which is
- * what catches a gateway that skipped this call altogether.
+ * inside the set's context, after `registerSetMount` and `configureSession`.
  */
 export const registerJourneyCookie = (server) => {
   const setId = currentSetId()

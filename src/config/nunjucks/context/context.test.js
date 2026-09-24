@@ -2,10 +2,6 @@ import {
   SET_BASE,
   SET_ID
 } from '../../../server/app/sets/high-risk-plants/set.js'
-import {
-  SET_BASE as SAMPLE_JOURNEY_SET_BASE,
-  SET_ID as SAMPLE_JOURNEY_SET_ID
-} from '../../../server/app/sets/sample-journey/set.js'
 import { vi } from 'vitest'
 
 const mockReadFileSync = vi.fn()
@@ -67,7 +63,7 @@ describe('context and cache', () => {
           getAssetPath: expect.any(Function),
           serviceName: 'Plants',
           serviceUrl: '/',
-          dashboardHref: SET_BASE,
+          homeUrl: SET_BASE,
           authEnabled: true,
           staleActionRejected: false,
           activeNavigationItem: 'dashboard',
@@ -79,6 +75,20 @@ describe('context and cache', () => {
         const result = await contextImport.context({ path: '/auth/sign-out' })
 
         expect(result.activeNavigationItem).toBeNull()
+      })
+
+      test('Should send the home link to the root from outside every set', async () => {
+        const result = await contextImport.context({ path: '/auth/sign-out' })
+
+        expect(result.homeUrl).toBe('/')
+      })
+
+      test('Should send the home link to the set whose mount the path falls under', async () => {
+        const result = await contextImport.context({
+          path: `${SET_BASE}/notifications/abc-123/origin`
+        })
+
+        expect(result.homeUrl).toBe(SET_BASE)
       })
 
       test('Should describe the signed-in user from their session', async () => {
@@ -190,7 +200,7 @@ describe('context and cache', () => {
           getAssetPath: expect.any(Function),
           serviceName: 'Plants',
           serviceUrl: '/',
-          dashboardHref: SET_BASE,
+          homeUrl: SET_BASE,
           authEnabled: true,
           staleActionRejected: false,
           activeNavigationItem: 'dashboard',
@@ -229,26 +239,6 @@ describe('#activeNavigationItem', () => {
 
   test('Should mark nothing when there is no path', () => {
     expect(activeNavigationItem(undefined)).toBeNull()
-  })
-})
-
-describe('#activeNavigationItem with no set to resolve', () => {
-  let activeNavigationItem
-
-  beforeAll(async () => {
-    vi.resetModules()
-    // TWO mounts, not one: `remountSet()` registers a single set, so the
-    // sole-set fallback always resolves and the `hasSetContext()` guard stays
-    // masked. With two mounted and no request context there is no set to ask.
-    const { registerSetMount } =
-      await import('../../../server/app/shared/set-context.js')
-    registerSetMount(SET_ID, SET_BASE)
-    registerSetMount(SAMPLE_JOURNEY_SET_ID, SAMPLE_JOURNEY_SET_BASE)
-    ;({ activeNavigationItem } = await import('./context.js'))
-  })
-
-  test('Should mark nothing at the chooser, which belongs to no set', () => {
-    expect(activeNavigationItem('/')).toBeNull()
   })
 })
 

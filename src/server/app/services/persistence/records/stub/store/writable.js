@@ -1,4 +1,5 @@
 import { AMEND, DRAFT } from '../../../../../engine/persistence/records.js'
+import { journeys } from './state.js'
 
 export const assertWritable = (journey) => {
   if (journey.status !== DRAFT && journey.status !== AMEND) {
@@ -8,13 +9,11 @@ export const assertWritable = (journey) => {
   }
 }
 
-export const makeLoadWritable =
-  ({ journeys }) =>
-  (journeyId) => {
-    const journey = journeys.get(journeyId)
-    if (!journey) {
-      throw new Error(`Unknown journey "${journeyId}"`)
-    }
-    assertWritable(journey)
-    return journey
+export const loadWritable = (journeyId) => {
+  const journey = journeys().get(journeyId)
+  if (!journey) {
+    throw new Error(`Unknown journey "${journeyId}"`)
   }
+  assertWritable(journey)
+  return journey
+}

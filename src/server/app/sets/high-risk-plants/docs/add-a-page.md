@@ -174,9 +174,10 @@ Import the controller namespace in
   and navigation.
 - Spread `routes` into `allRoutes`.
 
-`src/server/app/routes.js` passes `allRoutes` to Hapi.
-`buildDispatch(dispatchPages)` rejects an unsafe obligation name, two page
-owners and an uncovered obligation.
+`src/server/app/routes-high-risk-plants.js` — this set's gateway, re-exported by
+the `routes.js` barrel — wraps `allRoutes` in its set context and passes them to
+Hapi. `buildDispatch(SET_ID, dispatchPages)` rejects an unsafe obligation name,
+two page owners and an uncovered obligation.
 
 Run `npm run test:high-risk-plants`. Dispatch should now build. If it does not,
 correct `meta.collects` or the `dispatchPages` registration. Do not add a second
