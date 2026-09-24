@@ -112,7 +112,7 @@ To run the application in `development` mode:
 npm run dev
 ```
 
-It serves on port 3003.
+It serves on port 3103.
 
 ### Production
 
@@ -195,7 +195,7 @@ docker build --target development --no-cache --tag trade-imports-plants-prototyp
 Run:
 
 ```bash
-docker run -p 3003:3003 trade-imports-plants-prototype:development
+docker run -p 3103:3103 trade-imports-plants-prototype:development
 ```
 
 ### Production image
@@ -209,7 +209,7 @@ docker build --no-cache --tag trade-imports-plants-prototype .
 Run:
 
 ```bash
-docker run -p 3003:3003 trade-imports-plants-prototype
+docker run -p 3103:3103 trade-imports-plants-prototype
 ```
 
 ### Local stack

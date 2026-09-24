@@ -38,7 +38,7 @@ export const config = convict({
   port: {
     doc: 'The port to bind.',
     format: 'port',
-    default: 3003,
+    default: 3103,
     env: 'PORT'
   },
   staticCacheTimeout: {
@@ -245,7 +245,7 @@ export const config = convict({
     }
   },
   stubMode: {
-    doc: 'Run against stubs rather than real dependencies: stub data in place of the address book, backend and reference data, and a locally signed session in place of the Defra ID OIDC exchange. Auth is still enforced - only the external OIDC round-trip is bypassed. Ignored in production (see isStubMode).',
+    doc: 'Run against stubs rather than real dependencies: stub data in place of the address book, backend and reference data, and a locally signed session in place of the Defra ID OIDC exchange. Auth is still enforced - only the external OIDC round-trip is bypassed. Honoured in production here, unlike plants-frontend (see isStubMode).',
     format: Boolean,
     default: false,
     env: 'STUB_MODE'

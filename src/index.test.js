@@ -6,6 +6,8 @@ vi.mock('./server/common/helpers/start-server.js', () => ({
   startServer: startServerMock
 }))
 
+vi.mock('./prototype-defaults.js', () => ({}))
+
 const boot = async () => {
   const listenersBefore = process.listeners('unhandledRejection')
   vi.resetModules()

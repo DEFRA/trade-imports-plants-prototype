@@ -101,7 +101,7 @@ function getCookieOptions() {
     cookie: {
       password: config.get('session.cookie.password'),
       path: '/',
-      isSecure: config.get('isProduction')
+      isSecure: config.get('isProduction') && !isStubMode()
     },
     redirectTo: function (request) {
       return `/auth/sign-in?redirect=${request.url.pathname}${request.url.search}`
