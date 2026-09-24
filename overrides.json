@@ -1,0 +1,199 @@
+{
+  "deleted": [
+    ".claude/hooks/sonar-secrets/**",
+    ".claude/sonar-analyze.sh",
+    ".github/dependabot.yml",
+    ".github/workflows/cleanup-e2e-reports.yml",
+    ".github/workflows/e2e-tests.yml",
+    ".github/workflows/lighthouse.yml",
+    ".github/workflows/publish-branch.yml",
+    ".mcp.json",
+    ".sonarcloud.properties",
+    ".sonarlint/**",
+    "lighthouserc.cjs",
+    "scripts/check-workspace-stack.js",
+    "scripts/lighthouse/**",
+    "sonar-project.properties"
+  ],
+  "ours": [
+    "overrides.json",
+    "scripts/sync-upstream/**",
+    "src/prototype-defaults.js",
+    "src/prototype-defaults.test.js",
+    "src/server/app/routes-sample-journey.js",
+    "src/server/app/sets/sample-journey/**",
+    "src/server/app/sets-index/**",
+    "src/server/sets-index/**",
+    "fit/sets-chooser.fit.spec.js",
+    ".github/workflows/check-pull-request.yml",
+    ".github/workflows/publish.yml",
+    ".github/workflows/publish-hotfix.yml",
+    ".github/workflows/sync-upstream.yml"
+  ],
+  "patched": [
+    {
+      "path": "src/index.js",
+      "why": "loads prototype-defaults.js before anything else runs"
+    },
+    {
+      "path": "src/index.test.js",
+      "why": "covers the prototype-defaults import order"
+    },
+    {
+      "path": "src/server/common/services/mode.js",
+      "why": "stub mode is honoured in production - the one deliberate behaviour change"
+    },
+    {
+      "path": "src/server/common/services/mode.test.js",
+      "why": "covers the production stub-mode change"
+    },
+    {
+      "path": "src/config/config.js",
+      "why": "default port is 3103, the real twin's port plus 100"
+    },
+    {
+      "path": "src/plugins/auth.js",
+      "why": "the auth cookie is not Secure in stub mode, so sign-in survives plain http"
+    },
+    {
+      "path": "src/plugins/auth.test.js",
+      "why": "covers the non-Secure stub auth cookie"
+    },
+    {
+      "path": "src/plugins/csrf.js",
+      "why": "the CSRF cookie is not Secure in stub mode"
+    },
+    {
+      "path": "src/plugins/csrf.test.js",
+      "why": "covers the non-Secure stub CSRF cookie"
+    },
+    {
+      "path": "README.md",
+      "why": "prototype run instructions (port, stub-only, no setup) sit alongside upstream's own edits"
+    },
+    {
+      "path": "Dockerfile",
+      "why": "runs unchanged today, but stays open to upstream's own Dockerfile edits"
+    },
+    {
+      "path": "package.json",
+      "why": "name and description are prototype identity; scripts and dependencies must keep following upstream"
+    },
+    {
+      "path": "package-lock.json",
+      "why": "regenerates from package.json, so it merges (or is rebuilt) alongside it"
+    },
+    {
+      "path": "NOTICE",
+      "why": "the product name line diverges from upstream"
+    },
+    {
+      "path": ".gitignore",
+      "why": "lighthouse ignore entries were trimmed; everything else keeps tracking upstream"
+    },
+    {
+      "path": ".dependency-cruiser.cjs",
+      "why": "extended for the per-set routes-<set-id>.js gateway pattern from EUDPA-619"
+    },
+    {
+      "path": "scripts/npm-version.js",
+      "why": "its doc comment lists only the workflows the prototype kept"
+    },
+    {
+      "path": "playwright.config.js",
+      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec"
+    },
+    {
+      "path": "src/server/router.js",
+      "why": "mounts every set under its own prefix instead of one journey at the root"
+    },
+    {
+      "path": "src/server/app/routes.js",
+      "why": "re-exports the per-set route gateways instead of one journey's routes"
+    },
+    {
+      "path": "src/server/app/routes.test.js",
+      "why": "covers the multi-set route composition"
+    },
+    {
+      "path": "src/server/app/routes-high-risk-plants.js",
+      "why": "the real set's route gateway - also implemented independently upstream by EUDPA-619"
+    },
+    {
+      "path": "src/server/app/set-completeness.js",
+      "why": "boot-time self-check that a set wired every seam - also implemented independently upstream"
+    },
+    {
+      "path": "src/server/app/set-completeness.test.js",
+      "why": "covers the boot-time self-check"
+    },
+    {
+      "path": "src/server/app/co-residency.test.js",
+      "why": "pins that two sets sandboxed to their own realm don't leak into each other"
+    },
+    {
+      "path": "src/server/app/no-set-singletons.test.js",
+      "why": "pins that shared modules hold no set-scoped state as a module-level singleton"
+    },
+    {
+      "path": "src/server/app/docs/**",
+      "why": "upstream-owned app docs (still mention Lighthouse/E2E); left for the sync to carry"
+    },
+    {
+      "path": "src/server/app/bridge/**",
+      "why": "bridge seam, shared with upstream, merges normally"
+    },
+    {
+      "path": "src/server/app/engine/**",
+      "why": "persistence engine, shared with upstream, merges normally"
+    },
+    {
+      "path": "src/server/app/flow/**",
+      "why": "dispatch and journey-flow, shared with upstream, merges normally"
+    },
+    {
+      "path": "src/server/app/lib/**",
+      "why": "validation helpers, shared with upstream, merge normally"
+    },
+    {
+      "path": "src/server/app/model/**",
+      "why": "obligation manifest, shared with upstream, merges normally"
+    },
+    {
+      "path": "src/server/app/services/**",
+      "why": "persistence and set-context services - also implemented independently upstream"
+    },
+    {
+      "path": "src/server/app/shared/**",
+      "why": "kit, layout, paths and set-context - also implemented independently upstream"
+    },
+    {
+      "path": "src/server/app/sets/high-risk-plants/**",
+      "why": "the real set - also implemented independently upstream by EUDPA-619"
+    },
+    {
+      "path": "src/server/common/helpers/**",
+      "why": "shared helpers (session-cache stub cookie, errors, redis-client) merge normally"
+    },
+    {
+      "path": "src/server/auth/**",
+      "why": "auth controller, touched by the multi-set routing"
+    },
+    {
+      "path": "src/config/nunjucks/**",
+      "why": "the nunjucks context resolves per active set"
+    },
+    {
+      "path": "fit/set-base.js",
+      "why": "shared FIT helper - also implemented independently upstream by EUDPA-619"
+    },
+    {
+      "path": "fit/journey-smoke.fit.spec.js",
+      "why": "adapted for the set-based URL base"
+    },
+    {
+      "path": "test/fixtures/**",
+      "why": "fixture registry extended for a second set - also implemented independently upstream"
+    }
+  ]
+}

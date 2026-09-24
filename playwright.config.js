@@ -25,7 +25,10 @@ export default defineConfig({
   projects: [
     {
       name: 'journeys',
-      testMatch: '**/journey-smoke.fit.spec.js',
+      // Journey smoke and the sets-chooser boot check both live directly
+      // under ./fit and need the same baseURL - the features project below
+      // covers the per-feature specs nested under each set.
+      testMatch: '**/*.fit.spec.js',
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://localhost:${port}`,

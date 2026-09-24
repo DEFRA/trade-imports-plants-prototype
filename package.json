@@ -44,6 +44,7 @@
     "lighthouse:run": "node scripts/lighthouse/run-audit.js",
     "test:watch": "TZ=UTC vitest",
     "security-audit": "npm audit --audit-level=high",
+    "sync:upstream": "node scripts/sync-upstream/sync.js",
     "server:watch": "nodemon --inspect=0.0.0.0 --ext js,json,njk --legacy-watch ./src",
     "server:debug": "nodemon --inspect-brk=0.0.0.0 --ext js,json,njk --legacy-watch ./src",
     "prestart": "npm run build:frontend",
