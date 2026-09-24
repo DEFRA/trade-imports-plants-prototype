@@ -11,8 +11,8 @@
  * registry, so the install would succeed and CI would carry on with whatever
  * npm it already had.
  *
- * Consumed by .github/workflows/{check-pull-request,publish,publish-hotfix,
- * lighthouse}.yml and by both install stages of the Dockerfile.
+ * Consumed by .github/workflows/{check-pull-request,publish,publish-hotfix}.yml
+ * and by both install stages of the Dockerfile.
  */
 
 import { readFileSync } from 'node:fs'

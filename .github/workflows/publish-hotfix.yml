@@ -42,15 +42,3 @@ jobs:
         uses: DEFRA/cdp-build-action/build-hotfix@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check for a SonarCloud token
-        id: sonar-token
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: echo "present=$([ -n "$SONAR_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-
-      - name: SonarCloud Scan
-        if: github.actor != 'dependabot[bot]' && steps.sonar-token.outputs.present == 'true'
-        uses: SonarSource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

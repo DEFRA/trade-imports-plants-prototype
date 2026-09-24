@@ -1,9 +1,5 @@
 # trade-imports-plants-prototype
 
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
-
 The frontend for the high-risk plants import notification journey. It runs on
 the same obligation and journey platform as the live-animals frontend: a
 journey-agnostic engine under `src/server/app/`, with all journey content in
@@ -37,8 +33,6 @@ Deployed end-to-end tests for this service live in the shared tests repository
 - [Local development](#local-development)
 - [Auth](#authentication-trade-imports-defra-id-stub)
 - [Docker](#docker)
-- [Lighthouse](#lighthouse)
-- [SonarCloud](#sonarcloud)
 - [Licence](#licence)
 
 ## Requirements
@@ -139,13 +133,8 @@ PORT=3053 npm run test:fit:features
 npm run test:fit:journeys
 npm run lint                    # JS, stylesheet and dependency-cruiser
 npm run format
-npm run fit:start:workspace     # the workspace-backed start, see below
 ```
 
-`npm run fit:start:workspace` is `fit:start` with
-[scripts/check-workspace-stack.js](./scripts/check-workspace-stack.js) chained
-ahead of it, so a run against the workspace stack refuses to start when the
-stack is down instead of failing later with confusing errors. Plain
 `npm run fit:start` — the one the Playwright web server uses — stays
 stub-backed and needs no stack.
 
@@ -230,21 +219,6 @@ A cross-repo change must use the **same branch name** in every repository it
 touches: the stack probes each repository for a branch-tagged image and falls
 back to `:latest` per service, so a mismatched name silently picks up someone
 else's image.
-
-## Lighthouse
-
-`npm run lighthouse` seeds its audit targets from the app's own registered
-routes, then runs Lighthouse CI against them.
-
-The set registers journey pages, which supply the derived audit URL list. The
-[Lighthouse guide](src/server/app/sets/high-risk-plants/docs/lighthouse.md)
-covers what each page increment adds, the score floors and the contribution
-steps.
-
-## SonarCloud
-
-Instructions for setting up SonarCloud are in
-[sonar-project.properties](./sonar-project.properties).
 
 ## Licence
 
