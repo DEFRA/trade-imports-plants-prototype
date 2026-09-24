@@ -195,6 +195,7 @@ describe('co-residency — two sets mounted in one process', () => {
       '/favicon.ico',
       '/health',
       '/public/{param*}',
+      '/reset/{setId}',
       '/signout'
     ])
   })

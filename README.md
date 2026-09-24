@@ -1,5 +1,7 @@
 # trade-imports-plants-prototype
 
+New here? [PROTOTYPE.md](PROTOTYPE.md) is written for designers — running it, what a set is, adding one, and how syncing with the real service works.
+
 The frontend for the high-risk plants import notification journey. It runs on
 the same obligation and journey platform as the live-animals frontend: a
 journey-agnostic engine under `src/server/app/`, with all journey content in

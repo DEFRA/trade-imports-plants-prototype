@@ -30,7 +30,10 @@
     ".github/workflows/check-pull-request.yml",
     ".github/workflows/publish.yml",
     ".github/workflows/publish-hotfix.yml",
-    ".github/workflows/sync-upstream.yml"
+    ".github/workflows/sync-upstream.yml",
+    "src/server/prototype-seed/**",
+    "scripts/new-set/**",
+    "PROTOTYPE.md"
   ],
   "patched": [
     {
@@ -120,6 +123,14 @@
     {
       "path": "playwright.config.js",
       "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec"
+    },
+    {
+      "path": "src/server/app/services/persistence/records/stub/lifecycle/create.js",
+      "why": "stores the actor's organisationId on the document (real/lifecycle/create.js already sends this actor to the backend; the stub just wasn't keeping it), so reset can clear one organisation's documents without touching another's — no existing seam separated one organisation's stub records from another's"
+    },
+    {
+      "path": "src/server/app/services/persistence/records/stub/lifecycle/mutate.js",
+      "why": "clear() takes an optional organisationId and removes only that organisation's documents when one is given; every existing caller still gets a full wipe by calling it with none, so this is additive, not a behaviour change for them"
     }
   ]
 }

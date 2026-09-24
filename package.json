@@ -39,6 +39,7 @@
     "test": "TZ=UTC vitest run --coverage --exclude ./tests/**",
     "test:high-risk-plants": "TZ=UTC vitest run src/server/app/sets/high-risk-plants --no-coverage --passWithNoTests",
     "capture:high-risk-plants": "node src/server/app/services/_capture/capture.js",
+    "new:set": "node scripts/new-set/index.js",
     "lighthouse": "run-s lighthouse:targets lighthouse:run",
     "lighthouse:targets": "node scripts/lighthouse/seed-audit-targets.js",
     "lighthouse:run": "node scripts/lighthouse/run-audit.js",

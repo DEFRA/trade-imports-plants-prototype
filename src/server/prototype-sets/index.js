@@ -1,6 +1,8 @@
 import { sampleJourney } from '../app/routes-sample-journey.js'
 import { SET_BASE as SAMPLE_JOURNEY_BASE } from '../app/sets/sample-journey/set.js'
 import { setsIndex } from '../sets-index/index.js'
+import { adoptKnownJourneys } from '../prototype-seed/adopt-known-journeys.js'
+import { seedOnBoot } from '../prototype-seed/index.js'
 
 /**
  * Everything this prototype host mounts on top of plants-frontend's router:
@@ -19,7 +21,7 @@ export const prototypeSets = {
       await server.register(sampleJourney, {
         routes: { prefix: SAMPLE_JOURNEY_BASE }
       })
-      await server.register([setsIndex])
+      await server.register([setsIndex, adoptKnownJourneys, seedOnBoot])
     }
   }
 }

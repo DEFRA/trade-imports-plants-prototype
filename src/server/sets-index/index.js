@@ -4,6 +4,7 @@ import {
   withSetContext
 } from '../app/shared/set-context.js'
 import { setsIndexController } from './controller.js'
+import { resetRoute } from './reset-controller.js'
 
 /**
  * Every mounted set as a `[setId, prefix]` pair, read back through the set
@@ -37,7 +38,8 @@ export const setsIndex = {
           method: 'GET',
           path: '/',
           ...setsIndexController(mountedSets)
-        }
+        },
+        resetRoute
       ])
     }
   }
