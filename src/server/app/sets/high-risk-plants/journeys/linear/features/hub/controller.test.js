@@ -230,6 +230,18 @@ describe('#hubGet', () => {
     })
   })
 
+  it('Should still complete the origin row when the stored country is no longer offered by the origin block', async () => {
+    const UNOFFERED_COUNTRY = 'ZZ'
+    const { h } = await renderHub({
+      seed: { commodityType: POTATOES, countryOfOrigin: UNOFFERED_COUNTRY }
+    })
+
+    const [, originRow] = h.captured.view.context.groups[0].items
+    expect(originRow.status).toEqual({
+      tag: { text: copy.statuses.completed, classes: COMPLETED_TAG_CLASS }
+    })
+  })
+
   it('Should give the commodities row no hint — no source writes one', async () => {
     const { h } = await renderHub()
 

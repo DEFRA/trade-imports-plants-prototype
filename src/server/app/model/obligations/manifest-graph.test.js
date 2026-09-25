@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { SET_ID } from '../../../../../test/fixtures/index.js'
+import { describe, it, expect, beforeAll } from 'vitest'
 
-import { installFixture, SET_ID } from '../../../../../test/fixtures/index.js'
 import { configureObligationSet } from './manifest.js'
 import {
   ancestorChain,
@@ -42,16 +42,11 @@ const syntheticSet = {
 }
 
 describe('#manifest-graph', () => {
+  // No teardown: vitest isolates module state per test file, and configuring
+  // the set back to `undefined` would leave it "configured" to undefined —
+  // turning manifest.js's named "not configured" error into a TypeError.
   beforeAll(() => {
     configureObligationSet(SET_ID, syntheticSet)
-  })
-
-  afterAll(() => {
-    // Put the journey-neutral fixture back rather than writing `undefined`
-    // under the set id: that leaves the key present, so a later `obligations()`
-    // throws a bare TypeError instead of the configured "not configured for
-    // set" message.
-    installFixture()
   })
 
   describe('#ancestorChain', () => {

@@ -1,6 +1,7 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  setUrl
 } from '../../../../../../../../../fit/set-base.js'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
@@ -20,13 +21,13 @@ import {
 } from './statuses.js'
 import { copy } from './copy/copy.en.js'
 
-const COMMODITY_TYPE_URL = /\/notifications\/[^/]+\/commodity-type$/
-const COMMODITY_DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details/
-const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
-const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
-const HUB_URL = /\/notifications\/[^/]+$/
-const PAGE_URL = /\/notifications\/[^/]+\/arrival-status$/
-const ARRIVAL_DETAILS_URL = /\/notifications\/[^/]+\/arrival-details$/
+const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
+const COMMODITY_DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details')
+const COMMODITY_LIST_URL = setUrl('/notifications/[^/]+/commodities$')
+const ORIGIN_URL = setUrl('/notifications/[^/]+/origin$')
+const HUB_URL = setUrl('/notifications/[^/]+$')
+const PAGE_URL = setUrl('/notifications/[^/]+/arrival-status$')
+const ARRIVAL_DETAILS_URL = setUrl('/notifications/[^/]+/arrival-details$')
 
 const STATUS_INPUT_SELECTOR = 'input[name="arrivalStatus"]'
 const COUNTRY_INPUT = 'input#countryOfOrigin'

@@ -1,4 +1,4 @@
-import { hubPath, pagePath, pageRoutePath } from './paths.js'
+import { dashboardPath, hubPath, pagePath, pageRoutePath } from './paths.js'
 import { setIdForPath, withSetContext } from './set-context.js'
 import { AMEND, DELETED, DRAFT, SUBMITTED } from '../engine/index.js'
 import { nextInSection } from '../flow/navigation.js'
@@ -13,7 +13,7 @@ import { copy as sharedEn } from './copy.en.js'
 import { copy as sharedCy } from './copy.cy.js'
 import { isRecoverableBackendError } from '../services/persistence/records/errors.js'
 
-export const routeOptions = {}
+export const routeOptions = { auth: 'session' }
 
 /**
  * The one resolved instance of the shared chrome copy. `base` puts it in
@@ -134,8 +134,8 @@ export const nextTarget = async (request, page, scope) =>
 export const SERVER_WIDE_LAYOUT = 'shared/layout.njk'
 
 /**
- * The chrome a page outside every set shares — the chooser at `/`, the
- * sign-in error page.
+ * The chrome a page outside every set shares — the sign-in error page, the
+ * shared error page reached from a server-wide route.
  *
  * `base` below cannot serve them: it reads `journeyLayout()` and
  * `journeySectionCaption()`, which resolve through the active set, and a
@@ -148,6 +148,9 @@ export const SERVER_WIDE_LAYOUT = 'shared/layout.njk'
 export const serverWideBase = (title) => ({
   layout: SERVER_WIDE_LAYOUT,
   pageTitle: title,
+  // The chrome's home link. A server-wide page belongs to no set, so it points
+  // at the root, which redirects to the default set.
+  homeUrl: '/',
   // A server-wide page has no journey, so no strip and no token. `backLink`
   // and `hubHref` are simply absent, which the layout treats the same as the
   // undefined `base` leaves them at.
@@ -163,8 +166,8 @@ export const serverWideBase = (title) => ({
  * request path rather than from whichever set happens to be ambient.
  *
  * The error page is the case: it is reached from a set's route and from a
- * server-wide one alike, and only at render time is it known which. The path is
- * what settles it — an unrouted 404 ran no set's `onPreAuth`, so there may be
+ * server-wide one alike, and only at render time is it known which. The path
+ * is what settles it — an unrouted 404 ran no set's extension, so there may be
  * no ambient context to read even under a set's own mount, and the sole-set
  * fallback would answer with the wrong set as soon as a second one mounted.
  *
@@ -206,6 +209,10 @@ export const base = (
     pageTitle: title,
     caption: journeySectionCaption(page?.id),
     backLink,
+    // The chrome's home link, resolved in this request's set. Hardcoding `/`
+    // in the layout sent every set's service navigation to the default set's
+    // dashboard by way of the root redirect.
+    homeUrl: dashboardPath(),
     hubHref: hasJourney ? hubPath(journeyId) : undefined,
     journeyStrip: journeyStrip(journey),
     concurrencyToken: journey?.concurrencyToken ?? null,

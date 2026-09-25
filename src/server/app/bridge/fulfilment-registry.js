@@ -179,9 +179,9 @@ const currentRegistry = () => store.current()
 
 export const configureFulfilmentRegistry = (setId, features) => {
   // Built inside the named set, not whichever set is ambient: the manifest the
-  // registry validates its bindings against is `obligations()`, so building
-  // outside the set being configured checks the bindings against another set's
-  // obligations — or throws, with two sets mounted and no ambient context.
+  // registry validates against is `obligations()`, so building outside the set
+  // being configured checks the bindings against another set's obligations —
+  // or throws, with two sets mounted and no ambient context.
   store.configure(
     setId,
     withSetContext(setId, () => createFulfilmentRegistry(features))

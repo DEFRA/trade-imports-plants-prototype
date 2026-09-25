@@ -1,6 +1,7 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  setUrl
 } from '../../../../../../../../../../fit/set-base.js'
 import { expect, test } from '@playwright/test'
 
@@ -12,13 +13,14 @@ import { copy as typeCopy } from '../../commodity-type/copy/copy.en.js'
 import { copy } from '../copy/copy.en.js'
 import { expectNoSeriousOrCriticalViolations } from './axe.js'
 
-const COMMODITY_TYPE_URL = /\/notifications\/[^/]+\/commodity-type$/
-const DETAILS_URL = /\/notifications\/[^/]+\/commodities\/details$/
-const DETAILS_EDIT_URL =
-  /\/notifications\/[^/]+\/commodities\/details\?index=\d+$/
-const LIST_URL = /\/notifications\/[^/]+\/commodities$/
-const REMOVED_URL = /\/notifications\/[^/]+\/commodities\?removed=\d+$/
-const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
+const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
+const DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details$')
+const DETAILS_EDIT_URL = setUrl(
+  '/notifications/[^/]+/commodities/details\\?index=\\d+$'
+)
+const LIST_URL = setUrl('/notifications/[^/]+/commodities$')
+const REMOVED_URL = setUrl('/notifications/[^/]+/commodities\\?removed=\\d+$')
+const ORIGIN_URL = setUrl('/notifications/[^/]+/origin$')
 
 const POTATOES = 'potatoes'
 const WOOD = 'wood-and-cut-trees'

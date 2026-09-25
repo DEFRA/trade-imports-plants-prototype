@@ -147,9 +147,30 @@ const render = async (h, current, values, options = {}) => {
   })
 }
 
+const isPortStale = async (code) => {
+  if (!code) {
+    return false
+  }
+  const offered = new Set(await portCodes())
+  return !offered.has(code)
+}
+
 const get = async (request, h) => {
   const current = await state.get(request, h)
-  return render(h, current, valuesFrom(current.answers, current.scope))
+  const values = valuesFrom(current.answers, current.scope)
+  const inScope = asksForPotatoDetails(current.scope)
+  const stalePort =
+    inScope && (await isPortStale(current.answers[PROPOSED_PLACE_OF_LANDING]))
+  if (stalePort) {
+    values[PROPOSED_PLACE_OF_LANDING] = ''
+  }
+  const errors = stalePort
+    ? {
+        [PROPOSED_PLACE_OF_LANDING]:
+          copy.errors.proposedPlaceOfLandingNoLongerAvailable
+      }
+    : {}
+  return render(h, current, values, { errors })
 }
 
 // The picker is one text box, so the answer arrives as `d/m/yyyy` text and is

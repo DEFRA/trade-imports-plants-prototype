@@ -1,5 +1,21 @@
-import { mountedSets } from '../app/shared/set-context.js'
+import {
+  currentSetBase,
+  mountedSetIds,
+  withSetContext
+} from '../app/shared/set-context.js'
 import { setsIndexController } from './controller.js'
+import { resetRoute } from './reset-controller.js'
+
+/**
+ * Every mounted set as a `[setId, prefix]` pair, read back through the set
+ * context's own public API — the prefix is whatever the set registered, not
+ * rebuilt from its id — so plants-frontend's set-context.js needs no
+ * prototype-only export.
+ *
+ * @returns {Array<[string, string]>} one pair per mounted set.
+ */
+export const mountedSets = () =>
+  mountedSetIds().map((setId) => [setId, withSetContext(setId, currentSetBase)])
 
 /**
  * The chooser at `/`.
@@ -22,7 +38,8 @@ export const setsIndex = {
           method: 'GET',
           path: '/',
           ...setsIndexController(mountedSets)
-        }
+        },
+        resetRoute
       ])
     }
   }

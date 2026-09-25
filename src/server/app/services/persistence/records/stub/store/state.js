@@ -1,20 +1,27 @@
 /**
- * A fresh, isolated in-memory store.
+ * The stub's in-memory store, one per set.
  *
- * Each mounted set configures its own instance, so two sets co-resident in one
- * process cannot see each other's journeys — a module-level Map shared by every
- * set would put one set's drafts in the other's dashboard.
- *
- * @returns {{ journeys: Map, copiesBySourceAndKey: Map }} the store.
+ * Two sets may be wired to this same shipped stub, and module-level Maps would
+ * put both sets' drafts in one place: each set would list the other's
+ * notifications and load them by id. Keying on the active set is what keeps a
+ * draft started in one set invisible to the other, the way two backends would.
  */
-export const createStore = () => ({
-  journeys: new Map(),
-  copiesBySourceAndKey: new Map()
-})
+import { currentSetId } from '../../../../../shared/set-context.js'
 
-/**
- * The store behind the module's default `records` instance, kept so a caller
- * that imports the stub directly — every engine test does — still gets one
- * stable store rather than a new one per import.
- */
-export const defaultStore = createStore()
+const bySet = new Map()
+
+const storeFor = () => {
+  const setId = currentSetId()
+  let store = bySet.get(setId)
+  if (!store) {
+    store = { journeys: new Map(), copiesBySourceAndKey: new Map() }
+    bySet.set(setId, store)
+  }
+  return store
+}
+
+/** The active set's journeys, by journey id. */
+export const journeys = () => storeFor().journeys
+
+/** The active set's copy results, by source-and-idempotency-key. */
+export const copiesBySourceAndKey = () => storeFor().copiesBySourceAndKey

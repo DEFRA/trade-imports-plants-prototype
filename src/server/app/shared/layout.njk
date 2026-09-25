@@ -6,22 +6,14 @@
 {% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
 {% from "govuk/components/tag/macro.njk" import govukTag %}
 
-{# The Dashboard item leads back to the ACTIVE SET's dashboard, which the
-   nunjucks context resolves per request; a page outside every set has none, so
-   it falls back to the chooser at the root. #}
-{% set homeUrl = dashboardHref or "/" %}
-{# The service name reaches the chooser at the root, not the active set's
-   dashboard, so it is not homeUrl. #}
-{% set serviceNameUrl = serviceUrl or "/" %}
+{# `homeUrl` comes from the view model — kit.base() resolves it inside the
+   request's own set, so the chrome's home link carries that set's prefix. A
+   hardcoded "/" here sent every set's users to the default set's dashboard. #}
 {# Destination for the alpha phase banner's feedback link. A destination, not
    copy, so it lives here beside the footer's meta links rather than in
    copy.en.js/copy.cy.js — it is identical in both locales. #}
 {% set feedbackUrl = "mailto:APHAServiceDesk@apha.gov.uk" %}
 {% set signOutUrl = "/auth/sign-out" %}
-{# The address book and the account page have no home in this service yet, so
-   both point at a placeholder — as Design release 1 does for the account page.
-   Where the address book lives is settled separately. #}
-{% set addressBookUrl = "#" %}
 {% set manageAccountUrl = "#" %}
 
 {% block head %}
@@ -64,7 +56,7 @@
   {% endif %}
   {{ govukServiceNavigation({
     serviceName: sharedCopy.layout.serviceName,
-    serviceUrl: serviceNameUrl,
+    serviceUrl: homeUrl,
     menuButtonText: sharedCopy.layout.serviceNavigation.menuButton,
     navigation: navigationItems
   }) }}

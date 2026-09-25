@@ -13,9 +13,9 @@ import { unconfiguredSeamsOf, withSetContext } from './shared/set-context.js'
  * one forgotten call away, and three of them answer benignly rather than
  * throwing: the journey flow hands back no sections and no task rows, the
  * session hands back the shared default cookie names, and the
- * ready-for-check-your-answers roll-up holds the submit gate shut. A set that
- * forgets one therefore renders an empty dashboard, or an un-submittable
- * journey, to a real user instead of failing.
+ * ready-for-check-your-answers roll-up answers false forever. A set that
+ * forgets one therefore renders an empty dashboard — or a permanently jammed
+ * submit gate — to a real user instead of failing.
  *
  * Refusing at registration turns that into a boot failure. The fallbacks
  * themselves are left exactly as they are — they simply stop being reachable.
@@ -35,7 +35,8 @@ const cookieNamesOf = (setId) =>
  * `configureSession` registers the shared defaults instead and the set then
  * reads cookies nobody set. Comparing the registered names against the
  * configured ones catches that ordering without the gateway having to declare
- * it.
+ * it — and catches a gateway that never registered the cookies at all, which
+ * `registerJourneyCookie`'s own point-of-use guard cannot.
  */
 const assertJourneyCookiesRegistered = (server, setId) => {
   const registered = server?.states?.cookies ?? {}

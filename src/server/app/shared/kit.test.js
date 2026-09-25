@@ -3,10 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   CAPTIONS,
   itemDetailPage,
-  itemsPage,
-  SET_BASE
+  itemsPage
 } from '../../../../test/fixtures/index.js'
-import { base, chromeFor, dateField, SERVER_WIDE_LAYOUT } from './kit.js'
+import { base, dateField } from './kit.js'
 
 describe('#base — the section caption the installed journey names', () => {
   it('Should carry the caption of a page the journey captions', () => {
@@ -21,35 +20,6 @@ describe('#base — the section caption the installed journey names', () => {
 
   it('Should leave the caption undefined when no page identity is supplied', () => {
     expect(base('any title').caption).toBeUndefined()
-  })
-})
-
-describe('#chromeFor — the chrome a page reached from both sides gets', () => {
-  it('Should give a path under a set that set’s own chrome', () => {
-    // No ambient context is entered here, which is the 404 case: the path
-    // matched no route, so no set's onPreAuth ran. The mount prefix is the
-    // only thing left that names the set.
-    // Both sets name the same layout today, so the set-owned keys `base()`
-    // adds are what tells the two chromes apart — the layout will only differ
-    // once a set overrides it.
-    const chrome = chromeFor('any title', `${SET_BASE}/no-such-page`)
-
-    expect('caption' in chrome).toBe(true)
-    expect('hubHref' in chrome).toBe(true)
-  })
-
-  it('Should give a path outside every set the server-wide chrome', () => {
-    // Reading ambient context instead would answer with the sole mounted set
-    // here, and with whichever set happened to be ambient once a second
-    // mounted — a server-wide page wearing a set's chrome either way.
-    const chrome = chromeFor('any title', '/health')
-
-    expect(chrome.layout).toBe(SERVER_WIDE_LAYOUT)
-    expect('caption' in chrome).toBe(false)
-  })
-
-  it('Should give the server-wide chrome when there is no path to read', () => {
-    expect(chromeFor('any title').layout).toBe(SERVER_WIDE_LAYOUT)
   })
 })
 

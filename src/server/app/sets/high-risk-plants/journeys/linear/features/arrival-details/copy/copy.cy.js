@@ -36,6 +36,8 @@ export const copy = {
       inFuture: 'Ni all y dyddiad y cyrhaeddodd y llwyth fod yn y dyfodol'
     },
     arrivalTime: 'Rhowch yr amser cyrraedd disgwyliedig',
-    proposedPlaceOfLanding: 'Dewiswch y man glanio arfaethedig'
+    proposedPlaceOfLanding: 'Dewiswch y man glanio arfaethedig',
+    proposedPlaceOfLandingNoLongerAvailable:
+      "Nid yw'r man glanio a arbedwyd ar gael mwyach. Dewiswch borthladd o’r rhestr."
   }
 }

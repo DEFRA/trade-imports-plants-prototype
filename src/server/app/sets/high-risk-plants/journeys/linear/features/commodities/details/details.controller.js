@@ -39,7 +39,7 @@ import {
  */
 export const meta = { ...page, collects: [] }
 
-const view = `${TEMPLATES}/features/commodities/details/template`
+const view = `${TEMPLATES}/features/commodities/details/details`
 
 // The group's copy bundle: the vocabulary both pages render sits at its root,
 // this page's own wording under `details`.

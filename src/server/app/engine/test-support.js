@@ -18,6 +18,14 @@ export const authenticatedActor = Object.freeze({
   organisationId: '5900001'
 })
 
+export const registerTestSessionAuth = (server) => {
+  server.auth.scheme('test-session', () => ({
+    authenticate: (_request, h) =>
+      h.authenticated({ credentials: authenticatedCredentials })
+  }))
+  server.auth.strategy('session', 'test-session')
+}
+
 const stubResponse = (payload) => ({
   payload,
   code: (statusCode) => ({ payload, statusCode })

@@ -1,13 +1,12 @@
 /**
- * A further obligation set, defined only for tests.
+ * A second obligation set, defined only for tests.
  *
- * This repo is the prototype host, so it really does ship two sets —
- * high-risk-plants and sample-journey — and the root lists them rather than
- * redirecting to one. This fixture is mounted on top of those, as a THIRD set,
- * to keep the platform assertions readable: it is the smallest thing that
- * satisfies every configure* seam and mounts under its own prefix.
- *
- * It mirrors [`routes-high-risk-plants.js`](../../src/server/app/routes-high-risk-plants.js).
+ * Co-residency is a property of the platform, not of any particular set, so
+ * proving it needs two sets mounted in one process — but shipping a second
+ * real set would mean shipping a journey nobody asked for. This fixture is the
+ * smallest thing that satisfies every configure* seam and mounts under its own
+ * prefix, so the co-residency and tripwire suites can register it alongside
+ * high-risk-plants.
  *
  * Its routes deliberately echo the configuration they resolve rather than
  * render anything. A test asserting "this route saw its own set's obligations"
@@ -22,18 +21,15 @@ import {
   configureJourneyFlow,
   journeyEntryGuardTarget
 } from '../../src/server/app/flow/journey-flow.js'
+import { readyForCheckYourAnswers } from '../../src/server/app/flow/section-status.js'
 import { configureObligationSet } from '../../src/server/app/model/obligations/manifest.js'
 import { configureFulfilmentRegistry } from '../../src/server/app/bridge/fulfilment-registry.js'
 import { configureRecords } from '../../src/server/app/engine/persistence/records.js'
-import {
-  configureSession,
-  session
-} from '../../src/server/app/engine/persistence/session.js'
+import { configureSession } from '../../src/server/app/engine/persistence/session.js'
 import { configureAnswersForRead } from '../../src/server/app/bridge/answers-read.js'
 import { configureReadyForCheckYourAnswers } from '../../src/server/app/bridge/readiness-config.js'
-import { readyForCheckYourAnswers } from '../../src/server/app/flow/section-status.js'
-import { assertSetConfigured } from '../../src/server/app/set-completeness.js'
 import { registerJourneyCookie } from '../../src/server/app/engine/journey.js'
+import { assertSetConfigured } from '../../src/server/app/set-completeness.js'
 import {
   enterSetContext,
   registerSetMount,
@@ -46,16 +42,19 @@ import {
   dashboardRoutePath,
   hubRoutePath,
   pagePath,
-  pageRoutePath
+  pageRoutePath,
+  setBase
 } from '../../src/server/app/shared/paths.js'
+import { session } from '../../src/server/app/engine/persistence/session.js'
 import { obligations as obligationsOf } from '../../src/server/app/model/obligations/manifest.js'
+import { base } from '../../src/server/app/shared/kit.js'
 import { session as sessionStub } from '../../src/server/app/services/persistence/session/stub.js'
 
 export const SET_ID = 'sundry-goods'
 export const SET_BASE = `/${SET_ID}`
 
-/** Named so it cannot collide with any shipped set's feature name — the point
- * a per-set registry assertion turns on. */
+/** Named so it cannot collide with any high-risk-plants feature name — the
+ * point a per-set registry assertion turns on. */
 export const FEATURE_NAME = 'sundry-details'
 
 export const SESSION_COOKIE_NAMES = Object.freeze({
@@ -80,6 +79,23 @@ export const dispatchPages = [
 ]
 
 const sections = [{ id: 'details', pages: [detailsPage] }]
+
+/** The one journey id this set's guard turns away, mirroring the shipped set's
+ * deep-link guard without needing a journey's worth of state. */
+export const GUARDED_JOURNEY_ID = 'SUN-GUARDED'
+
+/**
+ * A guard that reads THIS set's configuration — `setBase()` resolves through
+ * the active set — on every request, so a gateway that forgot to re-enter its
+ * context around the guard fails here rather than quietly passing.
+ * `async () => null` would not.
+ */
+const entryGuardTarget = async (request) => {
+  const base = setBase()
+  return request.params?.journeyId === GUARDED_JOURNEY_ID
+    ? `${base}/notifications/${GUARDED_JOURNEY_ID}`
+    : null
+}
 
 /** The set's own in-memory records store, so nothing is shared with any other
  * set by accident — the point most of these tests are making. */
@@ -123,6 +139,12 @@ const createRecordsStub = () => {
 
 export const records = createRecordsStub()
 
+/** A route shape whose handler renders a real Nunjucks view, so the marshal
+ * step — which runs after the handler has returned — has to resolve this set
+ * for itself. Every other route here echoes JSON and never reaches a template. */
+export const RENDERED_ROUTE_PATH = '/rendered'
+export const RENDERED_TITLE = 'Sundry goods rendered'
+
 /** Reports which set answered, and with whose configuration — the two facts
  * every co-residency assertion turns on. */
 const whoAnswered = () => ({
@@ -164,24 +186,34 @@ export const routes = [
     method: 'POST',
     path: createRoutePath(),
     options: { auth: false },
+    // Writes the known-journey cookie through the session seam, the way the
+    // shipped gateway's `startJourney` does, so the response carries a
+    // Set-Cookie a browser (and the cookie jar in co-residency.test.js) can
+    // read back.
     handler: async (request, h) => {
       const journey = await records.create()
-      // A shipped gateway starts a journey through the engine, which records it
-      // in the session. Without this the set issues no journey cookie at all,
-      // and a test asserting the cookie does not cross into another set would
-      // pass on an empty jar.
       await session.addKnownJourney(request, h, journey.journeyId)
       return h.redirect(pagePath(journey.journeyId, detailsPage.slug))
     }
+  },
+  {
+    method: 'GET',
+    path: RENDERED_ROUTE_PATH,
+    options: { auth: false },
+    handler: (_request, h) =>
+      h.view('shared/error', {
+        ...base(RENDERED_TITLE),
+        heading: RENDERED_TITLE,
+        message: dashboardPath()
+      })
   }
 ]
 
 /**
- * Mirrors routes-high-risk-plants.js: mount registration, a sandboxed
- * onPreAuth to enter the set context, every seam configured with this set's
- * id, per-set cookies scoped to the set base, a sandboxed entry guard wrapped
- * in its own set context, routes wrapped so handlers run inside the context,
- * and the completeness gate as its last act.
+ * Mirrors routes-high-risk-plants.js: mount registration, a sandboxed onPreAuth to
+ * enter the set context, every seam configured with this set's id, per-set
+ * cookies scoped to the set base, a sandboxed entry guard, routes wrapped so
+ * handlers run inside the context, and the completeness gate as its last act.
  */
 export const secondSet = {
   plugin: {
@@ -214,7 +246,7 @@ export const secondSet = {
           rowStatus: () => 'notStarted',
           nextRunTarget: () => null,
           flowOnlyKeys: [],
-          entryGuardTarget: async () => null,
+          entryGuardTarget,
           layout: 'shared/layout.njk'
         })
         buildDispatch(SET_ID, dispatchPages)
@@ -236,6 +268,9 @@ export const secondSet = {
           { sandbox: 'plugin' }
         )
         server.route(routes.map((route) => routeWithSetContext(SET_ID, route)))
+        // Last act of the registration, exactly as the shipped gateway does it:
+        // this fixture is the co-residency suite's second set, and a seam it
+        // quietly stopped configuring would otherwise be read as a fallback.
         assertSetConfigured(server, SET_ID)
       })
     }

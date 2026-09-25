@@ -17,9 +17,8 @@ import { SESSION_COOKIE_NAMES } from '../../../sets/high-risk-plants/journeys/li
 const DECLARATION_CONFIRMED = 'confirmed'
 
 // The seam under test, configured the way the gateway configures it. Without
-// this the accessors answer the shared UNCONFIGURED defaults, and every
-// assertion below would hold just as well if this set's names were wired to
-// another set.
+// this the accessors answer the shared defaults, and every assertion below
+// would hold just as well if high-risk-plants' names were wired to another set.
 beforeAll(() => {
   configureSession(SET_ID, session, SESSION_COOKIE_NAMES)
 })

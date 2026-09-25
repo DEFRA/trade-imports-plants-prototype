@@ -13,6 +13,7 @@ import { config } from '../config/config.js'
 import { isStubMode } from './common/services/mode.js'
 import { pulse } from './common/helpers/pulse.js'
 import { catchAll } from './common/helpers/errors.js'
+import { setContextExtension } from './app/shared/set-context.js'
 import { nunjucksConfig } from '../config/nunjucks/nunjucks.js'
 import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
 import { requestTracing } from './common/helpers/request-tracing.js'
@@ -86,6 +87,12 @@ export async function createServer() {
     cache: config.get('session.cache.name'),
     expiresIn: config.get('session.cache.ttl')
   })
+
+  // Server-wide, and before routing: every request under a set's mount runs in
+  // that set's context from here on, whether or not it reaches a set route.
+  // Without it a 404 under a set's mount has no set at all, because no route
+  // matched and so no set's own `onPreAuth` ran.
+  server.ext(setContextExtension)
 
   server.ext('onPreResponse', catchAll)
 

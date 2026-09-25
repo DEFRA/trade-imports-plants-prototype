@@ -46,11 +46,15 @@ code.
 
 ## Composition is explicit
 
-[`src/server/app/routes.js`](../routes.js) is allowed to know which set and journey
-exist. Model, bridge, engine and flow accept their concrete policy through
-`configureObligationSet`, `configureFulfilmentRegistry`, `configureJourneyFlow`,
-`configureReadyForCheckYourAnswers`, `configureAnswersForRead`, `configureRecords`
-and `configureSession`.
+A set's own gateway — today
+[`routes-high-risk-plants.js`](../routes-high-risk-plants.js), re-exported by the
+[`routes.js`](../routes.js) barrel and mounted by
+[`src/server/router.js`](../../router.js) — is allowed to know which set and
+journey exist. Model, bridge, engine and flow accept their concrete policy,
+keyed by set id, through `configureObligationSet`,
+`configureFulfilmentRegistry`, `configureJourneyFlow`,
+`configureReadyForCheckYourAnswers`, `configureAnswersForRead`,
+`configureRecords` and `configureSession`.
 
 Injection is what keeps the bridge from reaching up into flow.
 `configureReadyForCheckYourAnswers` hands it the task-row roll-up from

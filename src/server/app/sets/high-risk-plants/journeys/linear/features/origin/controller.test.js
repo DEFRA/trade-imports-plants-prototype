@@ -129,6 +129,47 @@ describe('GET origin', () => {
   })
 })
 
+describe('GET origin — amend with a stored country the reader no longer offers', () => {
+  beforeAll(installStubs)
+  beforeEach(() => store.clear())
+
+  it('Should blank the country in values so the select renders unselected', async () => {
+    const result = await driveHandler(get, {
+      seed: { countryOfOrigin: UNOFFERED_COUNTRY }
+    })
+
+    expect(result.view.context.values).toEqual({ countryOfOrigin: '' })
+  })
+
+  it('Should not surface the stale code in the option list', async () => {
+    const result = await driveHandler(get, {
+      seed: { countryOfOrigin: UNOFFERED_COUNTRY }
+    })
+
+    const offered = result.view.context.countryItems.map(({ value }) => value)
+    expect(offered).not.toContain(UNOFFERED_COUNTRY)
+  })
+
+  it('Should surface a country-no-longer-available error on the country field', async () => {
+    const result = await driveHandler(get, {
+      seed: { countryOfOrigin: UNOFFERED_COUNTRY }
+    })
+
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      'The saved country is no longer available. Select a country from the list.'
+    )
+  })
+
+  it('Should leave the stored country intact — GET only reshapes what the page renders', async () => {
+    const result = await driveHandler(get, {
+      seed: { countryOfOrigin: UNOFFERED_COUNTRY }
+    })
+
+    expect(result.before.countryOfOrigin).toBe(UNOFFERED_COUNTRY)
+    expect(result.after.countryOfOrigin).toBe(UNOFFERED_COUNTRY)
+  })
+})
+
 describe('GET origin — the ware-potato scope guidance', () => {
   beforeAll(installStubs)
   beforeEach(() => store.clear())

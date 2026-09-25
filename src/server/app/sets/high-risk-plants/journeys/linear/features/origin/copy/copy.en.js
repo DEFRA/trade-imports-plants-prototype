@@ -23,6 +23,8 @@ export const copy = {
   },
   errors: {
     countryRequired: 'Select the country where the consignment originates from',
+    countryNoLongerAvailable:
+      'The saved country is no longer available. Select a country from the list.',
     narrowing: {
       'ware-potatoes':
         'Select Poland, Portugal, Romania or Spain – ware potatoes from other countries do not need to be notified',

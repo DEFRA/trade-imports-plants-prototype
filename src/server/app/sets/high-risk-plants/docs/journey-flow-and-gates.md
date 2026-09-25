@@ -110,8 +110,9 @@ entry page is an ordinary page otherwise, with no opening-run special case.
 [`entry-guard.js`](../journeys/linear/flow/entry-guard.js) is **live**, keyed to
 the entry page `commodity-type`, whose identity it imports from
 [`features/commodity-type/page.js`](../journeys/linear/features/commodity-type/page.js).
-`routes.js` calls `entryGuardTarget` from `server.ext('onPreHandler')` and
-redirects on any target it returns. The guard:
+This set's gateway, `routes-high-risk-plants.js`, calls `entryGuardTarget` from a
+sandboxed `server.ext('onPreHandler')` — re-entering its own set context around
+the call — and redirects on any target it returns. The guard:
 
 - ignores anything outside `/notifications/<id>/`
 - ignores the create path
@@ -138,15 +139,17 @@ session sequences through `RUN_STEPS`.
 
 ## Registration wiring
 
-[`src/server/app/routes.js`](../../../routes.js) imports `sections`, `taskRows`,
-`rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`, `entryGuardTarget` and
-`sectionCaptionOf` (from
+This set's gateway,
+[`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
+(the [`routes.js`](../../../routes.js) barrel only re-exports it), imports
+`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`,
+`entryGuardTarget` and `sectionCaptionOf` (from
 [`flow/section-captions/index.js`](../journeys/linear/flow/section-captions/index.js)),
 then passes them to
 [`configureJourneyFlow()`](../../../flow/journey-flow.js), along with the
 journey's `LAYOUT` from [`config.js`](../journeys/linear/config.js).
 
-Because `routes.js` injects the whole exported arrays, adding an entry to the
+Because `routes-high-risk-plants.js` injects the whole exported arrays, adding an entry to the
 existing `sections` or `taskRows` needs no extra L1 registration. A new feature
 still needs controller and binding registration in the journey barrels.
 
@@ -155,7 +158,7 @@ still needs controller and binding registration in the journey barrels.
 [`flow/section-captions/index.js`](../journeys/linear/flow/section-captions/index.js)
 owns the map, with its own `copy.en.js`/`copy.cy.js` pair beside it, and
 `sectionCaption` is passed in the `configureJourneyFlow` call in **both**
-[`routes.js`](../../../routes.js) and the test fixture at
+[`routes-high-risk-plants.js`](../../../routes-high-risk-plants.js) and the test fixture at
 `test/fixtures/index.js`. The fixture keeps a synthetic map of its own so the
 engine suite stays journey-neutral; it never imports this set.
 

@@ -1,0 +1,119 @@
+{
+  "deleted": [
+    ".claude/hooks/sonar-secrets/**",
+    ".claude/sonar-analyze.sh",
+    ".github/dependabot.yml",
+    ".github/workflows/cleanup-e2e-reports.yml",
+    ".github/workflows/e2e-tests.yml",
+    ".github/workflows/lighthouse.yml",
+    ".github/workflows/publish-branch.yml",
+    ".mcp.json",
+    ".sonarcloud.properties",
+    ".sonarlint/**",
+    "lighthouserc.cjs",
+    "scripts/check-workspace-stack.js",
+    "scripts/lighthouse/**",
+    "sonar-project.properties"
+  ],
+  "ours": [
+    "overrides.json",
+    "scripts/sync-upstream/**",
+    "src/prototype-defaults.js",
+    "src/prototype-defaults.test.js",
+    "src/server/prototype-sets/**",
+    "src/server/app/routes-sample-journey.js",
+    "src/server/app/sets/sample-journey/**",
+    "src/server/app/sets-index/**",
+    "src/server/sets-index/**",
+    "fit/sets-chooser.fit.spec.js",
+    ".github/workflows/check-pull-request.yml",
+    ".github/workflows/publish.yml",
+    ".github/workflows/publish-hotfix.yml",
+    ".github/workflows/sync-upstream.yml",
+    "src/server/prototype-seed/**",
+    "scripts/new-set/**",
+    "PROTOTYPE.md"
+  ],
+  "patched": [
+    {
+      "path": "src/index.js",
+      "why": "loads prototype-defaults.js before anything else runs"
+    },
+    {
+      "path": "src/index.test.js",
+      "why": "stubs the prototype-defaults import so the boot tests stay about start-up"
+    },
+    {
+      "path": "src/server/common/services/mode.js",
+      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. isStubMode() is untouched, so sign-in (server.js, plugins/auth.js) follows plants-frontend exactly. Covered by src/server/prototype-sets/production-run.test.js"
+    },
+    {
+      "path": "src/server/app/services/persistence/records/index.js",
+      "why": "picks the stub records store with isStubDataMode() in place of isStubMode(), so production keeps stub records"
+    },
+    {
+      "path": "src/server/app/services/address-book/index.js",
+      "why": "picks the stub address book with isStubDataMode() in place of isStubMode(), so production keeps the stub book"
+    },
+    {
+      "path": "src/server/app/services/countries/index.js",
+      "why": "serves the stub countries with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+    },
+    {
+      "path": "src/server/app/services/ports/index.js",
+      "why": "serves the stub ports with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+    },
+    {
+      "path": "src/config/config.js",
+      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: the Defra ID service id default and the development auth cookie name"
+    },
+    {
+      "path": "src/config/config.test.js",
+      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in"
+    },
+    {
+      "path": "src/server/router.js",
+      "why": "registers prototype-sets (the sample-journey set and the chooser at /) in place of the redirect to the default set, inside the same auth.enabled gate"
+    },
+    {
+      "path": "src/server/app/routes.test.js",
+      "why": "a second set is mounted, so seam reads name their set; / lists the sets rather than redirecting"
+    },
+    {
+      "path": "src/server/app/co-residency.test.js",
+      "why": "sample-journey routes are excluded from the root-surface list, the chooser's /reset/{setId} joins it, and / lists the sets rather than redirecting"
+    },
+    {
+      "path": "README.md",
+      "why": "prototype identity and port 3103; Lighthouse, SonarCloud and workspace-stack sections trimmed"
+    },
+    {
+      "path": "Dockerfile",
+      "why": "default port is 3103"
+    },
+    {
+      "path": "package.json",
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts; scripts and dependencies otherwise follow upstream"
+    },
+    {
+      "path": "package-lock.json",
+      "why": "the name lines only; take upstream's and regenerate with npm 11.6.2 --package-lock-only"
+    },
+    {
+      "path": "NOTICE",
+      "why": "the product name line diverges from upstream"
+    },
+    {
+      "path": ".gitignore",
+      "why": "lighthouse ignore entries were trimmed; everything else keeps tracking upstream"
+    },
+    {
+      "path": "scripts/npm-version.js",
+      "why": "its doc comment names the prototype workflows that still pin npm with it (plants-frontend's no longer do)"
+    },
+    {
+      "path": "playwright.config.js",
+      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty"
+    }
+  ]
+}

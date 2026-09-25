@@ -22,8 +22,9 @@ Platform services are:
 - [`ports`](../services/ports/index.js)
 - [`address-book`](../services/address-book/index.js)
 
-Countries and ports expose `prime()` operations. `routes.js` primes them when the
-application runs in real mode, before Hapi routes are registered.
+Countries and ports expose `prime()` operations. The set's gateway
+(`routes-<set-id>.js`, re-exported by the `routes.js` barrel) primes them when
+the application runs in real mode, before Hapi routes are registered.
 
 The reason-for-import/purpose service and the transport and transporter services
 were removed because the high-risk-plants journey asks no such question:
@@ -51,3 +52,20 @@ See [Persistence](persistence.md).
 Reference data that only makes sense for one obligation set belongs to that set.
 The high-risk-plants commodities service is documented in the
 [high-risk-plants services guide](../sets/high-risk-plants/docs/services.md).
+
+## Configuration
+
+| Convict key                            | Env var                            | Default                 |
+| -------------------------------------- | ---------------------------------- | ----------------------- |
+| `tradeImportsPlantsBackendApi.baseUrl` | `TRADE_IMPORTS_PLANTS_BACKEND_URL` | `http://localhost:8091` |
+| `tradeImportsReferenceDataApi.baseUrl` | `TRADE_IMPORTS_REFERENCE_DATA_URL` | `http://localhost:8086` |
+| `tradeImportsInsFrontend.baseUrl`      | `TRADE_IMPORTS_INS_FRONTEND_URL`   | `http://localhost:3002` |
+
+There is deliberately no `tradeImportsAddressBookApi` row: this service reads
+`TRADE_IMPORTS_ADDRESS_BOOK_URL` directly from `process.env` rather than
+through convict (see
+[`services/address-book/client.js`](../services/address-book/client.js)).
+
+The last row is browser-visible (the service navigation's Address book link),
+so under the workspace stack it stays `localhost` while the backend API URLs
+use `host.docker.internal`.

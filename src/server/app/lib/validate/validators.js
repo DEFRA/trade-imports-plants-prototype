@@ -89,6 +89,22 @@ export const requiredMaxText = (name, max, messages) =>
       })
   )
 
+export const requiredEmail = (name, max, messages) =>
+  single(
+    name,
+    Joi.string()
+      .trim()
+      .required()
+      .max(max)
+      .email({ tlds: { allow: false } })
+      .messages({
+        'string.empty': messages.required,
+        'any.required': messages.required,
+        'string.max': messages.maxLength ?? defaults.maxLength(max),
+        'string.email': messages.format
+      })
+  )
+
 export const pattern = (name, regex, message) =>
   single(
     name,

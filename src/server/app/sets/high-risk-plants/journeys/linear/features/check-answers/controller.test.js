@@ -132,6 +132,17 @@ describe('Check your answers', () => {
     })
   })
 
+  it('Should render the raw ISO code in the origin row when the stored country is no longer offered by the origin block', async () => {
+    const UNOFFERED_COUNTRY = 'ZZ'
+    const result = await driveHandler(get, {
+      seed: { ...COMPLETE_NOTIFICATION, countryOfOrigin: UNOFFERED_COUNTRY }
+    })
+
+    expect(cardsOf(result)[0].rows[1]).toMatchObject({
+      value: { text: UNOFFERED_COUNTRY }
+    })
+  })
+
   it('Should refuse Continue for a removed address-book reference', async () => {
     vi.spyOn(addressBook, 'party').mockResolvedValue(undefined)
     const result = await driveHandler(post, { seed: COMPLETE_NOTIFICATION })

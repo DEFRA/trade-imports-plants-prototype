@@ -8,6 +8,8 @@ import {
   replaceJourneyFulfilment,
   flowOnlyAnswersCookie,
   knownJourneysCookie,
+  openingRunCookie,
+  registerJourneyCookie,
   softDeleteJourney,
   startJourney
 } from './journey.js'
@@ -25,6 +27,7 @@ import {
 import { obligationSet } from '../model/obligations/manifest.js'
 import {
   FLOW_ONLY_KEY,
+  SET_BASE,
   SET_ID,
   VALUE_ONE,
   VALUE_TWO
@@ -313,5 +316,35 @@ describe('#replaceJourneyFulfilment', () => {
     // from the memo, which must now carry the freshly-saved value (5), not
     // the pre-save one (4).
     expect(tokensSeen).toEqual([4, 5])
+  })
+})
+
+describe('#registerJourneyCookie', () => {
+  /** Records what Hapi would have been told to register. */
+  const recordingServer = () => {
+    const states = {}
+    return { states, state: (name, options) => (states[name] = options) }
+  }
+
+  it('Should scope every journey cookie to the set’s registered mount', () => {
+    configureSession(SET_ID, sessionStub)
+    const server = recordingServer()
+
+    registerJourneyCookie(server)
+
+    expect(Object.keys(server.states).toSorted()).toEqual(
+      [
+        knownJourneysCookie(),
+        openingRunCookie(),
+        flowOnlyAnswersCookie()
+      ].toSorted()
+    )
+    // The path comes from the registered mount, so a cookie cannot be
+    // registered at the root or under another set's prefix.
+    for (const [name, options] of Object.entries(server.states)) {
+      expect(options.path, `${name} is not scoped to the set base`).toBe(
+        SET_BASE
+      )
+    }
   })
 })

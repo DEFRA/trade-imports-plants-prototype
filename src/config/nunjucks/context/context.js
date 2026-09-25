@@ -33,8 +33,6 @@ let webpackManifest
  * request is under none of them.
  */
 export function activeNavigationItem(requestPath = '') {
-  // A server-wide page — the chooser at `/`, `/signout`, the sign-in error
-  // page — belongs to no set, so no set's navigation item is active on it.
   // Asking `inDashboardSection` there would throw for want of a set.
   if (!hasSetContext()) {
     return null
@@ -42,38 +40,8 @@ export function activeNavigationItem(requestPath = '') {
   return inDashboardSection(requestPath) ? 'dashboard' : null
 }
 
-/**
- * Where the service navigation's Dashboard item points. Inside a set that is
- * the set's own dashboard, so the item leads back to the journey the reader is
- * in rather than to the chooser; a server-wide page has no set, so it falls
- * back to `/`.
- *
- * @returns {string} the dashboard href for the current request.
- */
-export function dashboardHref() {
-  return hasSetContext() ? dashboardPath() : '/'
-}
-
-/**
- * Read a set-owned fact for the request being rendered.
- *
- * The view is rendered after the response is built, and the store the gateway
- * entered at `onPreAuth` has not always survived that far — with one set
- * mounted the sole-set fallback hides it, with two the set simply cannot be
- * resolved. The request path still carries the mount prefix, so match it
- * against the registered mounts and read inside that set.
- *
- * @param {string} requestPath - the request path.
- * @param {Function} read - the set-owned read.
- * @returns {*} whatever `read` returns.
- */
-const inSetOfRequest = (requestPath, read) => {
-  if (hasSetContext()) {
-    return read()
-  }
-  const setId = setIdForPath(requestPath)
-  return setId ? withSetContext(setId, read) : read()
-}
+const insAddressBookUrl = () =>
+  `${config.get('tradeImportsInsFrontend.baseUrl').replace(/\/$/, '')}/address-book`
 
 async function context(request) {
   if (!webpackManifest) {
@@ -91,16 +59,25 @@ async function context(request) {
     ? await request.server.app.cache.get(sessionId)
     : null
 
+  // Resolved from the path, not from an ambient context: the view is marshalled
+  // after the handler has returned, so a set's own `enterWith` may already have
+  // gone by the time this global context is built.
+  const setId = setIdForPath(request.path)
+
   return {
     assetPath: `${assetPath}/assets`,
     serviceName: config.get('serviceName'),
     serviceUrl: '/',
-    dashboardHref: inSetOfRequest(request.path, dashboardHref),
     authEnabled: config.get('auth.enabled'),
     staleActionRejected: request.query?.staleAction === '1',
-    activeNavigationItem: inSetOfRequest(request.path, () =>
-      activeNavigationItem(request.path)
-    ),
+    // The chrome's home link for every rendered page, so a view built without
+    // kit.base() still links back into its own set. kit.base() supplies the
+    // same key, and a view's own context wins.
+    homeUrl: setId ? withSetContext(setId, dashboardPath) : '/',
+    activeNavigationItem: setId
+      ? withSetContext(setId, () => activeNavigationItem(request.path))
+      : null,
+    addressBookUrl: insAddressBookUrl(),
     userSession: authData
       ? {
           isAuthenticated: true,

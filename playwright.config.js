@@ -25,7 +25,10 @@ export default defineConfig({
   projects: [
     {
       name: 'journeys',
-      testMatch: '**/journey-smoke.fit.spec.js',
+      // Journey smoke and the sets-chooser boot check both live directly
+      // under ./fit and need the same baseURL - the features project below
+      // covers the per-feature specs nested under each set.
+      testMatch: '**/*.fit.spec.js',
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://localhost:${port}`,
@@ -62,7 +65,7 @@ export default defineConfig({
       // The service default is real; this suite runs against stub data and a
       // locally signed session, so it opts in explicitly here. Auth stays
       // enforced either way (see server/auth/stub-sign-in.js).
-      env: { PORT: String(port), STUB_MODE: 'true' },
+      env: { PORT: String(port), STUB_MODE: 'true', PROTOTYPE_SEED: 'false' },
       timeout: 180_000,
       reuseExistingServer: false
     }

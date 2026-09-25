@@ -1,8 +1,6 @@
 # trade-imports-plants-prototype
 
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_trade-imports-plants-prototype&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DEFRA_trade-imports-plants-prototype)
+New here? [PROTOTYPE.md](PROTOTYPE.md) is written for designers — running it, what a set is, adding one, and how syncing with the real service works.
 
 The frontend for the high-risk plants import notification journey. It runs on
 the same obligation and journey platform as the live-animals frontend: a
@@ -37,16 +35,13 @@ Deployed end-to-end tests for this service live in the shared tests repository
 - [Local development](#local-development)
 - [Auth](#authentication-trade-imports-defra-id-stub)
 - [Docker](#docker)
-- [Lighthouse](#lighthouse)
-- [SonarCloud](#sonarcloud)
 - [Licence](#licence)
 
 ## Requirements
 
 ### Node.js
 
-Node 24 or later, and npm 11.6.2 — the version pinned by `packageManager` in
-`package.json`. An ambient npm older than that rejects the lockfile.
+Node 24 or later, and npm 11.6.2 or later — the floor in `engines`.
 
 To use the correct version of Node.js for this application, via nvm:
 
@@ -104,6 +99,12 @@ Install application dependencies:
 npm install
 ```
 
+### Git hooks
+
+`npm install` installs the pre-commit hook — `postinstall` runs
+`npm run setup:husky`. The hook runs `npm run git:pre-commit-hook`: format
+check, lint and the unit suite.
+
 ### Development
 
 To run the application in `development` mode:
@@ -112,7 +113,7 @@ To run the application in `development` mode:
 npm run dev
 ```
 
-It serves on port 3003.
+It serves on port 3103.
 
 ### Production
 
@@ -139,13 +140,8 @@ PORT=3053 npm run test:fit:features
 npm run test:fit:journeys
 npm run lint                    # JS, stylesheet and dependency-cruiser
 npm run format
-npm run fit:start:workspace     # the workspace-backed start, see below
 ```
 
-`npm run fit:start:workspace` is `fit:start` with
-[scripts/check-workspace-stack.js](./scripts/check-workspace-stack.js) chained
-ahead of it, so a run against the workspace stack refuses to start when the
-stack is down instead of failing later with confusing errors. Plain
 `npm run fit:start` — the one the Playwright web server uses — stays
 stub-backed and needs no stack.
 
@@ -195,7 +191,7 @@ docker build --target development --no-cache --tag trade-imports-plants-prototyp
 Run:
 
 ```bash
-docker run -p 3003:3003 trade-imports-plants-prototype:development
+docker run -p 3103:3103 trade-imports-plants-prototype:development
 ```
 
 ### Production image
@@ -209,7 +205,7 @@ docker build --no-cache --tag trade-imports-plants-prototype .
 Run:
 
 ```bash
-docker run -p 3003:3003 trade-imports-plants-prototype
+docker run -p 3103:3103 trade-imports-plants-prototype
 ```
 
 ### Local stack
@@ -230,21 +226,6 @@ A cross-repo change must use the **same branch name** in every repository it
 touches: the stack probes each repository for a branch-tagged image and falls
 back to `:latest` per service, so a mismatched name silently picks up someone
 else's image.
-
-## Lighthouse
-
-`npm run lighthouse` seeds its audit targets from the app's own registered
-routes, then runs Lighthouse CI against them.
-
-The set registers journey pages, which supply the derived audit URL list. The
-[Lighthouse guide](src/server/app/sets/high-risk-plants/docs/lighthouse.md)
-covers what each page increment adds, the score floors and the contribution
-steps.
-
-## SonarCloud
-
-Instructions for setting up SonarCloud are in
-[sonar-project.properties](./sonar-project.properties).
 
 ## Licence
 

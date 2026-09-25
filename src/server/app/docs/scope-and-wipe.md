@@ -25,8 +25,8 @@ implications into path keys used by controllers. The returned object contains:
 - `readyForCheckYourAnswers`, read from the injected readiness seam
 
 The readiness seam is
-[`bridge/readiness-config.js`](../bridge/readiness-config.js). `routes.js`
-injects the task-row roll-up from
+[`bridge/readiness-config.js`](../bridge/readiness-config.js). The set's gateway,
+`routes-high-risk-plants.js`, injects the task-row roll-up from
 [`flow/section-status.js`](../flow/section-status.js) at boot. Unconfigured, the
 seam is fail-closed.
 

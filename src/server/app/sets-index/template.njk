@@ -1,17 +1,50 @@
 {# Lives here, apart from its controller in src/server/sets-index/, because src/config/nunjucks/nunjucks.js resolves Vision's view root at server/app. #}
 {% extends 'shared/layout.njk' %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
 
 {% set mainClasses = "govuk-main-wrapper--l" %}
 
 {% block journeyContent %}
+  {% if resetBanner %}
+    {{ govukNotificationBanner({
+      type: "success",
+      titleText: "Success",
+      text: "The data in " + resetBanner.setText + " has been reset.",
+      role: "alert"
+    }) }}
+  {% endif %}
+
   <h1 class="govuk-heading-l">{{ heading }}</h1>
   <p class="govuk-body">{{ body }}</p>
 
-  <ul class="govuk-list">
-    {% for set in sets %}
-      <li>
-        <a class="govuk-link" href="{{ set.href }}">{{ set.text }}</a>
-      </li>
-    {% endfor %}
-  </ul>
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <ul class="govuk-list">
+        {% for set in sets %}
+          <li class="govuk-!-margin-bottom-6">
+            <h2 class="govuk-heading-m govuk-!-margin-bottom-1">
+              <a class="govuk-link" href="{{ set.href }}">{{ set.text }}</a>
+            </h2>
+            {% if set.description %}
+              <p class="govuk-body">{{ set.description }}</p>
+            {% endif %}
+            {% if canReset %}
+              <form method="post" action="{{ set.resetAction }}" novalidate>
+                <input type="hidden" name="crumb" value="{{ crumb }}" />
+                {{ govukButton({
+                  text: "Reset this prototype’s data",
+                  classes: "govuk-button--secondary govuk-!-margin-bottom-0"
+                }) }}
+              </form>
+            {% else %}
+              <p class="govuk-body govuk-!-margin-bottom-0">
+                Sign in to reset this prototype’s data.
+              </p>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
 {% endblock %}
