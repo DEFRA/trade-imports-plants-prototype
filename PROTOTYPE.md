@@ -52,6 +52,18 @@ always the chooser.
   trader would see it — each organisation only ever sees its own
   notifications.
 
+The chooser and every set sit behind sign-in, just as the real service's
+pages do. Sign-in is on unless someone sets `AUTH_ENABLED=false`; with it
+off, `/` and every set disappear. Leave it unset.
+
+## Known gaps
+
+- **The "Address book" link in the header goes nowhere.** The real service
+  sends it to a separate service (the Import Notification Service
+  frontend), which this prototype doesn't run. Locally it points at
+  `http://localhost:3002`, and a deployed prototype will point there too
+  unless its environment sets `TRADE_IMPORTS_INS_FRONTEND_URL`.
+
 ## Adding a set
 
 Run:

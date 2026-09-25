@@ -11,7 +11,7 @@
  * registry, so the install would succeed and CI would carry on with whatever
  * npm it already had.
  *
- * Consumed by .github/workflows/{check-pull-request,publish,sync-upstream}.yml.
+ * Consumed by .github/workflows/{check-pull-request,publish,publish-hotfix,sync-upstream}.yml.
  */
 
 import { readFileSync } from 'node:fs'

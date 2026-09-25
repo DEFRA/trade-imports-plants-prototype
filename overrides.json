@@ -54,7 +54,7 @@
     },
     {
       "path": "src/config/config.js",
-      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: service id, Redis key prefix and the development auth cookie name"
+      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: service id, Redis key prefix and the development auth cookie name, and the stubMode doc says stub mode is honoured in production (see mode.js)"
     },
     {
       "path": "src/config/config.test.js",
@@ -106,7 +106,7 @@
     },
     {
       "path": "package.json",
-      "why": "name is prototype identity and the sync:upstream script; scripts and dependencies otherwise follow upstream"
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts; scripts and dependencies otherwise follow upstream"
     },
     {
       "path": "package-lock.json",
