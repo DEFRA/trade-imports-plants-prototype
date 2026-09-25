@@ -106,4 +106,60 @@ test.describe('sets chooser', () => {
       })
     }
   })
+
+  test('moving between prototypes from the chooser', async ({ page }) => {
+    const health = trackPageHealth(page)
+
+    const homeResponse = await page.goto('/')
+    expect(homeResponse?.ok()).toBe(true)
+    await page.waitForLoadState('networkidle')
+    health.assertHealthy()
+    await assertGovukStylesApplied(page)
+    health.reset()
+
+    const sets = await chooserRows(page)
+    expect(sets.length).toBeGreaterThan(1)
+
+    const chooserHeading = page.getByRole('heading', { level: 1 })
+    const chooserHeadingText = (await chooserHeading.innerText()).trim()
+
+    const openSetFromChooser = async (set) => {
+      await page.getByRole('link', { name: set.text, exact: true }).click()
+      const heading = page.getByRole('heading', { level: 1 })
+      await expect(heading).toBeVisible()
+      await expect(heading).not.toHaveText(chooserHeadingText)
+      await expect(heading).not.toHaveText(/^\d+$/)
+      await page.waitForLoadState('networkidle')
+      health.assertHealthy()
+      await assertGovukStylesApplied(page)
+      health.reset()
+    }
+
+    const returnToChooser = async () => {
+      await page.goBack()
+      await expect(chooserHeading).toHaveText(chooserHeadingText)
+      await page.waitForLoadState('networkidle')
+      health.assertHealthy()
+      await assertGovukStylesApplied(page)
+      health.reset()
+    }
+
+    for (let index = 0; index < sets.length - 1; index++) {
+      const [first, second] = [sets[index], sets[index + 1]]
+
+      await test.step(`${first.text} then ${second.text}`, async () => {
+        await openSetFromChooser(first)
+        await returnToChooser()
+        await openSetFromChooser(second)
+        await returnToChooser()
+      })
+
+      await test.step(`${second.text} then ${first.text}`, async () => {
+        await openSetFromChooser(second)
+        await returnToChooser()
+        await openSetFromChooser(first)
+        await returnToChooser()
+      })
+    }
+  })
 })
