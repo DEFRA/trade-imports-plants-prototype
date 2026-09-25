@@ -3,6 +3,21 @@ import { createSeedClient } from './http-client.js'
 import { resolveFields } from './resolve-fields.js'
 import { HIGH_RISK_PLANTS_SCENARIOS } from './scenarios.js'
 
+/**
+ * Who the seeded notifications were written by. The journey records its
+ * actor on every write and reads the signed-in organisation on the
+ * dashboard, so the seed needs an identity of its own, but the data it
+ * writes is shared: every signed-in user sees it (see
+ * `adopt-known-journeys.js`).
+ */
+const EXAMPLE_DATA_AUTHOR_ID = 'prototype-example-data'
+const EXAMPLE_DATA_AUTHOR = Object.freeze({
+  contactId: EXAMPLE_DATA_AUTHOR_ID,
+  name: 'Example data',
+  organisationId: EXAMPLE_DATA_AUTHOR_ID,
+  currentRelationshipId: EXAMPLE_DATA_AUTHOR_ID
+})
+
 const HTTP_STATUS_FOUND = 302
 const CREATE_URL = `${SET_BASE}/notifications`
 const CHECK_ANSWERS_SLUG = 'notification-view'
@@ -76,20 +91,19 @@ const runScenario = async (client, scenario) => {
 }
 
 /**
- * Seeds the high-risk-plants set's example notifications for one
- * organisation, signed in as it the same way `fit/sign-in.js` does.
+ * Seeds the high-risk-plants set's shared example notifications.
+ *
+ * The seed authenticates as `EXAMPLE_DATA_AUTHOR` directly (see
+ * `http-client.js`) instead of going through a sign-in route, so it runs the
+ * same whether the server signs people in with stub sign-in or with Defra ID.
  *
  * @param {import('@hapi/hapi').Server} server
- * @param {string} organisationId
  * @returns {Promise<string[]>} the seeded notifications' reference numbers.
  */
-export const seedHighRiskPlantsFor = async (server, organisationId) => {
-  const client = createSeedClient(server)
-  await client.get(
-    `/auth/stub-sign-in?organisationId=${encodeURIComponent(organisationId)}`
-  )
-  // A GET before any POST, to confirm the session actually signed in and
-  // rendered this set's dashboard before the seed starts writing to it.
+export const seedHighRiskPlants = async (server) => {
+  const client = createSeedClient(server, { credentials: EXAMPLE_DATA_AUTHOR })
+  // A GET before any POST: it renders this set's dashboard, which also hands
+  // the client the CSRF crumb every POST below carries.
   await client.get(SET_BASE)
 
   const journeyIds = []

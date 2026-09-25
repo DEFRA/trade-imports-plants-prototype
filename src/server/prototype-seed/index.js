@@ -1,8 +1,9 @@
+import process from 'node:process'
+
 import { records } from '../app/engine/persistence/records.js'
 import { withSetContext } from '../app/shared/set-context.js'
-import { PROTOTYPE_ORGANISATIONS } from '../prototype-sets/organisations.js'
-import { seedHighRiskPlantsFor } from './seed-high-risk-plants.js'
-import { clearSeededForOrganisation, recordSeeded } from './registry.js'
+import { seedHighRiskPlants } from './seed-high-risk-plants.js'
+import { clearSeeded, recordSeeded } from './registry.js'
 
 /**
  * Every set with example data to seed, by set id.
@@ -11,23 +12,29 @@ import { clearSeededForOrganisation, recordSeeded } from './registry.js'
  * one page never calls `records.create()`, so there is nothing for it to
  * seed — see PROTOTYPE.md.
  */
-const SEEDERS = { 'high-risk-plants': seedHighRiskPlantsFor }
+const SEEDERS = { 'high-risk-plants': seedHighRiskPlants }
 
 export { seededIdsFor } from './registry.js'
 
-const seedSetForEveryOrganisation = async (server, setId) => {
-  const seeder = SEEDERS[setId]
-  for (const { id: organisationId } of PROTOTYPE_ORGANISATIONS) {
-    const journeyIds = await seeder(server, organisationId)
-    recordSeeded(setId, organisationId, journeyIds)
+/**
+ * Seeding is on unless `PROTOTYPE_SEED=false`. The FIT web server sets that,
+ * because every FIT spec expects its own dashboard to start empty and runs in
+ * parallel with the others.
+ */
+export const isSeedingEnabled = () => process.env.PROTOTYPE_SEED !== 'false'
+
+const seedSet = async (server, setId) => {
+  if (!isSeedingEnabled()) {
+    return
   }
+  recordSeeded(setId, await SEEDERS[setId](server))
 }
 
 /**
- * Boot-time seeding for every set that has a seeder, in stub mode only. Runs
- * `onPostStart`, once the whole server — every set's routes, the records and
- * session seams — is registered and listening, so the seeder's own HTTP calls
- * land the same way a designer's browser would.
+ * Boot-time seeding for every set that has a seeder. Runs `onPostStart`, once
+ * the whole server — every set's routes, the records and session seams — is
+ * registered and listening, so the seeder's own requests land the same way a
+ * designer's browser would.
  */
 export const seedOnBoot = {
   plugin: {
@@ -35,36 +42,27 @@ export const seedOnBoot = {
     register(server) {
       server.ext('onPostStart', async (instance) => {
         for (const setId of Object.keys(SEEDERS)) {
-          await seedSetForEveryOrganisation(instance, setId)
+          await seedSet(instance, setId)
         }
       })
     }
   }
 }
 
-const isPrototypeOrganisation = (organisationId) =>
-  PROTOTYPE_ORGANISATIONS.some(({ id }) => id === organisationId)
-
 /**
- * Clears one organisation's stub records in a set and, when the set has a
- * seeder and the organisation is one this prototype seeds, re-seeds that
- * organisation's example data — the "reset this organisation's data" action
- * on the chooser.
+ * Clears every record in a set and, when the set has a seeder, seeds its
+ * example data again — the chooser's "Reset this prototype's data" action.
  *
- * Every other organisation's records in the same set are untouched: on a
- * shared deployment, one designer resetting their own view must never wipe
- * what anyone else is working on.
+ * The data is shared, so this resets it for everyone using the prototype.
  *
  * @param {import('@hapi/hapi').Server} server
  * @param {string} setId
- * @param {string} organisationId
  */
-export const reseedSet = async (server, setId, organisationId) => {
-  await withSetContext(setId, () => records.clear(organisationId))
-  clearSeededForOrganisation(setId, organisationId)
-  if (SEEDERS[setId] && isPrototypeOrganisation(organisationId)) {
-    const journeyIds = await SEEDERS[setId](server, organisationId)
-    recordSeeded(setId, organisationId, journeyIds)
+export const resetSet = async (server, setId) => {
+  await withSetContext(setId, () => records.clear())
+  clearSeeded(setId)
+  if (SEEDERS[setId]) {
+    await seedSet(server, setId)
   }
 }
 

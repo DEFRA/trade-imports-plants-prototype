@@ -1,6 +1,5 @@
 import Crumb from '@hapi/crumb'
 import { config } from '../config/config.js'
-import { isStubMode } from '../server/common/services/mode.js'
 
 /**
  * CSRF Protection Plugin
@@ -23,7 +22,7 @@ export const csrf = {
     // Default: validate CSRF tokens in payload (works for HTML forms)
     // Individual routes can override with restful: true for header validation
     cookieOptions: {
-      isSecure: config.get('csrf.cookie.secure') && !isStubMode(),
+      isSecure: config.get('csrf.cookie.secure'),
       isHttpOnly: true,
       isSameSite: 'Strict'
     },

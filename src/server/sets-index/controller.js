@@ -1,10 +1,5 @@
-import { organisationIdOf } from '../common/helpers/organisation-id.js'
 import { serverWideBase } from '../app/shared/kit.js'
 import { descriptionFor } from '../prototype-sets/descriptions.js'
-import {
-  organisationName,
-  PROTOTYPE_ORGANISATIONS
-} from '../prototype-sets/organisations.js'
 
 /**
  * A set id in the same sentence case the chooser has always shown it in —
@@ -24,40 +19,22 @@ const displayNameFor = (setId) =>
  * list to keep in step. The link is the prefix the set actually mounted under,
  * read back rather than rebuilt from the id. A set carries no description of
  * its own (see `prototype-sets/descriptions.js`) and still lists without one.
- *
- * Reset only ever acts on the signed-in organisation's own records (see
- * `prototype-seed/index.js`), so there is nothing to offer signed out — the
- * row carries no organisation to reset, and `reset-controller.js` refuses the
- * same request if it reaches it regardless.
- *
- * @param {string|null} signedInAsName - who reset would act as, already
- * resolved to a display name (or the bare id, or null signed out).
  */
-const rowFor =
-  (signedInAsName) =>
-  ([setId, prefix]) => ({
-    setId,
-    href: prefix,
-    text: displayNameFor(setId),
-    description: descriptionFor(setId),
-    resetAction: `/reset/${setId}`,
-    resetLabel: signedInAsName ? `Reset ${signedInAsName}’s data` : null
-  })
+const rowFor = ([setId, prefix]) => ({
+  setId,
+  href: prefix,
+  text: displayNameFor(setId),
+  description: descriptionFor(setId),
+  resetAction: `/reset/${setId}`
+})
 
-const resetBanner = (request, sets, signedInAsName) => {
+const resetBanner = (request, sets) => {
   const resetSetId = request.query?.reset
   const wasReset = sets.some(({ setId }) => setId === resetSetId)
-  return wasReset && signedInAsName
-    ? { setId: resetSetId, setText: displayNameFor(resetSetId), signedInAsName }
+  return wasReset && request.auth.isAuthenticated
+    ? { setId: resetSetId, setText: displayNameFor(resetSetId) }
     : null
 }
-
-const organisationOptions = (currentOrganisationId) =>
-  PROTOTYPE_ORGANISATIONS.map(({ id, name }) => ({
-    value: id,
-    text: name,
-    checked: id === currentOrganisationId
-  }))
 
 export const setsIndexController = (mountedSets) => ({
   // `try`, not `false`: the chooser stays reachable signed out, but a request
@@ -65,13 +42,9 @@ export const setsIndexController = (mountedSets) => ({
   // signed in — Log out included.
   options: { auth: { strategy: 'session', mode: 'try' } },
   handler: (request, h) => {
-    const currentOrganisationId = organisationIdOf(request)
-    const signedInAsName = currentOrganisationId
-      ? (organisationName(currentOrganisationId) ?? currentOrganisationId)
-      : null
     const sets = mountedSets()
       .toSorted(([a], [b]) => a.localeCompare(b))
-      .map(rowFor(signedInAsName))
+      .map(rowFor)
 
     // The template lives at `src/server/app/sets-index/template.njk`, apart
     // from this controller, because `src/config/nunjucks/nunjucks.js` resolves
@@ -81,10 +54,8 @@ export const setsIndexController = (mountedSets) => ({
       heading: 'Prototypes',
       body: 'This service hosts more than one prototype. Choose one to open it.',
       sets,
-      resetBanner: resetBanner(request, sets, signedInAsName),
-      signInAction: '/auth/stub-sign-in',
-      organisations: organisationOptions(currentOrganisationId),
-      signedInAs: signedInAsName
+      canReset: request.auth.isAuthenticated,
+      resetBanner: resetBanner(request, sets)
     })
   }
 })

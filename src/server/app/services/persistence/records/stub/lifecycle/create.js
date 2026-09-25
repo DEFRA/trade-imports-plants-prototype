@@ -7,18 +7,13 @@ import { copiesBySourceAndKey, journeys } from '../store/state.js'
 import { mintReferenceNumber } from '../reference-number.js'
 import { marshal } from '../marshal/document.js'
 
-// The actor's organisationId is stored so a caller can later ask for one
-// organisation's documents alone (see `mutate.js`'s `clear`) — the same
-// actor `real/lifecycle/create.js` already sends the backend, just not
-// previously kept by this stub.
-export const create = async (actor) => {
+export const create = async () => {
   const document = {
     id: mintReferenceNumber(),
     status: DRAFT,
     createdAt: new Date().toISOString(),
     submittedAt: null,
-    fulfilment: [],
-    organisationId: actor?.organisationId ?? null
+    fulfilment: []
   }
   journeys().set(document.id, document)
   return structuredClone(marshal(document))
@@ -48,10 +43,7 @@ export const copy = async (journeyId, idempotencyKey) => {
     status: DRAFT,
     createdAt: new Date().toISOString(),
     submittedAt: null,
-    fulfilment: structuredClone(source.fulfilment),
-    // A copy keeps its source's organisation — copying a notification is not
-    // a change of ownership.
-    organisationId: source.organisationId ?? null
+    fulfilment: structuredClone(source.fulfilment)
   }
   journeys().set(document.id, document)
   copiesBySourceAndKey().set(dedupeKey, document.id)

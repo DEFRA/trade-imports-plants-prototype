@@ -1,7 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
 const configGetMock = vi.hoisted(() => vi.fn())
-const isStubModeMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../config/config.js', () => ({
   config: {
@@ -9,15 +8,10 @@ vi.mock('../config/config.js', () => ({
   }
 }))
 
-vi.mock('../server/common/services/mode.js', () => ({
-  isStubMode: isStubModeMock
-}))
-
 describe('csrf plugin', () => {
   test('sets cookie options correctly', async () => {
     vi.resetModules()
 
-    isStubModeMock.mockReturnValue(false)
     configGetMock.mockImplementation((key) => {
       if (key === 'csrf.cookie.secure') return true
       if (key === 'csrf.enabled') return true
@@ -33,24 +27,6 @@ describe('csrf plugin', () => {
       isHttpOnly: true,
       isSameSite: 'Strict'
     })
-  })
-
-  test('cookie is not secure when stub mode is on, even if config says secure', async () => {
-    // A designer reaches the prototype over plain http, in production mode
-    // (see mode.js) - a Secure cookie would refuse to travel with the
-    // request.
-    vi.resetModules()
-
-    isStubModeMock.mockReturnValue(true)
-    configGetMock.mockImplementation((key) => {
-      if (key === 'csrf.cookie.secure') return true
-      if (key === 'csrf.enabled') return true
-      return undefined
-    })
-
-    const { csrf } = await import('./csrf.js')
-
-    expect(csrf.options.cookieOptions.isSecure).toBe(false)
   })
 
   test('skip returns true when CSRF is disabled', async () => {

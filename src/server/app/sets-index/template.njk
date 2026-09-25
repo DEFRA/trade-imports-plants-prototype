@@ -2,7 +2,6 @@
 {% extends 'shared/layout.njk' %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
-{% from "govuk/components/radios/macro.njk" import govukRadios %}
 
 {% set mainClasses = "govuk-main-wrapper--l" %}
 
@@ -11,16 +10,13 @@
     {{ govukNotificationBanner({
       type: "success",
       titleText: "Success",
-      text: resetBanner.signedInAsName + "’s data in " + resetBanner.setText + " has been reset.",
+      text: "The data in " + resetBanner.setText + " has been reset.",
       role: "alert"
     }) }}
   {% endif %}
 
   <h1 class="govuk-heading-l">{{ heading }}</h1>
   <p class="govuk-body">{{ body }}</p>
-  {% if signedInAs %}
-    <p class="govuk-body">Signed in as <strong>{{ signedInAs }}</strong>.</p>
-  {% endif %}
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
@@ -33,38 +29,22 @@
             {% if set.description %}
               <p class="govuk-body">{{ set.description }}</p>
             {% endif %}
-            {% if set.resetLabel %}
+            {% if canReset %}
               <form method="post" action="{{ set.resetAction }}" novalidate>
                 <input type="hidden" name="crumb" value="{{ crumb }}" />
                 {{ govukButton({
-                  text: set.resetLabel,
+                  text: "Reset this prototype’s data",
                   classes: "govuk-button--secondary govuk-!-margin-bottom-0"
                 }) }}
               </form>
             {% else %}
               <p class="govuk-body govuk-!-margin-bottom-0">
-                Sign in as an organisation to reset its data.
+                Sign in to reset this prototype’s data.
               </p>
             {% endif %}
           </li>
         {% endfor %}
       </ul>
-    </div>
-
-    <div class="govuk-grid-column-one-third">
-      <h2 class="govuk-heading-m">Sign in as another organisation</h2>
-      <form method="get" action="{{ signInAction }}">
-        {{ govukRadios({
-          idPrefix: "organisationId",
-          name: "organisationId",
-          fieldset: { legend: { text: "Organisation" } },
-          items: organisations
-        }) }}
-        {{ govukButton({
-          text: "Continue",
-          classes: "govuk-button--secondary"
-        }) }}
-      </form>
     </div>
   </div>
 {% endblock %}

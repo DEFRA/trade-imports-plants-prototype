@@ -2,24 +2,49 @@
 
 This is a working prototype of the high-risk plants import notification
 service. It looks and behaves like the real thing, but nothing you do here
-is real: there is no real backend, no real sign-in, and no real data. It is
-safe to click anything.
+is real: there is no real backend and no real data. It is safe to click
+anything.
 
-## Running it
+## Running it on your computer
 
 You need Node.js installed. Nothing else — no database, no other services
 running, no environment variables to set.
 
 ```
 npx --yes npm@11.6.2 ci
-npm start
+npm run dev
 ```
 
-Then open [http://localhost:3103](http://localhost:3103).
+Then open [http://localhost:3103](http://localhost:3103). You sign in with
+the real service's own development sign-in, which signs you straight in
+without asking for a name or password.
 
 (`npx --yes npm@11.6.2` runs the exact npm version this project expects.
 Your own npm may be newer, and a newer npm can refuse to install against this
 project's lockfile.)
+
+`npm start` runs the prototype the way it runs when deployed. Like the real
+service, it then needs a Defra ID sign-in service to sign you in, so use
+`npm run dev` on your own computer.
+
+## The deployed prototype
+
+The deployed prototype signs you in through the Defra ID stub, the same test
+sign-in service the real service uses when deployed. Pick any of its test
+users. To see the prototype as a different user, sign out and sign in as a
+different test user.
+
+## Example data
+
+A prototype with example data (today, high-risk-plants) creates a handful of
+example notifications each time it starts, in a mix of states: draft, in
+progress, submitted, and submitted then amended. They are made by going
+through the journey itself, so they look exactly like notifications a trader
+made. Everyone who signs in sees the same examples, whichever user they sign
+in as.
+
+The data is shared. Anyone using the prototype can change or delete what
+anyone else has made, and reset it for everyone.
 
 ## What a "set" is
 
@@ -41,16 +66,10 @@ always the chooser.
 `http://localhost:3103/` lists every set. From there you can:
 
 - **Open a set** — click its name.
-- **Reset a set's data** — click "Reset this prototype's data" under it.
-  This clears everything anyone has done in that set and puts back a
-  handful of example notifications, in a mix of states (draft, in progress,
-  submitted). Use it whenever a demo, or a colleague's testing, has left the
-  data in a state you don't want.
-- **Sign in as another organisation** — choose one from the list and
-  continue. The chooser shows which organisation you're currently signed in
-  as. Switching organisation is how you see a set's data the way a different
-  trader would see it — each organisation only ever sees its own
-  notifications.
+- **Reset a set's data** — once signed in, click "Reset this prototype's
+  data" under it. This clears everything anyone has done in that set, for
+  everyone, and puts the example notifications back. Use it whenever a demo,
+  or a colleague's testing, has left the data in a state you don't want.
 
 The chooser and every set sit behind sign-in, just as the real service's
 pages do. Sign-in is on unless someone sets `AUTH_ENABLED=false`; with it
@@ -135,7 +154,8 @@ change in them. `overrides.json` at the repo root keeps the definitive list,
 under two headings:
 
 - **`patched`** — files the prototype has made one small, deliberate change
-  to (for example, so it can run without a real sign-in service). A change
+  to (for example, so it serves example data rather than calling the real
+  service's backend). A change
   here needs the same care as a change to the real service itself.
 - everything not listed in `overrides.json`'s `ours` list belongs to the
   real service. Only ever edit it if you mean to send that change back to

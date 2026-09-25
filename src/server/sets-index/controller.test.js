@@ -14,13 +14,13 @@ import { config } from '../../config/config.js'
 import { nunjucksConfig } from '../../config/nunjucks/nunjucks.js'
 import { registerSetMount } from '../app/shared/set-context.js'
 import { descriptionFor } from '../prototype-sets/descriptions.js'
-import { PROTOTYPE_ORGANISATIONS } from '../prototype-sets/organisations.js'
 import { setsIndex } from './index.js'
 
 const MISMATCHED_SET = 'foo'
 const MISMATCHED_PREFIX = '/bar'
 const DESCRIBED_SET = 'high-risk-plants'
 const HAS_BEEN_RESET = 'has been reset'
+const RESET_LABEL = 'Reset this prototype’s data'
 
 /** The chooser is `auth` mode `try`, which needs a default strategy to fall
  * back to. This one never authenticates, which is the signed-out case. */
@@ -78,29 +78,21 @@ describe('the sets chooser', () => {
     expect(response.result).toContain(`href="${MISMATCHED_PREFIX}"`)
   })
 
-  it('Should offer every prototype organisation to switch to', async () => {
+  it('Should offer no way to switch organisation', async () => {
     const response = await server.inject('/')
 
-    for (const { name } of PROTOTYPE_ORGANISATIONS) {
-      expect(response.result).toContain(name)
-    }
+    expect(response.result).not.toContain('organisationId')
+    expect(response.result).not.toContain('/auth/stub-sign-in')
   })
 
-  it('Should not claim to be signed in as an organisation while signed out', async () => {
-    const response = await server.inject('/')
-
-    expect(response.result).not.toContain('Signed in as')
-  })
-
-  // Reset only ever acts on the signed-in organisation's own records
-  // (`reset-controller.js`), so the button — which names that organisation —
-  // only renders once one is known.
   describe('signed out', () => {
     it('Should offer no reset action, only a hint to sign in', async () => {
       const response = await server.inject('/')
 
       expect(response.result).not.toContain(`action="/reset/${DESCRIBED_SET}"`)
-      expect(response.result).toContain('Sign in as an organisation')
+      expect(response.result).toContain(
+        'Sign in to reset this prototype’s data'
+      )
     })
 
     it('Should show no reset banner even naming a just-reset set', async () => {
@@ -111,31 +103,36 @@ describe('the sets chooser', () => {
   })
 
   describe('signed in', () => {
-    const [organisation] = PROTOTYPE_ORGANISATIONS
     const signedIn = {
       auth: {
         strategy: 'session',
-        credentials: { organisationId: organisation.id }
+        credentials: { organisationId: 'any-organisation' }
       }
     }
 
-    it('Should offer a reset action per mounted set, naming the signed-in organisation', async () => {
+    it('Should offer a reset action per mounted set', async () => {
       const response = await server.inject({ url: '/', ...signedIn })
 
       expect(response.result).toContain(`action="/reset/${DESCRIBED_SET}"`)
       expect(response.result).toContain(`action="/reset/${MISMATCHED_SET}"`)
-      expect(response.result).toContain(`Reset ${organisation.name}’s data`)
+      expect(response.result).toContain(RESET_LABEL)
     })
 
-    it('Should show the reset banner after a redirect, naming the set and the organisation', async () => {
+    it('Should not name the signed-in organisation', async () => {
+      const response = await server.inject({ url: '/', ...signedIn })
+
+      expect(response.result).not.toContain('any-organisation')
+    })
+
+    it('Should show the reset banner after a redirect, naming the set', async () => {
       const response = await server.inject({
         url: `/?reset=${DESCRIBED_SET}`,
         ...signedIn
       })
 
-      expect(response.result).toContain('High risk plants')
-      expect(response.result).toContain(organisation.name)
-      expect(response.result).toContain(HAS_BEEN_RESET)
+      expect(response.result).toContain(
+        'The data in High risk plants has been reset.'
+      )
     })
 
     it('Should show no reset banner for a set that was not just reset', async () => {

@@ -1,7 +1,7 @@
 import Boom from '@hapi/boom'
 import { PORTS } from './stub.js'
 import { fetchPortsOfEntry } from './client.js'
-import { isStubMode } from '../../../common/services/mode.js'
+import { isStubDataMode } from '../../../common/services/mode.js'
 
 let ports = [...PORTS]
 let loaded = false
@@ -14,7 +14,7 @@ let loaded = false
  * false so the next reader retries; a success flips the flag and subsequent
  * calls short-circuit. */
 export const ensureLoaded = async () => {
-  if (isStubMode() || loaded) {
+  if (isStubDataMode() || loaded) {
     return
   }
   try {

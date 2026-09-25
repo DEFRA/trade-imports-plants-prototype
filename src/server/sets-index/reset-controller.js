@@ -1,30 +1,26 @@
 import { mountedSetIds } from '../app/shared/set-context.js'
 import { HTTP_STATUS_NOT_FOUND } from '../app/lib/http-status.js'
-import { organisationIdOf } from '../common/helpers/organisation-id.js'
-import { reseedSet } from '../prototype-seed/index.js'
+import { resetSet } from '../prototype-seed/index.js'
 
 /**
- * "Reset this organisation's data": clears the signed-in organisation's own
- * stub records in one set and, where the set has example data for that
- * organisation, re-seeds it — see `prototype-seed/index.js`. Every other
- * organisation's records in the same set are left alone. Lands back on the
+ * "Reset this prototype's data": clears every record in one set and, where
+ * the set has example data, seeds it again — see `prototype-seed/index.js`.
+ * The data is shared, so this resets it for everyone. Lands back on the
  * chooser, which reads `reset` off the query string to show the confirmation
- * banner naming whoever is signed in.
+ * banner.
  *
- * Signed out, there is no organisation to reset — the chooser never renders
- * this form without one (see `sets-index/controller.js`), so a request that
- * reaches here anyway is refused rather than guessed at.
+ * Signed out, the chooser offers no reset (see `sets-index/controller.js`), so
+ * a request that reaches here anyway is sent back to the chooser untouched.
  */
 const post = async (request, h) => {
   const { setId } = request.params
-  const organisationId = organisationIdOf(request)
   if (!mountedSetIds().includes(setId)) {
     return h.response().code(HTTP_STATUS_NOT_FOUND)
   }
-  if (!organisationId) {
+  if (!request.auth.isAuthenticated) {
     return h.redirect('/')
   }
-  await reseedSet(request.server, setId, organisationId)
+  await resetSet(request.server, setId)
   return h.redirect(`/?reset=${encodeURIComponent(setId)}`)
 }
 

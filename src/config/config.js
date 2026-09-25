@@ -260,7 +260,7 @@ export const config = convict({
     }
   },
   stubMode: {
-    doc: 'Run against stubs rather than real dependencies: stub data in place of the address book, backend and reference data, and a locally signed session in place of the Defra ID OIDC exchange. Auth is still enforced - only the external OIDC round-trip is bypassed. Honoured in production here, unlike plants-frontend (see isStubMode).',
+    doc: 'Run against stubs rather than real dependencies: stub data in place of the address book, backend and reference data, and a locally signed session in place of the Defra ID OIDC exchange. Auth is still enforced - only the external OIDC round-trip is bypassed. Ignored in production (see isStubMode).',
     format: STRICT_BOOLEAN,
     default: false,
     env: 'STUB_MODE'
@@ -302,7 +302,7 @@ export const config = convict({
     keyPrefix: {
       doc: 'Redis cache key prefix name used to isolate the cached results across multiple clients',
       format: String,
-      default: 'trade-imports-plants-prototype:',
+      default: 'trade-imports-plants-frontend:',
       env: 'REDIS_KEY_PREFIX'
     },
     useSingleInstanceCache: {

@@ -1,4 +1,4 @@
-import { isStubMode } from '../../../common/services/mode.js'
+import { isStubDataMode } from '../../../common/services/mode.js'
 import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
 import * as client from './client.js'
 import { STUB_BOOK } from './stub/index.js'
@@ -93,7 +93,7 @@ const searchReal = async (orgId, query, requested) => {
 /** Free-text search over the organisation's book, returning one page. */
 export const search = async (orgId, { query = '', page = 1 } = {}) => {
   const requested = Number.isInteger(page) && page >= 1 ? page : 1
-  return isStubMode()
+  return isStubDataMode()
     ? searchStub(query, requested)
     : searchReal(orgId, query, requested)
 }
@@ -103,7 +103,7 @@ export const search = async (orgId, { query = '', page = 1 } = {}) => {
  * callers can treat a deletion as "never entered" without mistaking an outage
  * for one. */
 export const party = async (orgId, id) => {
-  if (isStubMode()) {
+  if (isStubDataMode()) {
     return STUB_BOOK.find((record) => record.id === id)
   }
   return client.getAddress(orgId, id)

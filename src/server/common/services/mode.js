@@ -6,5 +6,15 @@ import { config } from '../../../config/config.js'
  * and needs neither the dependent services nor Defra ID, and a real run wants
  * both.
  *
- * Honoured in production here, unlike plants-frontend: stub mode hands a session to any unauthenticated caller, and this prototype has no real data or real service behind a session for that to compromise. */
-export const isStubMode = () => config.get('stubMode')
+ * Never honoured in production: stub mode hands a session to any unauthenticated caller with no identity provider involved. */
+export const isStubMode = () =>
+  config.get('stubMode') && !config.get('isProduction')
+
+/** Prototype only: whether the data services (records store, address book,
+ * countries, ports) serve stub data. Sign-in keeps asking `isStubMode` above,
+ * exactly as plants-frontend does, so a production run signs in through Defra
+ * ID while its data stays stubbed: the prototype has no backend, address book
+ * or reference data behind it. A non-production run follows STUB_MODE, which
+ * `prototype-defaults.js` turns on unless it is already set. */
+export const isStubDataMode = () =>
+  config.get('stubMode') || config.get('isProduction')

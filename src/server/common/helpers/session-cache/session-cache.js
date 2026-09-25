@@ -1,7 +1,6 @@
 import yar from '@hapi/yar'
 
 import { config } from '../../../../config/config.js'
-import { isStubMode } from '../../services/mode.js'
 
 const sessionConfig = config.get('session')
 
@@ -21,7 +20,7 @@ export const sessionCache = {
     cookieOptions: {
       password: sessionConfig.cookie.password,
       ttl: sessionConfig.cookie.ttl,
-      isSecure: config.get('session.cookie.secure') && !isStubMode(),
+      isSecure: config.get('session.cookie.secure'),
       clearInvalid: true
     }
   }

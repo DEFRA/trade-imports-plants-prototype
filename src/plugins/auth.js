@@ -102,7 +102,7 @@ function getCookieOptions() {
       name: config.get('auth.cookieName'),
       password: config.get('session.cookie.password'),
       path: '/',
-      isSecure: config.get('isProduction') && !isStubMode()
+      isSecure: config.get('isProduction')
     },
     redirectTo: function (request) {
       const target = `${request.url.pathname}${request.url.search}`

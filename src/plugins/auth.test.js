@@ -273,27 +273,6 @@ describe('auth plugin', () => {
       expect(getCookieOptions().cookie.name).toBe(AUTH_COOKIE_NAME)
     })
 
-    test('cookie is secure in production', () => {
-      configGetMock.mockImplementation((key) =>
-        key === 'isProduction' ? true : undefined
-      )
-      isStubModeMock.mockReturnValue(false)
-
-      expect(getCookieOptions().cookie.isSecure).toBe(true)
-    })
-
-    test('cookie is not secure in production when stub mode is on', () => {
-      // A designer reaches the prototype over plain http, in production mode
-      // (see mode.js) - a Secure cookie would refuse to travel with the
-      // request.
-      configGetMock.mockImplementation((key) =>
-        key === 'isProduction' ? true : undefined
-      )
-      isStubModeMock.mockReturnValue(true)
-
-      expect(getCookieOptions().cookie.isSecure).toBe(false)
-    })
-
     test('redirectTo builds /auth/sign-in redirect including pathname and search', () => {
       const options = getCookieOptions()
 

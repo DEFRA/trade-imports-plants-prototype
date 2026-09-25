@@ -20,7 +20,6 @@
     "scripts/sync-upstream/**",
     "src/prototype-defaults.js",
     "src/prototype-defaults.test.js",
-    "src/server/common/helpers/session-cache/session-cache.test.js",
     "src/server/prototype-sets/**",
     "src/server/app/routes-sample-journey.js",
     "src/server/app/sets/sample-journey/**",
@@ -46,43 +45,31 @@
     },
     {
       "path": "src/server/common/services/mode.js",
-      "why": "stub mode is honoured in production - the one deliberate behaviour change"
+      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. isStubMode() is untouched, so sign-in (server.js, plugins/auth.js) follows plants-frontend exactly. Covered by src/server/prototype-sets/production-run.test.js"
     },
     {
-      "path": "src/server/common/services/mode.test.js",
-      "why": "covers the production stub-mode change"
+      "path": "src/server/app/services/persistence/records/index.js",
+      "why": "picks the stub records store with isStubDataMode() in place of isStubMode(), so production keeps stub records"
+    },
+    {
+      "path": "src/server/app/services/address-book/index.js",
+      "why": "picks the stub address book with isStubDataMode() in place of isStubMode(), so production keeps the stub book"
+    },
+    {
+      "path": "src/server/app/services/countries/index.js",
+      "why": "serves the stub countries with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+    },
+    {
+      "path": "src/server/app/services/ports/index.js",
+      "why": "serves the stub ports with isStubDataMode() in place of isStubMode(), so production never calls reference data"
     },
     {
       "path": "src/config/config.js",
-      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: service id, Redis key prefix and the development auth cookie name, and the stubMode doc says stub mode is honoured in production (see mode.js)"
+      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: the Defra ID service id default and the development auth cookie name"
     },
     {
       "path": "src/config/config.test.js",
       "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in"
-    },
-    {
-      "path": "src/plugins/auth.js",
-      "why": "the auth cookie is not Secure in stub mode, so sign-in survives plain http"
-    },
-    {
-      "path": "src/plugins/auth.test.js",
-      "why": "covers the non-Secure stub auth cookie"
-    },
-    {
-      "path": "src/plugins/csrf.js",
-      "why": "the CSRF cookie is not Secure in stub mode"
-    },
-    {
-      "path": "src/plugins/csrf.test.js",
-      "why": "covers the non-Secure stub CSRF cookie"
-    },
-    {
-      "path": "src/server/common/helpers/session-cache/session-cache.js",
-      "why": "the yar session cookie is not Secure in stub mode"
-    },
-    {
-      "path": "src/server/common/helpers/redis-client.test.js",
-      "why": "expects the prototype's Redis key prefix"
     },
     {
       "path": "src/server/router.js",
@@ -126,15 +113,7 @@
     },
     {
       "path": "playwright.config.js",
-      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec"
-    },
-    {
-      "path": "src/server/app/services/persistence/records/stub/lifecycle/create.js",
-      "why": "stores the actor's organisationId on the document (real/lifecycle/create.js already sends this actor to the backend; the stub just wasn't keeping it), so reset can clear one organisation's documents without touching another's — no existing seam separated one organisation's stub records from another's"
-    },
-    {
-      "path": "src/server/app/services/persistence/records/stub/lifecycle/mutate.js",
-      "why": "clear() takes an optional organisationId and removes only that organisation's documents when one is given; every existing caller still gets a full wipe by calling it with none, so this is additive, not a behaviour change for them"
+      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty"
     }
   ]
 }

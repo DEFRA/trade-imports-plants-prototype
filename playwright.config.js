@@ -65,7 +65,7 @@ export default defineConfig({
       // The service default is real; this suite runs against stub data and a
       // locally signed session, so it opts in explicitly here. Auth stays
       // enforced either way (see server/auth/stub-sign-in.js).
-      env: { PORT: String(port), STUB_MODE: 'true' },
+      env: { PORT: String(port), STUB_MODE: 'true', PROTOTYPE_SEED: 'false' },
       timeout: 180_000,
       reuseExistingServer: false
     }

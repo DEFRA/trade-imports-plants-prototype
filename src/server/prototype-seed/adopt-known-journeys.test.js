@@ -1,31 +1,38 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createServer } from '../server.js'
 import { createSeedClient } from './http-client.js'
-import { seedHighRiskPlantsFor } from './seed-high-risk-plants.js'
+import { seedHighRiskPlants } from './seed-high-risk-plants.js'
 import { recordSeeded } from './registry.js'
 
-const ORGANISATION_ID = 'test-org-1'
+const SET_ID = 'high-risk-plants'
+const DASHBOARD = `/${SET_ID}`
+const FIRST_ORGANISATION = 'first-organisation'
 
-describe('adopting seeded journeys onto a fresh session', () => {
+const signedInClient = async (server, organisationId) => {
+  const client = createSeedClient(server)
+  await client.get(`/auth/stub-sign-in?organisationId=${organisationId}`)
+  return client
+}
+
+describe('adopting the shared seeded journeys onto a signed-in session', () => {
   let server
   let journeyIds
 
   beforeAll(async () => {
     server = await createServer()
     await server.initialize()
-    journeyIds = await seedHighRiskPlantsFor(server, ORGANISATION_ID)
-    recordSeeded('high-risk-plants', ORGANISATION_ID, journeyIds)
+    journeyIds = await seedHighRiskPlants(server)
+    recordSeeded(SET_ID, journeyIds)
   })
 
   afterAll(async () => {
     await server.stop({ timeout: 0 })
   })
 
-  it('Should show every seeded reference on a browser session that never started them', async () => {
-    const client = createSeedClient(server)
-    await client.get(`/auth/stub-sign-in?organisationId=${ORGANISATION_ID}`)
+  it('Should show every seeded reference on a session that never started them', async () => {
+    const client = await signedInClient(server, FIRST_ORGANISATION)
 
-    const dashboard = await client.get('/high-risk-plants')
+    const dashboard = await client.get(DASHBOARD)
 
     expect(dashboard.statusCode).toBe(200)
     for (const journeyId of journeyIds) {
@@ -33,17 +40,32 @@ describe('adopting seeded journeys onto a fresh session', () => {
     }
   })
 
-  it('Should show nothing seeded to an organisation nothing was seeded for', async () => {
-    const client = createSeedClient(server)
-    await client.get(
-      '/auth/stub-sign-in?organisationId=an-organisation-with-no-seed-data'
-    )
+  it('Should show the same seeded references to every signed-in user, whatever their organisation', async () => {
+    const first = await signedInClient(server, FIRST_ORGANISATION)
+    const second = await signedInClient(server, 'second-organisation')
 
-    const dashboard = await client.get('/high-risk-plants')
+    const firstDashboard = await first.get(DASHBOARD)
+    const secondDashboard = await second.get(DASHBOARD)
 
-    expect(dashboard.statusCode).toBe(200)
     for (const journeyId of journeyIds) {
-      expect(dashboard.result).not.toContain(journeyId)
+      expect(firstDashboard.result).toContain(journeyId)
+      expect(secondDashboard.result).toContain(journeyId)
+    }
+  })
+
+  it('Should keep a session’s own notifications alongside the seeded ones', async () => {
+    const client = await signedInClient(server, FIRST_ORGANISATION)
+    await client.get(DASHBOARD)
+    const started = await client.post(`${DASHBOARD}/notifications`, {})
+    const [, ownJourneyId] =
+      /\/notifications\/([^/]+)\//.exec(started.headers.location) ?? []
+
+    const dashboard = await client.get(DASHBOARD)
+
+    expect(ownJourneyId).toBeDefined()
+    expect(dashboard.result).toContain(ownJourneyId)
+    for (const journeyId of journeyIds) {
+      expect(dashboard.result).toContain(journeyId)
     }
   })
 })

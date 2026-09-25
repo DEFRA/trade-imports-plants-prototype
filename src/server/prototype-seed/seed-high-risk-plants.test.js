@@ -3,16 +3,16 @@ import { createServer } from '../server.js'
 import { AMEND, DRAFT, SUBMITTED } from '../app/engine/persistence/records.js'
 import { records } from '../app/engine/persistence/records.js'
 import { withSetContext } from '../app/shared/set-context.js'
-import { seedHighRiskPlantsFor } from './seed-high-risk-plants.js'
+import { seedHighRiskPlants } from './seed-high-risk-plants.js'
 
-describe('seedHighRiskPlantsFor', () => {
+describe('seedHighRiskPlants', () => {
   let server
   let journeyIds
 
   beforeAll(async () => {
     server = await createServer()
     await server.initialize()
-    journeyIds = await seedHighRiskPlantsFor(server, 'test-org-1')
+    journeyIds = await seedHighRiskPlants(server)
   })
 
   afterAll(async () => {
