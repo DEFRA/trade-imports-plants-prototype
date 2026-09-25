@@ -1,11 +1,3 @@
-/**
- * Shared chrome copy — the only copy that legitimately lives outside a
- * feature folder: the layout (service name, service navigation,
- * back link, error title prefix), the unauthorised page, error-summary
- * title, save-actions buttons and journey-strip tags. Every view reaches
- * it as `sharedCopy` (via `kit.base`, or passed directly by the controllers
- * that build their view models without it).
- */
 export const copy = {
   layout: {
     serviceName: 'Import notification service',
@@ -41,6 +33,13 @@ export const copy = {
   recoverableError: {
     title: 'There is a problem',
     body: 'Sorry, there is a problem with the service. Your answers on this page have been saved. Try again in a few minutes.'
+  },
+  errorPage: {
+    notFound: 'Page not found',
+    forbidden: 'Forbidden',
+    unauthorized: 'You need to sign in to view this page',
+    badRequest: 'There is a problem with your request',
+    unexpected: 'Something went wrong'
   },
   staleActionRejected: {
     title: 'The notification has been updated',

@@ -155,6 +155,20 @@ const startAtWoodDetails = async (page, status) => {
   return reference
 }
 
+// Changing type once a line is saved drops the lines the new type cannot
+// hold. After that the next change has no lines, so do not pin the landing
+// URL — the list reports a removal, the details page does not.
+const changeCommodityType = async (page, reference, commodityType) => {
+  await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
+  await page
+    .getByRole('radio', {
+      name: commodityTypeCopy.typeLabels[commodityType],
+      exact: true
+    })
+    .check()
+  await saveAndContinue(page).click()
+}
+
 const expectNoSeriousOrCriticalViolations = async (page, subject) => {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -518,5 +532,55 @@ test.describe('arrival-details — accessibility', () => {
       page,
       'Arrival details error state'
     )
+  })
+})
+
+test.describe('arrival-details — answers that leave scope when the commodity type changes', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+  })
+
+  test('changing to potatoes clears the arrival-status answer', async ({
+    page
+  }) => {
+    const reference = await startAtWoodDetails(page, ALREADY_ARRIVED)
+
+    await changeCommodityType(page, reference, POTATOES)
+    await changeCommodityType(page, reference, WOOD_AND_CUT_TREES)
+
+    await page.goto(`${BASE}/notifications/${reference}/arrival-status`)
+    await expect(page).toHaveURL(ARRIVAL_STATUS_URL)
+    await expect(
+      page.getByRole('radio', {
+        name: arrivalStatusCopy.statusLabels[ALREADY_ARRIVED],
+        exact: true
+      })
+    ).not.toBeChecked()
+    await expect(
+      page.getByRole('radio', {
+        name: arrivalStatusCopy.statusLabels[NOT_YET_ARRIVED],
+        exact: true
+      })
+    ).not.toBeChecked()
+  })
+
+  test('changing away from potatoes clears the time and place of landing', async ({
+    page
+  }) => {
+    const reference = await startAtPotatoDetails(page)
+
+    await page.locator(DATE_INPUT).fill(A_DATE)
+    await page.locator(TIME_INPUT).fill(A_TIME)
+    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
+    await saveAndContinue(page).click()
+    await expect(page).toHaveURL(DESTINATION_URL)
+
+    await changeCommodityType(page, reference, WOOD_AND_CUT_TREES)
+    await changeCommodityType(page, reference, POTATOES)
+
+    await page.goto(arrivalDetailsPathOf(reference))
+    await expect(page).toHaveURL(PAGE_URL)
+    await expect(page.locator(TIME_INPUT)).toHaveValue('')
+    await expect(page.locator(PORT_INPUT)).toHaveValue('')
   })
 })

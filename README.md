@@ -41,8 +41,7 @@ Deployed end-to-end tests for this service live in the shared tests repository
 
 ### Node.js
 
-Node 24 or later, and npm 11.6.2 — the version pinned by `packageManager` in
-`package.json`. An ambient npm older than that rejects the lockfile.
+Node 24 or later, and npm 11.6.2 or later — the floor in `engines`.
 
 To use the correct version of Node.js for this application, via nvm:
 
@@ -99,6 +98,12 @@ Install application dependencies:
 ```bash
 npm install
 ```
+
+### Git hooks
+
+`npm install` installs the pre-commit hook — `postinstall` runs
+`npm run setup:husky`. The hook runs `npm run git:pre-commit-hook`: format
+check, lint and the unit suite.
 
 ### Development
 

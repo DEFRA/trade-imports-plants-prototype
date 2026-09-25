@@ -63,7 +63,7 @@ export const setsIndexController = (mountedSets) => ({
   // `try`, not `false`: the chooser stays reachable signed out, but a request
   // that carries a session still reads it, so the service navigation renders
   // signed in — Log out included.
-  options: { auth: { mode: 'try' } },
+  options: { auth: { strategy: 'session', mode: 'try' } },
   handler: (request, h) => {
     const currentOrganisationId = organisationIdOf(request)
     const signedInAsName = currentOrganisationId

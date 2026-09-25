@@ -11,6 +11,7 @@ import {
   postcode,
   requiredDateText,
   requiredDateTextInRange,
+  requiredEmail,
   requiredExactDigits,
   requiredIntegerInRange,
   requiredMaxText,
@@ -22,14 +23,13 @@ import {
   vehicleReg
 } from './index.js'
 import { validatorDefaults } from '../../shared/copy.en.js'
-import {
-  CATEGORY_ONE,
-  CATEGORY_TWO,
-  SELECTOR_ALPHA,
-  SELECTOR_BRAVO
-} from '../../../../../test/fixtures/index.js'
 
 const run = (schema, payload) => validate(schema, payload)
+
+const CATEGORY_ONE = 'categoryOne'
+const CATEGORY_TWO = 'categoryTwo'
+const SELECTOR_ALPHA = 'selectorAlpha'
+const SELECTOR_BRAVO = 'selectorBravo'
 
 const FULL_NAME_REQUIRED_MESSAGE = 'Enter your full name'
 const REGISTRATION_REQUIRED_MESSAGE = 'Enter a registration number'
@@ -41,6 +41,8 @@ const FLIP_FIELD_MAX_LENGTH_MESSAGE = 'Code must be 5 characters or less'
 const COUNT_REQUIRED_MESSAGE = 'Enter the number of items'
 const COUNT_WHOLE_NUMBER_MESSAGE = 'Enter a whole number greater than 0'
 const NOT_A_DATE = 'not a date'
+const BLOCKS_BLANK_WHITESPACE_AND_MISSING =
+  'Should block blank, whitespace-only and missing values with the required message'
 
 describe('#requiredText — the sole save-blocking primitive', () => {
   const schema = requiredText('fullName', FULL_NAME_REQUIRED_MESSAGE)
@@ -232,7 +234,7 @@ describe('#requiredIntegerInRange — save-blocking whole number in a range', ()
     expect(run(schema, { itemCount: '25' }).errors).toBeNull()
   })
 
-  it('Should block blank, whitespace-only and missing values with the required message', () => {
+  it(BLOCKS_BLANK_WHITESPACE_AND_MISSING, () => {
     expect(run(schema, { itemCount: '' }).errors).toEqual({
       itemCount: COUNT_REQUIRED_MESSAGE
     })
@@ -320,6 +322,62 @@ describe('#requiredMaxText — save-blocking text with a length cap', () => {
     ).toEqual({
       statusFlipField: validatorDefaults.maxLength(5)
     })
+  })
+})
+
+describe('#requiredEmail — save-blocking email address with a length cap', () => {
+  const EMAIL_REQUIRED_MESSAGE = 'Enter an email address'
+  const EMAIL_FORMAT_MESSAGE = 'Enter an email address in the correct format'
+  const EMAIL_MAX_LENGTH_MESSAGE =
+    'Email address must be 20 characters or fewer'
+  const EMAIL_MAX_LENGTH = 20
+  const schema = requiredEmail('email', EMAIL_MAX_LENGTH, {
+    required: EMAIL_REQUIRED_MESSAGE,
+    maxLength: EMAIL_MAX_LENGTH_MESSAGE,
+    format: EMAIL_FORMAT_MESSAGE
+  })
+
+  it('Should accept an address and hand back the trimmed value', () => {
+    const { errors, value } = run(schema, { email: '  alex@example.com  ' })
+    expect(errors).toBeNull()
+    expect(value.email).toBe('alex@example.com')
+  })
+
+  it(BLOCKS_BLANK_WHITESPACE_AND_MISSING, () => {
+    expect(run(schema, { email: '' }).errors).toEqual({
+      email: EMAIL_REQUIRED_MESSAGE
+    })
+    expect(run(schema, { email: '   ' }).errors).toEqual({
+      email: EMAIL_REQUIRED_MESSAGE
+    })
+    expect(run(schema, {}).errors).toEqual({ email: EMAIL_REQUIRED_MESSAGE })
+  })
+
+  it.each(['not-an-email', 'alex@', '@example.com', 'alex example.com'])(
+    'Should reject %s with the format message',
+    (value) => {
+      expect(run(schema, { email: value }).errors).toEqual({
+        email: EMAIL_FORMAT_MESSAGE
+      })
+    }
+  )
+
+  it('Should tell an over-long malformed value about its length, not its shape', () => {
+    expect(
+      run(schema, { email: 'A'.repeat(EMAIL_MAX_LENGTH + 1) }).errors
+    ).toEqual({ email: EMAIL_MAX_LENGTH_MESSAGE })
+  })
+
+  it('Should fall back to the shared length message when none is given', () => {
+    const withoutLengthMessage = requiredEmail('email', EMAIL_MAX_LENGTH, {
+      required: EMAIL_REQUIRED_MESSAGE,
+      format: EMAIL_FORMAT_MESSAGE
+    })
+
+    expect(
+      run(withoutLengthMessage, { email: 'A'.repeat(EMAIL_MAX_LENGTH + 1) })
+        .errors
+    ).toEqual({ email: validatorDefaults.maxLength(EMAIL_MAX_LENGTH) })
   })
 })
 
@@ -501,7 +559,7 @@ describe('#requiredDateTextInRange — save-blocking date text in bounds', () =>
     }
   })
 
-  it('Should block blank, whitespace-only and missing values with the required message', () => {
+  it(BLOCKS_BLANK_WHITESPACE_AND_MISSING, () => {
     expect(run(schema, { arrivalDate: '' }).errors).toEqual({
       arrivalDate: ARRIVAL_DATE_REQUIRED_MESSAGE
     })

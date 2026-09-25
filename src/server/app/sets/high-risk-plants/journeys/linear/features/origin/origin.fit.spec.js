@@ -302,6 +302,34 @@ test.describe('origin feature', () => {
   })
 })
 
+test.describe('country of origin type-ahead', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+    await startAtOrigin(page)
+  })
+
+  test('offers the whole country list on focus, without typing', async ({
+    page
+  }) => {
+    await page.locator(COUNTRY_INPUT).click()
+
+    await expect(
+      page.getByRole('option', { name: FRANCE, exact: true })
+    ).toBeVisible()
+    await expect(page.getByRole('option')).toHaveCount(
+      Object.keys(COUNTRY_LABELS).length
+    )
+  })
+
+  test('tells the user when nothing matches what they typed', async ({
+    page
+  }) => {
+    await page.locator(COUNTRY_INPUT).fill('zzzzzz')
+
+    await expect(page.getByText(copy.country.noResults)).toBeVisible()
+  })
+})
+
 test.describe('origin accessible-autocomplete styles', () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page)

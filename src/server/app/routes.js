@@ -1,1 +1,1 @@
-export { highRiskPlants } from './routes-high-risk-plants.js'
+export { highRiskPlants as serviceRoutes } from './routes-high-risk-plants.js'

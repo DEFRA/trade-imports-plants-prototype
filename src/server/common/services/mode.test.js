@@ -27,8 +27,6 @@ describe('#isStubMode', () => {
   })
 
   test('Should be on when the flag is set in production', () => {
-    // Unlike plants-frontend, this prototype has no real data or real
-    // service behind a session, so honouring the flag in production is safe.
     withConfig({ stubMode: true, isProduction: true })
 
     expect(isStubMode()).toBe(true)

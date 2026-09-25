@@ -54,7 +54,11 @@
     },
     {
       "path": "src/config/config.js",
-      "why": "default port is 3103 (the real twin's plus 100), plus the service id and Redis key prefix identity lines"
+      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: service id, Redis key prefix and the development auth cookie name"
+    },
+    {
+      "path": "src/config/config.test.js",
+      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in"
     },
     {
       "path": "src/plugins/auth.js",
@@ -82,7 +86,7 @@
     },
     {
       "path": "src/server/router.js",
-      "why": "registers prototype-sets (the sample-journey set and the chooser at /) in place of the redirect to the default set"
+      "why": "registers prototype-sets (the sample-journey set and the chooser at /) in place of the redirect to the default set, inside the same auth.enabled gate"
     },
     {
       "path": "src/server/app/routes.test.js",
@@ -90,7 +94,7 @@
     },
     {
       "path": "src/server/app/co-residency.test.js",
-      "why": "the chooser at / needs a default auth strategy, sample-journey routes are excluded from the root-surface list, and / lists the sets rather than redirecting"
+      "why": "sample-journey routes are excluded from the root-surface list, the chooser's /reset/{setId} joins it, and / lists the sets rather than redirecting"
     },
     {
       "path": "README.md",
@@ -118,7 +122,7 @@
     },
     {
       "path": "scripts/npm-version.js",
-      "why": "its doc comment lists only the workflows the prototype kept"
+      "why": "its doc comment names the prototype workflows that still pin npm with it (plants-frontend's no longer do)"
     },
     {
       "path": "playwright.config.js",

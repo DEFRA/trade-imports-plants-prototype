@@ -6,7 +6,5 @@ import { config } from '../../../config/config.js'
  * and needs neither the dependent services nor Defra ID, and a real run wants
  * both.
  *
- * Honoured in production here, unlike plants-frontend: this prototype has no
- * real data or real service behind a session, so there is nothing a stub
- * session could compromise. */
+ * Honoured in production here, unlike plants-frontend: stub mode hands a session to any unauthenticated caller, and this prototype has no real data or real service behind a session for that to compromise. */
 export const isStubMode = () => config.get('stubMode')

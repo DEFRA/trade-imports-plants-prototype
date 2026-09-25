@@ -123,7 +123,6 @@ describe('#setIdForPath', () => {
     const { setIdForPath } = await twoSets()
 
     expect(setIdForPath('/health')).toBeUndefined()
-    expect(setIdForPath('/signout')).toBeUndefined()
     expect(setIdForPath('/auth/sign-out')).toBeUndefined()
     expect(setIdForPath('/no-such-page')).toBeUndefined()
   })

@@ -31,6 +31,6 @@ const post = async (request, h) => {
 export const resetRoute = {
   method: 'POST',
   path: '/reset/{setId}',
-  options: { auth: { mode: 'try' } },
+  options: { auth: { strategy: 'session', mode: 'try' } },
   handler: post
 }

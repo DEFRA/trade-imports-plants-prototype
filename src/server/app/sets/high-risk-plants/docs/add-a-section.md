@@ -33,9 +33,9 @@ Copy its shape.
 - [`journeys/linear/features/commodities/copy/copy.cy.js`](../journeys/linear/features/commodities/copy/copy.cy.js)
 - [`journeys/linear/features/commodities/copy/copy.test.js`](../journeys/linear/features/commodities/copy/copy.test.js)
 - [`journeys/linear/features/commodities/list/list.controller.js`](../journeys/linear/features/commodities/list/list.controller.js)
-- [`journeys/linear/features/commodities/list/template.njk`](../journeys/linear/features/commodities/list/template.njk)
+- [`journeys/linear/features/commodities/list/list.njk`](../journeys/linear/features/commodities/list/list.njk)
 - [`journeys/linear/features/commodities/details/details.controller.js`](../journeys/linear/features/commodities/details/details.controller.js)
-- [`journeys/linear/features/commodities/details/template.njk`](../journeys/linear/features/commodities/details/template.njk)
+- [`journeys/linear/features/commodities/details/details.njk`](../journeys/linear/features/commodities/details/details.njk)
 - [`journeys/linear/features/commodities/fit/list.fit.spec.js`](../journeys/linear/features/commodities/fit/list.fit.spec.js)
 - [`journeys/linear/features/commodities/fit/details.fit.spec.js`](../journeys/linear/features/commodities/fit/details.fit.spec.js)
 
@@ -115,14 +115,19 @@ journeys/linear/features/<group>/
 ├── <first-page>/
 │   ├── <first-page>.controller.js
 │   ├── <first-page>.controller.test.js
-│   └── template.njk
+│   └── <first-page>.njk
 ├── <second-page>/
 │   ├── <second-page>.controller.js
 │   ├── <second-page>.controller.test.js
-│   └── template.njk
+│   └── <second-page>.njk
 ├── evaluation.js
 └── page.js
 ```
+
+A grouped page's template is named after the page, not `template.njk` —
+`list/list.njk`, `details/details.njk`, matching the `<page>.controller.js`
+beside it. Only a single-page feature (a plain `controller.js`) keeps
+`template.njk`.
 
 Keep every `{ id, slug }` object in the import-free `page.js`. Put all
 group-owned English and Welsh copy in the shared `copy/` folder, namespaced by

@@ -25,7 +25,7 @@ import { CATEGORY, GENUS, LINES, POTATO_VARIETY, QUANTITY } from '../fields.js'
  */
 export const meta = { ...page, collects: [LINES] }
 
-const view = `${TEMPLATES}/features/commodities/list/template`
+const view = `${TEMPLATES}/features/commodities/list/list`
 
 const bundle = copyFor({ en, cy })
 const copy = bundle.list
