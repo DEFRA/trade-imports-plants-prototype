@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createServer } from '../server.js'
 import { createSeedClient } from './http-client.js'
-import { seedHighRiskPlants } from './seed-high-risk-plants.js'
+import {
+  EXAMPLE_DATA_AUTHOR_ID,
+  seedHighRiskPlants
+} from './seed-high-risk-plants.js'
 import { recordSeeded } from './registry.js'
 
 const SET_ID = 'high-risk-plants'
@@ -50,6 +53,21 @@ describe('adopting the shared seeded journeys onto a signed-in session', () => {
     for (const journeyId of journeyIds) {
       expect(firstDashboard.result).toContain(journeyId)
       expect(secondDashboard.result).toContain(journeyId)
+    }
+  })
+
+  it('Should not adopt the seeded references onto the seed’s own author identity', async () => {
+    // The seeder itself is authenticated (see seed-high-risk-plants.js), so
+    // without this guard its own requests would trip this same adoption
+    // logic — and, via `ensureSeeded`, the lazy seed check it exists to
+    // satisfy, recursively, forever.
+    const client = await signedInClient(server, EXAMPLE_DATA_AUTHOR_ID)
+
+    const dashboard = await client.get(DASHBOARD)
+
+    expect(dashboard.statusCode).toBe(200)
+    for (const journeyId of journeyIds) {
+      expect(dashboard.result).not.toContain(journeyId)
     }
   })
 

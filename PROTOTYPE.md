@@ -37,11 +37,11 @@ different test user.
 ## Example data
 
 A prototype with example data (today, high-risk-plants) creates a handful of
-example notifications each time it starts, in a mix of states: draft, in
-progress, submitted, and submitted then amended. They are made by going
-through the journey itself, so they look exactly like notifications a trader
-made. Everyone who signs in sees the same examples, whichever user they sign
-in as.
+example notifications the first time someone opens it after it starts, in a
+mix of states: draft, in progress, submitted, and submitted then amended.
+They are made by going through the journey itself, so they look exactly like
+notifications a trader made. Everyone who signs in sees the same examples,
+whichever user they sign in as.
 
 The data is shared. Anyone using the prototype can change or delete what
 anyone else has made, and reset it for everyone.

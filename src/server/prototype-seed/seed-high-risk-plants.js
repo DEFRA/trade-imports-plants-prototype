@@ -8,9 +8,10 @@ import { HIGH_RISK_PLANTS_SCENARIOS } from './scenarios.js'
  * actor on every write and reads the signed-in organisation on the
  * dashboard, so the seed needs an identity of its own, but the data it
  * writes is shared: every signed-in user sees it (see
- * `adopt-known-journeys.js`).
+ * `adopt-known-journeys.js`, which also uses this id to recognise — and
+ * skip — the seed's own requests).
  */
-const EXAMPLE_DATA_AUTHOR_ID = 'prototype-example-data'
+export const EXAMPLE_DATA_AUTHOR_ID = 'prototype-example-data'
 const EXAMPLE_DATA_AUTHOR = Object.freeze({
   contactId: EXAMPLE_DATA_AUTHOR_ID,
   name: 'Example data',

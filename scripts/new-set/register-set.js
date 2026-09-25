@@ -2,8 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { camelCase, screamingSnakeCase } from './names.js'
 
 const IMPORT_ANCHOR = "import { setsIndex } from '../sets-index/index.js'"
-const REGISTER_ANCHOR =
-  'await server.register([setsIndex, adoptKnownJourneys, seedOnBoot])'
+const REGISTER_ANCHOR = 'await server.register([setsIndex, adoptKnownJourneys])'
 
 /**
  * Mounts a scaffolded set into `prototype-sets/index.js` — never `router.js`,

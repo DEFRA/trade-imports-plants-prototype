@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { clearSeeded, recordSeeded, seededIdsFor } from './registry.js'
+import {
+  clearSeeded,
+  hasBeenSeeded,
+  recordSeeded,
+  seededIdsFor
+} from './registry.js'
 
 const SET_A = 'a-set'
 const SET_B = 'another-set'
@@ -37,5 +42,21 @@ describe('the seed registry', () => {
 
     expect(seededIdsFor(SET_A)).toEqual([])
     expect(seededIdsFor(SET_B)).toEqual(['ref-2'])
+  })
+
+  it('Should not consider a set seeded until something is recorded for it', () => {
+    expect(hasBeenSeeded(SET_A)).toBe(false)
+
+    recordSeeded(SET_A, ['ref-1'])
+
+    expect(hasBeenSeeded(SET_A)).toBe(true)
+  })
+
+  it('Should stop considering a set seeded once it is cleared', () => {
+    recordSeeded(SET_A, ['ref-1'])
+
+    clearSeeded(SET_A)
+
+    expect(hasBeenSeeded(SET_A)).toBe(false)
   })
 })

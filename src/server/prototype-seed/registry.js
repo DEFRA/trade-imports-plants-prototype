@@ -15,6 +15,8 @@ export const recordSeeded = (setId, journeyIds) => {
 
 export const seededIdsFor = (setId) => seeded.get(setId) ?? []
 
+export const hasBeenSeeded = (setId) => seeded.has(setId)
+
 export const clearSeeded = (setId) => {
   seeded.delete(setId)
 }
