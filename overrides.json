@@ -32,7 +32,31 @@
     ".github/workflows/sync-upstream.yml",
     "src/server/prototype-seed/**",
     "scripts/new-set/**",
-    "PROTOTYPE.md"
+    "PROTOTYPE.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".claude/skills/change-the-journey/**",
+    ".claude/skills/change-the-words/**",
+    ".claude/skills/check-my-change/**",
+    ".claude/skills/design-release/**",
+    ".claude/skills/example-data/**",
+    ".claude/skills/fake-a-service/**",
+    ".claude/skills/hand-off/**",
+    ".claude/skills/match-the-design/**",
+    ".claude/skills/port-a-kit-page/**",
+    ".claude/skills/research-session/**",
+    ".claude/skills/run-the-prototype/**",
+    ".claude/skills/share-my-change/**",
+    ".claude/skills/show-my-change/**",
+    ".claude/rules/**",
+    ".claude/workflows/**",
+    "docs/designers/**",
+    "scripts/designer/**",
+    "src/server/prototype-checks/**",
+    "src/server/prototype-data/**",
+    "src/server/prototype-services/**",
+    "fit/designer-sets.fit.spec.js",
+    "handoffs/**"
   ],
   "patched": [
     {
@@ -53,15 +77,15 @@
     },
     {
       "path": "src/server/app/services/address-book/index.js",
-      "why": "picks the stub address book with isStubDataMode() in place of isStubMode(), so production keeps the stub book"
+      "why": "picks the stub address book with isStubDataMode() in place of isStubMode(), so production keeps the stub book; also wraps the stub rows with the src/server/prototype-data overlay (withExtraParties), one import and one declaration, so a set's extra parties come after the stub rows"
     },
     {
       "path": "src/server/app/services/countries/index.js",
-      "why": "serves the stub countries with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+      "why": "serves the stub countries with isStubDataMode() in place of isStubMode(), so production never calls reference data; also wraps the stub labels with the src/server/prototype-data overlay (withExtraCountries), one import and one declaration, so a set's extra countries come after the stub rows"
     },
     {
       "path": "src/server/app/services/ports/index.js",
-      "why": "serves the stub ports with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+      "why": "serves the stub ports with isStubDataMode() in place of isStubMode(), so production never calls reference data; also wraps the stub ports with the src/server/prototype-data overlay (withExtraPorts), one import and one declaration, so a set's extra ports come after the stub rows"
     },
     {
       "path": "src/config/config.js",
@@ -81,7 +105,7 @@
     },
     {
       "path": "src/server/app/co-residency.test.js",
-      "why": "sample-journey routes are excluded from the root-surface list, the chooser's /reset/{setId} joins it, and / lists the sets rather than redirecting"
+      "why": "sample-journey and every scaffolded design release are left out of the root-surface list by their mounted prefix; the chooser's /reset/{setId} and /examples/{setId}/{example} join it; / lists the sets rather than redirecting"
     },
     {
       "path": "README.md",
@@ -93,7 +117,7 @@
     },
     {
       "path": "package.json",
-      "why": "name is prototype identity, plus the sync:upstream and new:set scripts; scripts and dependencies otherwise follow upstream"
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides); scripts and dependencies otherwise follow upstream"
     },
     {
       "path": "package-lock.json",
@@ -110,6 +134,10 @@
     {
       "path": "scripts/npm-version.js",
       "why": "its doc comment names the prototype workflows that still pin npm with it (plants-frontend's no longer do)"
+    },
+    {
+      "path": "eslint.config.js",
+      "why": "one extra block ignoring .claude/workflows/*.js (not their *.test.js): Workflow tool scripts are async function bodies whose top-level return is the result, which ESLint's module parser rejects; the tests beside them lint and run them"
     },
     {
       "path": "playwright.config.js",

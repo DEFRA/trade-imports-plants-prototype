@@ -2,6 +2,7 @@
 {% extends 'shared/layout.njk' %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
 
 {% set mainClasses = "govuk-main-wrapper--l" %}
 
@@ -22,12 +23,33 @@
     <div class="govuk-grid-column-two-thirds">
       <ul class="govuk-list">
         {% for set in sets %}
-          <li class="govuk-!-margin-bottom-6">
-            <h2 class="govuk-heading-m govuk-!-margin-bottom-1">
+          <li class="govuk-!-margin-bottom-8" data-set-id="{{ set.setId }}">
+            <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
               <a class="govuk-link" href="{{ set.href }}">{{ set.text }}</a>
             </h2>
+            <p class="govuk-body govuk-!-margin-bottom-2">
+              {{ govukTag({ text: set.tag.text, classes: set.tag.classes }) }}
+              {% if set.researchMode %}
+                {{ govukTag({ text: "Research mode on", classes: "govuk-tag--orange" }) }}
+              {% endif %}
+            </p>
             {% if set.description %}
-              <p class="govuk-body">{{ set.description }}</p>
+              <p class="govuk-body govuk-!-margin-bottom-2">{{ set.description }}</p>
+            {% endif %}
+            {% if set.madeFrom %}
+              <p class="govuk-body-s govuk-!-margin-bottom-2">{{ set.madeFrom }}</p>
+            {% endif %}
+            {% if set.examples | length %}
+              <h3 class="govuk-heading-s govuk-!-margin-top-4 govuk-!-margin-bottom-1">
+                Examples<span class="govuk-visually-hidden"> in {{ set.text }}</span>
+              </h3>
+              <ul class="govuk-list govuk-list--bullet">
+                {% for example in set.examples %}
+                  <li>
+                    <a class="govuk-link" href="{{ example.href }}">{{ example.text }}<span class="govuk-visually-hidden"> ({{ set.text }})</span></a>
+                  </li>
+                {% endfor %}
+              </ul>
             {% endif %}
             {% if canReset %}
               <form method="post" action="{{ set.resetAction }}" novalidate>

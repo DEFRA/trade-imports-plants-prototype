@@ -21,6 +21,7 @@ import { authController } from '../auth/controller.js'
 import { catchAll } from '../common/helpers/errors.js'
 import { mockOidcConfig } from '../common/test-helpers/mock-oidc-config.js'
 import {
+  currentSetBase,
   currentSetId,
   enterSetContext,
   mountedSetIds,
@@ -168,15 +169,14 @@ describe('co-residency — two sets mounted in one process', () => {
   })
 
   it('Should register no set route at the root', () => {
+    // Every mounted set's prefix, not a fixed list: design releases scaffolded
+    // with `new:set` are mounted by prototype-sets beside the sets named here.
+    const setBases = mountedSetIds().map((setId) =>
+      withSetContext(setId, currentSetBase)
+    )
     const rootRoutes = server
       .table()
-      .filter(
-        (route) =>
-          !route.path.startsWith(PLANTS_BASE) &&
-          !route.path.startsWith(SAMPLE_JOURNEY_BASE) &&
-          !route.path.startsWith(SECOND_SET_BASE) &&
-          !route.path.startsWith(FOREIGN_REALM_BASE)
-      )
+      .filter((route) => !setBases.some((base) => route.path.startsWith(base)))
       .map((route) => route.path)
 
     // What is left at the root is the server-wide surface and nothing else.
@@ -185,6 +185,7 @@ describe('co-residency — two sets mounted in one process', () => {
     expect(rootRoutes.toSorted()).toEqual([
       '/',
       SIGN_IN_OIDC_PATH,
+      '/examples/{setId}/{example}',
       '/favicon.ico',
       '/health',
       '/public/{param*}',

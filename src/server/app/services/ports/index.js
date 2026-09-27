@@ -2,8 +2,9 @@ import Boom from '@hapi/boom'
 import { PORTS } from './stub.js'
 import { fetchPortsOfEntry } from './client.js'
 import { isStubDataMode } from '../../../common/services/mode.js'
+import { withExtraPorts } from '../../../prototype-data/index.js'
 
-let ports = [...PORTS]
+let ports = withExtraPorts([...PORTS])
 let loaded = false
 
 /** Load the port-of-entry list from the reference-data service, once. Called

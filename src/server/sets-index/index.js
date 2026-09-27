@@ -5,6 +5,7 @@ import {
 } from '../app/shared/set-context.js'
 import { setsIndexController } from './controller.js'
 import { resetRoute } from './reset-controller.js'
+import { examplesRoute } from './examples-controller.js'
 
 /**
  * Every mounted set as a `[setId, prefix]` pair, read back through the set
@@ -18,7 +19,7 @@ export const mountedSets = () =>
   mountedSetIds().map((setId) => [setId, withSetContext(setId, currentSetBase)])
 
 /**
- * The chooser at `/`.
+ * The chooser at `/`, its per-set reset action and its stable example links.
  *
  * This is the prototype host, so the root lists the prototypes it is serving
  * rather than redirecting to one of them: there is no default here, and a
@@ -39,7 +40,8 @@ export const setsIndex = {
           path: '/',
           ...setsIndexController(mountedSets)
         },
-        resetRoute
+        resetRoute,
+        examplesRoute()
       ])
     }
   }

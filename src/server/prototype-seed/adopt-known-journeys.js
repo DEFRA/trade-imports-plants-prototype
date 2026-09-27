@@ -3,19 +3,26 @@ import {
   knownJourneysCookie,
   session
 } from '../app/engine/persistence/session.js'
+import { organisationIdOf } from '../common/helpers/organisation-id.js'
 import {
   ensureSeeded,
   hasSeeder,
   isSeedAuthorRequest,
+  organisationIdsFor,
   seededIdsFor
 } from './index.js'
 
 /**
- * Seeds the set's shared example notifications on the first signed-in
- * request to reach it, then adds them to every signed-in session. The
- * dashboard lists only what a session "knows" (see `engine/journey.js`), so a
- * seeded notification is invisible until something adds it there. Every
- * signed-in user gets the same examples, whoever they are.
+ * Seeds the set's example notifications on the first signed-in request to
+ * reach it, then adds them to every signed-in session. The dashboard lists
+ * only what a session "knows" (see `engine/journey.js`), so a seeded
+ * notification is invisible until something adds it there.
+ *
+ * Shared examples (no `organisationId` in the scenario) go to every signed-in
+ * user, whoever they are. An example made for one organisation goes only to
+ * sessions signed in to that organisation, so a designer can show what another
+ * organisation sees by signing in as it
+ * (`/auth/stub-sign-in?organisationId=<organisation>` locally).
  *
  * Runs on every request under a seeded set rather than once at sign-in:
  * sign-in is server-wide and outside every set, so it has no set to ask.
@@ -51,7 +58,11 @@ const adopt = async (request, h) => {
 
   await withSetContext(setId, async () => {
     const known = await session.knownJourneyIds(request)
-    const missing = seededIdsFor(setId).filter(
+    const forThisSession = [
+      ...seededIdsFor(setId),
+      ...organisationIdsFor(setId, organisationIdOf(request))
+    ]
+    const missing = forThisSession.filter(
       (journeyId) => !known.includes(journeyId)
     )
     const cookieName = knownJourneysCookie()

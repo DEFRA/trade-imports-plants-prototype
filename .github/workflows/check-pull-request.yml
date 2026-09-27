@@ -51,6 +51,62 @@ jobs:
           docker build --no-cache --tag trade-imports-plants-prototype .
           exit $?
 
+  # Proves on every pull request — and every Monday, after the weekly update
+  # from plants-frontend — that a designer can still make a design release
+  # from the real journey: the copy boots, lints, passes the unit suite and
+  # shows on the chooser. Runs after the unit tests. The release it makes is
+  # thrown away at the end and never committed.
+  release-canary:
+    name: Design release canary
+    runs-on: ubuntu-latest
+    needs: pr-validator
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Align npm with the version pinned in package.json
+        run: npm install --global "$(node scripts/npm-version.js)"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Make a throwaway design release from the real journey
+        run: npm run new:set -- ci-release-canary --from high-risk-plants --describe "A throwaway copy of the real journey, made by CI"
+
+      - name: Lint and unit tests with the release mounted
+        run: |
+          npm run lint
+          npm test
+
+      - name: Install the Playwright browser
+        run: npm run playwright:install
+
+      - name: Chooser boot check with the release mounted
+        run: npm run test:fit -- --project=journeys fit/sets-chooser.fit.spec.js
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-canary-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+      - name: Throw the canary release away
+        if: always()
+        run: |
+          git restore .
+          git clean -fdq -- src/server
+
   # Deliberately a separate job from pr-validator. `npm audit` scans the whole
   # installed tree against a live advisory feed, so a newly published advisory
   # turns every open PR red regardless of what that PR changed — and advisories

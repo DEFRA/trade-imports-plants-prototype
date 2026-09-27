@@ -3,12 +3,21 @@ import { createServer } from '../server.js'
 import { records } from '../app/engine/persistence/records.js'
 import { withSetContext } from '../app/shared/set-context.js'
 import { createSeedClient } from './http-client.js'
-import { resetSet } from './index.js'
+import {
+  ensureSeeded,
+  exampleHref,
+  findExample,
+  listExamples,
+  resetSet
+} from './index.js'
 import { clearSeeded, seededIdsFor } from './registry.js'
 
 const SET_ID = 'high-risk-plants'
 const DASHBOARD = `/${SET_ID}`
 const ORGANISATION = 'first-organisation'
+// The high-risk-plants examples every session sees: all but the deleted one and
+// the one made for another organisation (scenarios/high-risk-plants.js).
+const SHARED_EXAMPLES = 7
 
 const signedInClient = async (server, organisationId) => {
   const client = createSeedClient(server)
@@ -48,7 +57,7 @@ describe('seeding a set on its first visit', () => {
 
     const journeyIds = seededIdsFor(SET_ID)
     expect(dashboard.statusCode).toBe(200)
-    expect(journeyIds).toHaveLength(4)
+    expect(journeyIds).toHaveLength(SHARED_EXAMPLES)
     for (const journeyId of journeyIds) {
       expect(dashboard.result).toContain(journeyId)
     }
@@ -76,11 +85,60 @@ describe('seeding a set on its first visit', () => {
     await resetSet(server, SET_ID)
 
     const seededAfterReset = seededIdsFor(SET_ID)
-    expect(seededAfterReset).toHaveLength(4)
+    expect(seededAfterReset).toHaveLength(SHARED_EXAMPLES)
     expect(seededAfterReset).not.toEqual(seededBeforeReset)
     const listed = await withSetContext(SET_ID, () =>
       records.list({ journeyIds: seededAfterReset })
     )
     expect(listed.rows).toHaveLength(seededAfterReset.length)
+  })
+
+  it('Should keep each example’s slug across a reset, pointing at its new notification', async () => {
+    server = await createServer()
+    await server.initialize()
+    const before = await exampleHref(server, SET_ID, 'submitted')
+
+    await resetSet(server, SET_ID)
+
+    const after = findExample(SET_ID, 'submitted')
+    expect(before).toMatch(/\/confirmation$/)
+    expect(after.href).toMatch(/\/confirmation$/)
+    expect(after.href).not.toBe(before)
+    expect(seededIdsFor(SET_ID)).toContain(after.journeyId)
+  })
+
+  it('Should seed on the first example link after a restart', async () => {
+    server = await createServer()
+    await server.initialize()
+
+    const href = await exampleHref(server, SET_ID, 'draft-midway')
+
+    expect(href).toBe(
+      `${DASHBOARD}/notifications/${findExample(SET_ID, 'draft-midway').journeyId}/destinations/select`
+    )
+    expect(await exampleHref(server, SET_ID, 'no-such-example')).toBeUndefined()
+  })
+
+  it('Should list the examples before seeding, then with where each one stopped', async () => {
+    server = await createServer()
+    await server.initialize()
+    const unseeded = listExamples(SET_ID)
+
+    await ensureSeeded(server, SET_ID)
+
+    const seeded = listExamples(SET_ID)
+    expect(unseeded[0]).toEqual({
+      slug: 'draft-just-started',
+      label: 'Draft, just started',
+      status: 'draft',
+      organisationId: null,
+      through: 'commodities/details'
+    })
+    expect(seeded[0]).toMatchObject({
+      slug: 'draft-just-started',
+      stopAt: 'commodities/details',
+      href: expect.stringContaining('/commodities/details')
+    })
+    expect(listExamples('sample-journey')).toEqual([])
   })
 })

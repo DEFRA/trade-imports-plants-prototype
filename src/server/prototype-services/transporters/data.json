@@ -1,0 +1,93 @@
+[
+  {
+    "id": "harbourline-haulage-ltd",
+    "name": "Harbourline Haulage Ltd",
+    "address": {
+      "addressLine1": "4 Quayside Park",
+      "townOrCity": "Felixstowe",
+      "postalOrZipCode": "IP11 3QT",
+      "country": "United Kingdom"
+    },
+    "approvalNumber": "UK/SUFFOLK/T1/00092001",
+    "transporterType": "commercial",
+    "approvalStatus": "approved"
+  },
+  {
+    "id": "north-sea-freight-bv",
+    "name": "North Sea Freight BV",
+    "address": {
+      "addressLine1": "Havenweg 12",
+      "townOrCity": "Rotterdam",
+      "postalOrZipCode": "3089 JB",
+      "country": "Netherlands"
+    },
+    "approvalNumber": "NL/ROTTERDAM/T1/00081002",
+    "transporterType": "commercial",
+    "approvalStatus": "approved"
+  },
+  {
+    "id": "greenway-plant-transport-ltd",
+    "name": "Greenway Plant Transport Ltd",
+    "address": {
+      "addressLine1": "Unit 7, Riverside Estate",
+      "townOrCity": "Spalding",
+      "postalOrZipCode": "PE11 2RB",
+      "country": "United Kingdom"
+    },
+    "approvalNumber": "UK/LINCOLNSHIRE/T1/00071003",
+    "transporterType": "commercial",
+    "approvalStatus": "approved"
+  },
+  {
+    "id": "iberia-cold-chain-sl",
+    "name": "Iberia Cold Chain SL",
+    "address": {
+      "addressLine1": "Calle del Puerto 8",
+      "townOrCity": "Valencia",
+      "postalOrZipCode": "46024",
+      "country": "Spain"
+    },
+    "approvalNumber": "ES/VALENCIA/T1/00061004",
+    "transporterType": "commercial",
+    "approvalStatus": "approved"
+  },
+  {
+    "id": "fenland-growers-transport",
+    "name": "Fenland Growers Transport",
+    "address": {
+      "addressLine1": "Low Road Farm",
+      "townOrCity": "Wisbech",
+      "postalOrZipCode": "PE14 0SP",
+      "country": "United Kingdom"
+    },
+    "approvalNumber": "UK/CAMBRIDGESHIRE/T1/00051005",
+    "transporterType": "private",
+    "approvalStatus": "approved"
+  },
+  {
+    "id": "alpenrose-logistik-gmbh",
+    "name": "Alpenrose Logistik GmbH",
+    "address": {
+      "addressLine1": "Industriestrasse 3",
+      "townOrCity": "Salzburg",
+      "postalOrZipCode": "5020",
+      "country": "Austria"
+    },
+    "approvalNumber": "AT/SALZBURG/T1/00041006",
+    "transporterType": "commercial",
+    "approvalStatus": "new"
+  },
+  {
+    "id": "copperfield-couriers",
+    "name": "Copperfield Couriers",
+    "address": {
+      "addressLine1": "22 Station Approach",
+      "townOrCity": "Ashford",
+      "postalOrZipCode": "TN23 1EZ",
+      "country": "United Kingdom"
+    },
+    "approvalNumber": "UK/KENT/T1/00031007",
+    "transporterType": "private",
+    "approvalStatus": "new"
+  }
+]
