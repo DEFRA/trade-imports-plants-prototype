@@ -518,7 +518,14 @@ jobs:
           DEPLOYED: ${{ steps.deploy.outcome }}
           FOLDER: ${{ steps.destination.outputs.folder }}
         run: |
-          site=$(gh api "repos/${REPO}/pages" --jq .html_url 2>/dev/null || true)
+          # gh api prints the error body to stdout on a 404, so keep the
+          # address only when the call succeeded and it is a real https URL.
+          site=""
+          if found=$(gh api "repos/${REPO}/pages" --jq .html_url 2>/dev/null); then
+            case "$found" in
+              https://*) site="$found" ;;
+            esac
+          fi
           if [ "$DEPLOYED" = "success" ] && [ -n "$site" ]; then
             case "$site" in
               */) ;;
