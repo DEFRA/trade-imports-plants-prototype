@@ -172,6 +172,14 @@ export const recipeDocPath = (recipe) =>
     ? { repo: 'plants-frontend', path: `${REAL}/docs/${recipe}.md` }
     : { repo: 'plants-prototype', path: `docs/designers/recipes/${recipe}.md` }
 
+/**
+ * Whether the change moves a page or changes a gate. A flow row that only
+ * holds a changed page, in the same order as before, is not a move.
+ */
+export const changesFlow = (report) =>
+  (report.gateChanges ?? []).length > 0 ||
+  (report.journeyFlow?.rows ?? []).some((row) => row.moved !== false)
+
 const isNewPage = (page) =>
   page.feature &&
   page.files.some(
@@ -203,10 +211,7 @@ export const recipesFor = (report) => {
   if (newErrors) {
     inferred.push('add-a-field')
   }
-  if (
-    (report.gateChanges ?? []).length ||
-    (report.journeyFlow?.rows ?? []).length
-  ) {
+  if (changesFlow(report)) {
     inferred.push('journey-flow-and-gates')
   }
   return {
@@ -258,10 +263,7 @@ export const testsToAdd = (report) => {
       `Service ${service.name}: {{${service.dir}/${service.name}.test.js}} covering the stub's behaviour and client.js's wire mapping, with the network mocked by nock (as the address book's tests do).`
     )
   }
-  if (
-    (report.gateChanges ?? []).length ||
-    (report.journeyFlow?.rows ?? []).length
-  ) {
+  if (changesFlow(report)) {
     items.push(
       'The page order or a gate changes: run {{npm run test:fit:journeys}} and update {{fit/journey-smoke.fit.spec.js}} if the walk changes.'
     )

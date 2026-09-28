@@ -72,7 +72,9 @@ const splitList = (value) =>
 /**
  * Turns `--pages` values into `{ mode, keys }`. `changed` and `all` are
  * modes; anything else is a list of page names. `changed` with names
- * (`changed,dashboard`) shows the changed pages and those pages too. Several
+ * (`changed,dashboard`) shows the changed pages and those pages too. `all`
+ * keeps the names given beside it, so `all,chooser` still pictures the
+ * chooser and a name that is not a page is still reported. Several
  * `--pages` options add up.
  */
 export const parsePages = (values) => {
@@ -81,10 +83,10 @@ export const parsePages = (values) => {
   }
   const items = values.flatMap(splitList)
   const modes = items.filter((item) => PAGE_MODES.has(item))
-  if (modes.includes('all')) {
-    return { mode: 'all', keys: [] }
-  }
   const keys = [...new Set(items.filter((item) => !PAGE_MODES.has(item)))]
+  if (modes.includes('all')) {
+    return { mode: 'all', keys }
+  }
   if (keys.length === 0 || modes.includes('changed')) {
     return { mode: 'changed', keys }
   }

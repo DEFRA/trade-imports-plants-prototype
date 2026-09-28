@@ -104,19 +104,23 @@ export const changedInWorkingTree = (root, ref, dir) => [
   ])
 ]
 
-/** Subjects of the commits that touched `dir` after `sinceRef` (or all). */
-export const subjectsTouching = (root, sinceRef, dir) =>
+/**
+ * The full messages (subject and body, one line each) of the commits that
+ * touched `dir` after `sinceRef` (or all), so a `Recipe:` line in a body is
+ * read as well as one in a subject.
+ */
+export const messagesTouching = (root, sinceRef, dir) =>
   lines(
     gitOrNull(
       [
         'log',
-        '--format=%s',
+        '--format=%B',
         sinceRef ? `${sinceRef}^..HEAD` : 'HEAD',
         '--',
         dir
       ],
       { cwd: root }
-    ) ?? gitOrNull(['log', '--format=%s', 'HEAD', '--', dir], { cwd: root })
+    ) ?? gitOrNull(['log', '--format=%B', 'HEAD', '--', dir], { cwd: root })
   )
 
 const writeTree = (dir, files) => {

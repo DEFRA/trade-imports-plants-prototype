@@ -9,6 +9,8 @@ import { findFixture } from './fixtures.js'
  *     slug: 'submitted-late',             its stable id, used in example links
  *     fixture: 'warePotatoesLate',        or { file: 'extra', name: '…' }
  *     through: 'origin',                  stop on this page, leaving it to fill in
+ *                                         (no through and no submit: every page
+ *                                         answered, ready to check and submit)
  *     answers: {                          change single answers in the fixture
  *       'arrival-details': { proposedPlaceOfLanding: 'GB FXT' }
  *     },

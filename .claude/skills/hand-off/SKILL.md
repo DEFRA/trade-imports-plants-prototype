@@ -34,8 +34,10 @@ say "upstream" without explaining it once ("the real service's code").
 
 - **Never invent the designer's words.** _As_, _I want_, _So that_ and the
   description come only from what the designer said. The acceptance criteria
-  are drafted by you but only used once the designer has confirmed them. What
-  they did not give stays a placeholder the brief shows in square brackets.
+  are drafted by you. Until the designer confirms them, pass
+  `--criteria-draft` too, so the story shows them as "Draft acceptance
+  criteria, to confirm" and lists them as a placeholder. What they did not
+  give stays a placeholder the brief shows in square brackets.
 - **Nothing is ever pushed to plants-frontend.** The prototype's tools set
   the `upstream` remote's push address to `DISABLED` on purpose (a fresh
   clone has no `upstream` remote until step 1 of route 1 adds it). Never
@@ -103,13 +105,17 @@ say "upstream" without explaining it once ("the real service's code").
    error, any flow or gate change), write them to
    `.cache/designer/handoff/<slug>.criteria.txt` (git ignores it), show them
    to the designer and ask them to confirm or change them. Their changes win.
-   Use only what the prototype really does. The file format:
+   Use only what the prototype really does, on pages that really exist. If
+   the designer has not confirmed them yet (they are away, or have not
+   answered), add `--criteria-draft` to the `designer:handoff` command, and
+   run it again without that flag once they confirm. The file format:
 
    ```
    Scenario: The plants were grown under glass
-   Given I am on the reason for import page
+   Given I am on the origin of the import page
    When I choose "Yes" for grown under glass
-   Then I go to the arrival details page
+   And I continue
+   Then check your answers shows "Grown under glass: Yes"
 
    Given I have not answered whether the plants were grown under glass
    When I continue
@@ -124,7 +130,10 @@ say "upstream" without explaining it once ("the real service's code").
 8. **Links to see it.** If the design branch is already on GitHub, pass
    `--link https://github.com/DEFRA/trade-imports-plants-prototype/tree/<branch>`,
    and `--link <pull request address>` when there is one (`gh pr view --json url`).
-   Never push only to get a link: ask first (`share-my-change`, step 6). The
+   Never push only to get a link: ask first (`share-my-change`, step 6). When
+   the branch is not on GitHub yet, the script says so and the brief's "Run
+   it on your own computer" asks for it to be pushed first: tell the designer
+   in one line that a developer cannot open it until it is. The
    brief always adds example links for each changed page, the deployed
    prototype's address once `scripts/designer/prototype.json` has a
    `deployedUrl`, and the steps to run it locally.
@@ -212,6 +221,7 @@ Then choose the route:
    npm run designer:handoff -- --set <set-id> --slug <slug> --all --title "<short summary>" --why "<what and why>" --as "<who>" --want "<what they need>" --so-that "<why they need it>" --criteria .cache/designer/handoff/<slug>.criteria.txt --link <design branch address>
    ```
 
+   Add `--criteria-draft` while the designer has not confirmed the criteria.
    Leave out any option the designer did not give. Use `--features <a,b>` or
    `--since <commit>` in place of `--all` for only some of the change,
    `--recipe <name>` for a recipe the commit messages do not name, and

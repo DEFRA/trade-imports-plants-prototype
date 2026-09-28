@@ -78,9 +78,20 @@ export const SIGNATURES = [
     skill: 'change-the-words'
   },
   {
+    id: 'service-contract',
+    title: "A stand-in service's CONTRACT cannot be read",
+    pattern:
+      /Should read the CONTRACT of (?:src\/server\/app\/services\/)?([a-z0-9-]+)(?:\/index\.js)? as data/,
+    cause: (match) =>
+      `The hand-off reads the CONTRACT in src/server/app/services/${match[1]}/index.js as data, without running it, and could not.`,
+    fix: 'Write CONTRACT with plain values only (text, numbers, true or false, lists and objects), in index.js itself. It must not use a name index.js imports, such as client.MAX_LENGTH or [...client.TYPES]: copy the values in, or declare them as constants in index.js. It must list at least one operation. index.js and client.js must import nothing from prototype-support/ or prototype-data/: only stub.js may.',
+    skill: 'fake-a-service'
+  },
+  {
     id: 'contract',
     title: 'A real journey page saves the wrong answers',
-    pattern: /controller <-> model commit contract[^\n]*|contract\.test\.js/,
+    pattern:
+      /controller <-> model commit contract[^\n]*|src\/server\/app\/contract\.test\.js/,
     cause:
       'In the real journey, a page saves different answers from the ones its controller says it collects (its meta.collects).',
     fix: 'This test only covers the real journey (high-risk-plants). Make the change in your design release instead. On a handoff branch, add the page to src/server/app/contract.test.js.',

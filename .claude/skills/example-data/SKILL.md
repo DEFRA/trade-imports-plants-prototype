@@ -54,10 +54,12 @@ All of these are the prototype's own. The weekly update never touches them.
 ### 1. Pick the set and check ownership
 
 1. Use the set the designer names. If they name none, use their working design
-   release (`npm run designer:release -- list`). `high-risk-plants` is fine for
-   examples: its scenario file is the prototype's own. If they mean "my
-   release" and there is none, make one now without asking: `design-release`
-   section B (`plants-working`), saved as its own commit, then back here.
+   release (`npm run designer:release -- list`). If they name none and have
+   no working release of their own, make `plants-working` now without asking
+   (`design-release` section B, saved as its own commit), then come back
+   here: that is the default, so the examples sit beside the designer's own
+   changes. Use `high-risk-plants` only when they name it (its scenario file
+   is the prototype's own, so that is allowed).
 2. Run `npm run designer:where -- <each file you will change>`. For a
    scenario file that does not exist yet, name it anyway: it reports "Yours".
 
@@ -94,18 +96,19 @@ propose them from this list, one per kind of journey, and say which you chose.
 **An example.** Add one entry to `src/server/prototype-seed/scenarios/<set-id>.js`,
 following the grammar at the top of `src/server/prototype-seed/grammar.js`:
 
-| Request                                         | Entry                                                                                                                                                         |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "stopped at the X page", "a link straight to X" | `fixture` + `through: '<page address>'`                                                                                                                       |
-| "submitted"                                     | `submit: true`                                                                                                                                                |
-| "late"                                          | `fixture: 'warePotatoesLate'` + `submit: true`, or any fixture with `answers: { 'arrival-details': { arrivalDate: { daysFromToday: -1 } } }` + `submit: true` |
-| "amended"                                       | `submit: true, amend: true`                                                                                                                                   |
-| "amendment cancelled"                           | `submit: true, amend: true, cancelAmend: true`                                                                                                                |
-| "deleted"                                       | `delete: true`                                                                                                                                                |
-| "copied"                                        | `copy: '<slug of an earlier example>'`, plus `answers` for what differs                                                                                       |
-| "another organisation"                          | `organisationId: '<organisation id>'`                                                                                                                         |
-| "fill the dashboard"                            | several entries, each with a different fixture or `answers`                                                                                                   |
-| "an example that takes the other branch"        | `fixture: '<the scenario that answers the other way>'`: any scenario in the happy path can be an example, not only the first four                             |
+| Request                                                                 | Entry                                                                                                                                                         |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "stopped at the X page", "a link straight to X"                         | `fixture` + `through: '<page address>'`                                                                                                                       |
+| "every page answered", "ready to check and submit", "not submitted yet" | `fixture` only: no `through` and no `submit`. (`through` stops _on_ that page and leaves it empty.)                                                           |
+| "submitted"                                                             | `submit: true`                                                                                                                                                |
+| "late"                                                                  | `fixture: 'warePotatoesLate'` + `submit: true`, or any fixture with `answers: { 'arrival-details': { arrivalDate: { daysFromToday: -1 } } }` + `submit: true` |
+| "amended"                                                               | `submit: true, amend: true`                                                                                                                                   |
+| "amendment cancelled"                                                   | `submit: true, amend: true, cancelAmend: true`                                                                                                                |
+| "deleted"                                                               | `delete: true`                                                                                                                                                |
+| "copied"                                                                | `copy: '<slug of an earlier example>'`, plus `answers` for what differs                                                                                       |
+| "another organisation"                                                  | `organisationId: '<organisation id>'`                                                                                                                         |
+| "fill the dashboard"                                                    | several entries, each with a different fixture or `answers`                                                                                                   |
+| "an example that takes the other branch"                                | `fixture: '<the scenario that answers the other way>'`: any scenario in the happy path can be an example, not only the first four                             |
 
 Write `fixture` in the short form, `fixture: 'warePotatoes'`, never
 `fixture: { file: 'happy-path', name: 'warePotatoes' }`. The long form

@@ -12,7 +12,10 @@ import * as stub from './stub.js'
  * `stub.js` is the only file that uses the prototype's own plumbing.
  *
  * Fill in `CONTRACT` as the design settles: the fields a record needs, an
- * example, and the questions the real team must answer.
+ * example, and the questions the real team must answer. The hand-off reads
+ * it as data without running this file, so write plain values only: never a
+ * name imported from another file (`client.X`, `[...client.LIST]`). A
+ * constant declared in this file is fine.
  */
 
 export { PAGE_SIZE } from './client.js'

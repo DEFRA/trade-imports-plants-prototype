@@ -173,9 +173,25 @@ copy`.
   also needs `copy/copy.test.js`). No text can be empty.
 - Skill: `change-the-words`
 
+### A stand-in service's CONTRACT cannot be read
+
+- You see: `Should read the CONTRACT of src/server/app/services/<name>/index.js
+as data`, from `scripts/designer/handoff/contract.test.js`.
+- It means: the hand-off reads the `CONTRACT` in your prototype-owned
+  service's `index.js` as data, without running it, and could not. This is
+  your change, not the maintainer's.
+- Fix: write `CONTRACT` with plain values only (text, numbers, true or false,
+  lists and objects), in `index.js` itself. It must not use a name `index.js`
+  imports, such as `client.MAX_LENGTH` or `[...client.TYPES]`: copy the values
+  in, or declare them as constants in `index.js`. It must list at least one
+  operation. `index.js` and `client.js` must import nothing from
+  `prototype-support/` or `prototype-data/`: only `stub.js` may.
+- Skill: `fake-a-service`
+
 ### A real journey page saves the wrong answers
 
-- You see: `controller <-> model commit contract` or `contract.test.js`.
+- You see: `controller <-> model commit contract` or
+  `src/server/app/contract.test.js`.
 - It means: in the real journey, a page saves different answers from the ones
   its controller says it collects (its `meta.collects`).
 - Fix: this test only covers `high-risk-plants`. Make the change in your

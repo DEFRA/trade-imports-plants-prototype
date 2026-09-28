@@ -61,20 +61,32 @@ const OWNED = [
 )
 
 describe.runIf(OWNED.length > 0)('the prototype’s own services', () => {
-  it.each(OWNED)('Should read the CONTRACT of %s as data', (name) => {
-    const service = describeService(
-      name,
-      (filePath) => {
-        const full = path.join(REPO_ROOT, filePath)
-        return existsSync(full) ? readFileSync(full, 'utf8') : null
-      },
-      []
-    )
+  it.each(OWNED)(
+    'Should read the CONTRACT of src/server/app/services/%s/index.js as data',
+    (name) => {
+      const service = describeService(
+        name,
+        (filePath) => {
+          const full = path.join(REPO_ROOT, filePath)
+          return existsSync(full) ? readFileSync(full, 'utf8') : null
+        },
+        []
+      )
 
-    expect(service.contractReadable).toBe(true)
-    expect(service.contract.operations.length).toBeGreaterThan(0)
-    expect(service.proposedPrototypeImports).toEqual([])
-  })
+      expect(
+        service.contractReadable,
+        'service CONTRACT: must be plain values written in index.js, with no imported names'
+      ).toBe(true)
+      expect(
+        service.contract.operations.length,
+        'service CONTRACT: must list at least one operation'
+      ).toBeGreaterThan(0)
+      expect(
+        service.proposedPrototypeImports,
+        'service CONTRACT: index.js and client.js must import nothing from prototype-support/ or prototype-data/'
+      ).toEqual([])
+    }
+  )
 })
 
 describe('prototypeOnlyImportsOf', () => {

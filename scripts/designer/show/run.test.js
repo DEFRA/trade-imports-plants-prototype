@@ -27,6 +27,17 @@ const runWith = (names) => ({
 })
 
 describe('addressesFor', () => {
+  it('Should keep the chooser when it is named beside all', () => {
+    const options = optionsFrom([
+      '--set',
+      'plants-working',
+      '--pages',
+      'all,dashboard,chooser'
+    ])
+
+    expect(addressesFor(options)).toEqual([{ key: CHOOSER_KEY, address: '/' }])
+  })
+
   it('Should list the chooser, each example link and each address, in that order', () => {
     const options = optionsFrom([
       '--set',

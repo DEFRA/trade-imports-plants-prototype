@@ -147,12 +147,41 @@ const shotsFor = (page, shots, pages) => {
 
 const WELSH_MARKER = '[Welsh needed]'
 
+const criteriaOf = (report, meta) => {
+  if (meta.criteria?.length && meta.criteriaDraft) {
+    return {
+      scenarios: meta.criteria,
+      source: 'a draft, not yet confirmed by the designer',
+      draft: true,
+      placeholder: 'Acceptance criteria (a draft: confirm with the designer)'
+    }
+  }
+  if (meta.criteria?.length) {
+    return { scenarios: meta.criteria, source: 'the designer', draft: false }
+  }
+  if (report.wordsOnly) {
+    return {
+      scenarios: copyCriteria(report.pages, shortName),
+      source: 'generated from the changed words',
+      draft: false
+    }
+  }
+  return {
+    scenarios: [STORY_PLACEHOLDERS.criteria],
+    source: 'placeholder',
+    draft: false,
+    placeholder: 'Acceptance criteria'
+  }
+}
+
 /**
  * The story's own words and where each came from. Anything the designer did
  * not give stays a placeholder, named in `placeholders`: nothing is made up.
+ * Criteria the agent drafted and the designer has not confirmed
+ * (`criteriaDraft`) are shown as a draft and named in `placeholders` too.
  *
  * @param {object} report
- * @param {{ as?: string, want?: string, soThat?: string, why?: string, criteria?: object[] }} meta
+ * @param {{ as?: string, want?: string, soThat?: string, why?: string, criteria?: object[], criteriaDraft?: boolean }} meta
  */
 export const storyOf = (report, meta) => {
   const given = (value) =>
@@ -169,20 +198,20 @@ export const storyOf = (report, meta) => {
   const want = pick(meta.want, 'want', 'I want (what they need to do)')
   const soThat = pick(meta.soThat, 'soThat', 'So that (why they need it)')
   const why = pick(meta.why, 'why', 'Description (what the change is and why)')
-  let scenarios
-  let criteriaSource
-  if (meta.criteria?.length) {
-    scenarios = meta.criteria
-    criteriaSource = 'the designer'
-  } else if (report.wordsOnly) {
-    scenarios = copyCriteria(report.pages, shortName)
-    criteriaSource = 'generated from the changed words'
-  } else {
-    scenarios = [STORY_PLACEHOLDERS.criteria]
-    criteriaSource = 'placeholder'
-    placeholders.push('Acceptance criteria')
+  const criteria = criteriaOf(report, meta)
+  if (criteria.placeholder) {
+    placeholders.push(criteria.placeholder)
   }
-  return { as, want, soThat, why, scenarios, criteriaSource, placeholders }
+  return {
+    as,
+    want,
+    soThat,
+    why,
+    scenarios: criteria.scenarios,
+    criteriaSource: criteria.source,
+    criteriaDraft: criteria.draft,
+    placeholders
+  }
 }
 
 const patchNote = (report) => {
@@ -276,7 +305,11 @@ const addStory = (add, report, meta, story) => {
   add('para', {
     text: `Designed in the plants prototype and handed off on ${longDate(meta.date)}. ${madeFrom(report)} See the prototype, the pictures and the detail below.`
   })
-  add('criteria', { scenarios: story.scenarios, source: story.criteriaSource })
+  add('criteria', {
+    scenarios: story.scenarios,
+    source: story.criteriaSource,
+    draft: story.criteriaDraft
+  })
   const tests = testsToAdd(report)
   add('panel', {
     title: 'Tech Notes',
@@ -313,13 +346,22 @@ const localSteps = (report, meta, links) => {
     : `Open {{${LOCAL_BASE_URL}/${report.set}}} and start a notification.`
   return [
     `{{git clone ${clone}}}, then {{cd ${folder}}}`,
-    meta.designBranch
-      ? `{{git switch ${meta.designBranch}}}`
-      : 'Switch to the design branch the link above names.',
+    designBranchStep(meta),
     `{{${meta.installCommand ?? 'npm ci'}}} (the install command {{npm run designer:preflight}} prints)`,
     '{{npm run dev}}',
     open
   ]
+}
+
+const designBranchStep = (meta) => {
+  if (!meta.designBranch) {
+    return 'Switch to the design branch the link above names.'
+  }
+  const notPushed =
+    meta.designBranchOnGitHub === false
+      ? ' (this branch is not on GitHub yet: ask the designer to push it first)'
+      : ''
+  return `{{git switch ${meta.designBranch}}}${notPushed}`
 }
 
 const addSeeThePrototype = (add, report, meta) => {
@@ -364,7 +406,7 @@ const addJourneyFlow = (add, report) => {
     add('para', {
       text: `The page order could not be read: ${flow.error}. Run {{npm run designer:release -- orders ${report.set}}} in the prototype to see it.`
     })
-  } else if (flow.rows.length === 0) {
+  } else if (flow.rows.every((row) => row.moved === false)) {
     add('para', {
       text: 'The page order does not change. None of the changed pages moves.'
     })
@@ -393,19 +435,43 @@ const addJourneyFlow = (add, report) => {
   }
 }
 
+/**
+ * How the change touches a validation row's error: 'New' or 'Changed' when
+ * its English words are new or changed on that page, else null.
+ */
+const validationChangeOf = (report, row) => {
+  const page = report.pages.find((item) => item.feature === row.page)
+  const copyRow = row.key
+    ? page?.copy.find((item) => item.language === 'en' && item.key === row.key)
+    : null
+  if (!copyRow) {
+    return null
+  }
+  return copyRow.before === null ? 'New' : 'Changed'
+}
+
 const addValidation = (add, report) => {
   add('heading', { text: 'Validation' })
-  const rows = report.validation ?? []
+  const rows = (report.validation ?? []).map((row) => ({
+    ...row,
+    change: validationChangeOf(report, row)
+  }))
   if (rows.length === 0) {
     add('para', { text: 'The changed pages have no validation rules.' })
     return
   }
+  const touched = rows.filter((row) => row.change)
+  if (touched.length) {
+    add('para', {
+      text: `${touched.length} rule(s) are new or changed, and come first, marked in the Rule column. The rest are the changed pages' other rules, unchanged.`
+    })
+  }
   add('table', {
     header: ['Page', 'Field', 'Rule', 'English error', 'Welsh error'],
-    rows: rows.map((row) => [
+    rows: [...touched, ...rows.filter((row) => !row.change)].map((row) => [
       row.page,
       codeSpan(row.field),
-      row.rule,
+      row.change ? `${row.change}: ${row.rule}` : row.rule,
       showValue(row.english),
       showValue(row.welsh)
     ])
@@ -731,8 +797,15 @@ export const briefOutline = (report, meta) => {
 }
 
 const recipeLine = (report) => {
-  if (report.recipes.length) {
-    return `This change followed: ${report.recipes.join(', ')} (in the set's docs folder).`
+  const { named, inferred } = recipesFor(report)
+  if (named.length || inferred.length) {
+    const parts = [
+      ...(named.length ? [`${named.join(', ')} (named)`] : []),
+      ...(inferred.length
+        ? [`${inferred.join(', ')} (worked out from the change)`]
+        : [])
+    ]
+    return `This change followed: ${parts.join('; ')}. The Tech Notes say where each recipe is written down.`
   }
   return report.wordsOnly
     ? 'Words only (change-the-words): every changed file is a copy file, so no recipe applies.'
@@ -913,7 +986,9 @@ export const renderBriefMarkdown = (blocks) =>
             .join('\n\n')
         case 'criteria':
           return [
-            '**Acceptance criteria**',
+            block.draft
+              ? '**Draft acceptance criteria, to confirm**'
+              : '**Acceptance criteria**',
             ...block.scenarios.map(markdownScenario)
           ].join('\n\n')
         case 'panel':
@@ -985,7 +1060,9 @@ export const renderBriefJira = (blocks) =>
             .join('\n')
         case 'criteria':
           return [
-            '+*Acceptance Criteria*+',
+            block.draft
+              ? '+*Draft Acceptance Criteria, to confirm*+'
+              : '+*Acceptance Criteria*+',
             block.scenarios.map(jiraScenario).join('\n\n')
           ].join('\n')
         case 'panel':

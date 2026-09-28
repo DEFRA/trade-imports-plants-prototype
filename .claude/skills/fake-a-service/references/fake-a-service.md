@@ -683,7 +683,12 @@ the prototype's own.
      with `required` and any `enum`), one example request and response, and
      the questions the real team must answer (`openQuestions`). The hand-off
      turns this into the API a developer builds, so write it as the design
-     settles.
+     settles. **`CONTRACT` must be plain values**: the hand-off reads
+     `index.js` as data without running it, so never use a name `index.js`
+     imports (`client.MAX_LENGTH`, `[...client.TYPES]`). Write the values
+     out, or declare them as constants in `index.js` itself. If you break
+     this, `designer:check` says "A stand-in service's CONTRACT cannot be
+     read".
    - Add operations the design needs (an update, say) to all three files, in
      the same pattern.
 
@@ -698,6 +703,35 @@ the prototype's own.
 
 4. Build the pages on it in the release, importing
    `'../../../../../../services/<name>/index.js'`, as worked example 1 does.
+   For a small list that is not addresses (saved vehicles, say), a lean
+   picker is enough: its own render and view-model, reusing the release's
+   `features/address-book-picker/pagination.js` (`paginationFor(slug)` works
+   for any page slug) in place of copying the whole address book picker.
+
+### Store a reference or a copy?
+
+A journey answer that points at a saved record can hold its id
+(`{ transporterId }`, as worked example 1 does) or a copy of the fields the
+notification needs (`{ vehicleId, registration, haulier, trailerType }`).
+
+- **A copy is the default for saved lists.** Deleting or changing a saved
+  record then never changes a notification, which is how the journey's own
+  contact page works (see the comment in the release's `parties/index.js`).
+- **An id alone** leaves a dangling answer when the record is deleted, and
+  the task list still counts it as Completed: the release's
+  `withoutUnresolvedPartyRefs` only knows address book references. Use one
+  only when the notification must follow later changes to the record, and
+  then add the owned field to that sanitiser.
+
+Say which you chose in the report, and put the choice in the service's
+`CONTRACT.openQuestions`.
+
+### Required or optional?
+
+Pick from the obligation: required when a regulation or the real service
+needs the answer, optional otherwise (a saved vehicle nobody has to give).
+Say which in the report. An optional page has no error state, so
+`designer:show -- --errors` notes it moved on: that is expected, not a fault.
 
 A stub never writes to its own files. Rows people add go to
 `.cache/designer/data/<release>.<name>.json` on the designer's own computer,

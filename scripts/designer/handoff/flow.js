@@ -36,7 +36,10 @@ const groupPages = (group) => group.rows.flatMap((row) => row.pages)
  * @param {object|null} before - `readOrders` for the real journey.
  * @param {object} after - `readOrders` for the release.
  * @param {string[]} changedSlugs - the changed pages' addresses.
- * @returns {{ order: string, before: string, after: string }[]}
+ * `moved` is true when the order differs, false when it is the same, and null
+ * when the order before is not known.
+ *
+ * @returns {{ order: string, before: string, after: string, moved: boolean|null }[]}
  */
 export const flowRows = (before, after, changedSlugs) => {
   const changed = new Set(changedSlugs)
@@ -44,11 +47,13 @@ export const flowRows = (before, after, changedSlugs) => {
   const rows = []
   const add = (order, beforeList, afterList) => {
     const lists = [beforeList ?? [], afterList ?? []]
-    if ((before && !same(beforeList, afterList)) || touches(lists, changed)) {
+    const moved = before ? !same(beforeList, afterList) : null
+    if (moved || touches(lists, changed)) {
       rows.push({
         order,
         before: beforeList ? markChanged(beforeList, changed) : unknown,
-        after: afterList ? markChanged(afterList, changed) : '(removed)'
+        after: afterList ? markChanged(afterList, changed) : '(removed)',
+        moved
       })
     }
   }
@@ -346,6 +351,7 @@ export const validationRowsFor = ({ page, sources, en, cy }) => {
   const used = new Set(calls.map((call) => call.key).filter(Boolean))
   const rows = calls.map((call) => ({
     page,
+    key: call.key ?? null,
     field: call.field,
     rule: call.rule,
     english: String(showMessage(call, english)),
@@ -357,6 +363,7 @@ export const validationRowsFor = ({ page, sources, en, cy }) => {
     if (key.startsWith('errors.') && !used.has(key)) {
       rows.push({
         page,
+        key,
         field: key.split('.')[1],
         rule: 'Checked in the page’s own code',
         english: String(english[key]),

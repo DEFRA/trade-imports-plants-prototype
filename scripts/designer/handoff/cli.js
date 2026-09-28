@@ -28,6 +28,10 @@
  *                         the designer confirms it). A change of words only
  *                         gets its criteria written for it when this is left
  *                         out.
+ *   --criteria-draft      the --criteria file is the agent's draft, not yet
+ *                         confirmed by the designer: the story shows it as
+ *                         "Draft acceptance criteria, to confirm" and lists
+ *                         it among the placeholders
  *   --link <url>          a link to see the prototype: the design branch, the
  *                         pull request (repeat for each)
  *   --brief-only          the story, pictures, links and services, with no
@@ -107,6 +111,7 @@ const FLAG_OPTIONS = {
   '--all': 'all',
   '--no-screenshots': 'noScreenshots',
   '--brief-only': 'briefOnly',
+  '--criteria-draft': 'criteriaDraft',
   '--dry-run': 'dryRun',
   '--json': 'json'
 }
@@ -152,6 +157,9 @@ export const parseArgs = (argv) => {
   }
   if (options.since && options.features.length) {
     throw new HandoffError('Use --features or --since, not both.')
+  }
+  if (options.criteriaDraft && !options.criteria) {
+    throw new HandoffError('--criteria-draft needs --criteria <file> too.')
   }
   return options
 }
@@ -277,6 +285,18 @@ const currentBranchOf = (root) =>
   gitOrNull(['branch', '--show-current'], { cwd: root })?.trim() || null
 
 /**
+ * Whether this computer has seen the branch on GitHub (`origin`): true or
+ * false, or null when there is no branch to ask about.
+ */
+const branchOnGitHubOf = (root, branch) =>
+  branch
+    ? gitOrNull(
+        ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${branch}`],
+        { cwd: root }
+      ) !== null
+    : null
+
+/**
  * The things the brief reads that live outside the report: the set's
  * examples, the page orders, the prototype's settings, the branch and the
  * install command. Tests replace them.
@@ -286,6 +306,7 @@ export const DEFAULT_SOURCES = Object.freeze({
   journeyFlow: (root, report) => readJourneyFlow(root, report),
   prototype: (root) => readPrototypeConfig({ root }),
   branch: currentBranchOf,
+  branchOnGitHub: branchOnGitHubOf,
   installCommand: installCommandOf
 })
 
@@ -296,6 +317,7 @@ export const DEFAULT_SOURCES = Object.freeze({
 export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
   const use = { ...DEFAULT_SOURCES, ...sources }
   const criteria = readCriteria(root, resolved.criteria)
+  const designBranch = use.branch(root)
   const built = buildHandoff({ ...resolved, root })
   const report = { ...built, journeyFlow: await use.journeyFlow(root, built) }
   const galleryDir = galleryDirFor(root, resolved)
@@ -307,11 +329,13 @@ export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
     want: resolved.want ?? null,
     soThat: resolved.soThat ?? null,
     criteria,
+    criteriaDraft: Boolean(resolved.criteriaDraft),
     links: resolved.links ?? [],
     date: resolved.date,
     slug: resolved.slug,
     branch: `feat/EUDPA-XXXX-${resolved.slug}`,
-    designBranch: use.branch(root),
+    designBranch,
+    designBranchOnGitHub: use.branchOnGitHub(root, designBranch),
     installCommand: use.installCommand(root),
     prototype: use.prototype(root),
     examples: use.examples(root, report.set),
@@ -358,7 +382,8 @@ export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
           soThat: meta.soThat,
           links: meta.links,
           date: meta.date,
-          designBranch: meta.designBranch
+          designBranch: meta.designBranch,
+          designBranchOnGitHub: meta.designBranchOnGitHub
         },
         story: {
           criteriaFrom: story.criteriaSource,
@@ -376,7 +401,8 @@ export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
   return { report, dir, meta, shots, story }
 }
 
-const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`
+const plural = (count, noun, many = `${noun}s`) =>
+  `${count} ${count === 1 ? noun : many}`
 
 const patchLine = (report) =>
   report.briefOnly
@@ -384,14 +410,14 @@ const patchLine = (report) =>
     : `- ${plural(report.files.length, 'file')} in upstream.patch. ${report.applyCheck.message.split('\n')[0]}`
 
 const storyLines = (story) => [
-  `- The story's acceptance criteria: ${plural(story.scenarios.length, 'criterion')}, ${story.criteriaSource === 'placeholder' ? 'still a placeholder' : `from ${story.criteriaSource}`}.`,
+  `- The story's acceptance criteria: ${plural(story.scenarios.length, 'criterion', 'criteria')}, ${story.criteriaSource === 'placeholder' ? 'still a placeholder' : `from ${story.criteriaSource}`}.`,
   story.placeholders.length
     ? `- Still to fill in with the designer's own words: ${story.placeholders.join('; ')}.`
     : '- The story has no placeholders left.'
 ]
 
 /** The plain-English summary printed after a run. */
-export const summaryLines = ({ report, dir, shots, story }, root) => {
+export const summaryLines = ({ report, dir, shots, story, meta }, root) => {
   const relativeDir = path.relative(root, dir)
   const designGaps = report.cannotShip.designGaps.filter(
     (row) => !isContentNote(row)
@@ -438,6 +464,11 @@ export const summaryLines = ({ report, dir, shots, story }, root) => {
   }
   if (!report.applyCheck.ok) {
     lines.push(`  ${report.applyCheck.message}`)
+  }
+  if (meta?.designBranchOnGitHub === false) {
+    lines.push(
+      `- ${meta.designBranch} is not on GitHub yet, so a developer cannot switch to it: push it first (ask the designer), then run this again.`
+    )
   }
   lines.push(`Read ${relativeDir}/brief.md next.`)
   return lines

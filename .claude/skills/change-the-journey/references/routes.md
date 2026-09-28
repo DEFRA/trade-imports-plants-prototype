@@ -60,6 +60,19 @@ Match the request to the first line that fits.
     that X must be Y", "change what counts as a valid answer": the designer
     recipe **validation-rules** (`docs/designers/recipes/validation-rules.md`).
 
+### Where a new question goes
+
+- The page the designer named, when it exists.
+- When the page they named does not exist, or they named none: the existing
+  page with the closest subject (a notification-level question such as
+  "grown under glass" goes on `origin`, "Origin of the import"), with
+  **add-a-field**. Say which page in one line.
+- A new page (**add-a-page**) instead when the question needs more than one
+  field, or fits the subject of no page (GOV.UK: one thing per page). Say so
+  in one line.
+- A page the designer names only to change its words, and that does not
+  exist, is never invented: see `change-the-words`, step 2.
+
 If the request only changes words (a heading, label, hint, button or error
 message that already exists), stop and use `change-the-words`. If it only
 changes how a page looks, use `match-the-design`. If it is about a dashboard,

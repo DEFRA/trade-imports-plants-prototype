@@ -159,8 +159,15 @@ describe('parseShowArgs', () => {
 })
 
 describe('parsePages', () => {
-  it('Should treat all as winning over a list', () => {
-    expect(parsePages(['origin', 'all'])).toEqual({ mode: 'all', keys: [] })
+  it('Should treat all as winning over a list, keeping the names so the chooser still shows', () => {
+    expect(parsePages(['origin', 'all'])).toEqual({
+      mode: 'all',
+      keys: ['origin']
+    })
+    expect(parsePages(['all,dashboard,chooser'])).toEqual({
+      mode: 'all',
+      keys: ['dashboard', 'chooser']
+    })
   })
 
   it('Should drop duplicates and blanks from a list', () => {

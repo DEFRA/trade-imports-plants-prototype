@@ -162,8 +162,22 @@ the find again without `--set` and include every release they own. Otherwise
 leave other releases alone: a frozen release, the real journey and other
 people's releases are never swept.
 
-If nothing matched, say so and suggest fewer words, or ask the designer to
-paste the text exactly as the page shows it.
+If nothing matched, try fewer words once. Then decide which of these it is:
+
+- **The words are there, spelt differently.** Say so, and ask the designer to
+  paste the text exactly as the page shows it.
+- **The page or question they name does not exist** ("the hint on the reason
+  for import question", and the journey has no such question). Check with
+  `npm run designer:words -- page <nearest page>` and the page list in
+  `.claude/skills/change-the-journey/references/page-id-places.md`, then
+  look for why in the real journey's own spec:
+  `grep -n -i "<subject>" src/server/app/sets/high-risk-plants/spec/journey-spec.json`.
+  Tell the designer in plain words: the journey has no such page or
+  question, what it has instead, and why when the spec says (quote it).
+  Never invent the element, its options or its words to have somewhere to
+  put the change. Offer `change-the-journey` to add it as a new question
+  once the designer gives its options, and do every other part of the
+  request.
 
 ## Step 3: Refuse shared chrome, log the gap
 

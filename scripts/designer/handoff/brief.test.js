@@ -215,6 +215,24 @@ describe('the story block', () => {
     )
   })
 
+  it('Should show drafted criteria the designer has not confirmed as a draft, and name them', () => {
+    const draft = { ...META, criteriaDraft: true }
+    const story = storyOf(REPORT, draft)
+
+    expect(story.criteriaSource).toBe(
+      'a draft, not yet confirmed by the designer'
+    )
+    expect(story.placeholders).toEqual([
+      'Acceptance criteria (a draft: confirm with the designer)'
+    ])
+    expect(jiraOf(REPORT, draft)).toContain(
+      '+*Draft Acceptance Criteria, to confirm*+\n*Given* I am on the Arrival details page'
+    )
+    expect(markdownOf(REPORT, draft)).toContain(
+      '**Draft acceptance criteria, to confirm**\n\n- **Given**'
+    )
+  })
+
   it('Should write the criteria for a change of words only', () => {
     const story = storyOf(
       { ...REPORT, wordsOnly: true },
@@ -252,6 +270,14 @@ describe('See the prototype', () => {
         '4. `npm run dev`',
         '5. Open `http://localhost:3103/examples/plants-working/complete?page=arrival-details`'
       ].join('\n')
+    )
+  })
+
+  it('Should say a design branch that is not on GitHub yet must be pushed first', () => {
+    expect(
+      markdownOf(REPORT, { ...META, designBranchOnGitHub: false })
+    ).toContain(
+      '2. `git switch design/plants-working-arrival-hint` (this branch is not on GitHub yet: ask the designer to push it first)'
     )
   })
 
@@ -307,9 +333,72 @@ describe('Journey flow', () => {
       '## Journey flow\n\nThe page order does not change.'
     )
   })
+
+  it('Should not show a table or ask for the journey tests when the changed page keeps its place', () => {
+    const markdown = markdownOf({
+      ...REPORT,
+      journeyFlow: {
+        rows: [
+          {
+            order: 'First pass, a new notification',
+            before: '{{origin}} > arrival-details',
+            after: '{{origin}} > arrival-details',
+            moved: false
+          }
+        ],
+        before: 'the real journey (high-risk-plants) now',
+        error: null
+      }
+    })
+
+    expect(markdown).toContain(
+      '## Journey flow\n\nThe page order does not change.'
+    )
+    expect(markdown).not.toContain('test:fit:journeys')
+    expect(markdown).not.toContain('journey-flow-and-gates')
+  })
 })
 
 describe('Validation', () => {
+  it('Should put a new rule first and mark it', () => {
+    const markdown = markdownOf({
+      ...REPORT,
+      pages: [
+        {
+          ...REPORT.pages[0],
+          copy: [
+            ...REPORT.pages[0].copy,
+            {
+              language: 'en',
+              key: 'errors.grownUnderGlass',
+              before: null,
+              after: 'Select yes if the plants were grown under glass'
+            }
+          ]
+        }
+      ],
+      validation: [
+        ...REPORT.validation,
+        {
+          page: 'arrival-details',
+          key: 'errors.grownUnderGlass',
+          field: 'grownUnderGlass',
+          rule: 'Must be answered',
+          english: 'Select yes if the plants were grown under glass',
+          welsh:
+            '[Welsh needed] Select yes if the plants were grown under glass'
+        }
+      ]
+    })
+    const table = markdown.slice(markdown.indexOf('| Page | Field |'))
+
+    expect(markdown).toContain('1 rule(s) are new or changed')
+    expect(table.indexOf('New: Must be answered')).toBeGreaterThan(-1)
+    expect(table.indexOf('`grownUnderGlass`')).toBeLessThan(
+      table.indexOf('`arrivalTime`')
+    )
+  })
+
   it('Should give one row per rule with the English and Welsh error', () => {
     expect(markdownOf()).toContain(
       '| arrival-details | `arrivalTime` | Must be answered | Enter the expected time of arrival | Rhowch yr amser cyrraedd disgwyliedig |'

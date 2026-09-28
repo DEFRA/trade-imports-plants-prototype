@@ -87,6 +87,15 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['--set', '--all'])).toThrow('--set needs a value.')
   })
 
+  it('Should mark drafted criteria, and refuse the mark with no criteria file', () => {
+    expect(
+      parseArgs(['--set', 'a', '--criteria', 'c.txt', '--criteria-draft'])
+    ).toMatchObject({ criteria: 'c.txt', criteriaDraft: true })
+    expect(() => parseArgs(['--set', 'a', '--criteria-draft'])).toThrow(
+      '--criteria-draft needs --criteria <file> too.'
+    )
+  })
+
   it('Should refuse --features with --all', () => {
     expect(() => parseArgs(['--set', 'a', '--all', '--features', 'b'])).toThrow(
       'Use --features or --all, not both.'

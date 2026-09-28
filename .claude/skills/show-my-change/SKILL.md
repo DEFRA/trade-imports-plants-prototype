@@ -43,26 +43,26 @@ cannot tell, ask.
 
 Build one command from what they asked:
 
-| The designer asked for                            | Add                                                |
-| ------------------------------------------------- | -------------------------------------------------- |
-| "show me", "screenshot my pages" (after a change) | nothing: the pages their changed files show up on  |
-| "what does the X page look like"                  | `--pages <X>`                                      |
-| every page, "the whole journey"                   | `--pages all`                                      |
-| "before and after"                                | `--before`                                         |
-| "show the error messages"                         | `--errors`                                         |
-| "on a phone", "mobile"                            | `--mobile` (320 pixels wide)                       |
-| "compare with the Figma", a design they attached  | `--reference <page>=<image>` (one per page)        |
-| "compare X with the real journey"                 | `--pages <X> --compare high-risk-plants`           |
-| "compare with release X"                          | `--pages <the pages> --compare <X>`                |
-| "record a walkthrough", "demo video"              | `--video`                                          |
-| "make a review pack"                              | `--pages all --before --errors --mobile --video`   |
-| "open it" when done                               | `--open`                                           |
-| "the chooser", "the list of prototypes"           | `--pages chooser`                                  |
-| "where the X example link goes"                   | `--examples <slug>,<slug>`                         |
-| both sides of a question, "the Yes and the No"    | `--each-example` (one picture per example)         |
-| a filtered dashboard, a tab, an add or side page  | `--url "<address after the set name>"` (see below) |
-| an empty dashboard, as a new user sees it         | `--no-examples`                                    |
-| "compare with before the undo", an older version  | `--before-commit HEAD~1` (or a commit id)          |
+| The designer asked for                            | Add                                                                                                                        |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| "show me", "screenshot my pages" (after a change) | nothing: the pages their changed files show up on                                                                          |
+| "what does the X page look like"                  | `--pages <X>`                                                                                                              |
+| every page, "the whole journey"                   | `--pages all`                                                                                                              |
+| "before and after"                                | `--before`                                                                                                                 |
+| "show the error messages"                         | `--errors`                                                                                                                 |
+| "on a phone", "mobile"                            | `--mobile` (320 pixels wide)                                                                                               |
+| "compare with the Figma", a design they attached  | `--reference <page>=<image>` (one per page)                                                                                |
+| "compare X with the real journey"                 | `--pages <X> --compare high-risk-plants`                                                                                   |
+| "compare with release X"                          | `--pages <the pages> --compare <X>`                                                                                        |
+| "record a walkthrough", "demo video"              | `--video`                                                                                                                  |
+| "make a review pack"                              | `--pages all --before --errors --mobile --video` (leave out `--before` for a release with no saved changes of its own yet) |
+| "open it" when done                               | `--open`                                                                                                                   |
+| "the chooser", "the list of prototypes"           | `--pages chooser`                                                                                                          |
+| "where the X example link goes"                   | `--examples <slug>,<slug>`                                                                                                 |
+| both sides of a question, "the Yes and the No"    | `--each-example` (one picture per example)                                                                                 |
+| a filtered dashboard, a tab, an add or side page  | `--url "<address after the set name>"` (see below)                                                                         |
+| an empty dashboard, as a new user sees it         | `--no-examples`                                                                                                            |
+| "compare with before the undo", an older version  | `--before-commit HEAD~1` (or a commit id)                                                                                  |
 
 Page names are the page's address inside a notification, for example
 `arrival-details`, `origin`, `commodities/details`,

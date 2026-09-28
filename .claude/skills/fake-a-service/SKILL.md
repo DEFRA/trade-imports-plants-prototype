@@ -1,6 +1,6 @@
 ---
 name: fake-a-service
-description: 'Build the things the real plants service cannot do yet, inside a design release, as prototype-owned services on the real services'' own pattern (src/server/app/services/<name>/ with index.js, client.js, stub.js and a test, made with npm run designer:service), each flagged "needs a real service" with the API a developer would build: a transporter lookup or saved transporters, notification templates, a new lookup or saved list the design needs, address book pages (list, add an address by hand, change or delete one, address categories), a "Copy as new" action, dashboard filters, tabs and counts, a success banner after an action, a "confirm before deleting" page, "come back to where I was" after a side trip, and a home page across plants, animals and products. Use when a designer says "the real service can''t do that yet", "add a transporter lookup", "saved transporters", "save a vehicle they use a lot", "let them upload a file", "a lookup for…", "templates", "save as a template", "start from a template", "change the address book", "add an address manually", "delete an address", "address categories", "copy as new", "copy this notification", "start from a previous notification", "fake a service", "add filters to the dashboard", "add tabs to the dashboard", "add counts to the dashboard", "which ones are overdue", "a success banner after …", "confirm before deleting", "are you sure page", "come back to where I was", "return to the page I came from", "a home page across plants, animals and products". NOT for extra starter rows the stubs already serve, such as more addresses to pick from, ports, countries or example notifications (use example-data), NOT for adding or changing a question in the journey (use change-the-journey), NOT for layout only (use match-the-design).'
+description: 'Build the things the real plants service cannot do yet, inside a design release, as prototype-owned services on the real services'' own pattern (src/server/app/services/<name>/ with index.js, client.js, stub.js and a test, made with npm run designer:service), each flagged "needs a real service" with the API a developer would build: a transporter lookup or saved transporters, notification templates, a new lookup or saved list the design needs, address book pages (list, add an address by hand, change or delete one, address categories), a "Copy as new" action, dashboard filters, tabs and counts, a success banner after an action, a "confirm before deleting" page, "come back to where I was" after a side trip, and a home page across plants, animals and products. Use when a designer says "the real service can''t do that yet", "add a transporter lookup", "saved transporters", "save a vehicle they use a lot", "let them upload a file", "a lookup for…", "templates", "save as a template", "start from a template", "change the address book", "add an address manually", "delete an address", "address categories", "copy as new", "copy this notification", "start from a previous notification", "fake a service", "add filters to the dashboard", "add tabs to the dashboard", "add counts to the dashboard", "filter to only the late ones", "how many are late", "a success banner after …", "confirm before deleting", "are you sure page", "come back to where I was", "return to the page I came from", "a home page across plants, animals and products". NOT for extra starter rows the stubs already serve, such as more addresses to pick from, ports, countries or example notifications (use example-data), NOT for adding or changing a question in the journey (use change-the-journey), NOT for layout only (use match-the-design).'
 ---
 
 # Build what the real service cannot do yet
@@ -133,7 +133,12 @@ report them together:
    dashboard change, so the counts and tabs have something to show.
 3. **The service and its pages**: this skill.
 4. **A journey page for it** (a lookup page that collects an answer):
-   `change-the-journey`'s add-a-page recipe, as step 5 says.
+   `change-the-journey`'s add-a-page recipe, as step 5 says. **When the page
+   the designer names does not exist** ("pick it on the transport page", and
+   the journey has no transport page), add it with that recipe in the shape
+   of worked example 1, at the likeliest place in the flow, and say so in one
+   line ("There was no transport page, so I added one after arrival
+   details").
 5. **Matching a Figma frame**: `show-my-change` with `--reference`, last, once
    the page exists. `match-the-design` for any layout tweaks it shows.
 
@@ -162,14 +167,15 @@ Match the request to one reference and read all of it before you edit:
 | A list of options only the release's own new question offers, which no backend would keep                                                       | `references/fake-a-service.md`, "Journey words a release owns" |
 | Address book pages: a list, add an address by hand, change or delete one, address categories (flag: belongs to the Import Notification Service) | `references/address-book-pages.md`                             |
 | "Copy as new" on the dashboard, "start from a previous notification" (not a new service: the backend copies already)                            | `references/copy-as-new.md`                                    |
-| Filters, tabs or counts on the dashboard, or which notifications are late or overdue                                                            | `references/dashboard-filters-and-tabs.md`                     |
+| Filters, tabs or counts on the dashboard, including a late filter, tab or count (the red Late tag itself is already on the real dashboard)      | `references/dashboard-filters-and-tabs.md`                     |
 | A green "done" message after an action                                                                                                          | `references/success-banner.md`                                 |
 | "Are you sure?" before deleting, cancelling or discarding                                                                                       | `references/confirm-then-act.md`                               |
 | Go off to another page (add a transporter, change an answer) and land back where you were                                                       | `references/come-back-to-where-i-was.md`                       |
 | A front door across plants, animals and products                                                                                                | `references/service-home.md`                                   |
 
 If the request is really example data (more addresses to pick from, a late
-notification, a filled dashboard), stop and use `example-data`. Pages that
+notification, a filled dashboard, "which ones are overdue" when the red Late
+tag the real dashboard shows is enough), stop and use `example-data`. Pages that
 change the address book (add, change, delete, categories) are this skill:
 `references/address-book-pages.md`. If it is a new question in the journey,
 stop and use `change-the-journey`. You can use this skill and then that one:
@@ -202,17 +208,22 @@ toolbox.
 
 ## Step 3: Check who owns each file
 
-List every file you plan to create or change, then run:
+For a new service, make it first, so its folder can answer "Yours":
+
+```bash
+npm run designer:service -- new <name> --owner <plants-backend|new-api|ins> --describe "<what the real service would need to do>"
+```
+
+It makes the folder and its `ours` line together. Then list every file you
+plan to create or change, and run:
 
 ```bash
 npm run designer:where -- <path> <path> <path>
 ```
 
 Every path must say "Yours". A file in a prototype-owned service folder says
-"Yours" because its folder has its own line in `ours`. A new service's
-folder does not exist yet: `designer:service new` makes it and its `ours`
-line together (step 5). If any other path does not say "Yours", do not edit
-it.
+"Yours" because its folder has its own line in `ours`. If any other path does
+not say "Yours", do not edit it.
 
 Check the release's records are wrapped. Open
 `src/server/app/routes-<release>.js` and look for:
@@ -246,10 +257,12 @@ release's own files, or from the saved transporters example in
 `src/server/app/sets/sample-journey/journeys/linear/features/saved-transporters/`
 (never import from another set). As you go:
 
-- A new service first: `npm run designer:service -- new <name> --owner
-<plants-backend|new-api|ins> --describe "<what the real service would need
-to do>"`, then shape its `stub.js`, `client.js` and `CONTRACT` to the
-  design (`references/fake-a-service.md`, "Making a new service").
+- A new service (made in step 3): shape its `stub.js`, `client.js` and
+  `CONTRACT` to the design (`references/fake-a-service.md`, "Making a new
+  service"). `CONTRACT` holds plain values only, never a name `index.js`
+  imports. Choose whether the journey answer stores a copy of the record or
+  its id, and whether the page is required ("Store a reference or a copy?"
+  and "Required or optional?" there).
 - New words go in the feature's `copy/copy.en.js` and `copy/copy.cy.js`.
 - A new page in a release gets its route in the release's
   `journeys/linear/features/index.js` `allRoutes`.
@@ -370,13 +383,16 @@ Stand-in service: <name> — needs a real service: <one line>
 See it: http://localhost:3103/<release>/... (<filtered, empty and error links for a dashboard>)
 Gallery: <path printed by designer:show>
 Checks: service test and lint passed · full check passed · Reset clears it (or: "please press Reset once to confirm")
+Choices I made: <reference or copy; required or optional; any page I added because it did not exist>
 Welsh needed: <keys, or "none">
+Saved: <"Your new working release is saved; this change is not yet: say 'save my work'" when step 1 made a release, else "Not yet: say 'save my work'">
 
 Suggested commit message:
 <release>: <what changed, on which pages> (stand-in service: <name>)
 ```
 
-Do not commit. If the designer wants to save it, they say "save my work" and
+Do not commit, unless the designer already asked for a save in their
+message. If the designer wants to save it, they say "save my work" and
 `share-my-change` commits with that message.
 
 Explain once: on the designer's own computer, a release's notifications and

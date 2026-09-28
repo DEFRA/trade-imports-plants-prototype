@@ -89,9 +89,6 @@ export const resolvePageName = (name, pages, scenarios) => {
 export const resolveWanted = (choice, context) => {
   const { pages, scenarios, changedKeys = [], setId } = context
   const keys = knownKeys(pages, scenarios)
-  if (choice.mode === 'all') {
-    return { keys, problems: [] }
-  }
   const problems = []
   const resolved = choice.mode === 'changed' ? [...changedKeys] : []
   for (const name of choice.keys) {
@@ -105,7 +102,10 @@ export const resolveWanted = (choice, context) => {
     }
   }
   return {
-    keys: keys.filter((key) => resolved.includes(key)),
+    keys:
+      choice.mode === 'all'
+        ? keys
+        : keys.filter((key) => resolved.includes(key)),
     problems
   }
 }

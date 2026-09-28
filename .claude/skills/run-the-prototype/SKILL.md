@@ -72,6 +72,10 @@ I start?" or "how does this work?":
    I seem lost, say 'use the design skill'." Point at
    `docs/designers/your-first-hour.md` for a guided first hour.
 
+When a newcomer also asks for a change in the same message, do steps 1 and 2,
+then the change (with its own steps file), and give the table and step 4 at
+the end of the report, before the hand-off line.
+
 ## Step 1: Check the computer
 
 ```bash

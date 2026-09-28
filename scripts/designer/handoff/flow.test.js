@@ -33,8 +33,16 @@ describe('flowRows', () => {
     expect(flowRows(ORDERS, after, ['arrival-details'])[0]).toEqual({
       order: 'First pass, a new notification',
       before: 'commodity-type > origin > {{arrival-details}}',
-      after: 'commodity-type > {{arrival-details}} > origin'
+      after: 'commodity-type > {{arrival-details}} > origin',
+      moved: true
     })
+  })
+
+  it('Should mark an order that holds a changed page but does not move as not moved', () => {
+    const rows = flowRows(ORDERS, ORDERS, ['arrival-details'])
+
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.every((row) => row.moved === false)).toBe(true)
   })
 
   it('Should show a new page and the section it joins', () => {
@@ -234,6 +242,7 @@ describe('validationRowsFor', () => {
   it('Should give the English and Welsh error for each rule', () => {
     expect(rows[0]).toEqual({
       page: 'arrival-details',
+      key: 'errors.arrivalDate.required',
       field: 'arrivalDate',
       rule: 'Must be answered',
       english: 'Enter the arrival date',
@@ -247,6 +256,7 @@ describe('validationRowsFor', () => {
   it('Should add a row for an error the page checks in its own code', () => {
     expect(rows.at(-1)).toEqual({
       page: 'arrival-details',
+      key: 'errors.noLongerAvailable',
       field: 'noLongerAvailable',
       rule: 'Checked in the page’s own code',
       english: 'The saved port is no longer available',

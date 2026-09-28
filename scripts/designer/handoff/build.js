@@ -34,9 +34,9 @@ import {
   commitThatAdded,
   filesAt,
   filesMatchingAt,
+  messagesTouching,
   resolveCommit,
-  showFile,
-  subjectsTouching
+  showFile
 } from './git.js'
 import {
   orientUuidMap,
@@ -571,7 +571,7 @@ const driftOf = (root, hops, patchPaths, baseRef) => {
 
 const recipesUsed = (root, setId, createdIn, extra) => {
   const text = [
-    ...subjectsTouching(root, createdIn, setDirOf(setId)),
+    ...messagesTouching(root, createdIn, setDirOf(setId)),
     ...(extra ?? [])
   ].join('\n')
   return RECIPES.filter((recipe) => text.includes(recipe))

@@ -117,6 +117,18 @@ describe('resolveWanted', () => {
     )
   })
 
+  it('Should still explain a name given beside all that is not a page', () => {
+    const wanted = resolveWanted(
+      { mode: 'all', keys: ['dashboard', 'transporter'] },
+      context
+    )
+
+    expect(wanted.keys).toEqual(knownKeys(PAGES, SCENARIOS))
+    expect(wanted.problems).toEqual([
+      expect.stringContaining('There is no page called "transporter"')
+    ])
+  })
+
   it('Should give the changed pages, in journey order', () => {
     expect(resolveWanted({ mode: 'changed', keys: [] }, context)).toEqual({
       keys: ['origin', 'hub'],
