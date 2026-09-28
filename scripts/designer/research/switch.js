@@ -36,6 +36,10 @@ const activeFor = (repoRoot, setId) =>
 const ruleLines = (rules) =>
   rules.map((rule) => `  - ${rule.page}: ${rule.now}`)
 
+/** The rules as the real service has them again, for switching off. */
+const restoredLines = (rules) =>
+  rules.map((rule) => `  - ${rule.page}: ${rule.real || rule.now}`)
+
 /**
  * Commits the relaxed rules as `Research mode on for <set-id>`.
  * Takes only rule files inside the release (controllers, obligations and
@@ -166,8 +170,8 @@ export const turnOff = (repoRoot, setId) => {
     ok: true,
     lines: [
       `Research mode is off for ${setId} (commit ${headSha(repoRoot)} reverts ${active.sha.slice(0, 7)}).`,
-      'Errors are back for:',
-      ...ruleLines(rules),
+      'Every page checks answers as the real service does again:',
+      ...restoredLines(rules),
       'The deployed prototype changes only after this is merged to main.'
     ]
   }

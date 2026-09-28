@@ -93,6 +93,7 @@ export const releaseInfoFor = (setId, { setsDir = SETS_DIR } = {}) => {
     kind,
     ...KINDS[kind],
     record,
+    title: record?.title ?? null,
     from: record?.from ?? null,
     createdAt: record?.createdAt ?? null,
     frozen: Boolean(record?.frozen),

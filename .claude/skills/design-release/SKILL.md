@@ -85,7 +85,10 @@ designer names a release you do not recognise.
    say:
    - "a working copy", "a new design release": purpose `working`.
    - "a research version", "for research in October": purpose `research`.
-   - "a snapshot for the developers", "keep this as it is": purpose `frozen`.
+   - "a snapshot for the developers", "keep this as it is", "freeze what
+     we've got": that is section C. Start the release `working` and freeze
+     it there, so changes can still be carried in first. Use
+     `--purpose frozen` only for a copy that will never take any change.
 2. **Suggest an id.** Lower-case words joined by hyphens, starting `plants-`:
    `plants-dr2` for "design release 2", `plants-working` for a working copy,
    `plants-research-oct` for October research. Check it is not taken with
@@ -97,19 +100,25 @@ designer names a release you do not recognise.
    git switch -c design/<release-id>-start
    ```
 
-   On any other branch that does not start with `handoff/`, stay on it. If
-   there are unsaved changes, ask the designer to save or undo them first
-   (`share-my-change`): the release must be a commit of its own.
+   On any other branch that does not start with `handoff/`, stay on it (the
+   one branch rule in CLAUDE.md, "Branches"): the designer's change and its
+   save then land on the same branch as the release, and `share-my-change`
+   stays there too. If there are unsaved changes, ask the designer to save or
+   undo them first (`share-my-change`): the release must be a commit of its
+   own. When another skill sent you here mid-change, its edits are not made
+   yet, so there is nothing to ask.
 
 4. **Make it.** Copy the real journey unless the designer names another
    release to copy (then use `--from <that release>`):
 
    ```
-   npm run new:set -- <release-id> --from high-risk-plants --describe "<one line for the chooser>" --purpose <working|research|frozen>
+   npm run new:set -- <release-id> --from high-risk-plants --title "<its name, in the designer's words>" --describe "<one line for the chooser>" --purpose <working|research|frozen>
    ```
 
    Without `--describe` the chooser says "Copy of high-risk-plants made
-   <date>". The output lists what it left out (tests, docs, requirement
+   <date>". Without `--title` the chooser names it from its id ("Plants
+   dr2"); give a title whenever the designer named the release ("design
+   release 2" becomes `--title "Design release 2"`). The output lists what it left out (tests, docs, requirement
    files) and the next steps.
 
 5. **Tidy the new lines:**
@@ -151,11 +160,17 @@ designer names a release you do not recognise.
    Then:
 
    ```
-   git commit -m "Start design release <release-id> from high-risk-plants" > .cache/designer/commit.log 2>&1
+   npm run designer:save -- -m "Start design release <release-id> from high-risk-plants"
    ```
 
    (Name the other release instead when it was copied from one.) The
-   pre-commit checks run; read the end of the log. Never add `--no-verify`.
+   pre-commit checks run and take a few minutes. It prints one line when the
+   save worked. When the checks fail it prints "Nothing was saved" and the
+   last 60 lines of `.cache/designer/commit.log`: follow
+   `check-my-change` to read the failure, fix it, and run the same commit
+   again. A failure in a file outside the release (a test under `scripts/`,
+   say) is not caused by the release: tell the maintainer, and do not work
+   around it. Never add `--no-verify`.
    The commit adds about 150 files: that is the copy of the journey, and it is
    expected. Saving the release on its own, before any change, keeps every
    later change small and easy to review, carry or undo. This is the one save
@@ -180,35 +195,48 @@ designer names a release you do not recognise.
 "Freeze what we've got as design release 2 and give me a working copy":
 
 1. If the work is not in a release yet, start one first (section B) with the
-   frozen name, for example `plants-dr2`.
+   frozen name, for example `plants-dr2`, and **`--purpose working`**, even
+   though it is about to be frozen. The freeze in step 3 sets it to frozen.
+   A release started as `--purpose frozen` cannot take a carry, so step 2
+   would be refused.
 2. **Carry anything that should be in the frozen release first.** If the
-   designer also wants a change in the release being frozen ("freeze DR2, with
-   last week's change in it"), carry it in now (section D), check it and save
-   it. Once frozen, nothing can be added: the carry refuses a frozen target,
-   and the checks fail on any change to it.
+   designer also wants a change in the release being frozen, carry it in now
+   (section D), check it and save it. This holds whatever order the designer
+   says it in: "freeze DR2, with last week's change in it", "freeze DR2, then
+   carry last week's change into DR2 as well" and "carry X into DR2 and
+   freeze it" all mean carry first, then freeze. Say in one line that you
+   did it in that order and why: once frozen, nothing can be added (the
+   carry refuses a frozen target, and the checks fail on any change to it).
+   A change meant for the new working copy ("then carry X into the working
+   copy") is carried after the freeze instead.
 3. Freeze it and make the working copy in one step. Name the copy after the
-   frozen one, for example `plants-dr2-1`, and describe the copy for the
-   chooser:
+   frozen one, for example `plants-dr2-1`, and describe both for the
+   chooser: `--describe` is the working copy's line, `--frozen-describe` the
+   frozen release's (the last chance to change it):
 
    ```
-   npm run designer:release -- freeze <release-id> --as <new-working-id> --describe "<one line for the chooser>"
+   npm run designer:release -- freeze <release-id> --as <new-working-id> --frozen-title "Design release 2" --title "Design release 2: working copy" --describe "<the working copy's line>" --frozen-describe "<the frozen release's line>"
    ```
 
    Without `--as` the copy is called `<release-id>-working`. Without
-   `--describe` its chooser line is "Copy of <release-id> made <date>". If the
-   new id is taken, nothing is frozen: pick another. The frozen release's
-   `release.json` now says `purpose: frozen` and `frozen: true`.
+   `--describe` its chooser line is "Copy of <release-id> made <date>".
+   Without `--frozen-describe` the frozen release keeps the line it was
+   started with. Without a title, the chooser names a release from its id
+   ("Plants dr2", "Plants dr2 1"), so always give both titles in the
+   designer's words. If the new id is taken, nothing is frozen: pick
+   another. The frozen release's `release.json` now says `purpose: frozen`
+   and `frozen: true`.
 
 4. `npm run designer:format`, then
-   `npm run designer:check -- --set <new-working-id> --full`. The check
-   reports the frozen release as "You froze <release-id> in this change": that
-   is expected, not a problem.
+   `npm run designer:check -- --set <new-working-id> --full`. The check's
+   ownership line ends "You froze <release-id> in this change": that is
+   expected, not a problem.
 5. Save both with one commit, with nothing else in it. Stage
    `src/server/app/sets/<release-id>/release.json`, the new release's folder
    and routes file, the two `prototype-sets` files and `overrides.json`, then:
 
    ```
-   git commit -m "Freeze design release <release-id>; carry on in <new-working-id>" > .cache/designer/commit.log 2>&1
+   npm run designer:save -- -m "Freeze design release <release-id>; carry on in <new-working-id>"
    ```
 
    From this commit on, the checks and the pre-commit hook fail if any file
@@ -225,18 +253,20 @@ designer names a release you do not recognise.
 "Copy this change to release X":
 
 1. Find the change. If it is not saved yet, it is `--working`. If it is saved,
-   find its commit:
+   list the release's saved changes on every branch, newest first:
 
    ```
-   git log --oneline -- src/server/app/sets/<from-release>
+   npm run designer:release -- changes <from-release>
    ```
 
-   If the release is not on this branch ("last week's release" on another
-   branch), search every branch:
-
-   ```
-   git log --all --oneline -- src/server/app/sets/<from-release>
-   ```
+   Each line has the commit id, the date, the branch that holds it and the
+   message. The release's own "Start design release" commit is marked: never
+   carry that. Several commits can share a message (a change saved again on a
+   trial branch, or already carried). The list marks the newest one on a
+   `design/` branch "pick this one": take that, and name its id, date and
+   branch in your reply so the designer can say if it is the wrong one. When
+   the designer's words ("last week's change") fit more than one different
+   message, ask which, quoting the messages.
 
    The carry reads the release from that commit, so the other branch does not
    need merging first. A change that is not saved can only be carried from
@@ -278,14 +308,15 @@ since the release was made:
 
 1. Start a fresh release from `high-risk-plants` (section B), for example
    `plants-dr3`.
-2. List the designer's saved changes in the old release, oldest first:
+2. List the designer's saved changes in the old release:
 
    ```
-   git log --reverse --oneline -- src/server/app/sets/<old-release>
+   npm run designer:release -- changes <old-release>
    ```
 
-   Leave out the first one ("Start design release …"): that is the copy
-   itself.
+   It lists them newest first: carry them oldest first. Leave out the one
+   marked as the release itself ("Start design release …"), and any
+   repeat of a message (take the one marked "pick this one").
 
 3. Carry each change across in that order (section D, `--commit`). Where the
    real team changed the same lines, the carry reports a clash: settle each
@@ -323,8 +354,11 @@ since the release was made:
 4. `npm run designer:check -- --set high-risk-plants --full`, then:
 
    ```
-   git commit -m "Retire design release <release-id>"
+   npm run designer:save -- -m "Retire design release <release-id>"
    ```
+
+   If it prints "Nothing was saved", act on the log lines it prints, as in
+   section B, step 8.
 
 ## G. Two branches that each started a release
 
@@ -353,8 +387,7 @@ that clash by hand. When git reports a conflict in any of the three:
 3. If other files clash too, those are real clashes: settle them with the
    designer as in section D, step 3.
 4. `npm run designer:check -- --set <release> --full`, then finish the merge
-   with `git commit --no-edit` (send the output to
-   `.cache/designer/commit.log`).
+   with `npm run designer:save -- --no-edit`.
 
 `remount` is also safe to run at any time: when everything is mounted it says
 so and changes nothing.

@@ -84,7 +84,9 @@ describe('buildSheet', () => {
   it('Should list the errors research mode switches off', () => {
     const html = sheet({ research: { rules: RULES } })
     expect(html).toContain('Errors switched off (research mode on)')
-    expect(html).toContain('Leave the arrival date blank')
+    expect(html).toContain(
+      'participants can leave the arrival date blank (the real service: asks for it)'
+    )
   })
 
   it('Should say errors are realistic when research mode is off', () => {

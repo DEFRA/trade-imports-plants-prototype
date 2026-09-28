@@ -143,12 +143,59 @@ The address book picker is the pattern. The consignor page
 
 3. Copy `features/consignor-select/` to `features/transporter-select/`. In the
    copy, import `chosenFor` and `renderPicker` from `../transporter-picker/render.js`,
-   change `CONSIGNOR` to the new field name, store
-   `{ transporterId: chosen.id }` where it stored `{ addressId: chosen.id }`,
-   and write the page's words in its `copy/` pair.
+   store `{ transporterId: chosen.id }` where it stored
+   `{ addressId: chosen.id }`, and write the page's words in its `copy/` pair.
+   The consignor's name is written in more places than `CONSIGNOR`. Change
+   every one, or the picker never saves (the form posts a `consignor` field
+   the controller no longer reads):
+
+   | File            | Was                                                                                | Becomes                                                                   |
+   | --------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+   | `fields.js`     | `export const CONSIGNOR = 'consignor'`                                             | `export const TRANSPORTER = 'transporter'` (and every use)                |
+   | `template.njk`  | `name: "consignor"` on the row radios                                              | `name: "transporter"`                                                     |
+   | `template.njk`  | `<p id="consignor-error" …>`                                                       | `<p id="transporter-error" …>`                                            |
+   | `controller.js` | `copy.errors.consignor`                                                            | `copy.errors.transporter` (and the key in both copy files)                |
+   | `controller.js` | `answers[CONSIGNOR]?.addressId`                                                    | `answers[TRANSPORTER]?.transporterId`                                     |
+   | `page.js`       | `consignorPage`, `id: 'consignor-select'`, `slug: 'consignors/select'`             | `transporterPage`, `'transporter-select'`, `'transporter-select'`         |
+   | `evaluation.js` | `feature('consignor-select', …)`, `field: 'consignor'`, the `consignor` obligation | `'transporter-select'`, `'transporter'`, the new `transporter` obligation |
+
+   Then search the new folder for what is left: `grep -rn -i consignor src/server/app/sets/<release>/journeys/linear/features/transporter-select`
+   must print nothing.
+
 4. The table's rows already read `name` and the `address` lines, which a
-   transporter has. To show the approval number or the type, add them to the
-   copied `view-model.js` row and template.
+   transporter has. To show the approval number or the type, **do not add
+   columns**: the table already has five, and seven run off the right-hand
+   edge at phone width. Fold them into the name cell as extra lines instead,
+   so the table stays at four columns plus the radio:
+
+   ```njk
+   {% set nameCell %}
+     {{ row.name }}
+     <span class="govuk-body-s govuk-!-display-block govuk-!-margin-bottom-0">{{ copy.table.approval }} {{ row.approvalNumber }}</span>
+     <span class="govuk-body-s govuk-!-display-block govuk-!-margin-bottom-0">{{ row.typeText }}</span>
+   {% endset %}
+   ```
+
+   and use `{ html: nameCell }` in place of `{ text: row.name }`. Add
+   `approvalNumber` and `typeText` to the copied `view-model.js` row (the type
+   words from copy, keyed by `TRANSPORTER_TYPES`). Picture it with `--mobile`
+   and look at the phone picture.
+
+**Tell the designer what differs from the old GB prototype page**, in the
+report, even when they did not ask (these are known, not faults):
+
+- The old page sat in the arrival section; the check your answers card sits
+  in "Consignment parties", with the other parties. Moving the card is
+  `change-the-journey`'s check-answers recipe.
+- The card shows name and address like the other party cards (phone and
+  email read "Not provided"), not the approval number or type. Offer to add
+  them as two more rows of the card.
+- The add form is one page with a type question at the top, not the old
+  type-first flow of two pages. Offer the two-page flow as a follow-up
+  (`change-the-journey`, add-a-branch).
+- The real journey's pickers refuse Continue without a choice; the old page
+  let the user carry on. Keep the refusal unless the designer asks otherwise
+  (then it is `research-session`'s relax-a-save-rule, or a design gap).
 
 For "add a new one", add a page that is not a journey step:
 

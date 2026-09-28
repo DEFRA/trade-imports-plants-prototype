@@ -4,6 +4,9 @@
  * still to translate, and the design gaps and research-mode rules a release
  * records. Pure functions over strings.
  */
+import path from 'node:path'
+
+import { copyLeaves } from './copy-table.js'
 
 export const WELSH_MARKER = '[Welsh needed]'
 
@@ -92,8 +95,29 @@ export const findPrototypeImports = (filePath, content) =>
     name: match[3].replace(/\.js$/, '')
   }))
 
-/** Every `[Welsh needed]` marker in a file, with the English after it. */
-export const findWelshMarkers = (filePath, content) => {
+const RELATIVE_IMPORT =
+  /(?:from\s+|import\s*\(\s*|import\s+)['"](\.{1,2}\/[^'"]+)['"]/g
+
+/**
+ * The repo-relative paths a file imports with a relative specifier
+ * (`../transporter-add/controller.js`), resolved against the file's own
+ * folder.
+ */
+export const relativeImportsOf = (filePath, content) =>
+  [...content.matchAll(RELATIVE_IMPORT)].map((match) =>
+    path.posix.normalize(
+      path.posix.join(path.posix.dirname(filePath), match[1])
+    )
+  )
+
+const WORDS_TO_PLACE = 20
+
+const lineOfText = (lines, text) => {
+  const at = lines.findIndex((line) => line.includes(text))
+  return at === -1 ? 0 : at + 1
+}
+
+const markersByLine = (filePath, content) => {
   const markers = []
   content.split('\n').forEach((line, index) => {
     const at = line.indexOf(WELSH_MARKER)
@@ -106,6 +130,40 @@ export const findWelshMarkers = (filePath, content) => {
     }
   })
   return markers
+}
+
+/**
+ * Every `[Welsh needed]` marker in a copy file, with the English after it.
+ * The file is read as data, so a string inside a nested object, or one split
+ * over two lines by the formatter, gives its words and never a piece of code.
+ * A file that cannot be read as data falls back to reading line by line.
+ */
+export const findWelshMarkers = (filePath, content) => {
+  const leaves = copyLeaves(content)
+  if (!leaves) {
+    return markersByLine(filePath, content)
+  }
+  const lines = content.split('\n')
+  return Object.entries(leaves)
+    .filter(
+      ([, value]) => typeof value === 'string' && value.includes(WELSH_MARKER)
+    )
+    .map(([key, value]) => {
+      const english = value
+        .replace(WELSH_MARKER, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      const lastKey = key
+        .split('.')
+        .at(-1)
+        .replace(/\[\d+\]$/, '')
+      const line =
+        lineOfText(
+          lines,
+          `${WELSH_MARKER} ${english.slice(0, WORDS_TO_PLACE)}`
+        ) || lineOfText(lines, lastKey)
+      return { file: filePath, key, line, english }
+    })
 }
 
 const tableCells = (line) =>

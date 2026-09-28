@@ -5,14 +5,13 @@
 import { appendFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 
+import { runFolderName } from '../show/manifest.js'
+
 export const LOG_FOLDER = '.cache/designer/check'
 
-/** A file-name-safe timestamp, for example 2026-09-27T10-11-12. */
-export const stampOf = (date) =>
-  date
-    .toISOString()
-    .replace(/\.\d+Z$/, '')
-    .replaceAll(':', '-')
+/** A file-name-safe timestamp in the computer's own time, for example
+ * 2026-09-27T10-11-12: the same clock as the designer:show gallery folders. */
+export const stampOf = (date) => runFolderName(date)
 
 /**
  * @param {{root: string, now?: Date}} options

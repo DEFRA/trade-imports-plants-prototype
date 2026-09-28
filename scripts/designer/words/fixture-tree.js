@@ -141,6 +141,9 @@ export const FIXTURE_FILES = {
     "    'consignment-parties': '3. Consignment parties'",
     '  }',
     '}',
+    '',
+    "// AWAITING THE COPY PASS: 'Consignment",
+    "// parties' is a new task list group.",
     ''
   ].join('\n'),
   [`${RELEASE_LINEAR}/features/hub/copy/copy.cy.js`]: [

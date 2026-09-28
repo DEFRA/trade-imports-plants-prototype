@@ -19,6 +19,40 @@ All the changes are in the release's own dashboard feature,
 `controller.js`, the `template.njk`, the `copy/` pair and, for paging,
 `notification-helper.js`.
 
+## Known gap: Commodity and Arrival in the real journey
+
+The real list marshaller
+(`src/server/app/services/persistence/records/stub/marshal/list-item.js`,
+owned by plants-frontend) reads answers the plants pages never save
+(`commodityLines[0].commoditySelection` and `arrivalDateAtPort`; the pages
+save `commodityType` and `arrivalDate`). So the **real journey's** dashboard
+shows an empty Commodity and Arrival on every row.
+
+A design release does not have this gap: the records wrapper fills both
+columns from each notification's own answers
+(`src/server/prototype-services/records/derived-columns.js`), so the columns
+show and the commodity and date filters match. The commodity shows as its
+type ("Potatoes", "Plants for planting", "Wood and cut trees"), not the
+species. Say so when the design wants the species, and add this design gap
+row whenever a release's dashboard shows either column:
+
+```text
+| dashboard | Commodity and Arrival on every row | Filled by the prototype from each notification's answers | Needs a real service: the real list marshaller reads commodityLines and arrivalDateAtPort, which the plants pages never save, so plants-frontend shows both columns empty. | <frame> |
+```
+
+## Keep a way to amend
+
+The Actions column holds the only Amend button (a POST, so there is no link
+to it elsewhere), plus View, Resume, Cancel amendment and Delete. A design
+that drops the column strands submitted notifications: nobody can amend
+them. Keep an Actions column (it can be narrower, or the last column), or
+make the reference link open the notification with its actions. If the
+design has no actions at all, keep them anyway and log it:
+
+```text
+| dashboard | Four columns with no actions | Kept the Actions column | Amend is only reachable from the dashboard row (a POST button), so dropping the column would strand submitted notifications. The real service needs another route to amend first. | <frame> |
+```
+
 ## Before you start
 
 The release's gateway, `src/server/app/routes-<release>.js`, must wrap its
@@ -218,7 +252,7 @@ The copy to add to the dashboard's `copy/copy.en.js` (and the same keys in
 ```js
 filters: {
   statusLegend: 'Status',
-  statuses: { draft: 'Draft', submitted: 'Submitted', amend: 'Being amended' },
+  statuses: { draft: 'Draft', submitted: 'Submitted', amend: 'Amending' },
   commodity: 'Commodity',
   lateOnly: 'Late notifications only',
   dateFrom: 'Arriving from',
@@ -233,8 +267,30 @@ filters: {
 },
 ```
 
+The status words are the same as the row's status tag (`journeyStrip` in
+`src/server/app/shared/copy.en.js`: Draft, Submitted, Amending), so a filter
+and the tag it matches never read differently.
+
 Log the MoJ filter look as a design gap (`design-gaps.md`) if the design shows
 it.
+
+**At phone width** the filter form is about 1,000 pixels tall and sits above
+the tabs and results. Put the filters inside a `govukDetails` ("Filter
+notifications"), open when `filtersActive` is true so the user sees what is
+applied:
+
+```njk
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% set filterForm %}
+  {# the form above #}
+{% endset %}
+{{ govukDetails({ summaryText: copy.filters.show, html: filterForm, open: filtersActive }) }}
+```
+
+with `show: 'Filter notifications'` in the copy. It is collapsed at every
+width until a filter is applied: nothing in the GOV.UK toolbox opens it on a
+wide screen only. If the design wants the filters always open on a wide
+screen, log that as a design gap.
 
 ## Step 3: tabs
 
@@ -249,10 +305,21 @@ only the open tab's list is rendered. It uses the GOV.UK tabs classes, so it
 looks like GOV.UK tabs on a wide screen and like a list of links on a phone
 (as GOV.UK tabs do), with no script. A research link can open a tab directly.
 
-In the controller (import `DEFAULT_TABS` from the same `records/index.js`):
+In the controller (import `DEFAULT_TABS` and `openTabFor` from the same
+`records/index.js`), work out the open tab from the counts, then list only
+that tab. This replaces step 1's `listFor` and `counts` lines:
 
 ```js
-const openTab = values.tab || 'all'
+const counts = await countKnown(request, { referenceNumber, ...filters })
+const openTab = openTabFor(values, counts)
+const listFor = (page) =>
+  listKnownWithFilters(request, {
+    page,
+    sort,
+    referenceNumber,
+    ...filters,
+    tab: openTab
+  })
 const keptQuery = (tab) =>
   buildDashboardListQueryString({ sort, referenceNumber, filters: { ...filters, tab } })
 // …
@@ -265,10 +332,14 @@ tabLinks: Object.keys(DEFAULT_TABS).map((tab) => ({
 }))
 ```
 
-`keptQuery` keeps the filters, the sort and the search when the tab changes
-(it is the `buildDashboardListQueryString` from step 1, with the tab added).
-The list itself already follows the open tab: `filtersFromQuery` reads `tab`,
-and `listKnownWithFilters` lists only its statuses.
+`openTabFor` opens the tab in the address when there is one. With none (the
+filter form sends no tab, see below), it opens the first tab with a row that
+passes the status filter: `all` with the default tabs. So ticking "Submitted"
+while on Drafts never lands on "No notifications match your filters" while
+the Submitted tab has one. `keptQuery` keeps the filters, the sort and the
+search when the tab changes (it is the `buildDashboardListQueryString` from
+step 1, with the tab added). For the release's own tabs, pass them as the
+third argument: `openTabFor(values, counts, TABS)`.
 
 In the template, in place of the heading above the list:
 
@@ -311,13 +382,13 @@ Either way, add the design gap row (same words as `match-the-design` uses):
 
 The dashboard already has a reference search form and a sort form. With
 filters, use one `method="get"` form for all of them, so applying a filter
-keeps the search, the sort and the open tab, and changing the sort keeps the
-filters:
+keeps the search and the sort, and changing the sort keeps the filters. The
+form sends **no tab**: a tab and a status filter combined with "and" gave a
+dead end (Submitted ticked on the Drafts tab shows nothing), so applying
+filters lets `openTabFor` pick the tab with matches:
 
 ```njk
 <form method="get" action="{{ listAction }}" novalidate>
-  <input type="hidden" name="tab" value="{{ openTab }}" />
-
   {{ govukInput({
     id: "referenceNumber",
     name: "referenceNumber",
@@ -336,7 +407,7 @@ filters:
 
   {{ govukButton({ text: copy.filters.apply, classes: "govuk-button--secondary" }) }}
   <p class="govuk-body">
-    <a class="govuk-link" href="{{ listAction }}?tab={{ openTab }}">{{ copy.filters.clear }}</a>
+    <a class="govuk-link" href="{{ listAction }}">{{ copy.filters.clear }}</a>
   </p>
 </form>
 ```
@@ -359,9 +430,10 @@ export const TABS = Object.freeze({
 })
 ```
 
-and pass them to all three calls: `filtersFromQuery(request.query, { tabs: TABS })`,
-`listKnownWithFilters(request, { …, tabs: TABS })` and
-`countKnown(request, { …, tabs: TABS })`. An empty list means every status.
+and pass them to all four calls: `filtersFromQuery(request.query, { tabs: TABS })`,
+`listKnownWithFilters(request, { …, tabs: TABS })`,
+`countKnown(request, { …, tabs: TABS })` and `openTabFor(values, counts, TABS)`.
+An empty list means every status.
 
 ## Counts at a glance
 
@@ -398,13 +470,20 @@ the counts are real.
    a query:
 
    ```bash
-   npm run designer:show -- --set <release> --pages dashboard --before --url "?status=submitted" --url "?tab=drafts" --url "?tab=submitted" --url "?commodity=nothing-like-this" --url "?dateFrom-day=31&dateFrom-month=2&dateFrom-year=2026"
+   npm run designer:show -- --set <release> --pages dashboard --before --mobile --url "?status=submitted" --url "?tab=drafts" --url "?tab=submitted" --url "?commodity=nothing-like-this" --url "?dateFrom-day=31&dateFrom-month=2&dateFrom-year=2026"
    ```
 
-3. Read each picture yourself: the filtered list, each tab showing its own
-   notifications (the Submitted tab must show submitted ones, not the drafts),
-   the "No notifications match your filters" state, and the error state with
-   its summary. `--errors` does nothing on the dashboard (its forms send with
-   GET), so the last `--url` is its error state.
-4. Clear filters is a plain link: the unfiltered dashboard picture is what it
+3. Read each picture yourself: the filtered list (with `?status=submitted`
+   it opens a tab that has the submitted notification), each tab showing its
+   own notifications (the Submitted tab must show submitted ones, not the
+   drafts), Commodity and Arrival filled on every row, the "No notifications
+   match your filters" state, the error state with its summary, and the phone
+   pictures with the filters folded away. `--errors` does nothing on the
+   dashboard (its forms send with GET), so the last `--url` is its error
+   state.
+4. The empty dashboard (no notifications at all) needs a second run, because
+   the first one pictures it with the examples in it:
+   `npm run designer:show -- --set <release> --pages dashboard --no-examples`.
+   Name both gallery paths in the report.
+5. Clear filters is a plain link: the unfiltered dashboard picture is what it
    shows. Nothing here needs the designer to click.

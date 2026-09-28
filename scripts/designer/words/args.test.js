@@ -31,8 +31,23 @@ describe('parseWordsArgs', () => {
     })
   })
 
+  it('Should read the page to list and its set', () => {
+    expect(
+      parseWordsArgs(['page', 'origin', '--set', 'plants-working'])
+    ).toEqual({
+      command: 'page',
+      page: 'origin',
+      setId: 'plants-working',
+      json: false
+    })
+  })
+
+  it('Should explain when the page list has no set', () => {
+    expect(parseWordsArgs(['page', 'origin']).error).toContain('--set')
+  })
+
   it('Should explain when there is no command', () => {
-    expect(parseWordsArgs([]).error).toContain('find or report')
+    expect(parseWordsArgs([]).error).toContain('find, page or report')
   })
 
   it('Should explain when there are no words to find', () => {

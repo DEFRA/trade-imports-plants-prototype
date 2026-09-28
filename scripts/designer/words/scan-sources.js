@@ -61,6 +61,60 @@ export const templateHits = (source, text) => {
   })
 }
 
+const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g
+const LINE_COMMENT = /^\s*\/\/(.*)$/
+const COMMENT_MARKS = /^\s*(?:\/\*+|\*+\/?|\/\/)|\*+\/\s*$/gm
+const SHOWN_LENGTH = 100
+
+const collapse = (text) =>
+  text.replace(COMMENT_MARKS, ' ').replace(/\s+/g, ' ').trim()
+
+const shorten = (text) =>
+  text.length > SHOWN_LENGTH ? `${text.slice(0, SHOWN_LENGTH - 1)}…` : text
+
+/** Runs of whole-line `//` comments, each run read as one piece of text. */
+const lineCommentRuns = (source) => {
+  const runs = []
+  let run = null
+  source.split('\n').forEach((lineText, index) => {
+    const match = LINE_COMMENT.exec(lineText)
+    if (!match) {
+      run = null
+      return
+    }
+    if (run) {
+      run.text += `\n${match[1]}`
+    } else {
+      run = { line: index + 1, text: match[1] }
+      runs.push(run)
+    }
+  })
+  return runs
+}
+
+const blockComments = (source) =>
+  [...source.matchAll(BLOCK_COMMENT)].map((match) => ({
+    line: lineAt(source, match.index),
+    text: match[0]
+  }))
+
+/**
+ * Code comments that quote the words, so a wording change can update them
+ * too. A comment split over several lines (`// Consignment /` then
+ * `// parties`) is read as one piece of text, so words broken across the
+ * line still match. Each hit carries the comment's first line.
+ *
+ * @param {string} source - a copy file's source.
+ * @param {string} text - the words to look for.
+ * @returns {{ line: number, text: string }[]}
+ */
+export const commentHits = (source, text) =>
+  [...lineCommentRuns(source), ...blockComments(source)]
+    .map((comment) => ({ line: comment.line, text: collapse(comment.text) }))
+    .filter((comment) => containsText(comment.text, text))
+    .map((comment) => ({ line: comment.line, text: shorten(comment.text) }))
+    .sort((a, b) => a.line - b.line)
+
 /**
  * Lines of a test or spec that pin any of the given texts as a literal. An
  * import line never counts: it names a file, not the words on a page.

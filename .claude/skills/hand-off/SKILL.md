@@ -83,7 +83,17 @@ Then choose the route:
 
 ## Route 1: from a design release
 
-1. Dry run, to see which pages change and what stands in the way:
+1. So the brief can say whether the patch still fits plants-frontend itself,
+   fetch it first (read only; nothing is sent):
+
+   ```
+   git fetch upstream main
+   ```
+
+   If it fails (no network, no access), carry on: the brief then says it was
+   not checked against plants-frontend.
+
+   Dry run, to see which pages change and what stands in the way:
 
    ```
    npm run designer:handoff -- --set <set-id> --slug <slug> --all --dry-run
@@ -122,8 +132,17 @@ Then choose the route:
    - the pages and words that change,
    - how many Welsh strings still need translating,
    - which tests still expect the old words (the team updates these),
-   - what cannot ship as it is, and why,
-   - whether the patch applies cleanly. If it does not, the real journey has
+   - which requirement files under the real journey's `spec/` folder still
+     quote the old words ("Spec and requirement files that quote the old
+     words": the journey spec, decisions, panel rulings, backlog extras),
+   - what cannot ship as it is, and why. A file that uses a prototype-only
+     service is left out of the patch, and so is every file that imports it
+     ("Imports …, which is left out"). Say plainly that the patch applies but
+     that part of the change only works once the real team builds the
+     service,
+   - whether the patch applies cleanly, to the prototype's copy of the real
+     journey and, when `upstream/main` has been fetched, to plants-frontend
+     itself (the brief says which). If it does not, the real journey has
      moved on in the same place since the release was made: the "Has the real
      journey moved on?" section names the files. Say the team will merge those
      by hand, or offer to start a fresh release and carry the change across
@@ -141,8 +160,11 @@ Then choose the route:
    ```
 
    ```
-   git commit -m "Hand-off brief: <title>"
+   npm run designer:save -- -m "Hand-off brief: <title>"
    ```
+
+   The checks run first; it prints one line when the save worked, or the end
+   of the log when it did not.
 
 6. Explain the two ways it reaches the real service:
    - **The team takes the brief and patch.** Share the `brief.md` link (in the
@@ -218,7 +240,7 @@ and switch back); run
 `npm run designer:show -- --set high-risk-plants --pages changed --before`;
 run `npm run designer:handoff -- --set high-risk-plants --base main --slug <slug> --title "<title>" --why "<why>"`;
 `npm run designer:format`; commit the change and the folder separately
-(stage by name, then commit with no paths after the message); then
+(stage by name, then `npm run designer:save -- -m "<message>"`); then
 `git switch <the designer's branch>`.
 
 ## Verify

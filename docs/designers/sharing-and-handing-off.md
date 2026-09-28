@@ -59,13 +59,14 @@ before.
 
 ## Undoing a change
 
-Say "undo that", "go back" or "throw away what I just did". Claude asks which
-of these you mean, tells you exactly what will be undone, and waits for your
-yes.
+Say "undo that", "go back" or "throw away what I just did". Your words are
+the go-ahead: Claude does it straight away and tells you exactly what it
+undid. It asks one question only when your words could mean two different
+changes.
 
-- **Changes you have not saved yet.** Changed files go back to how they were
-  when you last saved. New files are put aside rather than deleted, so they
-  can come back if you ask ("bring back what I put aside").
+- **Changes you have not saved yet.** The files are put aside rather than
+  deleted, so the change can come back if you ask ("bring back what you put
+  aside").
 - **The last change you saved.** Claude adds a new "undo" change that
   reverses it. Your history keeps both, so nothing is lost.
 - **A particular change**, found by what it was called ("undo the green panel

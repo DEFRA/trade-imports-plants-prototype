@@ -427,8 +427,8 @@ Write the hand-off folder and save the work on the ${HANDOFF_BRANCH} branch.
 ${JSON.stringify(parked, null, 2)}
 3. Run \`npm run designer:format\`.
 4. Stage the real-journey change: \`git add <path>\` for each changed path under src/server/app/sets/${REAL_JOURNEY}/ and fit/ that \`git status --porcelain\` lists.
-5. Commit it: \`git commit -m "${title} (from design release ${set})"\`. The pre-commit checks run. If they fail, fix only formatting and try once more.
-6. Stage the folder with \`git add handoffs/<folder>\` and commit: \`git commit -m "Hand-off brief: ${title}"\`.
+5. Save it: \`npm run designer:save -- -m "${title} (from design release ${set})"\`. The pre-commit checks run; it prints one line, or "Nothing was saved" and the end of the log. If they fail, fix only formatting and try once more.
+6. Stage the folder with \`git add handoffs/<folder>\` and save it: \`npm run designer:save -- -m "Hand-off brief: ${title}"\`.
 7. \`git status --porcelain\` must print nothing.
 
 ${PARK}

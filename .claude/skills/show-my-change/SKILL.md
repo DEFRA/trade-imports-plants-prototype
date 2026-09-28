@@ -52,8 +52,8 @@ Build one command from what they asked:
 | "show the error messages"                         | `--errors`                                         |
 | "on a phone", "mobile"                            | `--mobile` (320 pixels wide)                       |
 | "compare with the Figma", a design they attached  | `--reference <page>=<image>` (one per page)        |
-| "compare with the real journey"                   | `--compare high-risk-plants`                       |
-| "compare with release X"                          | `--compare <X>`                                    |
+| "compare X with the real journey"                 | `--pages <X> --compare high-risk-plants`           |
+| "compare with release X"                          | `--pages <the pages> --compare <X>`                |
 | "record a walkthrough", "demo video"              | `--video`                                          |
 | "make a review pack"                              | `--pages all --before --errors --mobile --video`   |
 | "open it" when done                               | `--open`                                           |
@@ -74,6 +74,13 @@ too. Separate several with commas, and add `changed` to keep the changed
 pages as well (`--pages changed,dashboard`). A wrong name gets a list of the
 right ones.
 
+**Once a change is saved, name the pages.** With no `--pages`, show
+pictures the pages your _unsaved_ changes are on. After a save there are none,
+so `--compare`, `--before` and `--video` runs made after a save picture no
+pages (it says so). Always give `--pages` with `--compare`, and use
+`--pages <pages> --before-commit <the commit before the change>` for a
+before-and-after of saved work.
+
 `--url` pictures any address in the set, written as it shows in the browser
 after the set's name. Repeat it for several:
 
@@ -90,6 +97,15 @@ after the set's name. Repeat it for several:
 The dashboard is pictured with the release's example notifications on it (the
 same ones `npm run dev` makes), plus the notifications the pictures filled in.
 
+A question page is pictured the first time an example reaches it, **before**
+the example answers it, so its boxes are empty even though check your answers
+later shows the answer (P123, say). That is expected: say so if the designer
+asks. Not every example visits every page: potatoes have no consignor, for
+example, so a potato example's check your answers has no consignor card. For
+words on a page only some commodities see, add `--each-example` or name an
+example that visits it (`designer:examples -- fixtures <set>` lists which
+fixture visits which page).
+
 A reference image must be a picture file: PNG, JPEG, GIF, WebP or SVG. A PDF
 does not work: ask for the frame exported as PNG. The path can be relative to
 the prototype's folder. To get the designer's Figma frame into a file:
@@ -103,7 +119,14 @@ the prototype's folder. To get the designer's Figma frame into a file:
 - Copy it to `.cache/designer/refs/<page>.png` with `cp`, so the next run
   finds it too.
 
-Never draw a stand-in wireframe and present it as their design.
+Never draw a stand-in wireframe and present it as their design, and never
+reuse a file already in `.cache/designer/refs/` unless the designer gave it
+to you in this conversation: an earlier run may have left a stand-in there.
+With no frame from the designer, picture the page on its own and say "no
+design frame was given to compare with". A frame exported at a different
+width from the page picture (1280 pixels) is still fine to compare by eye;
+say its size if it differs a lot, and ask for a 1x export if it looks
+cropped.
 
 `--before` compares with the last saved version (commit). A release that has
 never been saved has no before picture; the gallery says so. After an undo,
@@ -124,14 +147,14 @@ this branch. Say so and stop.
 
 What it can say instead of a gallery:
 
-| It says                                                | Do this                                                        |
-| ------------------------------------------------------ | -------------------------------------------------------------- |
-| "None of your changes show on a page in ..."           | Ask which pages, or run again with `--pages all`               |
-| "There is no page called ..."                          | Use a name from the list it prints                             |
-| "There is no set called ..."                           | Use a set from the list it prints                              |
-| "Cannot find the reference image ..."                  | Ask for the right path                                         |
-| "The browser designer:show uses is not installed"      | Run `npm run playwright:install`, then run show again          |
-| "The prototype stopped before it was ready" with a log | The change stops the prototype starting: use `check-my-change` |
+| It says                                                | Do this                                                                                                                                                                             |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "None of your changes show on a page in ..."           | Run again with the pages named (`--pages <X>`); ask which pages if you cannot tell. With `--video` the walkthrough is still recorded, and the same line is the gallery's first note |
+| "There is no page called ..."                          | Use a name from the list it prints                                                                                                                                                  |
+| "There is no set called ..."                           | Use a set from the list it prints                                                                                                                                                   |
+| "Cannot find the reference image ..."                  | Ask for the right path                                                                                                                                                              |
+| "The browser designer:show uses is not installed"      | Run `npm run playwright:install`, then run show again                                                                                                                               |
+| "The prototype stopped before it was ready" with a log | The change stops the prototype starting: use `check-my-change`                                                                                                                      |
 
 ## Step 4: Read the pictures
 
@@ -163,7 +186,10 @@ Keep it short and concrete:
 
 - **Each pair:** what is different, in words ("the hint under 'Expected time
   of arrival' now reads 'Use the 24-hour clock, like 09:15 or 17:45'"), or
-  "no visible difference" if you looked and found none. For a reference
+  "no visible difference" if you looked and found none. The notification
+  reference (GBN-HRP-26-…) and today's dates differ between the before and
+  after pictures, because each copy of the prototype makes its examples
+  afresh: never report those as a change. For a reference
   image, list every visible difference: spacing, sizes, order, wording,
   colour, missing or extra parts. `match-the-design` can close the gaps.
 - **Error states:** which messages the error summary lists. If a page moved

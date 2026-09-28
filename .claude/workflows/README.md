@@ -114,11 +114,12 @@ workflow also describes the same steps run one after another, and
       nothing on disk changes)
    2. `git add -A -- <the group's files>`
    3. `git diff --cached --name-only` lists exactly those files
-   4. `git commit -m "<first line>" -m "<body>"`, with the message written
-      from `git diff --cached` following
-      `.claude/skills/share-my-change/references/commit-message.md`. Never
-      put paths after the message: a commit with paths runs the pre-commit
-      checks against a temporary staging area, which their own git tests
-      trip over.
+   4. `npm run designer:save -- -m "<first line>" -m "<body>"`, with the
+      message written from `git diff --cached` following
+      `.claude/skills/share-my-change/references/commit-message.md`. It
+      commits what is staged, sends the checks' output to
+      `.cache/designer/commit.log`, and refuses paths after the message (a
+      commit with paths runs the pre-commit checks against a temporary
+      staging area, which their own git tests trip over).
 7. Report each request as landed (with its commit), parked (with why) or not
    done (with why), and the gallery path. Never push.

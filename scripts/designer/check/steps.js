@@ -134,36 +134,43 @@ const ownership = ({ root, changedPaths }) => {
   if (verdicts.length === 0) {
     return result('pass', 'You have not changed any files yet.')
   }
-  const counts = Object.entries(OWNER_WORDS)
-    .map(([owner, words]) => [
-      verdicts.filter((verdict) => verdict.owner === owner).length,
+  const { broken, justFrozen } = frozenFindings(verdicts, root)
+  const isFrozenEdit = (verdict) =>
+    verdict.frozen && !justFrozen.includes(verdict.setId)
+  const counts = [
+    ...Object.entries(OWNER_WORDS).map(([owner, words]) => [
+      verdicts.filter(
+        (verdict) => verdict.owner === owner && !isFrozenEdit(verdict)
+      ).length,
       words
-    ])
+    ]),
+    [verdicts.filter(isFrozenEdit).length, 'in a frozen release']
+  ]
     .filter(([count]) => count > 0)
     .map(([count, words]) => `${count} ${words}`)
-  const { broken, justFrozen } = frozenFindings(verdicts, root)
   const attention = verdicts.filter(
-    (verdict) =>
-      verdict.owner !== 'yours' ||
-      (verdict.frozen && !justFrozen.includes(verdict.setId))
+    (verdict) => verdict.owner !== 'yours' && !isFrozenEdit(verdict)
+  )
+  const frozeLines = justFrozen.map(
+    (setId) =>
+      `You froze ${setId} in this change. Save the freeze on its own, before any other change.`
   )
   const details = [
-    ...justFrozen.map(
-      (setId) =>
-        `You froze ${setId} in this change. Save the freeze on its own, before any other change.`
-    ),
+    ...frozeLines,
     ...attention.map((verdict) => `${verdict.path}: ${verdict.sentence}`)
   ]
-  const summary = `${plural(verdicts.length, 'file')} changed: ${counts.join(', ')}.`
+  const summary = [
+    `${plural(verdicts.length, 'file')} changed: ${counts.join(', ')}.`,
+    ...frozeLines
+  ].join(' ')
   if (broken.length > 0) {
     const lines = broken.map(({ setId, found }) =>
       describeFrozenChange(setId, found)
     )
-    return result(
-      'fail',
-      `${summary} ${plural(broken.length, 'frozen release')} changed.`,
-      { details, output: [...lines, ...details].join('\n') }
-    )
+    return result('fail', summary, {
+      details,
+      output: [...lines, ...details].join('\n')
+    })
   }
   return result(attention.length > 0 ? 'warn' : 'pass', summary, {
     details,

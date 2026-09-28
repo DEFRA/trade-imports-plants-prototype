@@ -93,11 +93,12 @@ The first line names the branch.
      and carry on. Tell the designer in one line that you started
      `plants-working` from the real journey for them.
   4. If the release is a research release (`designer:release -- list` says
-     "Research"), words changed after the sessions go in the next working
-     release, not the research release: the research release stays as the
-     participants saw it. Use the working release it was made from, or make
-     one (3). Change a research release's words only when the designer says
-     the change is for the sessions themselves.
+     "Research"), words changed after the sessions follow the one rule in
+     `research-session`, "After the sessions", step 3: the working release it
+     was made from, or else a new working release made from the research
+     release (never from the real journey). Tell the designer in one line
+     where the change lands, then carry on. Change a research release's words
+     only when the designer says the change is for the sessions themselves.
 
 If the designer named `high-risk-plants` (or "the real journey") on any other
 branch, offer two routes in one message and default to the first:
@@ -194,10 +195,38 @@ Work out the new text for every `copy` entry in the release:
 - For a `function` entry, keep the function, its values and every `${…}`
   placeholder exactly.
 - Welsh: if the designer gave the Welsh, use it. If not, the new Welsh is
-  `[Welsh needed] <the new English>` for the whole string.
+  `[Welsh needed] <the new English>` for the whole string, numbering
+  included: `'3. Consignment addresses'` gets the Welsh
+  `'[Welsh needed] 3. Consignment addresses'`. The marker always comes first.
+- Comments: every entry under `comments` (the find prints them as "Comments
+  that quote these words", including a phrase split across two comment
+  lines) gets the new words too. List them in the plan as "comment".
 
 List `templates` entries separately as "Not changed: written in the page
 template, not in copy". Offer `match-the-design` to move them into copy.
+
+**Compare the pages the designer named with the pages the find reports.**
+The designer often names pages from memory ("the caption on place of
+destination"). For each page they named that the find does not list, say in
+one line what that page really shows and where it lives, for example:
+"Place of destination does not show 'Consignment parties': its caption is
+'Destination', from the destination caption section. Moving it into the
+Consignment parties section is a journey change (`change-the-journey`)."
+Run `npm run designer:words -- page <page> --set <release>` to see every
+string a page shows. Do not change anything on those pages to make them
+match; carry on with the pages the find did list.
+
+**The designer names a page and an element, not the words** ("the hint on
+origin", "the button on arrival details"): run
+`npm run designer:words -- page <page> --set <release>` and pick the string
+from its list (hints are keys ending `.hint`, labels `.label`, errors sit
+under `errors`). Say which string you picked, quoting its English.
+
+**The designer names a group or heading that does not exist exactly** ("the
+Arrival group" when the task list says "2. Arrival and destination"): take
+the nearest match and say so in one line ("I took 'Arrival' to mean the group
+'2. Arrival and destination'"). A task list group has a twin heading on check
+your answers with the same words: rename both together, and say so.
 
 Show the plan as a table in a code block, one row per string:
 
@@ -208,9 +237,14 @@ hub (the task list)                        groups.consignment-parties     3. Con
 notification-view (check your answers)     sections.parties               3. Consignment parties  3. Consignment addresses  [Welsh needed]
 ```
 
-- If every change is on one page, go straight on.
-- If the change spans more than one page, ask once: "This changes <n> strings
-  on <m> pages. Go ahead?" Then do not ask again.
+- Go straight on, without asking, when the change is on one page, when the
+  designer said "everywhere" or "all", or when they named every page the find
+  reports. Their request is the go-ahead (CLAUDE.md rule 6).
+- Ask once only when the find turns up pages the designer did not name and
+  did not cover with "everywhere": "'<old words>' is also on <pages you were
+  not asked about>. Change it there too?" Then do not ask again. In a run
+  where nobody can answer (a workflow, a trial), change only the pages they
+  named and list the others under "Not changed".
 - If it spans more than 5 pages, or the designer pasted a content document
   with several changes, use the wording sweep instead (see "Big sweeps"
   below).
@@ -226,7 +260,16 @@ Also check the new words still make sense where they land. When a renamed
 task list group or caption no longer matches what sits under it ("Consignment
 addresses" over a group with no address in it, say), tell the designer in one
 line, as a note for the content designer. Do not change anything else because
-of it.
+of it. Write the same note as a row in the release's `design-gaps.md` (page,
+"Content note", the note, "Content designer to review", "None"), so it
+travels with a hand-off brief.
+
+One error message can serve several states of a page. `errors.arrivalDate.required`
+on arrival details shows for a consignment that will arrive and for one that
+has already arrived. Before changing an error message, search the page's
+`controller.js` for its key (Grep tool) and read each place it is used. If the
+new words fit only one of those states ("will arrive"), say so in one line and
+suggest words that fit both. Use the designer's words if they keep theirs.
 
 ## Step 6: Edit English and Welsh
 

@@ -43,7 +43,7 @@ const rowFor =
       order: info.order,
       createdAt: info.createdAt,
       href: prefix,
-      text: displayNameFor(setId),
+      text: info.title ?? displayNameFor(setId),
       description: descriptionFor(setId),
       tag: { text: info.tag, classes: `govuk-tag--${info.colour}` },
       madeFrom: madeFromFor(info),

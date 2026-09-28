@@ -79,9 +79,11 @@ ignores them).
 
 ### 3. Get onto the designer's own branch
 
-- On `main` (or any branch that is not `design/*`, `handoff/*` or
-  `maintain/*`): make a new branch named `design/<set-id>-<slug>`, where
-  `<slug>` is two to four words for the change, in lower case with hyphens:
+The same rule as every other skill (CLAUDE.md, "Branches"), so one request
+never ends up split across two branches:
+
+- On `main`: make a new branch named `design/<set-id>-<slug>`, where `<slug>`
+  is two to four words for the change, in lower case with hyphens:
 
   ```
   git switch -c design/plants-working-consignment-addresses
@@ -89,8 +91,9 @@ ignores them).
 
   Unsaved changes come with it. Tell the designer the branch name.
 
-- On a `design/*` branch already: stay on it. One branch can hold several
-  saved changes.
+- On any other branch (`design/*`, a `feat/` or trial branch, `maintain/*`):
+  stay on it. One branch can hold several saved changes, and the release's
+  own "Start design release" commit is usually already there.
 - On a `handoff/*` branch: this is the upstream route. Save as below; the
   `hand-off` skill says what comes next.
 
@@ -128,24 +131,21 @@ ignores them).
    plants-working: rename 'Consignment parties' to 'Consignment addresses' on 4 pages; Welsh needed
    ```
 
-3. Save it (the second `-m` is the body: pages, recipe used, design gaps).
-   Never add paths after the message (`git commit -m … -- <paths>`): a commit
-   with paths runs the checks against a temporary copy of the staging area,
-   which the checks' own git tests trip over. Stage by name (step 1), then
-   commit what is staged. The checks print hundreds of lines (a coverage
-   table), so send them to a log:
+3. Save it (the second `-m` is the body: pages, recipe used, design gaps):
 
    ```
-   git commit -m "<first line>" -m "<body>" > .cache/designer/commit.log 2>&1
+   npm run designer:save -- -m "<first line>" -m "<body>"
    ```
 
-   (`.cache/designer/` is made by `designer:check`. If the shell says the
-   folder does not exist, run the same commit without `> … 2>&1`.)
-
-   The pre-commit checks run and take a few minutes. Read the end of the log
-   with the Read tool (the last 40 lines are enough). If the checks failed,
-   nothing was saved: read the error, fix it, stage the fix, and run the same
-   `git commit` again. Never add `--no-verify`.
+   It commits what is staged. The pre-commit checks run and take a few
+   minutes; their output (hundreds of lines of coverage) goes to
+   `.cache/designer/commit.log`. It prints one line when the save worked.
+   When the checks fail it prints "Nothing was saved" and the last 60 lines
+   of the log: read the error, fix it with the skill `check-my-change`
+   names, stage the fix, and run the same save again. It refuses
+   `--no-verify` and paths after the message (a commit with paths runs the
+   checks against a temporary copy of the staging area, which the checks'
+   own git tests trip over).
 
 4. Run `git log -1 --stat` and tell the designer what was saved, in one
    sentence.
@@ -184,51 +184,56 @@ and open a pull request so others can see it?", and go on only on a clear yes:
 ## Undo
 
 First run `git status --porcelain` and `git log -1 --format="%h %s"`. Then
-say which of these three it is: unsaved edits (the change skills do not save,
-so "undo that" straight after a change is usually this one) or a saved
-change. Ask when both could be meant. Tell the designer the difference in one
-line: undoing unsaved edits leaves no record in the history; undoing a saved
-change adds an undo commit, so the history shows the change and its undo.
-Always list exactly what will be undone and get a yes before doing it.
+work out which it is:
+
+- **Unsaved edits.** The change skills do not save, so "undo that" straight
+  after a change is this one when `git status` lists the files that change
+  made.
+- **The last saved change**, when `git status` is clean, or the designer says
+  "my last saved change".
+- **A named change** ("undo the confirmation panel change").
+
+This is the one rule every skill follows, so the designer is never asked
+twice: **the designer's own "undo that", "throw away what I just did" or
+"undo my last change" is the yes.** Do it straight away and say in the reply
+exactly what was undone. Ask one question only when the words fit more than
+one of the three (unsaved edits from two different changes, say), or when a
+named change matches more than one commit.
+
+Nothing is ever lost: unsaved edits are put aside (they can come back), and a
+saved change is undone with a new commit (the history shows both).
 
 ### Unsaved edits ("throw away what I just did")
 
 1. Run `git status --porcelain` and list the changed files in plain words
    (page and what kind of file).
-2. Ask which to throw away: all of them, or named ones.
-3. For each changed file they named (status `M` or `D`), one command per
-   file. If it is staged (a letter in the first column), unstage it first:
+2. Take the files of the change being undone: all of them when every
+   unsaved file came from that change, otherwise only the ones it made (the
+   change skill's report names them). Ask only when you cannot tell.
+3. Put them aside in one command, new files included, so they can come back:
 
    ```
-   git restore --staged <path>
+   git stash push --include-untracked -m "undone: <what the change was>" -- <path> <path>
    ```
 
-   ```
-   git restore <path>
-   ```
-
-4. For a new file (status `??`), do not delete it. Put it aside so it can come
-   back:
-
-   ```
-   git stash push --include-untracked -m "put aside by undo: <what it was>" -- <path>
-   ```
-
-   Tell the designer it is kept and can come back if they ask
-   ("bring back what I put aside": `git stash list`, then
+4. Run `git status --porcelain` again: none of those files is listed now.
+   Tell the designer what was undone and that it is kept: "say 'bring back
+   what you put aside' and I will put it back" (`git stash list`, then
    `git stash pop stash@{<n>}` for the matching one).
 
 ### The last saved change ("undo my last change", "go back")
 
 1. Run `git status --porcelain`. If it lists anything, ask whether to save it
-   or throw it away first. Undo needs a clean start.
+   or put it aside first. Undo needs a clean start.
 2. Run `git log -1 --format="%h %s"` and tell the designer what that change
    was.
-3. If it is a merge (the weekly update, or a merged pull request), or a
-   `Research mode on for <set-id>` commit, stop. A merge is the maintainer's
-   to undo. Research mode has its own off switch:
+3. If it is a merge (the weekly update, or a merged pull request), a
+   `Start design release …` or `Freeze design release …` commit, or a
+   `Research mode on for <set-id>` commit, stop and say why. A merge is the
+   maintainer's to undo. A release is retired, not undone (`design-release`
+   section F). Research mode has its own off switch:
    `npm run designer:research -- off <set-id>` (`research-session`).
-4. On a yes:
+4. Undo it:
 
    ```
    git revert --no-edit HEAD
@@ -251,8 +256,9 @@ Always list exactly what will be undone and get a yes before doing it.
    git log --oneline -20 -- src/server/app/sets/<set-id>
    ```
 
-2. Show the candidates in plain words and ask which one. Never guess.
-3. With a clean `git status`, on a yes:
+2. One match: undo it. Several: show them in plain words and ask which one.
+   Never guess.
+3. With a clean `git status`:
 
    ```
    git revert --no-edit <commit>

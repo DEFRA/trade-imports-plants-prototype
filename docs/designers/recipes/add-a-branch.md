@@ -146,14 +146,50 @@ If the gate question sits on an existing page, follow the real-service
 recipe `src/server/app/sets/high-risk-plants/docs/add-a-field.md` steps 3 and 4
 in the release, skipping its test steps. For arrival-details that means:
 
-- add `MORE_THAN_ONE_VEHICLE = 'moreThanOneVehicle'` to `fields.js`
-- add it to `collects` in `controller.js`
-- add `requiredOneOf(MORE_THAN_ONE_VEHICLE, ['yes', 'no'], copy.errors.moreThanOneVehicle)`
-  to the rules `fields()` composes
-- add it to `valuesFrom()`, so it is shown back, validated and saved
+- add `export const MORE_THAN_ONE_VEHICLE = 'moreThanOneVehicle'` to
+  `fields.js`, and import it in `controller.js` with the other field names
+- add it to `collects` in `controller.js`'s `meta`
+- add the rule and the value **outside** the potato-only spreads: the
+  question is asked for every commodity, and anything inside
+  `...(asksForPotatoDetails(scope) ? … : [])` is asked only for potatoes.
+  The two functions become:
+
+  ```js
+  const fields = async (scope, bounds) =>
+    compose(
+      dateRule(bounds),
+      requiredOneOf(
+        MORE_THAN_ONE_VEHICLE,
+        ['yes', 'no'],
+        copy.errors.moreThanOneVehicle
+      ),
+      ...(asksForPotatoDetails(scope) ? await potatoRules() : [])
+    )
+
+  const valuesFrom = (source, scope) => ({
+    [ARRIVAL_DATE]: source[ARRIVAL_DATE] ?? '',
+    [MORE_THAN_ONE_VEHICLE]: source[MORE_THAN_ONE_VEHICLE] ?? '',
+    ...(asksForPotatoDetails(scope)
+      ? {
+          [ARRIVAL_TIME]: source[ARRIVAL_TIME] ?? '',
+          [PROPOSED_PLACE_OF_LANDING]: source[PROPOSED_PLACE_OF_LANDING] ?? ''
+        }
+      : {})
+  })
+  ```
+
+  `valuesFrom` feeds the page, the check and the save (`committedValues`), so
+  this one line is all the save needs. To ask it only for some commodities,
+  put both lines inside the spread instead, and gate the obligation to match.
+
 - render it with `govukRadios` and the `govuk-radios--inline` class, which is
-  the GOV.UK pattern for a Yes or No question. Keep the field `name`, the
-  `id` and the error key the same
+  the GOV.UK pattern for a Yes or No question. The arrival-details template
+  does not import it yet: add
+  `{% from "govuk/components/radios/macro.njk" import govukRadios %}` to the
+  imports at the top. Use `name: "moreThanOneVehicle"`,
+  `idPrefix: "moreThanOneVehicle"`, `value: values.moreThanOneVehicle` and
+  `errorMessage: errors.moreThanOneVehicle and { text: errors.moreThanOneVehicle }`
+  (the way the page's other fields write it)
 - add the legend, the Yes and No labels and the error message to
   `copy/copy.en.js`, and the same keys to `copy/copy.cy.js`
 
@@ -176,8 +212,111 @@ in the release, without the test files. For `number-of-vehicles`:
   `saveActions(hubHref, copy = sharedCopy.saveActions, showReturnControls = false)`
 - `copy/copy.en.js` and `copy/copy.cy.js`
 
-`features/arrival-status/controller.js` is the shortest complete controller to
-copy.
+Do not copy `features/arrival-status/controller.js`: it carries a timing
+window and a status list the new page does not need, and every unused import
+fails the lint. Start from this complete one-field controller instead (it is
+arrival-status with those parts taken out), in
+`<journey>/features/number-of-vehicles/controller.js`:
+
+```js
+import { hubPath } from '../../../../../../shared/paths.js'
+import { TEMPLATES } from '../../config.js'
+import * as state from '../../../../../../engine/index.js'
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR
+} from '../../../../../../lib/http-status.js'
+import {
+  compose,
+  requiredIntegerInRange,
+  validate
+} from '../../../../../../lib/validate/index.js'
+import * as kit from '../../../../../../shared/kit.js'
+import { copyFor } from '../../../../../../shared/copy.js'
+import { numberOfVehiclesPage as page } from './page.js'
+import { copy as en } from './copy/copy.en.js'
+import { copy as cy } from './copy/copy.cy.js'
+
+const NUMBER_OF_VEHICLES = 'numberOfVehicles'
+const FEWEST_VEHICLES = 2
+const MOST_VEHICLES = 99
+
+export const meta = { ...page, collects: [NUMBER_OF_VEHICLES] }
+
+const view = `${TEMPLATES}/features/number-of-vehicles/template`
+
+const copy = copyFor({ en, cy })
+
+const fields = () =>
+  compose(
+    requiredIntegerInRange(NUMBER_OF_VEHICLES, {
+      min: FEWEST_VEHICLES,
+      max: MOST_VEHICLES,
+      messages: {
+        required: copy.errors.required,
+        invalid: copy.errors.invalid
+      }
+    })
+  )
+
+const render = (h, current, values, options = {}) => {
+  const errors = options.errors ?? {}
+  return h.view(view, {
+    ...kit.base(copy.title, {
+      backLink: hubPath(current.journey.journeyId),
+      journey: current.journey,
+      page,
+      recoverableError: options.recoverableError ?? false
+    }),
+    copy,
+    values,
+    errors,
+    errorSummary: kit.errorSummary(errors)
+  })
+}
+
+const get = async (request, h) => {
+  const current = await state.get(request, h)
+  return render(h, current, {
+    [NUMBER_OF_VEHICLES]: current.answers[NUMBER_OF_VEHICLES] ?? ''
+  })
+}
+
+const post = async (request, h) => {
+  const payload = request.payload ?? {}
+  const values = { [NUMBER_OF_VEHICLES]: payload[NUMBER_OF_VEHICLES] ?? '' }
+  const { errors, value } = validate(fields(), payload)
+  const current = await state.get(request, h)
+  if (errors) {
+    return render(h, current, values, { errors }).code(HTTP_STATUS_BAD_REQUEST)
+  }
+
+  let committed
+  const { failure } = await kit.recoverableSave(
+    async () => {
+      committed = await state.commit(request, h, {
+        [NUMBER_OF_VEHICLES]: value[NUMBER_OF_VEHICLES]
+      })
+    },
+    async () =>
+      render(h, current, values, { recoverableError: true }).code(
+        HTTP_STATUS_INTERNAL_SERVER_ERROR
+      )
+  )
+  if (failure) {
+    return failure
+  }
+
+  return h.redirect(await kit.nextTarget(request, page, committed.scope))
+}
+
+export const routes = kit.pageRoutes(page, { get, post })
+```
+
+For another one-field page, change the field name, the page import, the
+view path and the rule (`requiredOneOf` for radios, `requiredText` or
+`requiredMaxText` for a text box). The copy needs `title` and the error keys
+the rule names.
 
 ### 5. Put the branch page in the journey
 
@@ -280,6 +419,11 @@ asking again. It is part of this change, not a separate one:
    gallery: the question, its error state, the branch page, and check your
    answers with and without the number of vehicles. If the gallery lists the
    branch page under "Pages no example reaches", step 7 is missing.
+   The gate page is pictured as it is first reached, before the example
+   answers it, so its Yes and No pictures look the same: check your answers
+   and the branch page are where the two sides differ. `--each-example`
+   pictures every scenario in the happy path (about 30 pictures for a
+   five-scenario release); that is expected.
 5. Give the designer the example links from
    `npm run designer:examples -- links <release>`: "Draft, part way through"
    takes the No branch and "Draft, more than one vehicle" the Yes branch.

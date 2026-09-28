@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { remountReleases } from '../designer/release/remount.js'
 import { REPO_ROOT, scaffoldSet } from './index.js'
 import { listFiles } from './copy-set.js'
 import { UUID_PATTERN } from './transform.js'
@@ -62,6 +63,9 @@ beforeEach(() => {
       { recursive: true }
     )
   }
+  // Take out any design release the real checkout has mounted: its folder is
+  // not copied, so these tests never depend on which releases exist.
+  remountReleases({ repoRoot })
 })
 
 afterEach(() => {
@@ -282,6 +286,49 @@ describe('new:set --from another release', () => {
         path.join(repoRoot, 'src/server/app/sets/plants-dr2-working/docs')
       )
     ).toBe(true)
+  })
+
+  it('Should leave a research release’s session plan and research-mode log out of a working copy of it', () => {
+    scaffoldSet(
+      { setId: 'plants-research', from: REAL_JOURNEY, purpose: 'research' },
+      { repoRoot, now: NOW }
+    )
+    const researchDir = path.join(
+      repoRoot,
+      'src/server/app/sets/plants-research'
+    )
+    writeFileSync(path.join(researchDir, 'research-session.json'), '{}\n')
+    writeFileSync(
+      path.join(researchDir, 'research-mode.md'),
+      '# Research mode\n'
+    )
+
+    const working = scaffoldSet(
+      {
+        setId: 'plants-research-next',
+        from: 'plants-research',
+        purpose: 'working'
+      },
+      { repoRoot, now: NOW }
+    )
+    scaffoldSet(
+      {
+        setId: 'plants-research-2',
+        from: 'plants-research',
+        purpose: 'research'
+      },
+      { repoRoot, now: NOW }
+    )
+
+    expect(setFiles('plants-research-next')).not.toContain(
+      'research-session.json'
+    )
+    expect(setFiles('plants-research-next')).not.toContain('research-mode.md')
+    expect(working.skipped).toContainEqual({
+      path: 'research-mode.md',
+      reason: 'research only'
+    })
+    expect(setFiles('plants-research-2')).toContain('research-session.json')
   })
 })
 

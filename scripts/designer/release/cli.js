@@ -1,6 +1,7 @@
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { carryChange } from './carry.js'
+import { formatChanges, releaseChanges } from './changes.js'
 import { freezeRelease } from './freeze.js'
 import { formatList, listReleases } from './list.js'
 import { formatOrders, readOrders } from './orders.js'
@@ -11,7 +12,8 @@ import { REPO_ROOT } from './sets.js'
 export const USAGE = [
   'npm run designer:release -- list [--json]',
   'npm run designer:release -- orders <release> [<page> ...]   (the four orders a page sits in)',
-  'npm run designer:release -- freeze <release> [--as <new-working-release>] [--describe "<text>"]',
+  'npm run designer:release -- changes <release> [--json]   (saved changes to it on every branch, newest first)',
+  'npm run designer:release -- freeze <release> [--as <new-working-release>] [--describe "<text>"] [--title "<name>"] [--frozen-describe "<text>"] [--frozen-title "<name>"]',
   'npm run designer:release -- carry --from <release> --to <release> [--commit <commit id> | --working]',
   'npm run designer:release -- retire <release>',
   'npm run designer:release -- remount   (after a merge clash in overrides.json or src/server/prototype-sets/)'
@@ -20,6 +22,9 @@ export const USAGE = [
 const FLAGS_WITH_VALUES = new Set([
   '--as',
   '--describe',
+  '--frozen-describe',
+  '--title',
+  '--frozen-title',
   '--from',
   '--to',
   '--commit'
@@ -62,6 +67,9 @@ const printFreeze = ({ target, flags }, repoRoot) => {
   const result = freezeRelease(target, {
     as: flags.as,
     describe: flags.describe,
+    frozenDescribe: flags['frozen-describe'],
+    title: flags.title,
+    frozenTitle: flags['frozen-title'],
     repoRoot
   })
   return [
@@ -75,6 +83,18 @@ const printFreeze = ({ target, flags }, repoRoot) => {
     `  2. Open http://localhost:3103/${result.working} (run \`npm run dev\` first).`,
     '  3. Save both with one commit (say "save my work"). Freeze on its own: carry any change you want in the frozen release before freezing, never after.'
   ].join('\n')
+}
+
+const printChanges = ({ target, flags }, repoRoot) => {
+  if (!target) {
+    throw new Error(
+      'Say which release: npm run designer:release -- changes <release>'
+    )
+  }
+  const changes = releaseChanges(target, { repoRoot })
+  return flags.json
+    ? JSON.stringify(changes, null, 2)
+    : formatChanges(target, changes)
 }
 
 const printCarry = ({ flags }, repoRoot) => {
@@ -149,6 +169,7 @@ const printOrders = async ({ target, rest }, repoRoot) =>
 const COMMANDS = {
   orders: printOrders,
   list: printList,
+  changes: printChanges,
   freeze: printFreeze,
   carry: printCarry,
   retire: printRetire,
@@ -156,7 +177,7 @@ const COMMANDS = {
 }
 
 /**
- * `npm run designer:release -- list|freeze|carry|retire`: look after your
+ * `npm run designer:release -- list|changes|freeze|carry|retire`: look after your
  * design releases. See docs/designers/design-releases.md.
  */
 export const run = async (argv, { repoRoot = REPO_ROOT } = {}) => {

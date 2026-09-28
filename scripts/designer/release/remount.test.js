@@ -93,6 +93,26 @@ describe('remount', () => {
     })
   })
 
+  it('Should start every test repo without the releases of the checkout it copies', () => {
+    release('plants-working')
+    commitAll(repoRoot, 'Start plants-working')
+
+    const copied = makeTestRepo({ from: repoRoot })
+    try {
+      const ours = JSON.parse(readIn(copied, MOUNT_FILES[0])).ours
+      expect(readIn(copied, MOUNT_FILES[1])).not.toContain('plants-working')
+      expect(readIn(copied, MOUNT_FILES[2])).not.toContain('plants-working')
+      expect(ours.join('\n')).not.toContain('plants-working')
+      expect(remountReleases({ repoRoot: copied })).toEqual({
+        resolved: [],
+        added: [],
+        removed: []
+      })
+    } finally {
+      removeTestRepo(copied)
+    }
+  })
+
   it('Should change nothing when every release is mounted', () => {
     release('plants-a')
     commitAll(repoRoot, 'Start plants-a')

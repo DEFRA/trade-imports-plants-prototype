@@ -66,7 +66,10 @@ the address book, saved transporters or templates, use `fake-a-service`. If it
 is about letting research participants past errors, use `research-session`.
 
 If a request mixes several of these ("add a question and move the page"), do
-the first one, finish it, and list the rest for the designer to ask for next.
+each part in turn in this same run: pick the recipe for the first part, finish,
+check and show it, then the next. Never leave a part for the designer to ask
+for again (SKILL.md guard rails, CLAUDE.md rule 6). A list of notes, or four
+or more changes, goes to the `design-session` workflow instead.
 
 When the obligation model is involved (a new field, a branch, a list), also
 read `src/server/app/sets/high-risk-plants/docs/obligation-model.md` and the

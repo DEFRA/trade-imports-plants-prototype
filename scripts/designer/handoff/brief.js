@@ -54,13 +54,36 @@ const madeFrom = (report) => {
   return `Design release ${report.set}, made from ${steps.join(', then ')}.`
 }
 
+const upstreamLine = (report) => {
+  const check = report.upstreamApplyCheck
+  if (!check) {
+    return ' It was not checked against plants-frontend itself: the prototype had not fetched it (git fetch upstream).'
+  }
+  return check.ok
+    ? ` It also applies cleanly to plants-frontend's ${check.ref}, as last fetched.`
+    : ` It does not apply cleanly to plants-frontend's ${check.ref}, as last fetched: the real service has moved on since the prototype's last weekly update, so a developer will need to merge by hand.`
+}
+
 const applyLine = (report) => {
   if (report.applyCheck.empty) {
     return 'There is no patch: nothing in the real journey changes.'
   }
-  return report.applyCheck.ok
-    ? 'The patch applies cleanly to the real journey as it is in the prototype today.'
-    : 'The patch does not apply cleanly. The real journey has moved on in the same places, so a developer will need to merge by hand (see "Has the real journey moved on?").'
+  const where = report.applyCheck.ok
+    ? `The patch applies cleanly to the real journey as it is in the prototype (${report.applyRef === 'HEAD' ? 'this branch' : report.applyRef}).`
+    : 'The patch does not apply cleanly to the real journey in the prototype. The real journey has moved on in the same places, so a developer will need to merge by hand (see "Has the real journey moved on?").'
+  const services = report.cannotShip.services.length
+    ? ' Applying cleanly is not the same as working: the files that use prototype-only services, and every file that imports them, are left out (see "What was left out and why"), so the real team must build those parts before the whole change works.'
+    : ''
+  return `${where}${upstreamLine(report)}${services}`
+}
+
+const recipeLine = (report) => {
+  if (report.recipes.length) {
+    return `This change followed: ${report.recipes.join(', ')} (in the set's docs folder).`
+  }
+  return report.wordsOnly
+    ? 'Words only (change-the-words): every changed file is a copy file, so no recipe applies.'
+    : 'No recipe named. The change is to layout only, or the commit messages do not name one.'
 }
 
 /**
@@ -176,14 +199,32 @@ export const briefOutline = (report, meta) => {
     })
   }
 
+  const spec = report.specImpact ?? []
+  add('heading', {
+    text: 'Spec and requirement files that quote the old words'
+  })
+  add(
+    spec.length ? 'list' : 'para',
+    spec.length
+      ? {
+          items: spec.map(
+            (hit) => `{{${hit.file}}} line ${hit.line}: "${hit.text}"`
+          )
+        }
+      : {
+          text: 'None found. No requirement file under the real journey’s spec folder quotes the old words.'
+        }
+  )
+  if (spec.length) {
+    add('para', {
+      text: 'These requirement files still say the old words. Update them with the patch, or the journey spec and the pages will disagree.'
+    })
+  }
+
   addCannotShip(add, report)
 
   add('heading', { text: 'Recipe used' })
-  add('para', {
-    text: report.recipes.length
-      ? `This change followed: ${report.recipes.join(', ')} (in the set's docs folder).`
-      : 'No recipe named. The change is to words or layout only, or the commit messages do not name one.'
-  })
+  add('para', { text: recipeLine(report) })
 
   add('heading', { text: 'What was left out and why' })
   const leftOut = [

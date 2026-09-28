@@ -33,7 +33,7 @@ export const REPO_ROOT = path.resolve(
 const RESERVED_IDS = new Set(['auth', 'examples', 'health', 'public', 'reset'])
 
 const USAGE =
-  'Usage: npm run new:set -- <set-id> [--from <set-id>] [--describe "<one line for the chooser>"] [--purpose working|frozen|research]'
+  'Usage: npm run new:set -- <set-id> [--from <set-id>] [--describe "<one line for the chooser>"] [--title "<its name on the chooser>"] [--purpose working|frozen|research]'
 
 /** A refusal whose message is written for the person who ran the command. */
 export class ScaffoldRefused extends Error {}
@@ -96,7 +96,7 @@ const writeDocsPointer = (setDir, { setId, root }) => {
  * @returns {{ setId: string, from: string, skipped: Array<{ path: string, reason: string }>, release: object, records: string }}
  */
 export const scaffoldSet = (
-  { setId, from, describe, purpose },
+  { setId, from, describe, title, purpose },
   { repoRoot = REPO_ROOT, now = new Date() } = {}
 ) => {
   validate({ setId, from, purpose }, repoRoot)
@@ -110,7 +110,8 @@ export const scaffoldSet = (
 
   const { keep, skipped } = planCopy(template.setDir, {
     fromId: from,
-    routesFile: template.routesFile
+    routesFile: template.routesFile,
+    purpose
   })
   copySetFiles(template.setDir, target.setDir, keep, {
     fromId: from,
@@ -152,6 +153,7 @@ export const scaffoldSet = (
     purpose,
     frozen: purpose === 'frozen',
     description,
+    ...(title ? { title } : {}),
     uuidMap: rootUuidMap(uuidMap, templateRecord)
   }
   writeReleaseRecord(target.setDir, release)

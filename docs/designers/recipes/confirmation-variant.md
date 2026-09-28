@@ -107,12 +107,16 @@ example a submitted potato notification and a submitted plants notification.
 
 ## How to check it
 
-1. `npm run designer:check -- --set <release> --full`
-2. `npm run designer:check -- --set <release> --walk`. The walk ends on the
-   confirmation page for every example.
-3. `npm run designer:show -- --set <release> --pages confirmation`. Read the
-   screenshot. For a variant, check one example of each kind.
-4. Give the designer the link to each submitted example.
+1. For a change to the panel, the reference or the words:
+   `npm run designer:check -- --set <release> --full`. For a variant that
+   changes which confirmation a notification reaches, run
+   `npm run designer:check -- --set <release> --walk` instead (it includes
+   `--full`: never run both). The walk ends on the confirmation page for every
+   example.
+2. `npm run designer:show -- --set <release> --pages confirmation --before`.
+   Read the screenshot. For a variant, check one example of each kind. Leave
+   out `--errors`: the page has no form, so it has no error state.
+3. Give the designer the link to each submitted example.
 
 ## Hand-off notes
 

@@ -98,7 +98,21 @@ anywhere.
 
 ## Check it
 
-Walk the side trip in the running prototype, from each place it can start
-(the question on its own, from check your answers, from the task list), and
-say where each one lands. `designer:show` walks the example journey forwards
-only, so it will not show a return.
+`designer:show` walks the example journey forwards only: it cannot send the
+add form and follow where it lands. Check the return in three parts instead,
+and say which part a person still has to click through:
+
+1. **Read the wiring.** The add page's `POST` redirects to the page it came
+   from, with `?selected=<new id>` (and the search kept, when there is one),
+   and that page's `GET` reads `request.query.selected`. Name the lines.
+2. **Picture where the user lands.** Picture the page the redirect sends to,
+   as the redirect writes it:
+   `--url "notifications/{notification}/<page>?selected=<a starter id>"`.
+   The picture shows the row ticked and the inset "selected" line. Do the
+   same for each place the trip can start from: add `&change=1` for a trip
+   that started from check your answers, and `&q=<search>` when the search
+   is carried.
+3. **Ask for one click-through.** If the designer is there, ask them to try
+   it once in `npm run dev`. If not, say plainly: "The return was checked by
+   reading the code and picturing the page it lands on; nobody clicked
+   through it."

@@ -16,6 +16,11 @@ export const PLACEHOLDER_TEMPLATE = 'sample-journey'
  * carries its template's. */
 export const RELEASE_FILE = 'release.json'
 
+/** A research release's session plan and research-mode log. They name its
+ * own examples and relaxed rules, so a working copy made from it leaves them
+ * behind. */
+const RESEARCH_ONLY = new Set(['research-session.json', 'research-mode.md'])
+
 const IMPORT_SPECIFIER =
   /(?:^|[\s;])(?:import|export)\s(?:[^'"]*?\sfrom\s*)?['"]([^'"]+)['"]/g
 
@@ -64,9 +69,15 @@ export const reachableFrom = (entryFile) => {
  * copy it. Only a copy of the real journey (or of a release) is trimmed: the
  * placeholder template carries no tests and is copied whole.
  */
-const skipReasonFor = (relativePath, { trimmed, reachable, absolutePath }) => {
+const skipReasonFor = (
+  relativePath,
+  { trimmed, reachable, absolutePath, purpose }
+) => {
   if (relativePath === RELEASE_FILE) {
     return 'release record'
+  }
+  if (purpose !== 'research' && RESEARCH_ONLY.has(relativePath)) {
+    return 'research only'
   }
   if (!trimmed) {
     return null
@@ -98,7 +109,7 @@ const skipReasonFor = (relativePath, { trimmed, reachable, absolutePath }) => {
  *
  * @returns {{ keep: string[], skipped: Array<{ path: string, reason: string }> }}
  */
-export const planCopy = (sourceDir, { fromId, routesFile }) => {
+export const planCopy = (sourceDir, { fromId, routesFile, purpose }) => {
   const trimmed = fromId !== PLACEHOLDER_TEMPLATE
   const reachable = trimmed ? reachableFrom(routesFile) : new Set()
   const keep = []
@@ -107,7 +118,8 @@ export const planCopy = (sourceDir, { fromId, routesFile }) => {
     const reason = skipReasonFor(path, {
       trimmed,
       reachable,
-      absolutePath: resolve(sourceDir, path)
+      absolutePath: resolve(sourceDir, path),
+      purpose
     })
     if (reason) {
       skipped.push({ path, reason })

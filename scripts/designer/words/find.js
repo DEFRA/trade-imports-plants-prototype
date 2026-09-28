@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import {
@@ -18,7 +18,7 @@ import {
   toRepoPath,
   walkFiles
 } from './repo.js'
-import { pinnedHits, templateHits } from './scan-sources.js'
+import { commentHits, pinnedHits, templateHits } from './scan-sources.js'
 
 export const SHARED_FLAG = 'shared by every set: a real-service change'
 export const TEMPLATE_FLAG = 'should be copy'
@@ -41,11 +41,21 @@ export const pagesOfLeaf = (leaf, map) => {
 }
 
 /**
- * The name designer:show's --pages takes for a page id: its address inside a
- * notification (`consignors/select`), or the id itself for a page with no
- * address of its own (`dashboard`, `hub`).
+ * The one name every designer tool takes for the task list: designer:show's
+ * --pages, designer:examples' `?page=` and share-my-change's links.
+ */
+export const TASK_LIST = 'task-list'
+
+/**
+ * The one name every designer tool takes for a page: its address inside a
+ * notification (`consignors/select`), `task-list` for the task list, or the
+ * id itself for any other page with no address of its own (`dashboard`).
+ * designer:show's --pages and designer:examples' `?page=` both take it.
  */
 export const showNameOf = (pageId, map) => {
+  if (pageId === 'hub') {
+    return TASK_LIST
+  }
   for (const pages of map.featurePages.values()) {
     const page = pages.find((candidate) => candidate.id === pageId)
     if (page) {
@@ -54,6 +64,10 @@ export const showNameOf = (pageId, map) => {
   }
   return pageId
 }
+
+/** Error messages show only on their own page's error state, never on the
+ * pages that borrow the page's labels (check your answers). */
+const isErrorKey = (keyPath) => keyPath.split('.').includes('errors')
 
 const pagesOfFeature = (feature, map) => {
   const pages = map.featurePages.get(feature) ?? []
@@ -80,20 +94,22 @@ export const describeLeaf = (leaf, map) => {
     )
   }
   const pages = map ? pagesOfLeaf(leaf, map) : []
-  const alsoOn = map
-    ? (map.shownOn.get(leaf.feature) ?? []).flatMap((feature) =>
-        pagesOfFeature(feature, map)
-      )
-    : []
+  const alsoOn =
+    map && !isErrorKey(leaf.keyPath)
+      ? (map.shownOn.get(leaf.feature) ?? []).flatMap((feature) =>
+          pagesOfFeature(feature, map)
+        )
+      : []
+  const nameOf = (id) => (map ? showNameOf(id, map) : id)
   return {
     setId: leaf.setId,
     shared: leaf.shared,
     feature: leaf.feature,
     pages,
     alsoOn,
-    showPages: map
-      ? [...new Set([...pages, ...alsoOn].map((id) => showNameOf(id, map)))]
-      : [],
+    pageNames: pages.map(nameOf),
+    alsoOnNames: alsoOn.map(nameOf),
+    showPages: [...new Set([...pages, ...alsoOn].map(nameOf))],
     keyPath: leaf.keyPath,
     file: leaf.file,
     line: leaf.line,
@@ -129,6 +145,24 @@ const findInTemplates = (root, setIds, text) =>
       flags: shared ? [TEMPLATE_FLAG, SHARED_FLAG] : [TEMPLATE_FLAG]
     }))
   )
+
+/** Comments in the copy files that quote the words (English and Welsh). */
+const findInComments = (root, copyFiles, text) =>
+  copyFiles
+    .flatMap(({ setId, shared, enFile, cyFile }) =>
+      [enFile, cyFile]
+        .filter((file) => existsSync(file))
+        .map((file) => ({ setId, shared, file }))
+    )
+    .flatMap(({ setId, shared, file }) =>
+      commentHits(readFileSync(file, 'utf8'), text).map((hit) => ({
+        setId,
+        shared,
+        file: toRepoPath(root, file),
+        line: hit.line,
+        text: hit.text
+      }))
+    )
 
 const isPinningFile = (file) =>
   file.endsWith('.test.js') || file.endsWith('.spec.js')
@@ -180,6 +214,70 @@ const setsInScope = (root, setId) => {
   return [setId]
 }
 
+const PAGE_ALIASES = Object.freeze({
+  hub: TASK_LIST,
+  overview: TASK_LIST,
+  'check-answers': 'notification-view',
+  'check-your-answers': 'notification-view'
+})
+
+const allPageNames = (map) => [
+  ...new Set(
+    [...map.featurePages.values()]
+      .flat()
+      .map((page) => showNameOf(page.id, map))
+  ),
+  ...(map.featurePages.has('hub') ? [TASK_LIST] : [])
+]
+
+/**
+ * The page a designer means: its address (`consignors/select`), its id
+ * (`consignor-select`), `task-list` / `hub`, or `check-answers`. Null when the
+ * set has no such page.
+ */
+export const resolvePage = (name, map) => {
+  const wanted = String(name)
+    .trim()
+    .replace(/^\/+|\/+$/g, '')
+  const aliased = PAGE_ALIASES[wanted.toLowerCase()] ?? wanted
+  const names = allPageNames(map)
+  if (names.includes(aliased)) {
+    return aliased
+  }
+  const asId = showNameOf(aliased, map)
+  return names.includes(asId) ? asId : null
+}
+
+/**
+ * Every copy string one page shows: its own copy, its section caption and
+ * the labels it borrows from other pages. For finding words the designer
+ * names by where they sit ("the hint on origin") rather than by quoting them.
+ *
+ * @param {{ root: string, page: string, setId: string }} options
+ */
+export const pageWords = async ({ root, page, setId }) => {
+  const [id] = setsInScope(root, setId)
+  const map = await pageMap(root, id)
+  const name = resolvePage(page, map)
+  if (!name) {
+    throw new Error(
+      `There is no page called '${page}' in ${id}. Its pages are: ${allPageNames(map).join(', ')}.`
+    )
+  }
+  const leaves = (
+    await Promise.all(
+      setCopyFiles(root, id).map((copyFile) => loadLeaves(root, copyFile))
+    )
+  ).flat()
+  const copy = leaves
+    .map((leaf) => describeLeaf(leaf, map))
+    .filter(
+      (entry) =>
+        entry.pageNames.includes(name) || entry.alsoOnNames.includes(name)
+    )
+  return { page: name, sets: [setInfo(root, id)], copy }
+}
+
 /**
  * Every place some words live: copy leaves in each set in scope and in the
  * shared chrome, words written straight into templates, and (when the real
@@ -212,6 +310,7 @@ export const findWords = async ({ root, text, setId }) => {
     sets: setIds.map((id) => setInfo(root, id)),
     copy,
     templates: findInTemplates(root, setIds, text),
+    comments: findInComments(root, copyFiles, text),
     pinned
   }
 }

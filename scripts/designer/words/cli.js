@@ -3,8 +3,8 @@ import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 
 import { parseWordsArgs } from './args.js'
-import { findWords } from './find.js'
-import { formatFind } from './format.js'
+import { findWords, pageWords } from './find.js'
+import { formatFind, formatPage } from './format.js'
 import { REPO_ROOT } from './repo.js'
 import { writeReport } from './report.js'
 
@@ -22,6 +22,19 @@ export const runWords = async (argv, root = REPO_ROOT) => {
     return { output: parsed.error, code: 1 }
   }
   try {
+    if (parsed.command === 'page') {
+      const result = await pageWords({
+        root,
+        page: parsed.page,
+        setId: parsed.setId
+      })
+      return {
+        output: parsed.json
+          ? JSON.stringify(result, null, 2)
+          : formatPage(result),
+        code: 0
+      }
+    }
     if (parsed.command === 'find') {
       const result = await findWords({
         root,

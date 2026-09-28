@@ -30,9 +30,16 @@ seed refuses it too, and says why.
 
 3. **Change single answers with `answers`, not a new fixture.** Only add a
    named fixture (`src/server/prototype-seed/fixtures/<set-id>/<file>.json`)
-   when several examples share the same changes. Never edit a set's
-   `happy-path.json` for an example: in `high-risk-plants` it belongs to the
-   real service.
+   when several examples share the same changes. In `high-risk-plants`, never
+   edit `happy-path.json`: it belongs to the real service. In a design
+   release, edit its `happy-path.json` only when a recipe says so (a new
+   required question, or add-a-branch's second scenario), never just to make
+   one example.
+
+   A string written 3 or more times in a scenarios file (a page address used
+   as `through` by three tasks, say) breaks `sonarjs/no-duplicate-string`.
+   Name it once as a `const` at the top of the file and use the name.
+
 4. **Keep slugs stable.** A slug is the example's link
    (`/examples/<set-id>/<slug>`). Once someone may have shared it, never
    rename it. Add a new example instead.

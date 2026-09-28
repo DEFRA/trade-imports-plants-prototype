@@ -175,6 +175,44 @@ describe('#designerRecords list', () => {
   })
 })
 
+describe('#designerRecords derived columns', () => {
+  const answersOf = async (_records, journeyId) =>
+    journeyId === 'GBN-4'
+      ? {
+          commodityType: 'wood-and-cut-trees',
+          arrivalDate: { day: 3, month: 10, year: 2026 }
+        }
+      : {}
+
+  it('Should fill Commodity and Arrival from the answers where the row has none', async () => {
+    const { wrapped } = wrap({ answersOf })
+
+    const listed = await wrapped.list({ page: 2 })
+
+    expect(listed.rows.find((row) => row.journeyId === 'GBN-4')).toMatchObject({
+      commodity: { name: 'Wood and cut trees' },
+      arrivalDate: '2026-10-03'
+    })
+  })
+
+  it('Should never change a column the row already has', async () => {
+    const { wrapped } = wrap({ answersOf })
+
+    const listed = await wrapped.list({ page: 1 })
+
+    expect(listed.rows[0].commodity).toEqual({ name: ROSA })
+  })
+
+  it('Should let the commodity and date filters match the filled columns', async () => {
+    const { wrapped } = wrap({ answersOf })
+
+    expect(await allIds(wrapped, { commodity: 'wood' })).toEqual(['GBN-4'])
+    expect(
+      await allIds(wrapped, { dateFrom: '2026-10-02', dateTo: '2026-10-04' })
+    ).toEqual(['GBN-4'])
+  })
+})
+
 describe('#designerRecords counts', () => {
   it('Should count by status, late and tab', async () => {
     const { wrapped } = wrap()

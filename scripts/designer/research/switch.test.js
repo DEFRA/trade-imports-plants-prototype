@@ -182,7 +182,12 @@ describe('turnOff', () => {
     expect(read(`${SET_DIR}/${CONTROLLER}`)).toBe(STRICT)
     const log = path.join(repoRoot, SET_DIR, 'research-mode.md')
     expect(existsSync(log)).toBe(false)
-    expect(result.lines.join('\n')).toContain('Leave the arrival date blank')
+    expect(result.lines.join('\n')).toContain(
+      'checks answers as the real service does again:\n  - arrival-details: Asks for the arrival date'
+    )
+    expect(result.lines.join('\n')).not.toContain(
+      'Leave the arrival date blank'
+    )
   })
 
   it('Should allow research mode on again after it was turned off', () => {

@@ -228,8 +228,11 @@ describe('design-session', () => {
     const save = calls.find((call) => call.opts.label === 'save 1').prompt
     expect(save).toContain('Run: git restore --staged -- .')
     expect(save).toContain(`Run: git add -A -- ${FILES[1].join(' ')}`)
-    expect(save).toContain('Run: git commit -m "<first line>" -m "<body>"\n')
-    expect(save).not.toMatch(/git commit [^\n]* -- /)
+    expect(save).toContain(
+      'Run: npm run designer:save -- -m "<first line>" -m "<body>"\n'
+    )
+    expect(save).not.toMatch(/designer:save [^\n]* -- \S+\.js/)
+    expect(save).not.toContain('git commit')
   })
 
   it('starts a release that does not exist yet, then carries on', async () => {

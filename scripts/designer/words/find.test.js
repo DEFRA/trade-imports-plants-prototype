@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { SHARED_FLAG, TEMPLATE_FLAG, findWords } from './find.js'
+import { SHARED_FLAG, TEMPLATE_FLAG, findWords, pageWords } from './find.js'
 import { makeFixtureTree } from './fixture-tree.js'
-import { formatFind } from './format.js'
+import { formatFind, formatPage } from './format.js'
 
 const RELEASE_LINEAR = 'src/server/app/sets/plants-working/journeys/linear'
 const REAL_HUB = 'src/server/app/sets/high-risk-plants/journeys/linear'
@@ -85,6 +85,35 @@ describe('findWords — copy in a design release', () => {
       alsoOn: ['notification-view'],
       welsh: 'same-as-english'
     })
+  })
+
+  it('Should leave error messages off the pages that borrow the labels', async () => {
+    const result = await inRelease('Consignor or exporter')
+    const error = result.copy.find(
+      (entry) => entry.keyPath === 'errors.consignor'
+    )
+    expect(error.alsoOn).toEqual([])
+  })
+
+  it('Should give each page the one name every designer tool takes', async () => {
+    const result = await inRelease('Consignment parties')
+    const namesOf = (feature) =>
+      result.copy.find((entry) => entry.feature === feature).pageNames
+    expect(namesOf('section-captions')).toEqual(['consignors/select'])
+    expect(namesOf('hub')).toEqual(['task-list'])
+  })
+
+  it('Should find a comment that quotes the words across a line break', async () => {
+    const result = await inRelease('Consignment parties')
+    expect(result.comments).toEqual([
+      {
+        setId: 'plants-working',
+        shared: false,
+        file: `${RELEASE_LINEAR}/features/hub/copy/copy.en.js`,
+        line: 7,
+        text: "AWAITING THE COPY PASS: 'Consignment parties' is a new task list group."
+      }
+    ])
   })
 
   it('Should find the Welsh too', async () => {
@@ -181,6 +210,42 @@ describe('findWords — the real journey', () => {
   })
 })
 
+describe('pageWords', () => {
+  const onPage = (page) =>
+    pageWords({ root: tree.root, page, setId: 'plants-working' })
+
+  it('Should list every string a page shows, with its caption', async () => {
+    const result = await onPage('consignor-select')
+    expect(result.page).toBe('consignors/select')
+    expect(result.copy.map(homeOf).sort()).toEqual([
+      'consignor-select:errors.consignor',
+      'consignor-select:title',
+      'section-captions:sections.consignmentParties'
+    ])
+  })
+
+  it('Should take the page address, the task list and check your answers by any name', async () => {
+    expect((await onPage('consignors/select')).page).toBe('consignors/select')
+    expect((await onPage('hub')).page).toBe('task-list')
+    expect((await onPage('check-answers')).page).toBe('notification-view')
+  })
+
+  it('Should list the labels check your answers borrows, but not their errors', async () => {
+    const result = await onPage('notification-view')
+    expect(result.copy.map(homeOf)).toContain('consignor-select:title')
+    expect(result.copy.map(homeOf)).not.toContain(
+      'consignor-select:errors.consignor'
+    )
+    expect(formatPage(result)).toContain('Words it borrows from other pages')
+  })
+
+  it('Should name the pages when there is no such page', async () => {
+    await expect(onPage('origin')).rejects.toThrow(
+      "There is no page called 'origin' in plants-working"
+    )
+  })
+})
+
 describe('formatFind', () => {
   it('Should tell a designer where the words live in plain English', async () => {
     const text = formatFind(await find('Consignment parties'))
@@ -190,8 +255,22 @@ describe('formatFind', () => {
     )
     expect(text).toContain('plants-working (yours)')
     expect(text).toContain('Welsh:   [Welsh needed] Consignment parties')
-    expect(text).toContain('Shown on: consignor-select')
+    expect(text).toContain('Shown on: consignors/select')
+    expect(text).toContain('Shown on: task-list')
     expect(text).toContain('Tests and specs that pin these words')
+  })
+
+  it('Should print the Welsh marker once', async () => {
+    const text = formatFind(await inRelease('Consignment parties'))
+    expect(text).toContain(
+      'Welsh:   [Welsh needed] Consignment parties (waiting for a translator)'
+    )
+    expect(text).not.toContain('[[Welsh needed]]')
+  })
+
+  it('Should list comments that quote the words', async () => {
+    const text = formatFind(await inRelease('Consignment parties'))
+    expect(text).toContain('Comments that quote these words')
   })
 
   it('Should say so when nothing matched', async () => {

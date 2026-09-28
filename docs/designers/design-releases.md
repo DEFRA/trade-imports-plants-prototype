@@ -70,8 +70,10 @@ Say "start a new design release" (or "make a working copy of the journey",
 call it, then:
 
 1. makes it with
-   `npm run new:set -- <release-id> --from high-risk-plants --describe "<one line>" --purpose working`
-   (`research` or `frozen` in place of `working` when that is its purpose)
+   `npm run new:set -- <release-id> --from high-risk-plants --title "<its name>" --describe "<one line>" --purpose working`
+   (`research` in place of `working` for a research release). The title is
+   its name on the chooser, in your words ("Design release 2"); without one
+   the chooser names it from its id ("Plants dr2").
 2. tidies the files with `npm run designer:format`
 3. checks it with `npm run designer:check -- --set <release-id> --full`
 4. takes screenshots of every page and the chooser with
@@ -106,11 +108,14 @@ npm run designer:release -- freeze plants-dr2 --as plants-dr2-1
 This marks `plants-dr2` as frozen and makes `plants-dr2-1`, a working
 release copied from it, for you to carry on in. Without `--as`, the new
 release is called `plants-dr2-working`. Add `--describe "<one line>"` to give
-the working copy its line on the chooser.
+the working copy its line on the chooser, and `--frozen-describe "<one line>"`
+to change the frozen release's own line (your last chance to change it).
+`--title` and `--frozen-title` name them the same way.
 
 Want a change in the frozen release too ("freeze DR2 with last week's change
-in it")? Say so in the same breath: the change is copied in first, then the
-release is frozen. Nothing can be added once it is frozen.
+in it", or "freeze DR2, then carry last week's change into it as well")? Say
+so in the same breath: however you order it, the change is copied in first,
+then the release is frozen. Nothing can be added once it is frozen.
 
 Nobody changes a frozen release after that. Claude Code refuses to edit one
 and offers you the working copy instead, and the checks and the pre-commit
@@ -126,7 +131,10 @@ npm run designer:release -- carry --from plants-working --to plants-dr2 --commit
 ```
 
 or `--working` in place of `--commit <commit id>` for a change you have not
-saved yet. It changes the release name inside the change to match the
+saved yet. To find the commit, Claude Code runs
+`npm run designer:release -- changes plants-working`, which lists the
+release's saved changes on every branch with their dates, and says which one
+it picked when two share a message. It changes the release name inside the change to match the
 target, then applies it. A saved change can come from a release on another
 branch ("last week's release"): the carry reads that release from the commit,
 so the other branch does not need merging first.

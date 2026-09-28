@@ -8,8 +8,8 @@ const valueAfter = (args, flag) => {
 
 /**
  * `npm run new:set -- <set-id> [--from <set-id>] [--describe "<text>"]
- * [--purpose working|frozen|research]`, parsed. No filesystem, no process —
- * just argv in, options out.
+ * [--title "<name>"] [--purpose working|frozen|research]`, parsed. No
+ * filesystem, no process — just argv in, options out.
  */
 export const parseArgs = (argv) => {
   const [setId, ...rest] = argv
@@ -17,6 +17,7 @@ export const parseArgs = (argv) => {
     setId,
     from: valueAfter(rest, '--from') ?? DEFAULT_TEMPLATE,
     describe: valueAfter(rest, '--describe'),
+    title: valueAfter(rest, '--title'),
     purpose: valueAfter(rest, '--purpose') ?? DEFAULT_PURPOSE
   }
 }

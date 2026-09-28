@@ -85,14 +85,17 @@ const taskRows = ({ setId, tasks, localUrl, deployedUrl }) =>
     )
     .join('')
 
+const lowerFirst = (text) =>
+  text ? `${text.charAt(0).toLowerCase()}${text.slice(1)}` : text
+
 const researchModeSection = (research) =>
   research.rules.length > 0
     ? `<h2>Errors switched off (research mode on)</h2>
-    <p>Participants will not see these errors. The real service shows them.</p>
+    <p>On these pages participants are let through where the real service would stop them with an error.</p>
     <ul>${research.rules
       .map(
         (rule) =>
-          `<li><strong>${escapeHtml(rule.page)}</strong>: ${escapeHtml(rule.now)}</li>`
+          `<li><strong>${escapeHtml(rule.page)}</strong>: participants can ${escapeHtml(lowerFirst(rule.now))}${rule.real ? ` (the real service: ${escapeHtml(lowerFirst(rule.real))})` : ''}</li>`
       )
       .join('')}</ul>`
     : `<h2>Errors</h2>

@@ -80,6 +80,10 @@ Talk to the designer in GDS plain English. Say "your research release", not
    `example-data` skill to add an example **stopped at the task's starting
    page**, with a short example id (for example `arrival-task`). The example
    fills in every earlier page, so the participant starts exactly there.
+   Three or more tasks that start on the same page repeat its address as
+   `through`, which the code rules refuse (`sonarjs/no-duplicate-string`):
+   name it once as a `const` at the top of the scenarios file, as
+   `example-data` step 3 shows.
 3. Check every example reaches its page, then print the links:
 
    ```
@@ -161,7 +165,11 @@ Add `--deployed-url <address>` if the address is not in the session file. It
 writes `.cache/designer/research/<set-id>/sheet.html`: the local and deployed
 links for each task, how to sign in, the errors switched off, how to Reset, and
 a checklist. Read the file and tell the designer what is on it. Give them the
-path so they can open or print it.
+path so they can open or print it. Say plainly that the sheet is only on this
+computer: `.cache/` is never saved in git, so it is not in a pull request and
+a clean checkout loses it. Run the same command again for a fresh copy, or
+print it or attach the file to share it. The session plan it is made from
+(`research-session.json`) is saved with the release.
 
 ### 5. Remind the designer before the session
 
@@ -196,14 +204,24 @@ Say both of these, every time:
    page, what to change, why (the finding), and the skill that makes it
    (`change-the-words`, `change-the-journey`, `match-the-design`,
    `example-data`, `fake-a-service`). Offer to start with the first row.
-3. **Where a change after the round goes.** Any change asked for after the
-   sessions (a wording change, a moved page) goes in a working release: the
-   one this research release was made from (`from` in its `release.json`), or
-   a new one made from this research release with `design-release`
-   section B (`--from <set-id> --purpose working`). The research release stays
-   exactly as participants saw it, as the record of the round. Change the
-   research release itself only for a change meant for the sessions ("fix
-   the typo on task 2 before Thursday").
+3. **Where a change after the round goes.** This is the one rule;
+   `change-the-words`, `change-the-journey` and `match-the-design` all follow
+   it. Any change asked for after the sessions (a wording change, a moved
+   page) goes in a working release, picked in this order:
+   1. the release this research release was made from (`from` in its
+      `release.json`), when that is a working release that is not frozen;
+   2. otherwise, a new working release made from this research release, so
+      it starts from what participants saw: `design-release` section B with
+      `--from <set-id> --purpose working` and the id `<set-id>-next` (or the
+      name the designer gives).
+
+   Before acting, tell the designer in one line where the change will land,
+   and that option 2 makes a full copy of the release (about 150 files, saved
+   as its own commit). Then carry on without waiting. The research release
+   stays exactly as participants saw it, as the record of the round. Change
+   the research release itself only when the designer says so ("change it in
+   the research release", "fix the typo on task 2 before Thursday"): their
+   words are the yes.
 
 ## Verify
 

@@ -127,6 +127,15 @@ For each item under "What went wrong", in order:
    exactly that. Explain that it still has to be fixed before anything can be
    saved, and that the maintainer fixes it. Do not repair it.
 
+**A save that failed.** `npm run designer:save` prints "Nothing was saved"
+and the last 60 lines of `.cache/designer/commit.log`: the pre-commit hook's
+own output (`format:check`, `lint`, `npm test`). Read those lines the same
+way. The quickest route to a plain explanation is to run
+`npm run designer:check -- --set <release> --full`, which runs the same
+checks and translates each failure. A failing test under `scripts/` or
+`src/server/prototype-*` is not caused by a design change: it is the
+maintainer's, as above.
+
 When the designer pastes an error and asks "what does this error mean", find
 the matching heading in `docs/designers/checks-and-errors.md` and explain it
 the same way. If none matches, say what the first error line means in plain

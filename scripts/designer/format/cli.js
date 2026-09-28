@@ -5,12 +5,13 @@
  * which floods a designer's terminal and an agent's context.
  */
 import { spawnSync } from 'node:child_process'
+import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { REPO_ROOT } from '../lib/repo.js'
 
-const PRETTIER = 'node_modules/prettier/bin/prettier.cjs'
+const PRETTIER = path.join(REPO_ROOT, 'node_modules/prettier/bin/prettier.cjs')
 
 /** The same globs as the `format` script in package.json. */
 export const GLOBS = Object.freeze([
@@ -18,13 +19,15 @@ export const GLOBS = Object.freeze([
   '**/*.{js,cjs,md,json,config.js,test.js}'
 ])
 
-/** The Prettier arguments: write, list only the files it changed. */
+/**
+ * The Prettier arguments: write, list only the files it changed. No
+ * `--log-level warn`: Prettier prints the changed files at its normal log
+ * level, so a quieter level hid them and every run said "already tidy".
+ */
 export const prettierArgs = () => [
   PRETTIER,
   '--write',
   '--list-different',
-  '--log-level',
-  'warn',
   ...GLOBS
 ]
 
@@ -43,17 +46,31 @@ export const summarise = (stdout) => {
   ]
 }
 
-export const main = ({ root = REPO_ROOT } = {}) => {
+/**
+ * Tidies every file under `root` and says which ones it changed.
+ *
+ * @returns {{ status: number, lines: string[], stderr: string }}
+ */
+export const tidyAll = ({ root = REPO_ROOT } = {}) => {
   const result = spawnSync(process.execPath, prettierArgs(), {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024
   })
-  if (result.stderr) {
-    process.stderr.write(result.stderr)
+  return {
+    status: result.status ?? 1,
+    lines: summarise(result.stdout),
+    stderr: result.stderr ?? ''
   }
-  console.log(summarise(result.stdout).join('\n'))
-  return result.status ?? 1
+}
+
+export const main = ({ root = REPO_ROOT } = {}) => {
+  const { status, lines, stderr } = tidyAll({ root })
+  if (stderr) {
+    process.stderr.write(stderr)
+  }
+  console.log(lines.join('\n'))
+  return status
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

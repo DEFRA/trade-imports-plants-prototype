@@ -14,7 +14,9 @@ honestly how close the result is.
 
 - **The old page**, one of:
   - a Kit view file: a path to the `.html` file, or the HTML pasted into the
-    chat. Save pasted HTML to
+    chat. For a file in the old prototype's clone, copy it (and its
+    partials) with `npm run designer:kit -- copy <page> --release <release-id> --slug <new-slug>`.
+    Save HTML pasted into the chat to
     `.cache/designer/port/<release-id>/<new-slug>/source.html` first.
   - a web address of the page on the old prototype (it may need a password,
     in which case ask for the `.html` file or a screenshot instead)
@@ -53,7 +55,11 @@ obvious choice and say what you chose at the end.
 - No test files in a release: skip every recipe step that creates a
   `*.test.js` or `*.fit.spec.js` file.
 - Every visible string goes in copy, word for word. Welsh gets
-  `'[Welsh needed] <English>'`.
+  `'[Welsh needed] <English>'`. The old prototype also covers live animals:
+  flag any words that name another commodity (animal welfare, livestock,
+  journey logs) or link to an animal-only page, as
+  `references/find-the-old-page.md` step 4 says, and ask the designer one
+  question about them in the report.
 - One old page per run. A list page that needs its "add a new one" page and
   a card on check your answers counts as one port: build all of it in this
   run, as `fake-a-service`'s worked example 1 does. One Bash command per
@@ -152,13 +158,26 @@ away).
 ### 5. Show it beside the original
 
 ```bash
-npm run designer:show -- --set <release-id> --pages <slug>,notification-view --reference <slug>=<picture of the old page> --errors --mobile
+npm run designer:show -- --set <release-id> --pages <slug>,notification-view --reference <slug>=<picture of the old page> --errors --mobile --before
 ```
 
 Leave out `--reference` when there is no picture of the old page. For a list
 page, add its add form and the page after adding:
-`--url "notifications/{notification}/<slug>/add"`. Open the new screenshots
-and look at them, including the phone width one: a wide table wraps badly.
+`--url "notifications/{notification}/<slug>/add"`. `--before` gives check your
+answers a before picture; the new page itself did not exist before, and the
+gallery says so ("this page did not exist before the change") rather than
+picturing an error page. Open the new screenshots and look at them,
+including the phone width one: a table wider than four columns runs off the
+edge (`fake-a-service`'s worked example 1, step 4, shows how to fold extra
+columns into one cell).
+
+The add-then-back side trip (add a new one, land back on the list with it
+ticked) is a form sent and a page followed, which `designer:show` cannot
+drive. Check it is wired by reading the add page's `POST` handler (it
+redirects to the list with `?selected=`), and picture the list with that
+address: `--url "notifications/{notification}/<slug>?selected=<a starter id>"`
+shows what the user lands on. Say that the round trip itself was not clicked
+through.
 
 ### 6. Grade the fidelity
 

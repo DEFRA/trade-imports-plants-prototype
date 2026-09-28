@@ -2,7 +2,9 @@
  * A throwaway git repo holding just the files design releases read and
  * write, for the `designer:release` tests: the real high-risk-plants set and
  * its gateway, the placeholder set, the prototype-sets mount, the chooser
- * descriptions and overrides.json. Used only by tests.
+ * descriptions and overrides.json, with every design release of the copied
+ * checkout taken out so the tests never depend on which releases exist. Used
+ * only by tests.
  */
 import {
   cpSync,
@@ -14,6 +16,7 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { git } from './git.js'
+import { remountReleases } from './remount.js'
 import { REPO_ROOT } from './sets.js'
 
 const COPIED_FROM_REPO = [
@@ -43,15 +46,18 @@ export const commitAll = (repoRoot, message) => {
   return git(repoRoot, ['rev-parse', 'HEAD']).trim()
 }
 
-export const makeTestRepo = () => {
+/**
+ * @param {{ from?: string }} [options] the checkout to copy from: the real
+ * repo unless a test needs a checkout that already holds a release.
+ */
+export const makeTestRepo = ({ from = REPO_ROOT } = {}) => {
   const repoRoot = mkdtempSync(path.join(tmpdir(), 'design-release-'))
   for (const relativePath of COPIED_FROM_REPO) {
-    cpSync(
-      path.join(REPO_ROOT, relativePath),
-      path.join(repoRoot, relativePath),
-      { recursive: true }
-    )
+    cpSync(path.join(from, relativePath), path.join(repoRoot, relativePath), {
+      recursive: true
+    })
   }
+  remountReleases({ repoRoot })
   git(repoRoot, ['init', '-q', '-b', 'main'])
   git(repoRoot, ['config', 'gc.auto', '0'])
   git(repoRoot, ['config', 'maintenance.auto', 'false'])

@@ -7,6 +7,7 @@ import {
   literalsIn,
   parseDesignGaps,
   parseResearchRules,
+  relativeImportsOf,
   removedLiterals
 } from './impact.js'
 
@@ -132,9 +133,55 @@ describe('findWelshMarkers', () => {
     expect(findWelshMarkers('copy.cy.js', source)).toEqual([
       {
         file: 'copy.cy.js',
+        key: 'hint',
         line: 3,
         english: 'Use the 24-hour clock, for example 14:30.'
       }
+    ])
+  })
+
+  it('Should give the words of a string nested in an object, never code', () => {
+    const source = [
+      'export const copy = {',
+      '  types: [',
+      "    { value: 'private', text: '[Welsh needed] Private transporter' },",
+      "    { value: 'org', text: '[Welsh needed] Enter a name or organisation name' }",
+      '  ],',
+      '  hint:',
+      "    '[Welsh needed] A long hint the formatter put on its own line'",
+      '}'
+    ].join('\n')
+
+    expect(
+      findWelshMarkers('copy.cy.js', source).map((marker) => [
+        marker.key,
+        marker.line,
+        marker.english
+      ])
+    ).toEqual([
+      ['types[0].text', 3, 'Private transporter'],
+      ['types[1].text', 4, 'Enter a name or organisation name'],
+      ['hint', 7, 'A long hint the formatter put on its own line']
+    ])
+  })
+})
+
+describe('relativeImportsOf', () => {
+  it('Should resolve relative imports against the file’s folder', () => {
+    const source = [
+      "import { render } from '../transporter-picker/render.js'",
+      "import { kit } from '../../../../shared/kit.js'",
+      "import govuk from 'govuk-frontend'"
+    ].join('\n')
+
+    expect(
+      relativeImportsOf(
+        'src/server/app/sets/x/features/add/controller.js',
+        source
+      )
+    ).toEqual([
+      'src/server/app/sets/x/features/transporter-picker/render.js',
+      'src/server/app/shared/kit.js'
     ])
   })
 })

@@ -112,6 +112,29 @@ Write `fixture` in the short form, `fixture: 'warePotatoes'`, never
 repeated on five examples breaks a code rule (`sonarjs/no-duplicate-string`)
 and the save is refused. `init` writes the short form.
 
+The same rule counts every string of 10 or more characters written 3 or
+more times in the scenarios file: a page address (`'arrival-details'` as the
+`through` of three research tasks), an answers key, or a label. When a string
+would appear a third time, name it once at the top of the file and use the
+name:
+
+```js
+const ARRIVAL_DETAILS = 'arrival-details'
+
+export const examples = [
+  {
+    label: 'Task 1: potatoes, at arrival details',
+    slug: 'arrival-task-1',
+    fixture: 'warePotatoes',
+    through: ARRIVAL_DETAILS
+  },
+  ...
+]
+```
+
+Check for this before running `designer:check`: `grep -c "'<the string>'"`
+on the file prints how many times it is there.
+
 - Page addresses are the `slug` values in the set's
   `journeys/linear/flow/fixtures/happy-path.json`, for example `origin`,
   `arrival-details`, `commodities/details`. Only pages the fixture visits can

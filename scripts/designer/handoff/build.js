@@ -42,6 +42,7 @@ import {
   isTestFile,
   parseDesignGaps,
   parseResearchRules,
+  relativeImportsOf,
   removedLiterals
 } from './impact.js'
 import { copyChanges, isCopyFile, isWelshCopyFile } from './copy-table.js'
@@ -50,6 +51,8 @@ export const REAL_JOURNEY = 'high-risk-plants'
 export const PLACEHOLDER = 'sample-journey'
 export const SETS_DIR = 'src/server/app/sets'
 const MAX_CHAIN = 10
+/** The real service's main branch, once `git fetch upstream` has run. */
+const UPSTREAM_MAIN = 'upstream/main'
 const UUID_GREP = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 /** The recipe names a commit message or the designer may mention. */
@@ -449,7 +452,7 @@ const testFilesOnDisk = (root) =>
       .map((file) => [file, readIfExists(root, file) ?? ''])
   )
 
-const testImpactOf = (root, changes) => {
+const oldStringsOf = (changes) => {
   const oldStrings = new Set()
   for (const change of changes) {
     if (!isTestFile(change.path) && change.before !== null) {
@@ -458,7 +461,60 @@ const testImpactOf = (root, changes) => {
       }).forEach((text) => oldStrings.add(text))
     }
   }
-  return findPinnedStrings([...oldStrings], testFilesOnDisk(root))
+  return [...oldStrings]
+}
+
+const testImpactOf = (root, changes) =>
+  findPinnedStrings(oldStringsOf(changes), testFilesOnDisk(root))
+
+/** The real journey's requirement files (`spec/`): the journey spec, the
+ * decisions, the panel rulings and the backlog extras. */
+const specFilesOnDisk = (root) =>
+  Object.fromEntries(
+    walk(path.join(root, setDirOf(REAL_JOURNEY), 'spec')).map((relative) => {
+      const file = `${setDirOf(REAL_JOURNEY)}/spec/${relative}`
+      return [file, readIfExists(root, file) ?? '']
+    })
+  )
+
+/**
+ * Lines of the real journey's requirement files that still quote the old
+ * words: the real team updates them with the patch, or the spec and the page
+ * disagree.
+ */
+const specImpactOf = (root, changes) =>
+  findPinnedStrings(oldStringsOf(changes), specFilesOnDisk(root))
+
+/**
+ * Takes out of `shippable` every file that imports a left-out file, and every
+ * file that imports one of those, and so on: shipped alone they would point
+ * at a module the real service does not have, and it would not start.
+ *
+ * @returns {Map<string, string>} each file moved, with the left-out file it
+ * imports.
+ */
+const leaveOutDependents = (shippable, needsService) => {
+  const leftOut = new Set(needsService.map((change) => change.path))
+  const dependents = new Map()
+  let moved = true
+  while (moved) {
+    moved = false
+    for (const change of [...shippable]) {
+      const hit = change.after
+        ? relativeImportsOf(change.path, change.after).find((file) =>
+            leftOut.has(file)
+          )
+        : undefined
+      if (hit) {
+        shippable.splice(shippable.indexOf(change), 1)
+        needsService.push(change)
+        leftOut.add(change.path)
+        dependents.set(change.path, hit)
+        moved = true
+      }
+    }
+  }
+  return dependents
 }
 
 /**
@@ -546,6 +602,7 @@ export const buildHandoff = (options) => {
       shippable.push(change)
     }
   }
+  const dependents = leaveOutDependents(shippable, needsService)
 
   const patch = buildPatch(shippable)
   const applyRef = realMode ? baseRef : 'HEAD'
@@ -553,6 +610,16 @@ export const buildHandoff = (options) => {
     patch,
     checkTargetFiles(root, shippable, applyRef)
   )
+  const upstreamRef = resolveCommit(root, UPSTREAM_MAIN)
+  const upstreamApplyCheck = upstreamRef
+    ? {
+        ref: UPSTREAM_MAIN,
+        ...checkPatchApplies(
+          patch,
+          checkTargetFiles(root, shippable, upstreamRef)
+        )
+      }
+    : null
   const gapsSet = realMode ? options.gapsFrom : set
   const patchPaths = new Set(shippable.map((change) => change.path))
 
@@ -583,17 +650,23 @@ export const buildHandoff = (options) => {
       })),
       ...needsService.map((change) => ({
         path: change.releasePath,
-        reason:
-          'Uses a service that only exists in the prototype. The real team needs to build or connect a real one first.'
+        reason: dependents.has(change.path)
+          ? `Imports ${dependents.get(change.path)}, which is left out because it uses a service that only exists in the prototype. Shipped without it, the real service would not start.`
+          : 'Uses a service that only exists in the prototype. The real team needs to build or connect a real one first.'
       }))
     ],
     pages: groupPages(root, set, shippable),
     patch,
     applyCheck,
+    upstreamApplyCheck,
+    wordsOnly:
+      shippable.length > 0 &&
+      shippable.every((change) => isCopyFile(change.path)),
     drift: realMode
       ? { ref: null, overlapping: [], elsewhere: [] }
       : driftOf(root, hops, patchPaths, baseRef),
     testImpact: testImpactOf(root, shippable),
+    specImpact: specImpactOf(root, shippable),
     cannotShip: {
       services,
       welshNeeded: shippable

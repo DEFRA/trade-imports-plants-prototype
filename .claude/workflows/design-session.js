@@ -310,8 +310,8 @@ const startRelease = () =>
       `1. Run: npm run new:set -- ${config.set} --from high-risk-plants --purpose working --describe "Working release for a design session"`,
       '2. Run: npm run designer:format',
       '3. Run: git add -A',
-      `4. Run: git commit -m "Start design release ${config.set}" -m "Copied from high-risk-plants for a design session."`,
-      '   The pre-commit hook runs the full check. Never add --no-verify.',
+      `4. Run: npm run designer:save -- -m "Start design release ${config.set} from high-risk-plants" -m "Copied from high-risk-plants for a design session."`,
+      '   The pre-commit hook runs the full check; its output goes to .cache/designer/commit.log and the command prints one line, or the end of the log when the save failed. Never add --no-verify.',
       'done is true when the commit went through. Otherwise done is false and reason is the plain reason the command or the hook gave.',
       'new:set also adds lines to overrides.json and src/server/prototype-sets/: that is expected here, and the only change outside the release this step may make. Never edit files by hand in this step.',
       GUARD_RAILS
@@ -464,8 +464,8 @@ const commit = (group) =>
       '   It must list exactly the files above. If it lists any other file, change nothing more and return committed false naming it.',
       '5. Run: git diff --cached',
       '   Write the message from that change, never from the request text alone.',
-      '6. Run: git commit -m "<first line>" -m "<body>"',
-      "   The pre-commit hook runs the full check. Never add --no-verify. If the commit fails, change nothing and return committed false with the hook's plain reason.",
+      '6. Run: npm run designer:save -- -m "<first line>" -m "<body>"',
+      '   The pre-commit hook runs the full check. It prints one line when the save worked, or "Nothing was saved" and the end of the log. Never add --no-verify. If the save fails, change nothing and return committed false with the hook\'s plain reason.',
       '7. Run: git log -1 --format=%h and return it in commit, with the whole message in message.',
       GUARD_RAILS
     ].join('\n'),

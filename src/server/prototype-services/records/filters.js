@@ -110,6 +110,34 @@ export const matchesFilters = (filters, row) =>
   inDateRange(filters, row)
 
 /**
+ * The tab to open. The tab in the address when there is one; otherwise the
+ * first tab with a row that passes the status filter, so ticking "Submitted"
+ * while the Drafts tab was open never lands on an empty tab while another tab
+ * has matches. The dashboard's filter form sends no tab for this reason.
+ *
+ * @param {{ tab?: string, status?: string[] }} values - `values` from
+ * `filtersFromQuery`.
+ * @param {{ byStatus: object }} counts - from `countKnown`.
+ * @param {object} [tabs] - the tabs, as `DEFAULT_TABS` is shaped.
+ * @returns {string} a tab id.
+ */
+export const openTabFor = (values, counts, tabs = DEFAULT_TABS) => {
+  const { tab, status = [] } = values ?? {}
+  const ids = Object.keys(tabs)
+  if (typeof tab === 'string' && Object.hasOwn(tabs, tab)) {
+    return tab
+  }
+  const chosen = status.length > 0 ? status : STATUSES
+  const rowsIn = (id) => {
+    const statuses = tabs[id].length > 0 ? tabs[id] : STATUSES
+    return statuses
+      .filter((value) => chosen.includes(value))
+      .reduce((sum, value) => sum + (counts?.byStatus?.[value] ?? 0), 0)
+  }
+  return ids.find((id) => rowsIn(id) > 0) ?? ids[0]
+}
+
+/**
  * Counts for a dashboard: in total, by status, late, and per tab.
  *
  * @param {Array<object>} rows - the rows to count, already filtered by

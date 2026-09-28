@@ -17,6 +17,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { transformContent, transformPath } from '../../new-set/transform.js'
+import { briefOutline, renderBriefMarkdown } from './brief.js'
 import { buildHandoff } from './build.js'
 import { runHandoff } from './cli.js'
 import { git } from './git.js'
@@ -381,6 +382,83 @@ describe('designer:handoff on small releases', () => {
         { page: 'transporter', why: 'No saved-transporter service' }
       ])
       expect(report.applyCheck.empty).toBe(true)
+    },
+    TIMEOUT_MS
+  )
+
+  it(
+    'Should also leave out every file that imports a left-out file, so the patch never points at a missing module',
+    () => {
+      const FEATURES = `${RELEASE}/journeys/linear/features`
+      writeFiles(root, {
+        [`${RELEASE}/set.js`]: "export const SET_ID = 'plants-working'\n",
+        [`${RELEASE}/obligations/sections/arrival.js`]: `export const arrival = {\n  id: '${ORIGINAL}',\n  label: 'Arrival'\n}\n`,
+        [`${FEATURES}/transporter-picker/render.js`]:
+          "import { search } from '../../../../../../prototype-services/transporters/index.js'\nexport const render = search\n",
+        [`${FEATURES}/transporter-picker/controller.js`]:
+          "import { render } from './render.js'\nexport const controller = render\n",
+        [`${FEATURES}/transporter-add/controller.js`]:
+          "import { controller as picker } from '../transporter-picker/controller.js'\nexport const controller = picker\n",
+        [`${FEATURES}/origin/hint.js`]: "export const hint = 'A new hint'\n"
+      })
+
+      const report = buildHandoff({ root, set: 'plants-working' })
+
+      expect(report.files.map((file) => file.releasePath)).toEqual([
+        `${FEATURES}/origin/hint.js`
+      ])
+      const reasons = Object.fromEntries(
+        report.leftOut.map((item) => [item.path, item.reason])
+      )
+      expect(reasons[`${FEATURES}/transporter-add/controller.js`]).toContain(
+        `Imports ${REAL}/journeys/linear/features/transporter-picker/controller.js`
+      )
+      expect(reasons[`${FEATURES}/transporter-picker/controller.js`]).toContain(
+        'would not start'
+      )
+    },
+    TIMEOUT_MS
+  )
+
+  it(
+    'Should list the real journey’s requirement files that quote the old words, and call a copy-only change words only',
+    () => {
+      writeFiles(root, {
+        [`${REAL}/journeys/linear/features/hub/copy/copy.en.js`]:
+          "export const copy = {\n  groups: { parties: '3. Consignment parties' }\n}\n",
+        [`${REAL}/spec/journey-spec.json`]:
+          '{\n  "hub": "3. Consignment parties"\n}\n'
+      })
+      commitAll(root, 'The real hub and its spec')
+      writeFiles(root, {
+        [`${RELEASE}/set.js`]: "export const SET_ID = 'plants-working'\n",
+        [`${RELEASE}/obligations/sections/arrival.js`]: `export const arrival = {\n  id: '${ORIGINAL}',\n  label: 'Arrival'\n}\n`,
+        [`${RELEASE}/journeys/linear/features/hub/copy/copy.en.js`]:
+          "export const copy = {\n  groups: { parties: '3. Consignment addresses' }\n}\n"
+      })
+
+      const report = buildHandoff({ root, set: 'plants-working' })
+
+      expect(report.specImpact).toEqual([
+        {
+          file: `${REAL}/spec/journey-spec.json`,
+          line: 2,
+          text: '3. Consignment parties'
+        }
+      ])
+      expect(report.wordsOnly).toBe(true)
+      const brief = renderBriefMarkdown(
+        briefOutline(report, {
+          title: 'Consignment addresses',
+          why: '',
+          date: '2026-09-28',
+          branch: 'feat/x'
+        })
+      )
+      expect(brief).toContain(
+        '## Spec and requirement files that quote the old words'
+      )
+      expect(brief).toContain('Words only (change-the-words)')
     },
     TIMEOUT_MS
   )

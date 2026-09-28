@@ -1,4 +1,5 @@
 import { clearFakesFor } from '../lib/registry.js'
+import { withDerivedColumns } from './derived-columns.js'
 import {
   countRows,
   DEFAULT_TABS,
@@ -42,14 +43,18 @@ const splitFilters = ({
 })
 
 /** Every row the upstream store would list for these options, across all its
- * pages, in the order it sorts them. */
-const allRows = async (records, upstream) => {
+ * pages, in the order it sorts them, with the Commodity and Arrival columns
+ * the upstream rows leave empty filled in (see `derived-columns.js`). */
+const allRows = async (records, upstream, derive) => {
   const first = await records.list({ ...upstream, page: 1 })
   const rows = [...first.rows]
   for (let page = 2; page <= first.totalPages; page += 1) {
     rows.push(...(await records.list({ ...upstream, page })).rows)
   }
-  return { rows, size: first.size || FALLBACK_PAGE_SIZE }
+  return {
+    rows: await withDerivedColumns(records, rows, derive),
+    size: first.size || FALLBACK_PAGE_SIZE
+  }
 }
 
 const validPage = (page) => (Number.isInteger(page) && page > 0 ? page : 1)
@@ -73,7 +78,9 @@ const pageOfRows = (rows, page, size) => {
  *
  * - **Filters on `list()`**: `status`, `commodity`, `late`, `dateFrom`,
  *   `dateTo` and `tab`, applied before paging. With none of them, `list()` is
- *   exactly the upstream call.
+ *   the upstream call.
+ * - **Commodity and Arrival on every row**, filled from the notification's
+ *   answers where the upstream row leaves them empty (`derived-columns.js`).
  * - **`counts()`**: totals by status, late and tab, for tab labels and filter
  *   counts. Status and tab filters are ignored when counting, so every tab
  *   shows its own number.
@@ -100,10 +107,13 @@ const pageOfRows = (rows, page, size) => {
  * @param {string} [options.dir] - where saved data goes.
  * @param {object} [options.state] - the stub store's state (tests).
  * @param {object} [options.seed] - the seeder link (tests).
+ * @param {Function} [options.answersOf] - reads a notification's answers for
+ * the derived columns (tests).
  * @returns {object} the wrapped records store.
  */
 export const wrapRecords = (setId, records, options = {}) => {
   const releaseTabs = options.tabs ?? DEFAULT_TABS
+  const derive = options.answersOf ? { answersOf: options.answersOf } : {}
   const persistence = recordsPersistence(setId, options)
   persistence.restore()
 
@@ -123,9 +133,13 @@ export const wrapRecords = (setId, records, options = {}) => {
     const { requested, tabs, upstream } = splitFilters(listOptions)
     const filters = normaliseFilters(requested, tabs ?? releaseTabs)
     if (!hasFilters(filters)) {
-      return records.list(upstream)
+      const listed = await records.list(upstream)
+      return {
+        ...listed,
+        rows: await withDerivedColumns(records, listed.rows, derive)
+      }
     }
-    const { rows, size } = await allRows(records, upstream)
+    const { rows, size } = await allRows(records, upstream, derive)
     return pageOfRows(
       rows.filter((row) => matchesFilters(filters, row)),
       upstream.page,
@@ -140,7 +154,7 @@ export const wrapRecords = (setId, records, options = {}) => {
       { ...requested, status: null, tab: null },
       countedTabs
     )
-    const { rows } = await allRows(records, upstream)
+    const { rows } = await allRows(records, upstream, derive)
     return countRows(
       rows.filter((row) => matchesFilters(filters, row)),
       countedTabs

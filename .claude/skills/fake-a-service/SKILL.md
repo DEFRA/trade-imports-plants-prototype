@@ -64,10 +64,10 @@ passes.
   `index.test.js` (see `references/fake-a-service.md`).
 - **One change at a time.** A request with two or three parts is done part by
   part in this run, each checked before the next. A request that needs other
-  skills too follows "Requests that need more than this skill" below. With
-  four or more changes, start the `design-session` workflow (CLAUDE.md,
-  "Workflows"). Never make the designer ask again for a part they already
-  asked for.
+  skills too follows "Requests that need more than this skill" below. For a
+  list of notes (a crit, feedback) or four or more changes, start the
+  `design-session` workflow (CLAUDE.md, "Workflows"). Never make the designer
+  ask again for a part they already asked for.
 - **One Bash command per call.** Install only with `npx --yes npm@11.6.2 ci`.
   Never `--no-verify`, never push.
 
@@ -124,6 +124,14 @@ For example, "make my dashboard look like this Figma, filled with examples":
 `references/dashboard-filters-and-tabs.md`, then 5 with the Figma frame
 beside the dashboard picture.
 
+**Where the save happens.** Step 1's new release is saved at once, as its own
+commit (`design-release` section B). Nothing else is saved by this skill or
+the ones it calls: the example data, the fake and any layout tweak stay
+unsaved until the designer says "save my work" (or already asked for a save
+or a pull request in the same message, which is the yes). Then
+`share-my-change` saves them, one commit per part when they touch different
+files, with the suggested messages from each part's report.
+
 ## Step 2: Pick the reference
 
 Match the request to one reference and read all of it before you edit:
@@ -145,6 +153,24 @@ registered as a journey page (`change-the-journey`'s add-a-page recipe).
 
 Tell the designer in one line which reference you will follow, what it will
 change, and which part is fake.
+
+**The designer names a component this prototype cannot load.** Say so in
+that same opening, one line each, before building, so it is not a surprise
+in the pictures:
+
+- "GOV.UK tabs" or `govukTabs`: "The GOV.UK tabs script is not loaded here,
+  so the macro would only ever show its first panel. I will build link tabs
+  that look the same, one address per tab, and log it as a design gap."
+- "the MoJ filter" or "filter layout": "The MoJ filter styles are not loaded
+  here. I will build the filters from GOV.UK checkboxes and a button in a
+  column beside the results, and log it as a design gap."
+- Any other component not in `match-the-design`'s
+  `references/components-we-have.md`: name the nearest one that is, from
+  `references/nearest-equivalent.md` there.
+
+Then build the nearest equivalent. Never load the script or styles to make
+the named component work: that is client JavaScript and Sass, outside the
+toolbox.
 
 ## Step 3: Check who owns each file
 

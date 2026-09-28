@@ -438,6 +438,27 @@ const writeGallery = (root, folder, manifest) => {
   }
 }
 
+/**
+ * Why nothing was pictured, and what to type instead. `--pages changed` (the
+ * default) finds no pages once the change is saved, which catches a
+ * `--compare` or `--video` run made after a save.
+ */
+export const nothingChangedMessage = (options) => {
+  const lines = [
+    `None of your changes show on a page in ${options.set} (only unsaved changes count), so there is nothing new to picture.`
+  ]
+  if (options.compare) {
+    lines.push(
+      `To compare with ${options.compare}, name the pages: --pages <pages> --compare ${options.compare}, for example --pages notification-view --compare ${options.compare}.`
+    )
+  } else {
+    lines.push(
+      'Name the pages (for example --pages arrival-details), or use --pages all. After a save, --before-commit HEAD~1 compares with the version before it.'
+    )
+  }
+  return lines.join(' ')
+}
+
 const statusSnapshot = (root) =>
   (orNull(() => changedAndUntrackedPaths({ root })) ?? []).sort().join('\n')
 
@@ -453,15 +474,13 @@ export const runShow = async (
   { root = REPO_ROOT, say = () => {} } = {}
 ) => {
   const planned = await planShow(options, { root })
-  if (
-    planned.wanted.length === 0 &&
-    planned.addresses.length === 0 &&
-    !options.video
-  ) {
+  const nothingToPicture =
+    planned.wanted.length === 0 && planned.addresses.length === 0
+  if (nothingToPicture && !options.video) {
     return {
       folder: null,
       manifest: null,
-      message: `None of your changes show on a page in ${options.set}, so there is nothing new to show. Try --pages all, or name the pages, for example --pages arrival-details.`
+      message: nothingChangedMessage(options)
     }
   }
   const statusBefore = statusSnapshot(root)
@@ -470,7 +489,12 @@ export const runShow = async (
   const runName = runFolderName(createdAt)
   const folder = path.join(setFolder, runName)
   mkdirSync(folder, { recursive: true })
-  const notes = []
+  const notes = nothingToPicture
+    ? [`Only the walkthrough was recorded. ${nothingChangedMessage(options)}`]
+    : []
+  if (nothingToPicture) {
+    say(notes[0])
+  }
 
   if (needsClientBuild(root)) {
     say(

@@ -221,6 +221,11 @@ Run these one at a time. Each must pass before the next.
    npm run designer:show -- --set <release> --pages changed --errors --before
    ```
 
+   `--errors` pictures each page with a form sent empty. A page with no form
+   (confirmation, a guidance page) has no error state; the gallery notes
+   "no form to send" for it, which is expected, so leave `--errors` out when
+   no page in the change has a form.
+
    - For a change to the page order, use `--pages all` instead, so the gallery
      shows the whole journey in order.
    - For a branch, add `--each-example`: each page is pictured once for every
@@ -288,9 +293,9 @@ Do not commit. If the designer wants to save it, they say "save my work" and
 a release is the one thing saved straight away, by `design-release`, because
 every later change builds on it.)
 
-Before the designer shows the change to anyone, suggest saving it: "Say 'save
-my work' before you share this. Then 'undo that' later leaves a record of the
-change and its undo, instead of throwing it away."
+If the designer then says "undo that", do not ask again: `share-my-change`
+("Undo") puts this change's files aside at once, so it can come back. Once it
+is saved, "undo that" adds an undo commit instead.
 
 If the prototype is running (`npm run dev`), saving files restarted it. The
 example links above still work. If a page you made yourself has lost its

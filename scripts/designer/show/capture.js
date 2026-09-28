@@ -16,6 +16,7 @@ import * as cheerio from 'cheerio'
 import {
   AXE_TAGS,
   STATES,
+  VARIANTS,
   VIEWPORTS,
   WIDTHS,
   captureFileName,
@@ -32,6 +33,8 @@ import {
 } from './walk.js'
 
 const REDIRECTS = new Set([301, 302, 303, 307, 308])
+const HTTP_NOT_FOUND = 404
+const HTTP_ERROR = 400
 const VIDEO_SLOW_MO_MS = 600
 const VIDEO_SIZE = { width: 1280, height: 720 }
 const PAUSE_ON_HUB_MS = 1000
@@ -176,6 +179,11 @@ const canShowErrors = (key, run) => {
 
 const captureErrors = async (page, key, run, result) => {
   if (!(await hasPostForm(page))) {
+    if (run.variant === VARIANTS.now) {
+      result.notes.push(
+        'This page has no form to send, so it has no error state to show.'
+      )
+    }
     return
   }
   const here = page.url()
@@ -379,9 +387,18 @@ const captureAddresses = async (session, addresses, { run, journeyId }) => {
       continue
     }
     const response = await session.page.goto(target)
-    if (response && response.status() >= 400) {
+    const status = response?.status() ?? 0
+    if (status === HTTP_NOT_FOUND && run.variant !== VARIANTS.now) {
       run.notes.push(
-        `${address} answered ${response.status()}: the picture shows that error page.`
+        run.variant === VARIANTS.before
+          ? `${address}: this page did not exist before the change, so there is no before picture.`
+          : `${address}: this page does not exist in the set it is compared with, so there is nothing beside it.`
+      )
+      continue
+    }
+    if (status >= HTTP_ERROR) {
+      run.notes.push(
+        `${address} answered ${status}: the picture shows that error page.`
       )
     }
     await capturePage(session, key, run)

@@ -249,9 +249,20 @@ export const summaryLines = ({ report, dir, shots }, root) => {
     `- ${plural(report.files.length, 'file')} in upstream.patch. ${report.applyCheck.message.split('\n')[0]}`,
     `- ${plural(report.cannotShip.welshNeeded.length, 'Welsh string')} still need translating.`,
     `- ${plural(report.testImpact.length, 'place')} in the tests still expect the old words.`,
+    `- ${plural((report.specImpact ?? []).length, 'place')} in the real journey's requirement files (spec/) still quote the old words.`,
     `- ${plural(report.cannotShip.services.length, 'use')} of a service that only exists in the prototype (needs a real service), and ${plural(report.cannotShip.designGaps.length, 'design gap')}, cannot ship as they are.`,
     `- ${plural(report.leftOut.length, 'file')} left out of the patch.`
   ]
+  if (report.cannotShip.services.length > 0) {
+    lines.push(
+      '- The patch leaves out every file that uses a prototype-only service, and every file that imports one. It applies, but the whole change only works once the real team builds those services.'
+    )
+  }
+  if (report.upstreamApplyCheck && !report.upstreamApplyCheck.ok) {
+    lines.push(
+      `- It does not apply cleanly to plants-frontend's ${report.upstreamApplyCheck.ref}: the real service has moved on since the last weekly update.`
+    )
+  }
   if (!shots.found) {
     lines.push(
       '- No screenshots: run npm run designer:show -- --set <id> --pages changed --before first.'

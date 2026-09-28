@@ -14,7 +14,7 @@
 import { wrapRecords } from './wrap.js'
 
 export { designerRecordsFor } from './wrap.js'
-export { DEFAULT_TABS, STATUSES } from './filters.js'
+export { DEFAULT_TABS, STATUSES, openTabFor } from './filters.js'
 export { FILTER_ERRORS, filtersFromQuery } from './query.js'
 export { countKnown, listKnownWithFilters } from './dashboard.js'
 

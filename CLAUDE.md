@@ -25,7 +25,7 @@ Interaction and content designers. They know HTML, Nunjucks and the GOV.UK Desig
 3. **Change `copy.en.js` and `copy.cy.js` together.** Keep the same keys and the same function arguments. With no Welsh given, write `'[Welsh needed] <English>'`.
 4. **Stay in the GOV.UK toolbox.** Use Nunjucks macros and `govuk-*` classes (`moj-*` only through the date picker macro). No Sass, inline styles, new client JavaScript or webpack entries. Log what the toolbox cannot do in `src/server/app/sets/<id>/design-gaps.md`.
 5. **Example data replays real pages.** Never write records by hand. Use the `example-data` skill.
-6. **One change at a time, and every part of the request.** Do each part in turn (see "Requests that fit two skills"), check it, show it, and end with the hand-off line (below). For four or more changes, use the `design-session` workflow. Never make the designer ask again for a part they already asked for.
+6. **One change at a time, and every part of the request.** Do each part in turn (see "Requests that fit two skills"), check it, show it, and end with the hand-off line (below). Use the `design-session` workflow for any list of notes (from a crit, a review or feedback, however many), and for four or more separate changes. One request with two or three parts ("add a branch and move the page") is done part by part in one run. Never make the designer ask again for a part they already asked for.
 7. **Install only with `npx --yes npm@11.6.2 ci`.** Never `npm install` or bare `npm ci`. One Bash command per call: no `&&`, `;` or `|`.
 8. **Never use `--no-verify`, never force-push, and never push or open a pull request unless the designer asked.** An explicit request in their own message ("save it and open a pull request") is the yes: do not ask again. Otherwise ask first.
 9. **No working release yet? Make one, then carry on.** When a change needs the designer's working release and there is none (only `high-risk-plants` and `sample-journey`), follow `design-release` section B for `plants-working` without asking, save it as its own commit (the one save made without being asked), tell the designer in one line, and go back to the change.
@@ -67,6 +67,7 @@ Do every part in the same turn, one skill after another, and report the parts to
 - **An old Prototype Kit list page** (search, pick one or add a new one): `port-a-kit-page`, which follows `fake-a-service`'s worked example 1 for the page, its add page and its card on check your answers.
 - **A change, then "save it" or "open a pull request"**: make the change, then carry straight on with `share-my-change`.
 - **"Hand off" a change that was never made**: make it first with its skill, save it, then `hand-off`.
+- **Any change to a research release after its sessions**: `research-session`, "After the sessions", step 3 picks the release it lands in, for every skill. Say where in one line, then carry on.
 
 Before building any part, check whether it is already true (look at the picture, or run `npm run designer:release -- orders <release> <pages>` for a move). Say which parts already hold and do only the rest.
 
@@ -74,12 +75,12 @@ Before building any part, check whether it is already true (look at the picture,
 
 Workflows run several agents for one big job. Launch each by `scriptPath` with every argument filled in: see `.claude/workflows/README.md`. Every workflow's skill also lists the same steps to run one after another on hosts without the Workflow tool.
 
-| Workflow          | Started by         | Use it for                                                                                                                            |
-| ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `wording-sweep`   | `change-the-words` | A wording change across more than 5 pages, or a pasted content document ("apply these content changes", "content sweep")              |
-| `port-kit-page`   | `port-a-kit-page`  | Every Prototype Kit page port ("port this page from the old prototype")                                                               |
-| `prepare-handoff` | `hand-off`         | A change the real team needs with its tests, on a `handoff/<slug>` branch ("prepare this for the real service with its tests")        |
-| `design-session`  | this file          | A list of several changes to one release at once ("here are my notes from the crit", "do all of these", "work through this feedback") |
+| Workflow          | Started by         | Use it for                                                                                                                                             |
+| ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `wording-sweep`   | `change-the-words` | A wording change across more than 5 pages, or a pasted content document ("apply these content changes", "content sweep")                               |
+| `port-kit-page`   | `port-a-kit-page`  | Every Prototype Kit page port ("port this page from the old prototype")                                                                                |
+| `prepare-handoff` | `hand-off`         | A change the real team needs with its tests, on a `handoff/<slug>` branch ("prepare this for the real service with its tests")                         |
+| `design-session`  | this file          | Any list of notes, however many ("here are my notes from the crit", "work through this feedback"), or four or more changes at once ("do all of these") |
 
 For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "..."] }`. It starts the release from the real journey when it does not exist yet, routes each request to a skill, checks each one, parks what fails with a plain reason, shows the whole session in one gallery and saves each landed request as its own commit. It never pushes. Without the Workflow tool, follow the manual steps in `.claude/workflows/README.md`.
 
@@ -88,6 +89,8 @@ For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "
 - `design/<set>-<slug>`: a designer's work, for example `design/plants-working-consignment-addresses`. Create it from `main` before the first change.
 - `handoff/<slug>`: work meant for the real service, made by `hand-off`. Never merged into this prototype's `main`.
 - `maintain/<slug>`: a maintainer's work on the prototype itself.
+
+One rule for every skill: **on `main`, make a `design/*` branch; on any other branch (`design/*`, `feat/*`, a trial branch, `maintain/*`), stay on it.** Starting a release, making the change and saving it all happen on that one branch, so nothing is split across two. Never start a release on a `handoff/*` branch.
 
 ## How every change ends
 
@@ -101,11 +104,14 @@ All run as `npm run <name> -- <arguments>`:
 
 - `designer:where` whose file is it · `designer:check` check a release · `designer:preflight` is the computer ready
 - `designer:show` pictures and gallery (`--pages`, `--before`, `--errors`, `--mobile`, `--each-example`, `--url`, `--examples`, `--reference`, `--compare`, `--video`)
-- `designer:release` list, orders, freeze, carry, retire, remount · `designer:examples` list, check, links, init, fixtures
-- `designer:words` find words, Welsh report · `designer:research` research mode on, off, status, sheet · `designer:handoff` brief and patch
+- `designer:release` list, orders, changes, freeze, carry, retire, remount · `designer:examples` list, check, links, init, fixtures
+- `designer:words` find words, page (every string one page shows), Welsh report · `designer:research` research mode on, off, status, sheet · `designer:handoff` brief and patch
+- Page names: every tool takes a page's address (`consignors/select`, `arrival-details`, `notification-view`) and `task-list` for the task list. `designer:words` prints those names; `designer:show` also takes page ids and `hub`.
 - `designer:format` tidies every file like `npm run format`, printing only the files it changed. Use it in place of `npm run format`.
-- Commits run the pre-commit checks, which print hundreds of lines: send them to a log (`git commit … > .cache/designer/commit.log 2>&1`) and read its end. Never commit with paths after the message (`git commit -m … -- <paths>`).
-- `new:set -- <id> --from high-risk-plants --describe "<text>" --purpose working|frozen|research` starts a release (the `design-release` skill runs it)
+- `designer:save -- -m "<first line>" [-m "<body>"]` saves what is staged as one commit. The pre-commit checks run as usual; their hundreds of lines go to `.cache/designer/commit.log`, and it prints one line when the save worked or the end of the log when it did not. Use it for every save in place of `git commit` (`--no-edit` finishes a merge). Stage each file by name with `git add` first; never put paths after the message.
+- Run every `npm run` and `git` command from the repo root (the folder holding `package.json`). If your shell is somewhere else, use `npm --prefix <repo root> run <name>` and `git -C <repo root> …`.
+- `new:set -- <id> --from high-risk-plants --title "<name>" --describe "<text>" --purpose working|frozen|research` starts a release (the `design-release` skill runs it)
+- `designer:kit` finds the old Prototype Kit prototype and copies a page from it (`port-a-kit-page`)
 
 ## Read more
 

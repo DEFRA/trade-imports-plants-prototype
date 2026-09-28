@@ -171,7 +171,8 @@ describe('the sets chooser with design releases', () => {
     [FROZEN]: {
       kind: 'frozen',
       from: REAL,
-      createdAt: '2026-06-01T09:00:00.000Z'
+      createdAt: '2026-06-01T09:00:00.000Z',
+      title: 'Design release 1'
     },
     [WORKING_OLD]: {
       kind: 'working',
@@ -196,9 +197,10 @@ describe('the sets chooser with design releases', () => {
       kind,
       from = null,
       createdAt = null,
-      researchMode = false
+      researchMode = false,
+      title = null
     } = RELEASES[setId]
-    return { setId, ...KINDS[kind], from, createdAt, researchMode }
+    return { setId, ...KINDS[kind], from, createdAt, researchMode, title }
   }
 
   const examples = (setId) =>
@@ -269,6 +271,11 @@ describe('the sets chooser with design releases', () => {
       'Made from Plants dr1 on 27 September 2026'
     )
     expect(row(REAL).text()).not.toContain('Made from')
+  })
+
+  it('Should name a release by its title when it has one, and by its id otherwise', () => {
+    expect(row(FROZEN).text()).toContain('Design release 1')
+    expect(row(WORKING_OLD).text()).toContain('Plants working old')
   })
 
   it('Should link to a release’s examples by their stable links', () => {
