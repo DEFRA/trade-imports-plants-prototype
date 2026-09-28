@@ -96,7 +96,9 @@ describe('formatReport', () => {
     expect(report).toContain(
       "   How to fix it: Write '[Welsh needed] ' and the English."
     )
-    expect(report).toContain('   Skill that fixes it: change-the-words')
+    expect(report).toContain(
+      '   Steps Claude follows to fix it: change-the-words'
+    )
     expect(report).toContain(
       'Result: 2 problems to fix before this can be saved.'
     )

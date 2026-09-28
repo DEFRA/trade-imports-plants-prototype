@@ -52,7 +52,7 @@ const findingBlock = (finding, index) => [
     ? ['   Where:', ...finding.where.map((line) => `     - ${line}`)]
     : []),
   `   How to fix it: ${finding.fix}`,
-  `   Skill that fixes it: ${finding.skill}`,
+  `   Steps Claude follows to fix it: ${finding.skill}`,
   ...(finding.attribution === 'not-yours' ? [`   ${NOT_YOURS}`] : [])
 ]
 

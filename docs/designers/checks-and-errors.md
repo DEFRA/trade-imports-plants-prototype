@@ -105,8 +105,8 @@ Under the table, "What went wrong" explains every failure:
 
 - **What happened**: the cause, in plain English
 - **How to fix it**: what to do
-- **Skill that fixes it**: the skill to ask for, for example
-  `change-the-words`
+- **Steps Claude follows to fix it**: a note for Claude, for example
+  `change-the-words`. You never need to name it: just say "fix it"
 
 Some failures end with "Not caused by your change: tell the maintainer". That
 means every file the failure names is one you did not touch (or you have not
