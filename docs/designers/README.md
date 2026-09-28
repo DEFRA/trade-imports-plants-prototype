@@ -29,6 +29,8 @@ to the real team.
 | 3. Change the flow           | [Journey recipes](recipes/README.md)                                   | Branches, moving pages, guidance pages, the task list, check your answers, confirmation, validation |
 | 3. Change the data           | [Example data](example-data.md)                                        | Example notifications, stable example links, extra parties, ports and countries                     |
 | 3. Fake a service            | [Services and dashboards](services-and-dashboards.md)                  | Transporters, templates, dashboard filters, tabs and counts                                         |
+| 3. Bring over an old page    | [Bringing over a page from the old prototype](porting-old-pages.md)    | Rebuilding a Prototype Kit page in your release, with a fidelity table                              |
+| 3. Work through notes        | [Working through crit or research notes](working-through-notes.md)     | A list of changes in one go: each checked, failures parked, one gallery, one save per change        |
 | 3. Research                  | [Research sessions](research-sessions.md)                              | A research release, one link per task, errors off and on, the session sheet                         |
 | 4. Check it                  | [Checks and errors](checks-and-errors.md)                              | The three check levels and every error explained                                                    |
 | 5. See it                    | [Seeing your change](seeing-your-change.md)                            | The gallery: before and after, error states, phone width, Figma, video                              |

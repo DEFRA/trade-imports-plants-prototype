@@ -216,6 +216,65 @@ describe('the designer suite', () => {
     expect(missing).toEqual([])
   })
 
+  // The weekly update can rename or delete any file the real service owns. A
+  // skill that still names the old path would send the agent to a file that
+  // is gone, so the sync pull request's npm test fails here instead.
+  test('every real-service file a designer file names by path exists', () => {
+    const SOURCE_PATH =
+      /(?<![\w/.-])src\/(?:server|client)\/[\w/.-]+\.(?:js|njk|md|scss|json)(?![\w/])/g
+    const realSets = new Set(
+      readdirSync(path.join(REPO_ROOT, 'src/server/app/sets'), {
+        withFileTypes: true
+      })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+    )
+    // A path inside a design release that only exists once a designer makes
+    // it (plants-working, a-set) is an example, not a promise.
+    const namesAnExampleSet = (named) => {
+      const inSet =
+        /^src\/server\/app\/(?:sets\/|routes-)([\w-]+?)(?:\/|\.js$)/.exec(named)
+      return inSet !== null && !realSets.has(inSet[1])
+    }
+    const missing = []
+    for (const repoPath of designerFacingFiles) {
+      const text = readRepoFile(repoPath)
+      for (const [named] of text.matchAll(SOURCE_PATH)) {
+        if (namesAnExampleSet(named)) {
+          continue
+        }
+        if (!existsSync(path.join(REPO_ROOT, named))) {
+          missing.push(`${repoPath}: ${named}`)
+        }
+      }
+    }
+    expect(missing).toEqual([])
+  })
+
+  // The weekly update bumps package.json's packageManager. Every install
+  // command a designer is told to run must bump with it, or it installs an
+  // npm the lockfile rejects.
+  test('every npm version a designer file names is the one package.json pins', () => {
+    const pinned = packageJson.packageManager.split('+')[0]
+    const stale = []
+    const allowlists = new Set([
+      'scripts/designer/hooks/settings-proposal.json',
+      '.claude/settings.json'
+    ])
+    for (const repoPath of [
+      ...designerFacingFiles,
+      ...repoFiles.filter((repoPath) => allowlists.has(repoPath))
+    ]) {
+      const text = readRepoFile(repoPath)
+      for (const [named] of text.matchAll(/npm@\d+\.\d+\.\d+/g)) {
+        if (named !== pinned) {
+          stale.push(`${repoPath}: ${named} (package.json pins ${pinned})`)
+        }
+      }
+    }
+    expect(stale).toEqual([])
+  })
+
   test('every relative link in a designer document resolves', () => {
     const broken = []
     for (const repoPath of designerFacingMarkdown) {

@@ -56,8 +56,14 @@ tasks it lists come from `research-session.json` in your release.
 
 1. **Merge the day before.** The deployed prototype only changes after your work
    is merged to `main`. Share it ("save my work", then a pull request) and get it
-   merged in good time.
-2. **Open every task link** on the deployed prototype once.
+   merged in good time (see "Getting it merged" in
+   [Saving, sharing, undoing and handing off](sharing-and-handing-off.md)).
+   **Not deployed yet?** The prototype has no deployed address yet (see "The
+   deployed prototype" in PROTOTYPE.md). Until it has, run the sessions from
+   the facilitator's laptop with `npm run designer:fresh`: the same
+   prototype, but every restart starts from the examples. The sheet then has
+   only local links.
+2. **Open every task link** on the prototype you will use, once.
 3. **Check at phone width** if participants might use a phone. Ask Claude to
    "show my pages at phone width".
 4. **Reset** before the first participant.

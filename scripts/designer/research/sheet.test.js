@@ -162,4 +162,32 @@ describe('writeSheet', () => {
       'Tell us when the plants arrive'
     )
   })
+
+  const writeSession = () =>
+    writeFileSync(
+      path.join(repoRoot, 'src/server/app/sets', SET, 'research-session.json'),
+      JSON.stringify(SESSION)
+    )
+
+  it("Should take the deployed address from the prototype's own record", () => {
+    writeSession()
+    mkdirSync(path.join(repoRoot, 'scripts/designer'), { recursive: true })
+    writeFileSync(
+      path.join(repoRoot, 'scripts/designer/prototype.json'),
+      JSON.stringify({ deployedUrl: 'https://recorded.example' })
+    )
+    const result = writeSheet(repoRoot, SET)
+    expect(readFileSync(result.file, 'utf8')).toContain(
+      'https://recorded.example/'
+    )
+    expect(result.lines.join('\n')).not.toContain('not deployed yet')
+  })
+
+  it('Should say the prototype is not deployed yet, and how to run the sessions instead', () => {
+    writeSession()
+    const result = writeSheet(repoRoot, SET)
+    expect(result.lines.at(-1)).toBe(
+      'The prototype is not deployed yet (scripts/designer/prototype.json has no "deployedUrl"), so the sheet leaves the deployed links blank. Run the sessions from this computer with npm run dev, or pass --deployed-url <address>.'
+    )
+  })
 })

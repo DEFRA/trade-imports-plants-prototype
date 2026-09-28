@@ -1,6 +1,7 @@
 /**
  * Claude Code PreToolUse hook for Edit, Write and NotebookEdit. It only runs
- * once the settings proposal is applied to .claude/settings.json.
+ * once scripts/designer/hooks/settings-proposal.json is applied to
+ * .claude/settings.json (see "For maintainers" in README.md).
  *
  * Reads the hook's JSON on stdin and decides from the file's owner and the
  * current branch:

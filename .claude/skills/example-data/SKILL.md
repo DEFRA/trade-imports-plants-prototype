@@ -150,6 +150,8 @@ on the file prints how many times it is there.
     dashboard's "deleted" banner.
   - The real plants service has no "Copy as new" button; a copied example is a
     new draft with the same answers, and nothing on screen says it was copied.
+    To give the designer the button and its page, offer `fake-a-service`
+    (`references/copy-as-new.md`).
 
 **A party, port or country.** Add a row to the right JSON list in
 `src/server/prototype-data/<set-id>/` (or `_all/`). The shapes are in the guide

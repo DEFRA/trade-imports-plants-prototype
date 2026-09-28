@@ -67,7 +67,8 @@ const logResolvedConfig = (workflowName, config) =>
 // The one place to point each kind of step at a model. A `runner` runs
 // commands and reports what they printed, a `builder` edits code and tests,
 // and a `judge` decides. Any model name the Workflow tool accepts goes here
-// (a Fable model suits the runner); null uses the session's own model.
+// (Fable suits only the judge: see README.md, "Choosing models"); null uses
+// the session's own model.
 const MODELS = { runner: 'haiku', builder: 'sonnet', judge: 'opus' }
 
 const MAX_REPAIRS = 3

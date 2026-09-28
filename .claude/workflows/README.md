@@ -53,9 +53,18 @@ Every workflow here opens the same way, so they fail the same way:
 differs from the others, or if a missing key reaches an agent. To change the
 block, change it in every script at once.
 
-Scripts end with `await main()`, not a top-level `return`: ESLint cannot
-parse a `return` outside a function, and the pre-commit hook runs ESLint.
-Results reach you through `log()` lines.
+The Workflow tool runs each script as the body of an async function, so a
+top-level `return` is allowed and hands back the script's result.
+`wording-sweep.js` and `prepare-handoff.js` end with `return { ... }` (and
+stop early with `return stopped(...)`); keep those returns, because their
+callers read the structured result. `design-session.js` and
+`port-kit-page.js` end with `await main()` and report through `log()` lines
+by choice, not because a `return` would break anything.
+
+ESLint's module parser rejects a top-level `return`, so `eslint.config.js`
+leaves `.claude/workflows/*.js` out of ESLint. The `*.test.js` files beside
+them are linted, and they run each script through an `AsyncFunction`, which
+is how the Workflow tool runs it.
 
 ## Choosing models
 
@@ -65,10 +74,16 @@ Each script names its models once, at the top:
 const MODELS = { runner: 'haiku', builder: 'sonnet', judge: 'opus' }
 ```
 
-- `runner` runs commands and reports what they printed. A small, fast model
-  is enough. A Fable model suits it.
-- `builder` edits files by following a skill.
-- `judge` reads, plans, routes and grades. Use the strongest model.
+- `runner` runs one command and reports what it printed. A small, fast,
+  cheap model is enough, so it is `haiku`. Do not point it at Fable: Fable is
+  the most capable and most expensive tier, and a runner gains nothing from
+  it.
+- `builder` edits files by following a skill. `sonnet` follows the recipes
+  well.
+- `judge` reads, plans, routes and grades. Use the strongest model your
+  account can run. It is `opus` so the scripts do not depend on access to a
+  newer tier; if your account has Claude Fable 5.1, set `judge` to `'claude-fable-5-1'` in that
+  script, the one step where Fable earns its cost.
 
 Change a name here to point every step of that kind at another model. Use a
 model name the Workflow tool accepts; `null` means the session's own model.

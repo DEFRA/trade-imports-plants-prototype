@@ -98,9 +98,11 @@ Talk to the designer in GDS plain English. Say "your research release", not
    prototype restarts.
 
 4. Write `src/server/app/sets/<set-id>/research-session.json` with the tasks
-   (see [references/session-file.md](references/session-file.md)). Ask once for
-   the deployed prototype's address; if nobody knows it, leave `deployedUrl`
-   out.
+   (see [references/session-file.md](references/session-file.md)). Leave
+   `deployedUrl` out: the sheet reads the deployed address from
+   `scripts/designer/prototype.json`. When that says `null`, the prototype is
+   not deployed yet: tell the designer the sessions run from a laptop with
+   `npm run designer:fresh` (step 5).
 5. Save the examples and the session file with `share-my-change` before going
    on. They are not part of research mode.
 
@@ -161,8 +163,8 @@ them (the default), or should some pages let them through?"
 npm run designer:research -- sheet <set-id>
 ```
 
-Add `--deployed-url <address>` if the address is not in the session file. It
-writes `.cache/designer/research/<set-id>/sheet.html`: the local and deployed
+It takes the deployed address from `scripts/designer/prototype.json`
+(`--deployed-url <address>` overrides it for one sheet). It writes `.cache/designer/research/<set-id>/sheet.html`: the local and deployed
 links for each task, how to sign in, the errors switched off, how to Reset, and
 a checklist. Read the file and tell the designer what is on it. Give them the
 path so they can open or print it. Say plainly that the sheet is only on this
@@ -173,7 +175,12 @@ print it or attach the file to share it. The session plan it is made from
 
 ### 5. Remind the designer before the session
 
-Say both of these, every time:
+Say both of these, every time. When `deployedUrl` in
+`scripts/designer/prototype.json` is `null`, say instead: "The prototype is
+not deployed yet, so run the sessions from this laptop. Start it with
+`npm run designer:fresh`, so every restart starts from the examples, and
+open each task link once before the first participant." and the Reset line
+with "everyone using this laptop's prototype".
 
 - "The deployed prototype only changes after your work is merged to `main`.
   Share it and get it merged the day before the session, then open each task

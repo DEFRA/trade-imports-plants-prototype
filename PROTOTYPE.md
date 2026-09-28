@@ -45,8 +45,24 @@ saves each change separately.
 Every change ends the same way: Claude checks it, shows it, and offers to
 hand it to the real team.
 
+### Using Cursor or another assistant
+
+Cursor, and other coding assistants, work too: they read `AGENTS.md`, which
+points them at the same skills, so the same phrases work. Two things are
+different:
+
+- **There is no automatic guard.** Claude Code can stop edits to the real
+  service's files on its own (once the prototype's settings are in place).
+  Elsewhere, ask "whose file is this?" before a change if you are unsure; the
+  assistant runs `npm run designer:where` and tells you.
+- **Lists run one at a time.** "Do all of these" and big wording sweeps run
+  as workflows in Claude Code. Other assistants follow the same steps one
+  change after another, which takes longer but ends in the same place.
+
 If Claude Code reports a missing hook script when it starts, the prototype's
-settings have not been updated yet. It is harmless: tell Sam.
+own Claude Code settings are not in place yet. It is harmless: carry on. The
+prototype maintainer has the fix (see "For maintainers" in
+[README.md](README.md)).
 
 ## Running it on your computer
 
@@ -82,7 +98,13 @@ service, it then needs a Defra ID sign-in service to sign you in, so use
 
 ## The deployed prototype
 
-The deployed prototype signs you in through the Defra ID stub, the same test
+**It is not deployed yet.** Until it is, run demos and research sessions from
+a laptop with `npm run dev` (the research-session skill prints a sheet with a
+local link for each task). When it is deployed, the prototype maintainer puts
+its address here and in `deployedUrl` in `scripts/designer/prototype.json`,
+where the research sheet picks it up.
+
+Once deployed, it signs you in through the Defra ID stub, the same test
 sign-in service the real service uses when deployed. Pick any of its test
 users. To see the prototype as a different user, sign out and sign in as a
 different test user.
@@ -90,6 +112,22 @@ different test user.
 The deployed prototype only changes when a pull request is merged into
 `main`. Work on a branch cannot be seen there until it is merged, so share
 and merge before a demo or a research session.
+
+## Getting it merged
+
+Your pull request is reviewed and merged by the prototype maintainer, the
+person who looks after this prototype and its weekly update. If you do not
+know who that is, ask in your team.
+
+- **Ask for a review when you open it.** Say "make a pull request" and Claude
+  opens it; send the link to the maintainer and say when you need it merged.
+  Leave at least a working day before a demo or a research session.
+- **Red checks.** Say "is my pull request merged yet?" or "check my pull
+  request". Claude reads the checks and explains any failure in plain words,
+  then fixes it with "check my changes" and sends the fix.
+- **Merging it yourself.** If you have merge rights and the maintainer has
+  approved it, say "merge my pull request". Claude merges only when every
+  check is green.
 
 ## Example data
 

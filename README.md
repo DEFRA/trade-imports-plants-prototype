@@ -13,6 +13,25 @@ journey from commodity selection through declaration and confirmation.
 
 Run the set's unit suite from the repo root: `npm run test:high-risk-plants`.
 
+## For maintainers
+
+The prototype maintainer reviews and merges designers' pull requests and the
+weekly sync pull requests. Two things are still pending:
+
+- `.claude/settings.json` is still plants-frontend's copy. It runs three Sonar
+  hook scripts that `overrides.json` deletes, so Claude Code reports a missing
+  hook script, and the designer edit guard (`scripts/designer/hooks/guard-edit.js`)
+  is not wired up. Apply
+  [`scripts/designer/hooks/settings-proposal.json`](scripts/designer/hooks/settings-proposal.json)
+  on a `maintain/<slug>` branch: it replaces the file and adds it to
+  `overrides.json` `ours` in the same commit, so the weekly sync stops
+  restoring the Sonar hooks. Its `_how_to_apply` lists the notes to delete
+  afterwards, this one included.
+- Once the prototype is deployed, put its address in `deployedUrl` in
+  [`scripts/designer/prototype.json`](scripts/designer/prototype.json) (the
+  research sheet reads it from there) and in PROTOTYPE.md, "The deployed
+  prototype".
+
 ## Current state
 
 The high-risk-plants journey is implemented, with a notification dashboard,

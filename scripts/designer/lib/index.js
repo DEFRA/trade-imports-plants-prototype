@@ -29,3 +29,7 @@ export {
   untrackedPaths
 } from './git.js'
 export { REPO_ROOT, readOverrides, toRepoPath } from './repo.js'
+export {
+  PROTOTYPE_CONFIG_PATH,
+  readPrototypeConfig
+} from './prototype-config.js'

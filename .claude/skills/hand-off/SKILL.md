@@ -23,8 +23,10 @@ without explaining it once ("the real service's code").
 
 ## Guard rails
 
-- **Nothing is ever pushed to plants-frontend.** Its push address is `DISABLED`
-  in this repository on purpose. Never change that, never add another remote.
+- **Nothing is ever pushed to plants-frontend.** The prototype's tools set
+  the `upstream` remote's push address to `DISABLED` on purpose (a fresh
+  clone has no `upstream` remote until step 1 of route 1 adds it). Never
+  change that, never add any other remote.
 - **Never merge a `handoff/*` branch into the prototype's `main`.** Once the
   real team merges the change, Monday's weekly update brings it in.
 - **Never edit high-risk-plants on a `design/*` branch or `main`.** Only route
@@ -84,14 +86,37 @@ Then choose the route:
 ## Route 1: from a design release
 
 1. So the brief can say whether the patch still fits plants-frontend itself,
-   fetch it first (read only; nothing is sent):
+   fetch it first (read only; nothing is sent). A fresh `git clone` of the
+   prototype has no `upstream` remote, so check for it:
+
+   ```
+   git remote get-url upstream
+   ```
+
+   If git says there is no such remote, add it, then lock its push address,
+   one command per call and without asking (this only lets the prototype
+   read plants-frontend):
+
+   ```
+   git remote add upstream https://github.com/DEFRA/trade-imports-plants-frontend.git
+   ```
+
+   ```
+   git remote set-url --push upstream DISABLED
+   ```
+
+   Check `git remote get-url --push upstream` prints `DISABLED` whenever the
+   remote already existed too; if it does not, run the `set-url --push`
+   command above. Then fetch:
 
    ```
    git fetch upstream main
    ```
 
-   If it fails (no network, no access), carry on: the brief then says it was
-   not checked against plants-frontend.
+   If the fetch fails (no network, or no access to plants-frontend), carry
+   on, and tell the designer in one line: the brief will say it was not
+   checked against plants-frontend itself, only against the prototype's copy
+   of the real journey.
 
    Dry run, to see which pages change and what stands in the way:
 
@@ -166,10 +191,12 @@ Then choose the route:
    The checks run first; it prints one line when the save worked, or the end
    of the log when it did not.
 
-6. Explain the two ways it reaches the real service:
+6. Explain the two ways it reaches the real service, and who to send it to
+   ("Who to send it to" in `handoffs/README.md`):
    - **The team takes the brief and patch.** Share the `brief.md` link (in the
      designer's pull request, once it is on GitHub) or paste `brief.jira.txt`
-     into a Jira story with `upstream.patch` and the screenshots attached.
+     into a story in the EUDPA Jira project with `upstream.patch` and the
+     screenshots attached.
    - **A developer applies the patch** in their own clone of
      trade-imports-plants-frontend: `git apply --3way upstream.patch`, update
      the tests the brief lists, run `npm test`, and raise the pull request
@@ -259,9 +286,17 @@ run `npm run designer:handoff -- --set high-risk-plants --base main --slug <slug
 ## Hand-off note
 
 This skill is the hand-off. Finish with: "Nothing has been sent to the real
-team yet. Share the brief with them, or ask a developer to apply the patch in
-plants-frontend. When they merge it, the weekly update brings it back into
-this prototype, and your design release can be retired or refreshed."
+team yet. Raise it as a story in the EUDPA Jira project (paste
+`brief.jira.txt` and attach the patch and screenshots), and send the link to
+the plants-frontend team's delivery lead or product owner, who decides when it
+is built. `handoffs/README.md` says more. When they merge it, the weekly
+update brings it back into this prototype, and your design release can be
+retired or refreshed."
+
+When the designer later says "I sent it", "it's ticket EUDPA-123" or "it was
+merged", add or update the status lines at the top of that hand-off's
+`brief.md` (see "Keeping track" in `handoffs/README.md`), then save with
+`share-my-change`.
 
 ## Without the designer scripts
 

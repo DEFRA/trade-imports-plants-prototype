@@ -60,6 +60,12 @@ Fill-in rules:
   `http://localhost:3103/examples/<set-id>/<example>`
   (`npm run designer:examples -- links <set-id>` prints them). For the
   dashboard, `http://localhost:3103/<set-id>` is enough.
+- Deployed links: read `deployedUrl` in `scripts/designer/prototype.json`.
+  When it is set, add the same links on the deployed prototype
+  (`<deployedUrl>/examples/<set-id>/<example>`) and say they work once this
+  is merged. When it is `null`, the prototype is not deployed yet: give only
+  the local links, and leave the line "The deployed prototype updates only
+  after this is merged" out.
 - Never paste raw test logs. Say what passed in one line.
 - If there is no gallery yet, run the `show-my-change` skill first, then fill
   "What it looks like".

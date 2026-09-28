@@ -258,6 +258,17 @@ describe('design-session', () => {
     expect(start.prompt).toContain(
       `npm run new:set -- ${SET} --from high-risk-plants --purpose working`
     )
+    expect(start.prompt).not.toMatch(/Run: git add -A\s*$/m)
+    for (const path of [
+      `src/server/app/sets/${SET}`,
+      `src/server/app/routes-${SET}.js`,
+      'src/server/prototype-sets/index.js',
+      'src/server/prototype-sets/descriptions.js',
+      'overrides.json'
+    ]) {
+      expect(start.prompt).toContain(`Run: git add -- ${path}`)
+    }
+    expect(start.prompt).toContain('git diff --cached --name-only')
     expect(logText(log)).toContain(`Started ${SET} from the real journey`)
   })
 

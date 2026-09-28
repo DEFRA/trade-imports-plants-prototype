@@ -51,7 +51,8 @@ const logResolvedConfig = (workflowName, config) =>
 
 // The one place to point each kind of step at a model. A `runner` runs one
 // command and reports what it printed, a `builder` edits copy files and a
-// `judge` plans. Any model name the Workflow tool accepts goes here.
+// `judge` plans. Any model name the Workflow tool accepts goes here (Fable
+// suits only the judge: see README.md, "Choosing models").
 const MODELS = { runner: 'haiku', builder: 'sonnet', judge: 'opus' }
 
 const MAX_PARALLEL_BUILDERS = 6

@@ -7,6 +7,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { isKebabCase } from '../../new-set/names.js'
 import {
+  PROTOTYPE_CONFIG_PATH,
+  readPrototypeConfig
+} from '../lib/prototype-config.js'
+import {
   readRelease,
   readResearchMode,
   SESSION_FILE,
@@ -227,7 +231,11 @@ export const writeSheet = (
   if (problems.length > 0) {
     return { ok: false, lines: problems }
   }
-  const deployed = deployedUrl ?? session.deployedUrl ?? null
+  const deployed =
+    deployedUrl ??
+    session.deployedUrl ??
+    readPrototypeConfig({ root: repoRoot }).deployedUrl ??
+    null
   const html = buildSheet({
     setId,
     session,
@@ -253,7 +261,7 @@ export const writeSheet = (
       ...(deployed
         ? []
         : [
-            'The deployed address is not known, so the sheet leaves it blank. Add "deployedUrl" to the session file, or pass --deployed-url <address>.'
+            `The prototype is not deployed yet (${PROTOTYPE_CONFIG_PATH} has no "deployedUrl"), so the sheet leaves the deployed links blank. Run the sessions from this computer with npm run dev, or pass --deployed-url <address>.`
           ])
     ]
   }

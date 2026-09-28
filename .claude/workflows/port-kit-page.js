@@ -18,7 +18,8 @@ export const meta = {
 
 // The one place to choose models. `runner` only runs commands and reports,
 // `builder` edits files, `judge` reads, plans and grades. Point any of them at
-// another model (for example Fable) here; null means "use the session model".
+// another model here; null means "use the session model". Fable suits only the
+// judge (see README.md, "Choosing models").
 const MODELS = { runner: 'haiku', builder: 'sonnet', judge: 'opus' }
 
 // >>> args-contract

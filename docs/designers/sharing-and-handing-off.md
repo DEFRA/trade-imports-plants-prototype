@@ -53,9 +53,31 @@ The pull request's checks include a browser test run. Its
 `frontend-playwright-report` download has a video walking through each design
 release, which is handy for show and tell.
 
+No GitHub command line (`gh`) on your computer? Claude sends your branch and
+gives you a link that opens the pull request form in your browser, with the
+description ready to paste.
+
 The deployed prototype only changes after the pull request is merged to
 `main`. If you need a change for a research session, get it merged the day
 before.
+
+## Getting it merged
+
+Your pull request is reviewed and merged by the prototype maintainer: the
+person who looks after this prototype and its weekly update. If you do not
+know who that is, ask in your team.
+
+1. **Ask for a review.** Send the pull request link to the maintainer and say
+   when you need it merged. Leave at least a working day before a demo or a
+   research session.
+2. **See where it is.** Say "is my pull request merged yet?" or "check my pull
+   request". Claude tells you, in plain words, whether it is waiting for a
+   review, has failing checks, has a clash with `main`, or is merged.
+3. **Red checks.** Claude explains each failure, fixes it ("check my
+   changes"), saves the fix and sends it. The pull request updates itself.
+4. **Merging it yourself.** If you have merge rights and the maintainer has
+   approved it, say "merge my pull request". Claude merges only when every
+   check is green, and never without you asking.
 
 ## Undoing a change
 
@@ -82,9 +104,10 @@ off switch: see [Research sessions](research-sessions.md).
 Say "hand this to the real team", "send this to the developers" or "make this
 real".
 
-Nothing is ever sent to the real service automatically. The prototype cannot
-push to plants-frontend: that door is locked on purpose. Instead, Claude
-prepares a folder the real team can use.
+Nothing is ever sent to the real service automatically. The prototype's
+tools only ever read plants-frontend: when they set up the link to it on your
+computer, they lock its send address on purpose. Instead, Claude prepares a
+folder the real team can use.
 
 ### What you get
 
@@ -141,12 +164,22 @@ brings it back into the prototype.
 Either:
 
 - **the team takes the brief and the patch**: share the brief's link from your
-  pull request, or paste `brief.jira.txt` into a Jira story and attach
-  `upstream.patch` and the screenshots, or
+  pull request, or paste `brief.jira.txt` into a story in the EUDPA Jira
+  project and attach `upstream.patch` and the screenshots, or
 - **a developer applies the patch** in their own copy of
   trade-imports-plants-frontend (`git apply --3way upstream.patch`), updates the
   tests the brief lists, runs the tests and raises the pull request there. The
   file paths are the same in both repositories.
+
+### Who to send it to
+
+Raise the story in the **EUDPA** Jira project and send its link to the
+plants-frontend team's delivery lead or product owner: they decide when it is
+built. If you do not know who that is, ask the prototype maintainer.
+
+Then tell Claude what happened ("I raised it as EUDPA-123", "it was
+merged"). Claude adds a status line to the brief, so everyone can see which
+hand-offs were taken up. See [the hand-offs folder's guide](../../handoffs/README.md).
 
 ### When the patch does not apply cleanly
 
@@ -162,6 +195,10 @@ then hand off again.
 - "save my work": save the change on your branch.
 - "make a pull request": send it to GitHub and open a pull request (Claude
   asks first).
+- "is my pull request merged yet?": where your pull request is, in plain
+  words.
+- "merge my pull request": merge it, when it is approved, the checks are
+  green and you have merge rights.
 - "undo my last change": add an undo for the last saved change.
 - "throw away what I just did": drop changes you have not saved.
 - "hand this to the real team": write the hand-off folder.

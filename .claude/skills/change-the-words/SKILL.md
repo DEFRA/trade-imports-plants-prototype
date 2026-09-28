@@ -29,9 +29,11 @@ unless you are naming a file. Say "the Welsh", not "cy".
   `` (days) => `Notifications must be made ${days} days before...` ``. Keep
   the function, its values in brackets and every `${…}` placeholder. Change
   only the words around them.
-- The header, footer, "Save and continue" and the error summary title live in
+- The header, footer, "Save and continue", the error summary title and the
+  notification status names (Draft, Submitted, Amending, Deleted) live in
   `src/server/app/shared/copy.en.js`. Every set uses that file and it belongs
-  to the real service. It is never changed in a design release.
+  to the real service. It is never changed in a design release; step 3's
+  vocabulary route changes it on a hand-off branch instead.
 - The prototype always shows English. Welsh can only be read in the Welsh
   report (step 9).
 
@@ -183,6 +185,50 @@ set"), and every `templates` entry with `shared: true`:
    ```
 
 4. Carry on with any matches that are inside the release.
+5. Say, in the same reply, how the designer can still **see** the new words
+   (below). Never stop at "a gap was logged".
+
+### Seeing a shared-chrome change: the vocabulary route
+
+Status names ("Draft", "Submitted", "Amending", "Deleted", under
+`journeyStrip` in `src/server/app/shared/copy.en.js`), the save buttons and
+the other shared words can only change for every set at once. So a
+vocabulary decision ("rename Submitted to Sent everywhere") goes the
+upstream-bound way, on its own branch, where rule 10 allows
+`src/server/app/shared/**`:
+
+1. Offer it in one line: "Status names are shared by the whole service. I can
+   make the change on a separate hand-off branch, show you the real journey
+   before and after, then bring you back to your branch. Nothing changes in
+   your design release." Go on when they say yes (or already asked for it to
+   be made real).
+2. `git status --porcelain` must print nothing (save first with
+   `share-my-change` otherwise). Then:
+
+   ```bash
+   git switch -c handoff/<short-slug> main
+   ```
+
+3. Change the string in `src/server/app/shared/copy.en.js` and the same key in
+   `copy.cy.js` (step 6's rules: words only, `[Welsh needed]` for Welsh not
+   given). Then update the pinned tests as step 7 says, with `--set
+high-risk-plants`; a shared string is also pinned by tests under
+   `src/server/app/shared/` and in the features that show it.
+4. Show it on the real journey, before and after:
+
+   ```bash
+   npm run designer:show -- --set high-risk-plants --pages dashboard,task-list,notification-view --before
+   ```
+
+   (Add the pages the find listed for the words.) Open the pictures and
+   describe them. The designer can also click through it: `npm run dev` on
+   this branch shows every set with the new words.
+
+5. Save it on the hand-off branch (`share-my-change`, which saves any file on
+   `handoff/*`), then `hand-off` writes the brief from it. Then
+   `git switch <the designer's branch>` and say they are back, and that their
+   design release still shows the old words until the real team merges the
+   change and the weekly update brings it in.
 
 ## Step 4: Plan the change
 

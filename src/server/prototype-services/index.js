@@ -6,8 +6,9 @@
  *
  * - `records/` wraps a release's records store: dashboard filters, tabs and
  *   counts, data that survives a restart, and Reset that clears the fakes.
- * - `transporters/` and `templates/` are fake services. Each one is named in
- *   every hand-off as "needs a real service" (`describeFakes()`).
+ * - `transporters/`, `templates/` and `address-book/` are fake services. Each
+ *   one is named in every hand-off as "needs a real service"
+ *   (`describeFakes()`); the address book's says whose service it is.
  *
  * Only a design release may import from here: never high-risk-plants, which
  * must behave as plants-frontend does. See

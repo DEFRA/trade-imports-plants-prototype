@@ -1,8 +1,14 @@
 /**
- * `npm run designer:preflight [-- --json] [-- --wait]`: is this computer
- * ready to run the prototype? Checks Node against .nvmrc, the installed
- * packages, the browser designer:show uses, and whether port 3103 is free
- * (and if not, which program holds it). It never stops or changes anything.
+ * `npm run designer:preflight [-- --json] [-- --share] [-- --wait]`: is this
+ * computer ready to run the prototype? Checks Node against .nvmrc, the
+ * installed packages, the browser designer:show uses, and whether port 3103
+ * is free (and if not, which program holds it). Then what saving and sharing
+ * need: git's name and email, the `upstream` remote hand-offs fetch, and the
+ * GitHub command line. It never stops or changes anything.
+ *
+ * `--share` also asks GitHub whether gh is signed in and whether this
+ * computer may send branches (`git push --dry-run`, which sends nothing).
+ * Those need the network, so the everyday check leaves them out.
  *
  * `--wait` instead waits (up to two minutes) for a prototype started with
  * `npm run dev` to answer on port 3103, then prints its address.
@@ -13,19 +19,28 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
+import { readPrototypeConfig } from '../lib/prototype-config.js'
 import { REPO_ROOT } from '../lib/repo.js'
 import { isPortFree } from '../show/server.js'
 import {
   DESIGNER_PORT,
+  UPSTREAM_REMOTE,
   checkBrowser,
+  checkGitHubCli,
+  checkGitIdentity,
   checkNode,
   checkPackages,
   checkPort,
+  checkPush,
+  checkUpstreamRemote,
   exitCodeFor,
   formatResults,
+  installCommandFor,
   packagesDrift,
   parseLsof
 } from './checks.js'
+
+const NETWORK_TIMEOUT_MS = 20_000
 
 const WAIT_TIMEOUT_MS = 120_000
 const WAIT_POLL_MS = 500
@@ -84,8 +99,92 @@ const answersLikeThePrototype = async () => {
   }
 }
 
+/**
+ * Runs a command without ever waiting on a password prompt: `{ ok, output }`,
+ * or `{ ok: false, detail }` with the first line it complained with (null
+ * when it is not installed).
+ */
+const attempt = (command, args, { root, timeout } = {}) => {
+  try {
+    const output = execFileSync(command, args, {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GH_PROMPT_DISABLED: '1' }
+    })
+    return { ok: true, output: output.trim(), detail: null }
+  } catch (error) {
+    const detail = String(error.stderr ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line !== '')
+    return { ok: false, output: null, detail: detail ?? null }
+  }
+}
+
+const outputOf = (command, args, options) =>
+  attempt(command, args, options).output
+
+const gitConfig = (key, root) =>
+  outputOf('git', ['config', '--get', key], { root }) || null
+
+/** What saving, sharing and handing off need from git and GitHub. */
+const shareChecks = (root, { share }) => {
+  const config = readPrototypeConfig({ root })
+  const ghInstalled = outputOf('gh', ['--version'], { root }) !== null
+  const results = [
+    checkGitIdentity({
+      name: gitConfig('user.name', root),
+      email: gitConfig('user.email', root)
+    }),
+    checkUpstreamRemote({
+      fetchUrl: outputOf('git', ['remote', 'get-url', UPSTREAM_REMOTE], {
+        root
+      }),
+      pushUrl: outputOf(
+        'git',
+        ['remote', 'get-url', '--push', UPSTREAM_REMOTE],
+        { root }
+      ),
+      cloneUrl: config.realService.cloneUrl
+    }),
+    checkGitHubCli({
+      installed: ghInstalled,
+      signedIn:
+        share && ghInstalled
+          ? attempt('gh', ['auth', 'status'], {
+              root,
+              timeout: NETWORK_TIMEOUT_MS
+            }).ok
+          : null
+    })
+  ]
+  if (share) {
+    const push = attempt(
+      'git',
+      [
+        'push',
+        '--dry-run',
+        '--quiet',
+        'origin',
+        'HEAD:refs/heads/designer-preflight-check'
+      ],
+      { root, timeout: NETWORK_TIMEOUT_MS }
+    )
+    results.push(
+      checkPush({
+        canPush: push.ok,
+        detail: push.detail,
+        repository: config.repository ?? 'the prototype'
+      })
+    )
+  }
+  return results
+}
+
 /** Runs every check. */
-export const runChecks = async (root = REPO_ROOT) => {
+export const runChecks = async (root = REPO_ROOT, { share = false } = {}) => {
   const installedList = readJson(
     path.join(root, 'node_modules/.package-lock.json')
   )
@@ -97,7 +196,10 @@ export const runChecks = async (root = REPO_ROOT) => {
           readJson(path.join(root, 'package-lock.json')),
           installedList
         )
-      : []
+      : [],
+    installCommand: installCommandFor(
+      readJson(path.join(root, 'package.json'))?.packageManager
+    )
   })
   const free = await isPortFree(DESIGNER_PORT)
   return [
@@ -108,7 +210,8 @@ export const runChecks = async (root = REPO_ROOT) => {
       free,
       holder: free ? null : portHolder(),
       answersLikeThePrototype: free ? false : await answersLikeThePrototype()
-    })
+    }),
+    ...shareChecks(root, { share })
   ]
 }
 
@@ -140,7 +243,9 @@ export const main = async (argv) => {
     )
     return 1
   }
-  const results = await runChecks()
+  const results = await runChecks(REPO_ROOT, {
+    share: argv.includes('--share')
+  })
   if (argv.includes('--json')) {
     console.log(
       JSON.stringify({ results, exitCode: exitCodeFor(results) }, null, 2)

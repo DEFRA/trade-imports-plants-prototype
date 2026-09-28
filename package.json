@@ -52,6 +52,7 @@
     "designer:format": "node scripts/designer/format/cli.js",
     "designer:save": "node scripts/designer/save/cli.js",
     "designer:kit": "node scripts/designer/kit/cli.js",
+    "designer:fresh": "node scripts/designer/fresh/cli.js",
     "lighthouse": "run-s lighthouse:targets lighthouse:run",
     "lighthouse:targets": "node scripts/lighthouse/seed-audit-targets.js",
     "lighthouse:run": "node scripts/lighthouse/run-audit.js",

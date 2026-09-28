@@ -1,6 +1,6 @@
 ---
 name: share-my-change
-description: Save, share or undo a designer's change in the plants prototype without the designer needing git - summarise what changed in plain words, put it on a design/<set>-<slug> branch, format and check it, save it as one commit with a message written from the change (pages named, Welsh needed flagged), and, only when asked, send it to GitHub and open a pull request; or safely undo unsaved edits, the last saved change or a named change with a new undo commit. Use when the designer says "save my work", "share this", "commit", "commit this", "make a pull request", "open a PR", "publish", "undo my last change", "undo that", "throw away what I just did", "go back" or "go back to how it was". NOT for making a change (use change-the-words, match-the-design, change-the-journey, example-data, fake-a-service or design-release), NOT for checking a change on its own (use check-my-change), and NOT for sending a change to the real plants-frontend team (use hand-off).
+description: Save, share or undo a designer's change in the plants prototype without the designer needing git - summarise what changed in plain words, put it on a design/<set>-<slug> branch, format and check it, save it as one commit with a message written from the change (pages named, Welsh needed flagged), and, only when asked, send it to GitHub and open a pull request (or give a link to open one when gh is missing), then check on it or merge it; or safely undo unsaved edits, the last saved change or a named change with a new undo commit. Use when the designer says "save my work", "share this", "commit", "commit this", "make a pull request", "open a PR", "publish", "is my pull request merged yet", "check my pull request", "merge my pull request", "undo my last change", "undo that", "throw away what I just did", "go back" or "go back to how it was". NOT for making a change (use change-the-words, match-the-design, change-the-journey, example-data, fake-a-service or design-release), NOT for checking a change on its own (use check-my-change), and NOT for sending a change to the real plants-frontend team (use hand-off).
 ---
 
 # Share my change
@@ -25,6 +25,8 @@ pages that changed and give links.
   pass.
 - **Never `git reset --hard`, `git rebase`, `git commit --amend`,
   `git push --force` or `git clean`.** Undo always adds a new commit.
+- **Never merge a pull request unless the designer asked for it**, in their
+  own words, and it is approved with every check green.
 - **Never push or open a pull request unless the designer asked for it.** An
   explicit request in their own message ("save it and open a pull request",
   "then make a PR") is the yes: do not ask again. Otherwise ask first, in
@@ -157,6 +159,15 @@ that led here), go straight on. Otherwise ask: "Shall I send this to GitHub
 and open a pull request so others can see it?", and go on only on a clear yes:
 
 1. `git push -u origin <branch>`
+
+   If git refuses (`Permission denied`, `403`, `could not read Username`),
+   stop and say plainly: this computer cannot send to the prototype on GitHub
+   yet. The designer needs write access to
+   `DEFRA/trade-imports-plants-prototype` (ask the prototype maintainer) and
+   to be signed in to GitHub on this computer (`gh auth login` sets that up).
+   `npm run designer:preflight -- --share` checks both. Their work is saved on
+   their computer; nothing is lost.
+
 2. Write the pull request body to `.cache/designer/share/pr-body.md` from
    [references/pr-body.md](references/pr-body.md). Fill every section from
    real output: the release's purpose from
@@ -176,10 +187,67 @@ and open a pull request so others can see it?", and go on only on a clear yes:
    gh pr create --repo DEFRA/trade-imports-plants-prototype --base main --head <branch> --title "<first line>" --body-file .cache/designer/share/pr-body.md
    ```
 
+   **Without `gh`** (the command is not found, or `gh auth status` says it is
+   not signed in and the designer does not want to sign in now), give the
+   designer this link instead, with `<branch>` filled in:
+
+   ```
+   https://github.com/DEFRA/trade-imports-plants-prototype/compare/main...<branch>?expand=1
+   ```
+
+   Tell them: "Open this link, paste the title below into the title box and
+   the description from `.cache/designer/share/pr-body.md` into the
+   description box, then press Create pull request." Give the title in the
+   reply, and the path of the body file.
+
 4. Give the designer the pull request link, and say: "The deployed prototype
-   only changes after this is merged to `main`. The pull request's checks
-   include a browser test run; its `frontend-playwright-report` download has a
-   video walking through each design release."
+   only changes after this is merged to `main`. Send this link to the
+   prototype maintainer for a review and say when you need it merged. The
+   pull request's checks include a browser test run; its
+   `frontend-playwright-report` download has a video walking through each
+   design release."
+
+### 7. Check on or merge a pull request (only when asked)
+
+When the designer says "is my pull request merged yet?", "check my pull
+request", "why is my pull request red?" or "merge my pull request":
+
+1. Find it for the current branch:
+
+   ```
+   gh pr view --repo DEFRA/trade-imports-plants-prototype <branch> --json state,mergeStateStatus,reviewDecision,statusCheckRollup,url
+   ```
+
+   Without `gh`, give the designer the pull request's link (or
+   `https://github.com/DEFRA/trade-imports-plants-prototype/pulls`) and stop.
+
+2. Explain it in plain words, one line each:
+   - `state` `MERGED`: "It is merged. The deployed prototype has it (or will
+     after its next deployment)." `CLOSED`: "It was closed without merging."
+   - `reviewDecision` `REVIEW_REQUIRED` or empty: waiting for the prototype
+     maintainer's review. `CHANGES_REQUESTED`: say what the reviewer asked
+     for (`gh pr view <branch> --comments`).
+   - `statusCheckRollup`: name each check that is not `SUCCESS`. For a failed
+     one, run `gh pr checks --repo DEFRA/trade-imports-plants-prototype <branch>`,
+     then reproduce it locally with `check-my-change`, fix, save (step 5)
+     and send (`git push`, step 6.1, asking first as always).
+   - `mergeStateStatus` `DIRTY`: `main` has moved on in the same lines. Offer
+     to bring `main` in (`git fetch origin main`, then
+     `git merge --no-edit origin/main`) and settle the clash: a clash in
+     `overrides.json` or `src/server/prototype-sets/` is settled by the
+     `design-release` skill, section G; any other clash is settled with the
+     designer. Never force anything.
+3. Merge only when the designer asked in their own words, `reviewDecision` is
+   `APPROVED` (or the repository needs no review), every check is
+   `SUCCESS` and `mergeStateStatus` is `CLEAN`:
+
+   ```
+   gh pr merge --repo DEFRA/trade-imports-plants-prototype <branch> --merge
+   ```
+
+   If GitHub refuses because the designer has no merge rights, say so and
+   ask them to send the link to the prototype maintainer. Never use
+   `--admin`, and never merge a `handoff/*` branch.
 
 ## Undo
 

@@ -6,12 +6,57 @@ takes about an hour the first time, most of it waiting for installs.
 You can do every step by asking Claude Code in plain words. Each step says
 what to ask, and the command it runs, so you can also do it yourself.
 
-## What you need
+## Before you start
 
-- This repository on your computer (a `git clone` of the prototype).
-- Node.js. The version is in the `.nvmrc` file (Node 24). If you use
-  [nvm](https://github.com/nvm-sh/nvm), run `nvm install` in the prototype's
-  folder.
+Do these once. Ask someone who has done it before if a step is new to you.
+
+1. **A GitHub account in the DEFRA organisation, with write access to the
+   prototype.** Ask the prototype maintainer (the person who looks after this
+   prototype; ask in your team if you do not know who). Without write access
+   you can run and change the prototype, but not share your changes.
+2. **Git, with your name and email.** Macs ask to install it the first time
+   you type `git` in a terminal. Then, with the email on your GitHub account:
+
+   ```
+   git config --global user.name "Your Name"
+   git config --global user.email "you@example.com"
+   ```
+
+3. **The prototype on your computer.** In a terminal, in the folder where
+   you keep projects:
+
+   ```
+   git clone https://github.com/DEFRA/trade-imports-plants-prototype.git
+   ```
+
+   Then open the new `trade-imports-plants-prototype` folder.
+
+4. **Node.js.** The version is in the `.nvmrc` file (Node 24). If you use
+   [nvm](https://github.com/nvm-sh/nvm), run `nvm install` in the
+   prototype's folder.
+5. **An assistant.** Either:
+   - **Claude Code**: install it from
+     [claude.com/claude-code](https://claude.com/claude-code), sign in, and
+     start it in the prototype's folder, or
+   - **Cursor** (or another coding assistant): open the prototype's folder.
+     It reads `AGENTS.md`, which points it at the same skills, so the same
+     phrases work. See "Using Cursor or another assistant" in
+     [PROTOTYPE.md](../../PROTOTYPE.md).
+6. **The GitHub command line, for pull requests (optional).** Install `gh`
+   from [cli.github.com](https://cli.github.com), then run `gh auth login`
+   and follow its questions. Without it, Claude gives you a link to open each
+   pull request in your browser instead.
+7. **On Windows**, use Git Bash (it comes with Git for Windows) or WSL for
+   the terminal: the prototype's start command does not run in Command
+   Prompt or PowerShell.
+
+`npm run designer:preflight` (step 1 below) checks most of this for you:
+lines starting `Before you share` are what is still missing for saving and
+sharing. `npm run designer:preflight -- --share` also checks your GitHub
+sign-in and write access.
+
+## What you need each time
+
 - A terminal open in the prototype's folder. Every command below runs there.
 
 You do not need a database, other services, passwords or environment
@@ -28,18 +73,25 @@ Or run:
 npm run designer:preflight
 ```
 
-It checks four things and changes nothing:
+It checks these things and changes nothing:
 
 - your Node version
 - that the prototype's packages are installed
 - that the browser used for pictures is installed
 - that port 3103, the prototype's address, is free
+- that git knows your name and email
+- that the prototype can read the real service's code, for hand-offs
+- that the GitHub command line is installed
 
-Each line starts `OK`, `Needs doing` (with the command to run) or `In use`.
+Each line starts `OK`, `Needs doing` (with the command to run), `In use`, or
+`Before you share` (the prototype runs, but saving or sharing needs this
+first). Claude does what it can for you, such as linking the prototype to
+the real service's code.
 
 ## 2. Install
 
-The first time, and whenever the preflight says packages need installing:
+The first time, and whenever the preflight says packages need installing, run
+the install command its `Packages` line prints. Today that is:
 
 ```
 npx --yes npm@11.6.2 ci
@@ -192,8 +244,10 @@ Ask: **"Save my work"** (the `share-my-change` skill). It puts your change on
 a branch of its own, writes the commit message from what changed, checks it,
 commits it and, when you say so, opens a pull request with the gallery in it.
 
-The deployed prototype only changes after the pull request is merged into
-`main`. See [Sharing and handing off](sharing-and-handing-off.md).
+The prototype maintainer reviews and merges it: send them the link. The
+deployed prototype only changes after the pull request is merged into
+`main`. See [Sharing and handing off](sharing-and-handing-off.md), "Getting
+it merged".
 
 ## Next
 

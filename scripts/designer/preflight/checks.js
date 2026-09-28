@@ -6,11 +6,28 @@
  * - `fix`: something must be done before the prototype will run, and what
  * - `busy`: port 3103 is taken (usually by the prototype itself); nothing is
  *   stopped, the designer decides
+ * - `todo`: the prototype runs, but saving, sharing or handing off will not
+ *   work until this is done
  */
 
 export const DESIGNER_PORT = 3103
-export const INSTALL_COMMAND = 'npx --yes npm@11.6.2 ci'
 export const BROWSER_INSTALL_COMMAND = 'npm run playwright:install'
+export const UPSTREAM_REMOTE = 'upstream'
+export const DISABLED_PUSH_URL = 'DISABLED'
+
+// The same rule as scripts/npm-version.js: Corepack allows a `+sha512...`
+// suffix, which npm itself rejects.
+const NPM_SPEC = /^npm@\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/
+
+/**
+ * The install command for package.json's `packageManager` (`npm@11.6.2`
+ * becomes `npx --yes npm@11.6.2 ci`), so the weekly update's npm bump reaches
+ * every designer without a code change. Plain `npm ci` when it names no npm.
+ */
+export const installCommandFor = (packageManager) => {
+  const [spec] = String(packageManager ?? '').split('+')
+  return NPM_SPEC.test(spec) ? `npx --yes ${spec} ci` : 'npm ci'
+}
 
 const versionParts = (version) =>
   String(version)
@@ -68,15 +85,20 @@ export const packagesDrift = (lock, installed) => {
 /**
  * Whether the packages are installed and match package-lock.json.
  *
- * @param {object} state - `{ installed, drift }`: installed is false when
- *   node_modules/.package-lock.json is missing; drift is from packagesDrift.
+ * @param {object} state - `{ installed, drift, installCommand }`: installed
+ *   is false when node_modules/.package-lock.json is missing; drift is from
+ *   packagesDrift; installCommand is from installCommandFor.
  */
-export const checkPackages = ({ installed, drift = [] }) => {
+export const checkPackages = ({
+  installed,
+  drift = [],
+  installCommand = 'npm ci'
+}) => {
   if (!installed) {
     return {
       id: 'packages',
       status: 'fix',
-      message: `The prototype's packages are not installed. Run: ${INSTALL_COMMAND}`
+      message: `The prototype's packages are not installed. Run: ${installCommand}`
     }
   }
   if (drift.length > 0) {
@@ -87,7 +109,7 @@ export const checkPackages = ({ installed, drift = [] }) => {
     return {
       id: 'packages',
       status: 'fix',
-      message: `${drift.length} installed package(s) do not match the package list (for example ${examples}). Run: ${INSTALL_COMMAND}`
+      message: `${drift.length} installed package(s) do not match the package list (for example ${examples}). Run: ${installCommand}`
     }
   }
   return {
@@ -169,14 +191,140 @@ export const checkPort = ({ free, holder, answersLikeThePrototype }) => {
   }
 }
 
+/**
+ * Whether git knows who you are. Without a name and email, git refuses every
+ * save.
+ *
+ * @param {object} state - `{ name, email }`, from git config (null when unset).
+ */
+export const checkGitIdentity = ({ name, email }) => {
+  const missing = [
+    ...(name ? [] : ['git config --global user.name "Your Name"']),
+    ...(email ? [] : ['git config --global user.email "you@example.com"'])
+  ]
+  if (missing.length > 0) {
+    return {
+      id: 'git',
+      status: 'todo',
+      message: `Git does not know who you are yet, so it cannot save your work. Run: ${missing.join(' then ')} (use the email on your GitHub account).`
+    }
+  }
+  return {
+    id: 'git',
+    status: 'ok',
+    message: `Git saves your work as ${name} <${email}>.`
+  }
+}
+
+/**
+ * Whether the real service's code can be fetched for a hand-off, with no way
+ * to send anything to it. A fresh clone has no `upstream` remote: remotes are
+ * not copied by `git clone`.
+ *
+ * @param {object} state - `{ fetchUrl, pushUrl, cloneUrl }`: the remote's
+ *   addresses (null when there is no such remote) and the real service's
+ *   clone address from scripts/designer/prototype.json.
+ */
+export const checkUpstreamRemote = ({ fetchUrl, pushUrl, cloneUrl }) => {
+  const addRemote = `git remote add ${UPSTREAM_REMOTE} ${cloneUrl}`
+  const lockPush = `git remote set-url --push ${UPSTREAM_REMOTE} ${DISABLED_PUSH_URL}`
+  if (!fetchUrl) {
+    return {
+      id: 'upstream',
+      status: 'todo',
+      commands: [addRemote, lockPush],
+      message: `This copy cannot compare a hand-off with the real service (plants-frontend) yet. Run: ${addRemote} then ${lockPush} (the second stops anything ever being sent there).`
+    }
+  }
+  if (pushUrl !== DISABLED_PUSH_URL) {
+    return {
+      id: 'upstream',
+      status: 'todo',
+      commands: [lockPush],
+      message: `The real service (plants-frontend) can be fetched, but its send address is not locked. Run: ${lockPush}`
+    }
+  }
+  return {
+    id: 'upstream',
+    status: 'ok',
+    message:
+      'The real service (plants-frontend) can be fetched for hand-offs, and nothing can be sent to it.'
+  }
+}
+
+/**
+ * Whether the GitHub command line (`gh`) is there and signed in, for opening
+ * pull requests. Without it, share-my-change prints a link to open the pull
+ * request in the browser instead.
+ *
+ * @param {object} state - `{ installed, signedIn }`; signedIn is null when it
+ *   was not checked (only `--share` checks it).
+ */
+export const checkGitHubCli = ({ installed, signedIn = null }) => {
+  if (!installed) {
+    return {
+      id: 'gh',
+      status: 'todo',
+      message:
+        'The GitHub command line (gh) is not installed. Pull requests still work: Claude gives you a link to open one in your browser. To have Claude open them for you, install gh from https://cli.github.com, then run: gh auth login'
+    }
+  }
+  if (signedIn === false) {
+    return {
+      id: 'gh',
+      status: 'todo',
+      message:
+        'The GitHub command line (gh) is installed but not signed in. Run: gh auth login'
+    }
+  }
+  return {
+    id: 'gh',
+    status: 'ok',
+    message:
+      signedIn === true
+        ? 'The GitHub command line (gh) is installed and signed in.'
+        : 'The GitHub command line (gh) is installed. Run designer:preflight -- --share to check it is signed in.'
+  }
+}
+
+/**
+ * Whether this computer can send a branch to the prototype on GitHub. Only
+ * `--share` checks it, with `git push --dry-run`, which sends nothing.
+ *
+ * @param {object} state - `{ canPush, detail, repository }`.
+ */
+export const checkPush = ({ canPush, detail, repository }) => {
+  if (canPush) {
+    return {
+      id: 'push',
+      status: 'ok',
+      message: `You can send branches to ${repository} on GitHub.`
+    }
+  }
+  return {
+    id: 'push',
+    status: 'todo',
+    message: `You cannot send branches to ${repository} on GitHub yet${detail ? ` (git said: ${detail})` : ''}. Ask the prototype maintainer for write access to the repository, and sign in to GitHub on this computer (gh auth login sets that up).`
+  }
+}
+
 const LABELS = {
   node: 'Node',
   packages: 'Packages',
   browser: 'Browser',
-  port: `Port ${DESIGNER_PORT}`
+  port: `Port ${DESIGNER_PORT}`,
+  git: 'Git name and email',
+  upstream: 'Real service for hand-offs',
+  gh: 'GitHub command line',
+  push: 'Sending to GitHub'
 }
 
-const MARKS = { ok: 'OK', fix: 'Needs doing', busy: 'In use' }
+const MARKS = {
+  ok: 'OK',
+  fix: 'Needs doing',
+  busy: 'In use',
+  todo: 'Before you share'
+}
 
 /** The results as lines a designer reads. */
 export const formatResults = (results) =>
@@ -185,6 +333,9 @@ export const formatResults = (results) =>
       `${MARKS[result.status] ?? result.status} - ${LABELS[result.id] ?? result.id}: ${result.message}`
   )
 
-/** 1 when anything must be done before the prototype can run, else 0. */
+/**
+ * 1 when anything must be done before the prototype can run, else 0. A
+ * `todo` (saving, sharing, handing off) never stops the prototype running.
+ */
 export const exitCodeFor = (results) =>
   results.some((result) => result.status === 'fix') ? 1 : 0

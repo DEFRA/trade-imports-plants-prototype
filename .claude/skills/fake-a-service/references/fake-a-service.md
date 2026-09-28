@@ -16,6 +16,7 @@ lists every file that imports it.
 | --------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Transporters    | `src/server/prototype-services/transporters/` | Search saved transporters, read one, add one, remove one. Seven starter transporters in `data.json`. Plants-frontend removed its transporter pages on purpose, so there is nothing to copy from the real journey. |
 | Templates       | `src/server/prototype-services/templates/`    | Save a notification's answers under a name, list and search them, delete one, start a new draft from one. `data.json` starts empty.                                                                               |
+| Address book    | `src/server/prototype-services/address-book/` | The stub address book plus add an address, delete one (hidden until Reset), with the real seam's `search` and `party`. Belongs to the Import Notification Service frontend: see `address-book-pages.md`.          |
 | Records wrapper | `src/server/prototype-services/records/`      | Dashboard filters, tabs and counts, saving a release's data across restarts, and Reset clearing every fake. See `dashboard-filters-and-tabs.md`.                                                                  |
 
 Both fakes answer searches in the address book's shape, so any page built

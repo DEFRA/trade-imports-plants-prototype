@@ -1,6 +1,6 @@
 ---
 name: fake-a-service
-description: 'Build the things the real plants service cannot do yet, inside a design release, with a clear "needs a real service" flag: a transporter lookup or saved transporters, notification templates, dashboard filters, tabs and counts, a success banner after an action, a "confirm before deleting" page, "come back to where I was" after a side trip, and a home page across plants, animals and products. Uses the prototype''s fake services and records wrapper in src/server/prototype-services/. Use when a designer says "add a transporter lookup", "saved transporters", "templates", "save as a template", "start from a template", "fake a service", "add filters to the dashboard", "add tabs to the dashboard", "add counts to the dashboard", "a success banner after …", "confirm before deleting", "are you sure page", "come back to where I was", "return to the page I came from", "a home page across plants, animals and products". NOT for data the stubs already serve, such as more addresses, ports, countries or example notifications (use example-data), NOT for adding or changing a question in the journey (use change-the-journey), NOT for layout only (use match-the-design).'
+description: 'Build the things the real plants service cannot do yet, inside a design release, with a clear flag ("needs a real service", or whose service it belongs to): a transporter lookup or saved transporters, notification templates, address book pages (list, add an address by hand, delete with a check page, address categories), a "Copy as new" action, dashboard filters, tabs and counts, a success banner after an action, a "confirm before deleting" page, "come back to where I was" after a side trip, and a home page across plants, animals and products. Uses the prototype''s fake services and records wrapper in src/server/prototype-services/. Use when a designer says "add a transporter lookup", "saved transporters", "templates", "save as a template", "start from a template", "change the address book", "add an address manually", "delete an address", "address categories", "copy as new", "copy this notification", "start from a previous notification", "fake a service", "add filters to the dashboard", "add tabs to the dashboard", "add counts to the dashboard", "a success banner after …", "confirm before deleting", "are you sure page", "come back to where I was", "return to the page I came from", "a home page across plants, animals and products". NOT for extra starter rows the stubs already serve, such as more addresses to pick from, ports, countries or example notifications (use example-data), NOT for adding or changing a question in the journey (use change-the-journey), NOT for layout only (use match-the-design).'
 ---
 
 # Fake a service
@@ -68,7 +68,8 @@ passes.
   list of notes (a crit, feedback) or four or more changes, start the
   `design-session` workflow (CLAUDE.md, "Workflows"). Never make the designer
   ask again for a part they already asked for.
-- **One Bash command per call.** Install only with `npx --yes npm@11.6.2 ci`.
+- **One Bash command per call.** Install only with the command
+  `npm run designer:preflight` prints (today `npx --yes npm@11.6.2 ci`).
   Never `--no-verify`, never push.
 
 ## Step 1: Find the release
@@ -136,17 +137,21 @@ files, with the suggested messages from each part's report.
 
 Match the request to one reference and read all of it before you edit:
 
-| The designer wants                                                                                                                      | Read                                       |
-| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| A lookup, a saved list, "add a new one": transporters, templates, anything the real service would fetch from a service it does not have | `references/fake-a-service.md`             |
-| Filters, tabs or counts on the dashboard                                                                                                | `references/dashboard-filters-and-tabs.md` |
-| A green "done" message after an action                                                                                                  | `references/success-banner.md`             |
-| "Are you sure?" before deleting, cancelling or discarding                                                                               | `references/confirm-then-act.md`           |
-| Go off to another page (add a transporter, change an answer) and land back where you were                                               | `references/come-back-to-where-i-was.md`   |
-| A front door across plants, animals and products                                                                                        | `references/service-home.md`               |
+| The designer wants                                                                                                                             | Read                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| A lookup, a saved list, "add a new one": transporters, templates, anything the real service would fetch from a service it does not have        | `references/fake-a-service.md`             |
+| Address book pages: a list, add an address by hand, delete one, address categories (flag: belongs to the Import Notification Service frontend) | `references/address-book-pages.md`         |
+| "Copy as new" on the dashboard, "start from a previous notification" (not a fake: the backend copies already)                                  | `references/copy-as-new.md`                |
+| Filters, tabs or counts on the dashboard                                                                                                       | `references/dashboard-filters-and-tabs.md` |
+| A green "done" message after an action                                                                                                         | `references/success-banner.md`             |
+| "Are you sure?" before deleting, cancelling or discarding                                                                                      | `references/confirm-then-act.md`           |
+| Go off to another page (add a transporter, change an answer) and land back where you were                                                      | `references/come-back-to-where-i-was.md`   |
+| A front door across plants, animals and products                                                                                               | `references/service-home.md`               |
 
-If the request is really example data (more addresses, a late notification,
-a filled dashboard), stop and use `example-data`. If it is a new question in
+If the request is really example data (more addresses to pick from, a late
+notification, a filled dashboard), stop and use `example-data`. Pages that
+change the address book (add, delete, categories) are this skill:
+`references/address-book-pages.md`. If it is a new question in
 the journey, stop and use `change-the-journey`. You can use this skill and then
 that one: for example, a transporter lookup page is a fake (this skill)
 registered as a journey page (`change-the-journey`'s add-a-page recipe).
@@ -348,6 +353,10 @@ agent that can run Bash and edit files.
 
 - `references/fake-a-service.md`: the fake service pattern, and the two worked
   examples (transporters and templates)
+- `references/address-book-pages.md`: address book pages on the fake address
+  book, and swapping the release's pickers onto it
+- `references/copy-as-new.md`: a "Copy as new" action and its check page, on
+  the engine's own copy
 - `references/dashboard-filters-and-tabs.md`: filters, tabs and counts on a
   release's dashboard
 - `references/success-banner.md`: a green banner after an action

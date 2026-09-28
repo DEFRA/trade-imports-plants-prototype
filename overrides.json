@@ -109,7 +109,7 @@
     },
     {
       "path": "README.md",
-      "why": "prototype identity and port 3103; Lighthouse, SonarCloud and workspace-stack sections trimmed"
+      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed"
     },
     {
       "path": "Dockerfile",

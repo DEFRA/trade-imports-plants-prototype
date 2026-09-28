@@ -29,9 +29,9 @@ export const meta = {
 
 // The one place to choose models. A `runner` only runs commands and reports
 // what they printed, a `builder` edits files by following a skill, and a
-// `judge` reads and decides. Point any of them at another model (a Fable
-// model suits the runner) by changing its name here; null means "use the
-// session's own model".
+// `judge` reads and decides. Point any of them at another model by changing
+// its name here (Fable suits only the judge: see README.md, "Choosing
+// models"); null means "use the session's own model".
 const MODELS = { runner: 'haiku', builder: 'sonnet', judge: 'opus' }
 
 // >>> args-contract
@@ -303,13 +303,24 @@ const prepare = (slug) =>
     })
   )
 
+const releasePaths = (set) => [
+  `src/server/app/sets/${set}`,
+  `src/server/app/routes-${set}.js`,
+  'src/server/prototype-sets/index.js',
+  'src/server/prototype-sets/descriptions.js',
+  'overrides.json'
+]
+
 const startRelease = () =>
   agent(
     [
       `The design release "${config.set}" does not exist yet. Start it from the real journey and save it as its own commit, following section B of .claude/skills/design-release/SKILL.md with these answers already given:`,
       `1. Run: npm run new:set -- ${config.set} --from high-risk-plants --purpose working --describe "Working release for a design session"`,
       '2. Run: npm run designer:format',
-      '3. Run: git add -A',
+      '3. Stage exactly the files new:set made, one git add per path (never git add -A or git add .):',
+      ...releasePaths(config.set).map((path) => `   Run: git add -- ${path}`),
+      '   Then run: git diff --cached --name-only',
+      `   Every line it prints must start with one of: ${releasePaths(config.set).join(', ')}. If any other file is staged, stop: done is false and reason names the unexpected files.`,
       `4. Run: npm run designer:save -- -m "Start design release ${config.set} from high-risk-plants" -m "Copied from high-risk-plants for a design session."`,
       '   The pre-commit hook runs the full check; its output goes to .cache/designer/commit.log and the command prints one line, or the end of the log when the save failed. Never add --no-verify.',
       'done is true when the commit went through. Otherwise done is false and reason is the plain reason the command or the hook gave.',

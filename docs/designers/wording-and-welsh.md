@@ -73,13 +73,21 @@ they are: that is where the number goes.
 ## Words you cannot change in a design release
 
 The shared chrome (the header, service navigation, footer, "Save and
-continue", "There is a problem") is used by every set, including the real
+continue", "There is a problem", and the notification status names Draft,
+Submitted, Amending and Deleted) is used by every set, including the real
 journey, and it belongs to the real service. Changing it in the prototype
 would change every design release at once and clash with the weekly update.
 
-If you ask for one of these, Claude will not change it. It will explain why
-and add a row to your release's `design-gaps.md`, so the request travels with
-your hand-off to the real team.
+If you ask for one of these, Claude will not change it in your release. It
+explains why and adds a row to your release's `design-gaps.md`, so the
+request travels with your hand-off to the real team.
+
+**You can still see it.** For a vocabulary decision, such as renaming the
+status "Submitted" to "Sent", Claude offers to make the change on a separate
+hand-off branch: it changes the shared words there, takes pictures of the
+real journey before and after, and brings you back to your own branch. Your
+design release keeps the old words until the real team takes the change.
+Say "yes, show me it on a hand-off branch" when Claude offers.
 
 ## Why the Welsh matters
 

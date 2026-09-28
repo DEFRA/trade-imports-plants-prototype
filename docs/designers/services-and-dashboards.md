@@ -1,8 +1,9 @@
 # Services and dashboards
 
 How to show things the real plants service cannot do yet: saved transporters,
-notification templates, dashboard filters, tabs and counts, success messages,
-"are you sure?" pages, and a home page across commodities. Say what you want
+notification templates, address book pages, "Copy as new", dashboard filters,
+tabs and counts, success messages, "are you sure?" pages, and a home page
+across commodities. Say what you want
 to Claude, for example "add a transporter lookup" or "add tabs to the
 dashboard", and it follows these steps with you (the `fake-a-service` skill).
 
@@ -33,6 +34,9 @@ real service**.
 | "Are you sure?" before deleting                            | A check page with a red button, like "delete notification"                                          | No, but what it deletes may be           |
 | Go off to add something and come back                      | Back to the list with the new thing ticked, or back to check your answers                           | No                                       |
 | A home page across plants, animals and products            | A small set of its own with a card per commodity                                                    | It belongs to another service: see below |
+| Address book pages: add an address by hand, delete one     | A list, an add page and an "are you sure?" page; the journey's pickers see the change               | Yes, and it belongs to another service   |
+| Address categories ("what is this address used for")       | A checkbox question on the add page, shown on the list                                              | Yes, and a design question (see below)   |
+| "Copy as new" on the dashboard                             | An action on each card, a check page, and the new draft's task list with a banner                   | No: the backend can copy already         |
 
 ## Your data now survives a restart
 
@@ -57,7 +61,9 @@ real journey, high-risk-plants, works exactly as the real service does and
 keeps nothing.
 
 To switch it off for a session, start the prototype with
-`PROTOTYPE_PERSIST=false npm run dev` instead of `npm run dev`.
+`npm run designer:fresh` instead of `npm run dev`. It is the same prototype,
+but every restart starts from the examples, and there is no setting to type
+yourself.
 
 ## Tabs and filters look a little different
 
@@ -90,6 +96,19 @@ A home page across plants, animals and products is a special case. The real
 front door belongs to the Import Notification Service frontend, which also
 owns the address book, not to plants. You can build one to test the idea, and
 the brief will say whose it is.
+
+The address book is the same. Plants only reads it; adding and deleting
+addresses happens in the Import Notification Service frontend. Address book
+pages in your release work on a pretend address book, and the journey's
+pickers see what you add, so you can test the whole round trip. The brief
+says the change is for the Import Notification Service team. Categories are
+also a design question: the real address book has no categories on purpose,
+because one address can be a consignor on one notification and a consignee on
+the next.
+
+"Copy as new" is the opposite case: the backend can already copy a
+notification, and the real team has parked the button. What you build here
+could ship as it is.
 
 ## What you will be asked
 
@@ -127,8 +146,12 @@ never touches it.
   `.cache/designer/data/<release>.json` in development, and on Reset also
   empties every fake. The dashboard helpers are `filtersFromQuery`,
   `listKnownWithFilters` and `countKnown`.
-- `transporters/` and `templates/`: the two fakes, each an `index.js`, a
+- `transporters/` and `templates/`: two fakes, each an `index.js`, a
   `data.json` of starter rows and an `index.test.js`.
+- `address-book/`: the third fake. Its starter rows are the stub address
+  book's own rows plus the set's extra parties, so it has no `data.json`. It
+  answers the real address book's `search` and `party`, so a release swaps
+  one import to use it.
 - `lib/`: what every fake shares: `createFakeStore` (rows per release and per
   organisation, saving and Reset), `searchRecords` (the address book's search
   shape), and the list of loaded fakes for the hand-off.
