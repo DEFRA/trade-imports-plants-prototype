@@ -60,6 +60,20 @@ If a page is already where the designer wants it, say so and change nothing.
 
 ## Steps
 
+### 0. See where the pages are now
+
+```bash
+npm run designer:release -- orders <release> <page> <page>
+```
+
+Name the pages by address, for example
+`npm run designer:release -- orders plants-working destinations/select consignors/select`.
+It prints the first pass, the Continue sections and the task list, with the
+named pages marked, and says which number each is in the first pass. If the
+pages are already in the order the designer asked for in all of them, say so,
+show them the printed orders, and change nothing: that is the whole run. If
+only some orders differ, say which, and change only those.
+
 ### 1. Find every place the page is named
 
 Search the release with the Grep tool for the page's export name
@@ -185,13 +199,16 @@ the steps follow the new order. For the example, in `plantsForPlanting` and
 
 ## How to check it
 
-1. `npm run designer:check -- --set <release> --full`
-2. `npm run designer:examples -- check <release>`
-3. `npm run designer:check -- --set <release> --walk`. The walk follows the
-   first pass to the confirmation page, so a page in the wrong place, or a
-   step the example data no longer reaches, fails here.
-4. `npm run designer:show -- --set <release> --pages all`. The gallery shows
-   the pages in journey order. Read it and confirm the new order.
+1. `npm run designer:examples -- check <release>`
+2. `npm run designer:check -- --set <release> --walk`. It runs the full check
+   first, so there is no separate `--full` run. The walk follows the first
+   pass to the confirmation page, so a page in the wrong place, or a step the
+   example data no longer reaches, fails here.
+3. `npm run designer:release -- orders <release> <page>` again: the orders
+   now read the way the designer asked.
+4. `npm run designer:show -- --set <release> --pages all --before`. The
+   gallery shows the pages in journey order, before and after. Read it and
+   confirm the new order.
 5. Tell the designer which of the four orders changed, and give the link to a
    draft example so they can walk it themselves.
 

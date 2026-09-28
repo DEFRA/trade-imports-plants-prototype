@@ -10,11 +10,28 @@ export const USAGE = [
   'Options:',
   '  --pages changed|all|<pages>  which pages (default: changed). Name pages by',
   '                               their address, comma-separated, for example',
-  '                               arrival-details,origin,dashboard',
+  '                               arrival-details,origin,dashboard. `chooser` is',
+  '                               the list of sets at http://localhost:3103/',
+  '  --url <address>              also picture any address in the set, as in the',
+  '                               browser bar after the set name, for example',
+  '                               "?status=submitted" (the dashboard, filtered),',
+  '                               "notifications/{notification}/transporter-select/add"',
+  '                               ({notification} is the one the pictures filled in)',
+  '                               or "/" (starting with / means the whole prototype).',
+  '                               Repeat it for more addresses',
+  '  --examples <slugs>           also picture where each example link lands,',
+  '                               comma-separated, for example submitted,amended',
+  '  --each-example               picture a page once for every example that',
+  '                               reaches it, so both sides of a question show',
+  '  --no-examples                picture the dashboard empty (no example',
+  '                               notifications), as a new user sees it',
   '  --before                     also show your last saved version (commit)',
+  '  --before-commit <commit>     compare with that saved version instead of the',
+  '                               last one, for example HEAD~1 after an undo',
   '  --errors                     also show each form with its error messages',
   '  --mobile                     also show each page at phone width (320px)',
   '  --reference <page>=<image>   put a Figma frame or screenshot beside a page',
+  '                               (PNG, JPEG, GIF, WebP or SVG)',
   '  --compare <set-id>           put the same pages from another set beside yours',
   '  --video                      record a walkthrough of the whole journey',
   '  --open                       open the gallery in your browser when done',
@@ -27,11 +44,22 @@ const FLAGS = Object.freeze({
   '--mobile': 'mobile',
   '--video': 'video',
   '--open': 'open',
+  '--each-example': 'eachExample',
   '--help': 'help',
   '-h': 'help'
 })
 
-const VALUE_OPTIONS = new Set(['--set', '--pages', '--reference', '--compare'])
+const NEGATED = Object.freeze({ '--no-examples': 'examples' })
+
+const VALUE_OPTIONS = new Set([
+  '--set',
+  '--pages',
+  '--reference',
+  '--compare',
+  '--url',
+  '--examples',
+  '--before-commit'
+])
 
 const PAGE_MODES = new Set(['changed', 'all'])
 
@@ -43,8 +71,9 @@ const splitList = (value) =>
 
 /**
  * Turns `--pages` values into `{ mode, keys }`. `changed` and `all` are
- * modes; anything else is a list of page names. Several `--pages` options
- * add up.
+ * modes; anything else is a list of page names. `changed` with names
+ * (`changed,dashboard`) shows the changed pages and those pages too. Several
+ * `--pages` options add up.
  */
 export const parsePages = (values) => {
   if (values.length === 0) {
@@ -55,11 +84,11 @@ export const parsePages = (values) => {
   if (modes.includes('all')) {
     return { mode: 'all', keys: [] }
   }
-  const keys = items.filter((item) => !PAGE_MODES.has(item))
-  if (keys.length === 0) {
-    return { mode: 'changed', keys: [] }
+  const keys = [...new Set(items.filter((item) => !PAGE_MODES.has(item)))]
+  if (keys.length === 0 || modes.includes('changed')) {
+    return { mode: 'changed', keys }
   }
-  return { mode: 'list', keys: [...new Set(keys)] }
+  return { mode: 'list', keys }
 }
 
 /** `arrival-details=designs/arrival.png` as `{ page, image }`, or null. */
@@ -75,13 +104,18 @@ const emptyOptions = () => ({
   set: null,
   pages: { mode: 'changed', keys: [] },
   before: false,
+  beforeCommit: null,
   errors: false,
   mobile: false,
   video: false,
   open: false,
   help: false,
+  eachExample: false,
+  examples: true,
   compare: null,
-  references: []
+  references: [],
+  urls: [],
+  exampleLinks: []
 })
 
 const readValue = (argv, index, name, problems) => {
@@ -109,6 +143,13 @@ const applyValue = (options, name, value, pageValues, problems) => {
     options.compare = value
   } else if (name === '--pages') {
     pageValues.push(value)
+  } else if (name === '--url') {
+    options.urls.push(value.trim())
+  } else if (name === '--examples') {
+    options.exampleLinks.push(...splitList(value))
+  } else if (name === '--before-commit') {
+    options.before = true
+    options.beforeCommit = value.trim()
   } else {
     const reference = parseReference(value)
     if (reference) {
@@ -137,6 +178,9 @@ export const parseShowArgs = (argv) => {
     const name = optionName(arg)
     if (FLAGS[arg]) {
       options[FLAGS[arg]] = true
+      index += 1
+    } else if (NEGATED[arg]) {
+      options[NEGATED[arg]] = false
       index += 1
     } else if (VALUE_OPTIONS.has(name)) {
       const { value, consumed } = readValue(argv, index, name, problems)

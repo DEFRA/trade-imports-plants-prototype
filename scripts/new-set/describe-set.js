@@ -43,6 +43,19 @@ export const addDescription = (descriptionsPath, { setId, text }) => {
   )
 }
 
+/** Whether the set has a chooser description. */
+export const hasDescription = (descriptionsPath, { setId }) =>
+  entryPattern(setId).test(readFileSync(descriptionsPath, 'utf8'))
+
+/** The set ids with a chooser description. */
+export const describedSetIds = (descriptionsPath) => {
+  const content = readFileSync(descriptionsPath, 'utf8')
+  const { start, end } = bodyBounds(content)
+  return [...content.slice(start, end).matchAll(/\n {2}'([a-z0-9-]+)':/g)].map(
+    (match) => match[1]
+  )
+}
+
 /**
  * Takes a set's description back out, for retiring a design release.
  *

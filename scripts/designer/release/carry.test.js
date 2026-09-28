@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { scaffoldSet } from '../../new-set/index.js'
 import { readReleaseRecord } from '../../new-set/release-record.js'
 import { carryChange, uuidTranslation } from './carry.js'
+import { git } from './git.js'
 import {
   commitAll,
   editIn,
@@ -147,6 +148,45 @@ describe('carry', () => {
       })
     ).toThrow(/is frozen/)
     expect(readIn(repoRoot, ORIGIN_COPY('plants-dr1'))).toContain(OLD_HINT)
+  })
+
+  it('Should name the working release made from a frozen target', () => {
+    release('plants-dr1-1', { from: 'plants-dr1' })
+    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_HINT, NEW_HINT)
+
+    expect(() =>
+      carryChange({
+        from: 'plants-a',
+        to: 'plants-dr1',
+        working: true,
+        repoRoot
+      })
+    ).toThrow(/carry --to plants-dr1-1/)
+  })
+
+  it('Should carry a saved change from a release that is only on another branch', () => {
+    git(repoRoot, ['switch', '-q', '-c', 'design/last-week'])
+    release('plants-old')
+    commitAll(repoRoot, 'Start plants-old')
+    editIn(repoRoot, ORIGIN_COPY('plants-old'), OLD_HINT, NEW_HINT)
+    const commit = commitAll(repoRoot, 'New origin hint')
+    git(repoRoot, ['switch', '-q', 'main'])
+
+    const result = carryChange({
+      from: 'plants-old',
+      to: 'plants-b',
+      commit,
+      repoRoot
+    })
+
+    expect(result.how).toBe('clean')
+    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_HINT)
+  })
+
+  it('Should say how to carry from another branch when no commit is named', () => {
+    expect(() =>
+      carryChange({ from: 'plants-gone', to: 'plants-b', repoRoot })
+    ).toThrow(/--commit <commit id>/)
   })
 
   it('Should refuse to carry into the real journey and point at hand-off', () => {

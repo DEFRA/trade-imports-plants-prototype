@@ -33,8 +33,35 @@ your files: `git status` is the same before and after.
 | A video of the whole journey              | "record a walkthrough"          | `--video`                                        |
 | Everything, for a review or show and tell | "make a review pack"            | `--pages all --before --errors --mobile --video` |
 | The gallery opened for you                | "and open it"                   | `--open`                                         |
+| The prototypes page (the chooser)         | "show me the chooser"           | `--pages chooser`                                |
+| Where example links land                  | "show the example links"        | `--examples submitted,amended`                   |
+| Both sides of a question                  | "show the Yes and the No"       | `--each-example`                                 |
+| A filtered dashboard, a tab, a side page  | "show the Submitted tab"        | `--url "?tab=submitted"`                         |
+| The dashboard with no notifications       | "show a new user's dashboard"   | `--no-examples`                                  |
+| Compared with an older save               | "compare with before the undo"  | `--before-commit HEAD~1`                         |
 
 You can combine any of them. `npm run designer:show -- --help` lists them.
+
+### Any address: `--url`
+
+`--url` photographs any address in your release, written as it shows in the
+browser after the release's name. Repeat it for several:
+
+- `--url "?status=submitted"` or `--url "?tab=drafts"`: the dashboard,
+  filtered or on a tab. Use one for each state you want to see: filtered,
+  a tab, nothing matching, an error.
+- `--url "notifications/{notification}/transporter-select/add"`: a page
+  inside a notification that is not a step of the journey (an "add" form, a
+  confirm page). `{notification}` is the notification the pictures filled in.
+- `--url "/"`: an address of the whole prototype, not only your release.
+
+### Both sides of a question: `--each-example`
+
+Normally each page is photographed once, from the first example that reaches
+it. `--each-example` photographs it once for every example that reaches it,
+named after the example, so a potato notification and a plants one (or the
+Yes and the No of a question you added) sit side by side, check your answers
+included.
 
 ### Page names
 
@@ -45,9 +72,11 @@ A page's name is its address inside a notification: `commodity-type`,
 (check your answers), `declaration`, `confirmation`. Two pages have names of
 their own: `dashboard` and `hub` (the task list).
 
-You can also use `check-answers` and `task-list`, or write
-`commodities-details` for `commodities/details`. A name it does not know gets
-a list of the right ones.
+You can also use `check-answers` and `task-list`, a page's id
+(`consignor-select`, as `designer:words -- find` prints it), or write
+`commodities-details` for `commodities/details`. `chooser` is the prototypes
+page. `changed,dashboard` gives the changed pages and the dashboard. A name it
+does not know gets a list of the right ones.
 
 ### Which pages "the pages your change affects" means
 
@@ -56,7 +85,10 @@ last save, and works out the pages:
 
 - a file in a page's own folder (`features/<page>/`): that page
 - a file shared by the whole release (its flow, captions, obligations,
-  example answers): every page in the release
+  example answers): every page in the release. For a wording change to a
+  caption or the task list, that is more than you need: name the pages
+  instead. `npm run designer:words -- find "<words>"` ends with the exact
+  command for the pages the words are on.
 - tests, docs and notes: no page
 - files outside a set: no page. Use `--pages` to name the pages you want.
 
@@ -99,7 +131,10 @@ the example notifications use. For each page, it uses the first example that
 answers that page, signs in, sends the answers for every page before it, and
 photographs the page as a trader first sees it: empty.
 
-- **Dashboard** is photographed last, so it has notifications on it.
+- **Dashboard** is photographed last, with your release's example
+  notifications on it (the same ones `npm run dev` makes, late tags
+  included) and the notifications the pictures filled in. `--no-examples`
+  leaves the examples out.
 - **Task list (hub)** is photographed when the first example has answered
   every page.
 - **Check your answers, declaration and confirmation** are reached by

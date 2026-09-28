@@ -108,19 +108,26 @@ gap.
 
 ## Tabs on a dashboard
 
-`govukTabs` renders, but its script is not started in this service, so it
-shows a list of links and then every panel one after another. That is rarely
-what a tabbed design wants. Options, best first:
+**Never use the `govukTabs` macro in a release.** Its script is not started in
+this service, but the macro still marks every panel after the first
+`govuk-tabs__panel--hidden`, and the GOV.UK styles hide them. Only the first
+tab's content ever shows and the other tabs cannot be opened, yet a picture
+looks like working tabs. Options, best first:
 
-1. One list, filtered by a status select or radios in a GET form (see "A
-   filter panel beside a list"). Counts go in the option text, for example
-   "Drafts (3)".
-2. Sections one after another, each with an `h2` that carries its count. This
-   is what `govukTabs` shows without its script, so the page reads the same
-   either way.
+1. Server-side tab links: the GOV.UK tabs classes on real links
+   (`?tab=drafts`), with only the open tab's list rendered. It looks like
+   GOV.UK tabs with no script. The markup, and the controller change it needs,
+   are in `fake-a-service`'s `references/dashboard-filters-and-tabs.md`,
+   "Step 3: tabs". Counts go in the link text, for example "Drafts (3)".
+2. One list, filtered by a status select or radios in a GET form (see "A
+   filter panel beside a list").
+3. Sections one after another, each with an `h2` that carries its count.
 
-In both cases, add a design gap row: "Tabs need the Tabs script started in the
-real service (`createAll(Tabs)` in `src/client/javascripts/application.js`)".
+In every case, add a design gap row: "Script tabs need the Tabs script started
+in the real service (`createAll(Tabs)` in
+`src/client/javascripts/application.js`)". Picture each tab with
+`designer:show --url "?tab=<id>"` and read each picture: each tab must show
+its own content.
 
 ## Glance counts at the top of a dashboard
 

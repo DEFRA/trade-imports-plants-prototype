@@ -19,6 +19,10 @@ import {
   checkSetCopy,
   describeCopyProblem
 } from '../../../src/server/prototype-checks/copy-shape.js'
+import {
+  describeFrozenChange,
+  frozenReleaseChanges
+} from '../../../src/server/prototype-checks/frozen-releases.js'
 import { CHECK_SET_ENV } from '../../../src/server/prototype-checks/sets-on-disk.js'
 import { checkSetTemplates } from './templates.js'
 
@@ -100,6 +104,29 @@ const OWNER_WORDS = {
   removed: 'removed by the weekly update'
 }
 
+/**
+ * Frozen releases among the changed files: `{ broken, justFrozen }`. A file
+ * in a release that was already frozen at the last save breaks the freeze
+ * (the pre-commit hook refuses it too). A release whose freeze is itself
+ * part of this change is only reported, as "you froze it".
+ */
+const frozenFindings = (verdicts, root) => {
+  const setIds = [
+    ...new Set(verdicts.filter((verdict) => verdict.frozen).map((v) => v.setId))
+  ]
+  const broken = []
+  const justFrozen = []
+  for (const setId of setIds) {
+    const found = frozenReleaseChanges(setId, { repoRoot: root })
+    if (!found.freezeCommit) {
+      justFrozen.push(setId)
+    } else if (found.changed.length > 0) {
+      broken.push({ setId, found })
+    }
+  }
+  return { broken, justFrozen }
+}
+
 const ownership = ({ root, changedPaths }) => {
   const verdicts = changedPaths.map((repoPath) =>
     ownershipOf(repoPath, { root })
@@ -114,17 +141,34 @@ const ownership = ({ root, changedPaths }) => {
     ])
     .filter(([count]) => count > 0)
     .map(([count, words]) => `${count} ${words}`)
+  const { broken, justFrozen } = frozenFindings(verdicts, root)
   const attention = verdicts.filter(
-    (verdict) => verdict.owner !== 'yours' || verdict.frozen
+    (verdict) =>
+      verdict.owner !== 'yours' ||
+      (verdict.frozen && !justFrozen.includes(verdict.setId))
   )
-  const details = attention.map(
-    (verdict) => `${verdict.path}: ${verdict.sentence}`
-  )
-  return result(
-    attention.length > 0 ? 'warn' : 'pass',
-    `${plural(verdicts.length, 'file')} changed: ${counts.join(', ')}.`,
-    { details, output: details.join('\n') }
-  )
+  const details = [
+    ...justFrozen.map(
+      (setId) =>
+        `You froze ${setId} in this change. Save the freeze on its own, before any other change.`
+    ),
+    ...attention.map((verdict) => `${verdict.path}: ${verdict.sentence}`)
+  ]
+  const summary = `${plural(verdicts.length, 'file')} changed: ${counts.join(', ')}.`
+  if (broken.length > 0) {
+    const lines = broken.map(({ setId, found }) =>
+      describeFrozenChange(setId, found)
+    )
+    return result(
+      'fail',
+      `${summary} ${plural(broken.length, 'frozen release')} changed.`,
+      { details, output: [...lines, ...details].join('\n') }
+    )
+  }
+  return result(attention.length > 0 ? 'warn' : 'pass', summary, {
+    details,
+    output: details.join('\n')
+  })
 }
 
 /** A copy problem for the log, naming the Welsh file so it can be attributed. */
@@ -151,7 +195,7 @@ const copy = async ({ root, setId }) => {
   const waiting =
     markers.length === 0
       ? 'no Welsh is waiting.'
-      : `${plural(markers.length, 'piece')} of text still need Welsh.`
+      : `${plural(markers.length, 'piece')} of text still ${markers.length === 1 ? 'needs' : 'need'} Welsh.`
   return result(
     'pass',
     `${plural(copyFolders, 'copy folder')} match; ${waiting}`,
@@ -206,6 +250,33 @@ const prototypeChecks = async ({ root, setId, runCommand }) =>
     'Every page opens.'
   )
 
+const ESLINT = 'node_modules/eslint/bin/eslint.js'
+const LINTED_EXTENSIONS = new Set(['.js', '.cjs', '.mjs'])
+
+/**
+ * ESLint on the code files the designer changed, so a broken code rule (for
+ * example a repeated string in an example scenario) shows in the quick
+ * check, not only in the pre-commit hook.
+ */
+const codeRulesOnChanged = async ({ root, changedPaths, runCommand }) => {
+  const files = changedPaths.filter(
+    (repoPath) =>
+      LINTED_EXTENSIONS.has(path.extname(repoPath)) &&
+      existsSync(path.join(root, repoPath))
+  )
+  if (files.length === 0) {
+    return result('pass', 'You changed no code files.')
+  }
+  return commandResult(
+    await runCommand(
+      process.execPath,
+      [ESLINT, '--no-warn-ignored', ...files],
+      { cwd: root }
+    ),
+    `No code rules broken in ${plural(files.length, 'file')} you changed.`
+  )
+}
+
 const unitTests = async ({ root, runCommand }) =>
   commandResult(
     await runCommand('npm', ['test'], { cwd: root }),
@@ -218,6 +289,7 @@ export const STEP_RUNNERS = {
   ownership,
   copy,
   templates,
+  'code-rules': codeRulesOnChanged,
   'prototype-checks': prototypeChecks,
   'real-journey-tests': npmStep(
     'test:high-risk-plants',

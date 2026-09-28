@@ -55,10 +55,13 @@ passes.
   change in the same key. With no Welsh from the designer, write
   `'[Welsh needed] <the new English>'`. Never copy the English into the Welsh
   without the marker, and never delete a Welsh string.
-- **Words only.** Change only the text inside copy files. Never rename a key,
-  add or remove a key, or change a function's values. Never touch templates,
-  controllers or the flow. A literal string found in a template is reported,
-  not moved (moving it is `match-the-design` work).
+- **Words only.** Change only the text inside copy files, and any code
+  comment in those files that quotes the old words (so a comment never names
+  words the page no longer shows). Never rename a key, add or remove a key, or
+  change a function's values. Never touch templates, controllers or the flow.
+  A literal string found in a template is reported, not moved (moving it is
+  `match-the-design` work). A request that also changes the layout is two
+  changes: see "Requests with a layout part" below.
 - **The designer's words win.** You may suggest a GOV.UK style change once
   (step 5). Never apply one the designer did not ask for.
 - **One Bash command per call.** Never `--no-verify`, never push, never
@@ -82,12 +85,25 @@ The first line names the branch.
      release changed most recently. If there is exactly one working release,
      use it without asking. If two or more fit and nothing points to one, ask
      one question: which release.
+  3. If there is no working release at all ("my working release" when the
+     list shows only `high-risk-plants` and `sample-journey`), make one now
+     without asking: follow `design-release` section B with the id
+     `plants-working` (or the id the designer used), save it as its own
+     commit as that section says, then come back to the start of this step
+     and carry on. Tell the designer in one line that you started
+     `plants-working` from the real journey for them.
+  4. If the release is a research release (`designer:release -- list` says
+     "Research"), words changed after the sessions go in the next working
+     release, not the research release: the research release stays as the
+     participants saw it. Use the working release it was made from, or make
+     one (3). Change a research release's words only when the designer says
+     the change is for the sessions themselves.
 
 If the designer named `high-risk-plants` (or "the real journey") on any other
 branch, offer two routes in one message and default to the first:
 
 - "Do it in your design release" (default): continue with their working
-  release. If they have none, offer `design-release` to make one.
+  release. If they have none, make one as in 3 above.
 - "Prepare it for the real team" (upstream-bound): check the tree is clean
   with `git status`. If it is not, ask them to save their work first
   (`share-my-change`). Then run `git switch -c handoff/<short-slug> main` and
@@ -206,6 +222,12 @@ essentials (for example "Please enter", Title Case, a date written
 "27/09/2026"), say so in one line with a suggestion. Then use the designer's
 words unless they take the suggestion. Never block on style.
 
+Also check the new words still make sense where they land. When a renamed
+task list group or caption no longer matches what sits under it ("Consignment
+addresses" over a group with no address in it, say), tell the designer in one
+line, as a note for the content designer. Do not change anything else because
+of it.
+
 ## Step 6: Edit English and Welsh
 
 For each row of the plan:
@@ -265,15 +287,19 @@ In upstream-bound mode (`handoff/*` branch, target `high-risk-plants`):
    at most 3 times. Then stop, explain, and offer to undo ("say 'throw away
    what I just did'", which `share-my-change` does).
 
-2. Show it:
+2. Show it, on the pages the words are on, before and after. The find in
+   step 2 (run without `--json`) ends each release with the exact command,
+   "To picture every page these words are on". Use that list of pages:
 
    ```bash
-   npm run designer:show -- --set <release> --pages changed
+   npm run designer:show -- --set <release> --pages <the pages from the find> --before
    ```
 
-   Add `--errors` when you changed an error message (a key under `errors`),
-   so the gallery shows the error state. Read the key screenshots yourself
-   before describing them. Never claim a page looks right without looking.
+   Do not use `--pages changed` for words: a caption or task list file is
+   shared by the whole journey, so it pictures every page. Add `--errors`
+   when you changed an error message (a key under `errors`), so the gallery
+   shows the error state. Read the key screenshots yourself before describing
+   them. Never claim a page looks right without looking.
 
 In upstream-bound mode use `--set high-risk-plants`.
 
@@ -310,8 +336,30 @@ Suggested commit message:
 <release>: change "<old words>" to "<new words>" on <n> pages; Welsh needed
 ```
 
+Count `<n>` from the pages in your plan (step 4), never from an example. The
+"Consignment parties" rename, for instance, is on 4 pages: the consignor,
+identification numbers, the task list and check your answers.
+
 Do not commit. If the designer wants to save it, they say "save my work" and
-`share-my-change` commits with that message.
+`share-my-change` commits with that message. If they already asked to save it
+or open a pull request in the same message ("… then open a pull request"),
+carry straight on with `share-my-change`: that request is their yes.
+
+## Requests with a layout part
+
+A request can mix words with layout, for example "rename Consignment parties
+to Consignment addresses, and drop the extra subheadings on check your
+answers". Do both in the same turn, words first:
+
+1. Do the words part with this skill, steps 1 to 8.
+2. Then follow `match-the-design` for the layout part. Before editing, open
+   the template and the picture and check the element is really there. If it
+   is not (a request remembered from the old Prototype Kit prototype, say),
+   do not change something that looks similar: tell the designer "already
+   done: check your answers here has no such subheadings", with the picture as
+   proof. Never delete the numbered section headings to satisfy it.
+3. Report both parts in one reply, in the step 10 shape, with a line for each
+   part.
 
 If the prototype is running (`npm run dev`), saving files restarted it. If a
 page has lost its answers, press "Reset this prototype's data" under the

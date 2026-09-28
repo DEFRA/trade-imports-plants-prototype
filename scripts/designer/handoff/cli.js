@@ -11,6 +11,9 @@
  *                         high-risk-plants for a change made on a handoff/*
  *                         branch straight to the real journey.
  *   --features a,b        only these feature folders (default: everything)
+ *   --since <commit>      only what changed in the release after that commit
+ *                         (saved since, or not saved yet), for example the
+ *                         commit that started the release
  *   --all                 everything the release changed (the default)
  *   --slug <slug>         folder name after the date (default: the set id)
  *   --title "<text>"      the brief's heading
@@ -42,7 +45,7 @@ import { fileURLToPath } from 'node:url'
 
 import { buildHandoff, HandoffError, REAL_JOURNEY } from './build.js'
 import { briefOutline, renderBriefJira, renderBriefMarkdown } from './brief.js'
-import { pickScreenshots } from './screenshots.js'
+import { ANY_PAGE, pickScreenshots } from './screenshots.js'
 
 export const REPO_ROOT = path.resolve(
   fileURLToPath(import.meta.url),
@@ -55,6 +58,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 const VALUE_OPTIONS = {
   '--set': 'set',
   '--features': 'features',
+  '--since': 'since',
   '--slug': 'slug',
   '--title': 'title',
   '--why': 'why',
@@ -106,6 +110,9 @@ export const parseArgs = (argv) => {
   if (options.all && options.features.length) {
     throw new HandoffError('Use --features or --all, not both.')
   }
+  if (options.since && options.features.length) {
+    throw new HandoffError('Use --features or --since, not both.')
+  }
   return options
 }
 
@@ -150,8 +157,14 @@ export const outputDir = (root, resolved) =>
     ? path.join(root, '.cache/designer/handoff', resolved.folderName)
     : path.join(root, 'handoffs', resolved.folderName)
 
+/**
+ * The pages to take screenshots of. A change across the journey (flow,
+ * captions, shared copy) shows on pages it has no folder for, so it takes
+ * every page in the gallery.
+ */
 const screenshotSlugs = (report) => [
-  ...new Set(report.pages.flatMap((page) => page.slugs))
+  ...new Set(report.pages.flatMap((page) => page.slugs)),
+  ...(report.pages.some((page) => !page.feature) ? [ANY_PAGE] : [])
 ]
 
 /**
@@ -236,7 +249,7 @@ export const summaryLines = ({ report, dir, shots }, root) => {
     `- ${plural(report.files.length, 'file')} in upstream.patch. ${report.applyCheck.message.split('\n')[0]}`,
     `- ${plural(report.cannotShip.welshNeeded.length, 'Welsh string')} still need translating.`,
     `- ${plural(report.testImpact.length, 'place')} in the tests still expect the old words.`,
-    `- ${plural(report.cannotShip.services.length, 'pretend service')} and ${plural(report.cannotShip.designGaps.length, 'design gap')} cannot ship as they are.`,
+    `- ${plural(report.cannotShip.services.length, 'use')} of a service that only exists in the prototype (needs a real service), and ${plural(report.cannotShip.designGaps.length, 'design gap')}, cannot ship as they are.`,
     `- ${plural(report.leftOut.length, 'file')} left out of the patch.`
   ]
   if (!shots.found) {

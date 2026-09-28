@@ -21,7 +21,7 @@ import {
   captureFileName,
   summariseAxe
 } from './manifest.js'
-import { HUB_KEY } from './targets.js'
+import { HUB_KEY, baseKeyOf } from './targets.js'
 import { journeyIdOfPath, journeyPath, resolveStepFields } from './steps.js'
 import {
   fillFields,
@@ -162,7 +162,17 @@ const photograph = async (page, run, shot) => {
 const settle = (page) =>
   page.waitForLoadState('networkidle').catch(() => undefined)
 
-const canShowErrors = (key, run) => key !== HUB_KEY && key !== run.landingKey
+// The chooser's forms reset a set's data, and an example link lands on a
+// page already pictured: sending either empty would change data, not show an
+// error.
+const NO_ERROR_STATE = /^(?:chooser$|example:)/
+
+const canShowErrors = (key, run) => {
+  const base = baseKeyOf(key)
+  return (
+    base !== HUB_KEY && base !== run.landingKey && !NO_ERROR_STATE.test(base)
+  )
+}
 
 const captureErrors = async (page, key, run, result) => {
   if (!(await hasPostForm(page))) {
@@ -190,6 +200,15 @@ const captureErrors = async (page, key, run, result) => {
   await page.goto(here)
 }
 
+const titleFor = async (page, key) => {
+  const heading = await pageHeading(page)
+  const example = key.includes('@') ? key.split('@')[1] : null
+  if (!example) {
+    return heading
+  }
+  return `${heading ?? baseKeyOf(key)} (example: ${example})`
+}
+
 /** Photographs the page the browser is on, as page `key`. */
 const capturePage = async (session, key, run) => {
   const { page } = session
@@ -201,7 +220,7 @@ const capturePage = async (session, key, run) => {
     notes: []
   }
   run.results.set(key, result)
-  result.title = result.title ?? (await pageHeading(page))
+  result.title = result.title ?? (await titleFor(page, key))
   result.path =
     result.path ?? addressPattern(new URL(page.url()).pathname, session.setBase)
   result.captures.push(
@@ -265,7 +284,10 @@ const replay = async (session, scenario, plannedRun, run) => {
   const { setBase } = session
   let { journeyId, location } = await startNotification(session, scenario.name)
   const captureAt = new Map(
-    plannedRun.captures.map((capture) => [capture.index, capture.key])
+    plannedRun.captures.map((capture) => [
+      capture.index,
+      capture.as ?? capture.key
+    ])
   )
   const last = lastStepToReplay(scenario, plannedRun)
   for (let index = 0; index <= last; index += 1) {
@@ -287,12 +309,16 @@ const replay = async (session, scenario, plannedRun, run) => {
   return journeyId
 }
 
-/** Carries on from the hub through check your answers, declaration and on. */
-const walkOnFromHub = async (session, journeyId, plan, run) => {
+/**
+ * Carries on from the hub through check your answers, declaration and on.
+ * `suffix` (`@warePotatoes`) names the pictures after the example, when
+ * every example walks on.
+ */
+const walkOnFromHub = async (session, journeyId, plan, run, suffix = '') => {
   const { page, setBase } = session
   if (plan.hub) {
     await goTo(session, journeyPath(setBase, journeyId))
-    await capturePage(session, HUB_KEY, run)
+    await capturePage(session, `${HUB_KEY}${suffix}`, run)
   }
   for (let index = 0; index < plan.after.length; index += 1) {
     const { key, capture } = plan.after[index]
@@ -301,7 +327,7 @@ const walkOnFromHub = async (session, journeyId, plan, run) => {
       await goTo(session, expected)
     }
     if (capture) {
-      await capturePage(session, key, run)
+      await capturePage(session, `${key}${suffix}`, run)
     }
     if (index < plan.after.length - 1) {
       await tickEveryCheckbox(page)
@@ -316,12 +342,59 @@ const walkOnFromHub = async (session, journeyId, plan, run) => {
   }
 }
 
+export const NOTIFICATION_PLACEHOLDER = '{notification}'
+
+/**
+ * The path an `--url` address means on this set: `/…` is the prototype's own
+ * address (the chooser is `/`), `?…` is the set's landing page (the
+ * dashboard) with a query, and anything else is under the set. The
+ * `{notification}` placeholder becomes the notification the run filled in.
+ * Null when it needs a notification and there is none.
+ */
+export const addressPath = (address, { setBase, journeyId }) => {
+  if (address.includes(NOTIFICATION_PLACEHOLDER) && !journeyId) {
+    return null
+  }
+  const filled = address.replaceAll(NOTIFICATION_PLACEHOLDER, journeyId ?? '')
+  if (filled.startsWith('/')) {
+    return filled
+  }
+  if (filled === '' || filled.startsWith('?')) {
+    return `${setBase}${filled}`
+  }
+  return `${setBase}/${filled}`
+}
+
+/** Photographs each `--url` address (and the chooser and example links). */
+const captureAddresses = async (session, addresses, { run, journeyId }) => {
+  for (const { key, address } of addresses) {
+    const target = addressPath(address, {
+      setBase: session.setBase,
+      journeyId
+    })
+    if (!target) {
+      run.notes.push(
+        `${address}: no example answered every page, so there is no notification to open it in.`
+      )
+      continue
+    }
+    const response = await session.page.goto(target)
+    if (response && response.status() >= 400) {
+      run.notes.push(
+        `${address} answered ${response.status()}: the picture shows that error page.`
+      )
+    }
+    await capturePage(session, key, run)
+  }
+}
+
 /**
  * Photographs one set on one running prototype.
  *
  * @param {import('@playwright/test').Browser} browser
  * @param {object} input - `{ baseUrl, setBase, scenarios, plan, variant,
- *   outDir, options }`.
+ *   outDir, options, addresses }`; `addresses` is `[{ key, address }]`, the
+ *   extra pages from --url, --examples and --pages chooser.
  * @returns {Promise<{ results: Map<string, object>, notes: string[] }>}
  */
 export const captureSet = async (browser, input) => {
@@ -346,7 +419,7 @@ export const captureSet = async (browser, input) => {
     const byName = new Map(
       scenarios.map((scenario) => [scenario.name, scenario])
     )
-    let finishedJourney = null
+    const finished = []
     for (const plannedRun of plan.runs) {
       try {
         const journeyId = await replay(
@@ -356,7 +429,7 @@ export const captureSet = async (browser, input) => {
           run
         )
         if (plannedRun.finish) {
-          finishedJourney = journeyId
+          finished.push({ journeyId, suffix: plannedRun.suffix ?? '' })
         }
       } catch (error) {
         if (!(error instanceof ExampleStopped)) {
@@ -365,13 +438,24 @@ export const captureSet = async (browser, input) => {
         run.notes.push(error.message)
       }
     }
-    if (finishedJourney) {
-      await walkOnFromHub(session, finishedJourney, plan, run)
+    const walkOn = plan.eachExample ? finished : finished.slice(0, 1)
+    for (const { journeyId, suffix } of walkOn) {
+      await walkOnFromHub(
+        session,
+        journeyId,
+        plan,
+        run,
+        plan.eachExample ? suffix : ''
+      )
     }
     if (plan.landing?.capture) {
       await goTo(session, input.setBase)
       await capturePage(session, plan.landing.key, run)
     }
+    await captureAddresses(session, input.addresses ?? [], {
+      run,
+      journeyId: finished[0]?.journeyId ?? null
+    })
     return run
   } finally {
     await session.context.close()

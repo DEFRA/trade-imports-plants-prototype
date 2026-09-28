@@ -1,10 +1,11 @@
 /**
  * designer:show's own prototype server. It never uses the designer's port
- * (3103): it picks a free port from 3203 up, runs with stub data and no
- * example data (so every page starts from what the run itself fills in),
- * never saves data to disk (so a designer's saved release data is left
- * alone), and is stopped when the run ends. A running `npm run dev` is never
- * touched.
+ * (3103): it picks a free port from 3203 up, runs with stub data and the
+ * set's example notifications (so the dashboard looks as it does on
+ * `npm run dev`; every journey page is still reached through a notification
+ * the run itself fills in), never saves data to disk (so a designer's saved
+ * release data is left alone), and is stopped when the run ends. A running
+ * `npm run dev` is never touched.
  */
 import { spawn } from 'node:child_process'
 import { openSync, closeSync, readFileSync } from 'node:fs'
@@ -73,12 +74,21 @@ export const findFreePort = async (from = FIRST_SHOW_PORT, avoid = []) => {
   )
 }
 
-/** The environment the show server runs with. */
-export const showServerEnv = (port, baseEnv = process.env) => ({
+/**
+ * The environment the show server runs with. The set's example notifications
+ * are made (as on `npm run dev`), so the dashboard is pictured full, with the
+ * pictured run's own notifications added. `examples: false` pictures an
+ * empty dashboard instead. Nothing is ever saved to disk.
+ */
+export const showServerEnv = (
+  port,
+  baseEnv = process.env,
+  { examples = true } = {}
+) => ({
   ...baseEnv,
   NODE_ENV: 'development',
   STUB_MODE: 'true',
-  PROTOTYPE_SEED: 'false',
+  PROTOTYPE_SEED: examples ? 'true' : 'false',
   PROTOTYPE_PERSIST: 'false',
   PORT: String(port),
   HOST: '127.0.0.1',
@@ -117,11 +127,16 @@ const isHealthy = async (url) => {
  *
  * @returns {Promise<{ url: string, stop: () => Promise<void> }>}
  */
-export const startShowServer = async ({ cwd, port, logFile }) => {
+export const startShowServer = async ({
+  cwd,
+  port,
+  logFile,
+  examples = true
+}) => {
   const logFd = openSync(logFile, 'a')
   const child = spawn(process.execPath, ['.'], {
     cwd,
-    env: showServerEnv(port),
+    env: showServerEnv(port, process.env, { examples }),
     stdio: ['ignore', logFd, logFd]
   })
   closeSync(logFd)

@@ -18,17 +18,23 @@ it). Write it from the change itself, never from memory of the conversation.
   it.
 - End with `; Welsh needed` when any `copy.cy.js` in the change has a
   `[Welsh needed]` marker.
-- Keep it under 100 characters. Sentence case. No full stop.
+- Aim for under 100 characters. Sentence case. No full stop. When the quoted
+  words make it longer, shorten the verb part ("rename 'X' to 'Y'" becomes
+  "'X' is now 'Y'"), or drop the page count to the body's `Pages:` line.
+  Never cut a quoted word.
 
 How to count pages: a file under `journeys/linear/features/<feature>/` is that
-feature's pages (its `page.js` lists their `slug`s). Files under
-`journeys/linear/flow/` or `obligations/` touch the journey as a whole: say
-"across the journey" unless you can name the pages. `designer:show -- --pages changed`
-prints the same list.
+feature's pages (its `page.js` lists their `slug`s). For words, count the
+pages `npm run designer:words -- find "<new words>" --set <set-id>` lists
+("Shown on" and "Also shown on"). Files under `journeys/linear/flow/` or
+`obligations/` touch the journey as a whole: say "across the journey" unless
+you can name the pages. Never copy a count from an example here.
 
-Examples:
+Examples (the counts are the real ones for these changes):
 
-- `plants-working: rename 'Consignment parties' to 'Consignment addresses' on 6 pages; Welsh needed`
+- `plants-working: rename 'Consignment parties' to 'Consignment addresses' on 4 pages; Welsh needed`
+  (the consignor, identification numbers, the task list and check your
+  answers)
 - `plants-working: add a 'more than one vehicle' question to arrival details; Welsh needed`
 - `plants-dr2-1: move place of destination before the consignor`
 - `plants-working: show the reference number in a green panel on confirmation`

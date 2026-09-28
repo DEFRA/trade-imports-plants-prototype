@@ -63,8 +63,22 @@ const applyLine = (report) => {
     : 'The patch does not apply cleanly. The real journey has moved on in the same places, so a developer will need to merge by hand (see "Has the real journey moved on?").'
 }
 
-const shotsFor = (page, shots) =>
-  shots.filter((shot) => page.slugs.includes(shot.slug))
+/**
+ * The pictures for one group of changes. A change across the journey (the
+ * flow, section captions, shared copy) has no page of its own, so it takes
+ * every picture no other group claims.
+ */
+const shotsFor = (page, shots, pages) => {
+  if (page.feature) {
+    return shots.filter((shot) => page.slugs.includes(shot.slug))
+  }
+  const claimed = new Set(
+    pages.filter((other) => other.feature).flatMap((other) => other.slugs)
+  )
+  return shots.filter((shot) => !claimed.has(shot.slug))
+}
+
+const WELSH_MARKER = '[Welsh needed]'
 
 /**
  * The content of the brief as a list of blocks, so the Markdown and Jira
@@ -91,9 +105,9 @@ export const briefOutline = (report, meta) => {
     add('list', {
       items: page.files.map((file) => `${file.status}: {{${file.path}}}`)
     })
-    for (const shot of shotsFor(page, shots)) {
+    for (const shot of shotsFor(page, shots, report.pages)) {
       add('image', {
-        alt: `${page.feature}: ${shot.state}`,
+        alt: `${page.feature ?? shot.slug}: ${shot.state}`,
         file: shot.fileName
       })
     }
@@ -108,6 +122,20 @@ export const briefOutline = (report, meta) => {
         ])
       })
     }
+    const welshToTranslate = page.copy.filter(
+      (row) =>
+        row.language === 'cy' && String(row.after ?? '').includes(WELSH_MARKER)
+    )
+    if (welshToTranslate.length) {
+      add('table', {
+        header: ['Key', 'Old Welsh', 'New English, to translate'],
+        rows: welshToTranslate.map((row) => [
+          `{{${row.key}}}`,
+          showValue(row.before),
+          showValue(String(row.after).replace(WELSH_MARKER, '').trim())
+        ])
+      })
+    }
   }
 
   add('heading', { text: 'Welsh needed' })
@@ -118,14 +146,14 @@ export const briefOutline = (report, meta) => {
       ? {
           items: welsh.map(
             (marker) =>
-              `{{${marker.file}}} line ${marker.line}: "${marker.english}"`
+              `{{${marker.file}}} line ${marker.line} (once the patch is applied): "${marker.english}"`
           )
         }
       : { text: 'None. Every changed Welsh string has a translation.' }
   )
   if (welsh.length) {
     add('para', {
-      text: 'These lines say [Welsh needed] followed by the English. They need a translation before they go live.'
+      text: 'These lines say [Welsh needed] followed by the English. They need a translation before they go live. The tables under "Pages changed" show the Welsh each one replaced, for the translator.'
     })
   }
 
@@ -186,7 +214,7 @@ const addCannotShip = (add, report) => {
   const items = [
     ...services.map(
       (service) =>
-        `{{${service.file}}} uses the prototype's pretend "${service.name}" (${service.kind}). The real service needs a real one.${exampleSentence(service)}`
+        `{{${service.file}}} uses "${service.name}" (${service.kind}), which only exists in the prototype: it needs a real service.${service.shape?.needs ? ` What it stands in for: ${service.shape.needs}` : ''}${exampleSentence(service)}`
     ),
     ...(welshNeeded.length
       ? [`${welshNeeded.length} Welsh string(s) still need translating.`]

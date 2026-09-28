@@ -182,7 +182,7 @@ const skippedSummary = (skipped) => {
 const nextSteps = ({ setId, from }) => {
   const url = `http://localhost:3103/${setId}`
   const steps = [
-    'Run `npm run format` to tidy the new lines in src/server/prototype-sets/.',
+    'Run `npm run designer:format` to tidy the new lines in src/server/prototype-sets/.',
     `Start the prototype with \`npm run dev\` and open ${url}`,
     `If its example notifications are missing, sign in, open http://localhost:3103/ and press "Reset this prototype’s data" under ${sentenceCase(setId)}.`,
     `See every page with \`npm run designer:show -- --set ${setId} --pages all\`.`

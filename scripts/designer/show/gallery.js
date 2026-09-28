@@ -37,7 +37,9 @@ const VARIANT_ORDER = [
 const variantLabel = (variant, manifest) => {
   switch (variant) {
     case VARIANTS.before:
-      return 'Before: your last saved version'
+      return manifest.options?.beforeCommit
+        ? `Before: saved version ${manifest.options.beforeCommit}`
+        : 'Before: your last saved version'
     case VARIANTS.compare:
       return `In ${manifest.compare}`
     case VARIANTS.reference:
@@ -148,10 +150,16 @@ const summaryRow = (key, valueHtml) => `
 
 const optionsText = (options) => {
   const parts = [`pages: ${options.pages}`]
-  for (const flag of ['before', 'errors', 'mobile', 'video']) {
+  for (const flag of ['before', 'errors', 'mobile', 'video', 'eachExample']) {
     if (options[flag]) {
-      parts.push(flag)
+      parts.push(flag === 'eachExample' ? 'each example' : flag)
     }
+  }
+  if (options.examples === false) {
+    parts.push('no example notifications')
+  }
+  if (options.urls?.length) {
+    parts.push(`addresses: ${options.urls.join(', ')}`)
   }
   if (options.compare) {
     parts.push(`compare with ${options.compare}`)

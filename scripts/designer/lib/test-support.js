@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { gitEnv } from './git-env.js'
+
 export const FIXTURE_OVERRIDES = {
   deleted: ['.mcp.json', 'scripts/lighthouse/**'],
   ours: [
@@ -131,7 +133,7 @@ export const makeFixtureRepo = ({ git = false } = {}) => {
   )
   if (git) {
     const run = (args) =>
-      execFileSync('git', args, { cwd: root, stdio: 'ignore' })
+      execFileSync('git', args, { cwd: root, env: gitEnv(), stdio: 'ignore' })
     run(['init', '--quiet', '--initial-branch=main'])
     run(['add', '-A'])
     run([

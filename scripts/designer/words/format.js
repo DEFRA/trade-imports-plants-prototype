@@ -59,6 +59,15 @@ export const formatFind = (result) => {
     const entries = result.copy.filter((entry) => entry.setId === info.setId)
     if (entries.length > 0) {
       lines.push('', setLabel(info), ...entries.flatMap(copyLines))
+      const showPages = [
+        ...new Set(entries.flatMap((entry) => entry.showPages ?? []))
+      ]
+      if (showPages.length > 0) {
+        lines.push(
+          `  To picture every page these words are on (${plural(showPages.length, 'page')}):`,
+          `    npm run designer:show -- --set ${info.setId} --pages ${showPages.join(',')} --before`
+        )
+      }
     }
   }
   const shared = result.copy.filter((entry) => entry.shared)

@@ -19,10 +19,11 @@ import {
   abortRevert,
   addPaths,
   changedPaths,
-  commitPaths,
+  commitStaged,
   commitsMentioning,
   headSha,
-  revert
+  revert,
+  stagedPaths
 } from './git.js'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -89,12 +90,20 @@ export const turnOn = (repoRoot, setId) => {
   }
 
   const paths = rules.map((rule) => rule.path)
+  const otherStaged = stagedPaths(repoRoot).filter(
+    (file) => !paths.includes(file)
+  )
+  if (otherStaged.length > 0) {
+    return refuse(
+      'Other changes are staged for the next save, and research mode must be a commit of its own. Unstage them with git restore --staged <file> (your edits stay), then try again:',
+      ...otherStaged.map((file) => `  - ${file}`)
+    )
+  }
   addPaths(repoRoot, paths)
   try {
-    commitPaths(repoRoot, {
+    commitStaged(repoRoot, {
       title: onTitle(setId),
-      body: onCommitBody(setId, log.rules),
-      paths
+      body: onCommitBody(setId, log.rules)
     })
   } catch (error) {
     return refuse(

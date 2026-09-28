@@ -27,10 +27,14 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'long',
   year: 'numeric',
-  timeZone: 'UTC'
+  timeZone: 'Europe/London'
 })
 
-/** `2026-09-27T10:00:00.000Z` -> `27 September 2026`, the GOV.UK date style. */
+/**
+ * `2026-09-27T10:00:00.000Z` -> `27 September 2026`, the GOV.UK date style,
+ * on the UK calendar: a release made at 00:28 BST on 28 September is dated
+ * 28 September, not the UTC day before.
+ */
 export const longDate = (isoDate) => DATE_FORMAT.format(new Date(isoDate))
 
 const readJson = (file) => {

@@ -59,6 +59,7 @@ The 'transporter' page showed the error page (404): no route answers it.`,
   template: `njk-check: src/server/app/sets/plants-working/journeys/linear/features/origin/template.njk: expected block end in if statement [Line 12, Column 5]`,
   'webpack-404': `console error: Failed to load resource
 response 404: http://localhost:3003/public/stylesheets/plants-working.min.css`,
+  'frozen-release': `AssertionError: frozen-release: plants-dr2 was frozen in 0f54597, and 1 file in it changed since: src/server/app/sets/plants-dr2/journeys/linear/features/origin/copy/copy.en.js`,
   lint: `/repo/src/server/app/sets/plants-working/journeys/linear/features/origin/controller.js
   12:7  error  'unused' is assigned a value but never used  no-unused-vars
 
@@ -138,6 +139,27 @@ describe('translate — the details that matter', () => {
     const findings = translate(FIXTURES['copy-parity'])
 
     expect(findings.map((finding) => finding.id)).toEqual(['copy-parity'])
+  })
+
+  it('Should name the file, line and rule of every lint error', () => {
+    const [finding] = translate(
+      `
+/Users/designer/prototype/src/server/prototype-seed/scenarios/plants-working.js
+  40:13  error  Define a constant instead of duplicating this literal 5 times  sonarjs/no-duplicate-string
+
+/Users/designer/prototype/src/server/app/sets/plants-working/journeys/linear/features/check-answers/controller.js
+  88:1   error  Refactor this function to reduce its Cyclomatic Complexity from 12 to the 10 allowed  sonarjs/cyclomatic-complexity
+
+✖ 2 problems (2 errors, 0 warnings)`,
+      { changedPaths: CHANGED }
+    )
+
+    expect(finding.id).toBe('lint')
+    expect(finding.where).toEqual([
+      'src/server/prototype-seed/scenarios/plants-working.js:40 sonarjs/no-duplicate-string: Define a constant instead of duplicating this literal 5 times',
+      'src/server/app/sets/plants-working/journeys/linear/features/check-answers/controller.js:88 sonarjs/cyclomatic-complexity: Refactor this function to reduce its Cyclomatic Complexity from 12 to the 10 allowed'
+    ])
+    expect(finding.attribution).toBe('yours')
   })
 
   it('Should fall back to a plain unknown finding', () => {

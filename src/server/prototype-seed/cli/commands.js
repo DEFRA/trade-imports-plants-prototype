@@ -6,7 +6,12 @@ import {
   scenarioFileFor,
   SCENARIO_FILES
 } from '../examples.js'
-import { isSetId, loadFixturePool } from '../fixtures.js'
+import {
+  HAPPY_PATH,
+  findFixture,
+  isSetId,
+  loadFixturePool
+} from '../fixtures.js'
 import { defaultExamples } from '../scenarios/default.js'
 import { checkExamples } from '../seed-set.js'
 import { checkOverlays } from '../../prototype-data/index.js'
@@ -28,6 +33,9 @@ Commands:
                    prototype restarts. Add --base <address> for the deployed one.
   init <set-id>    Start a scenario file for the set from its four default
                    examples, so you can add your own.
+  fixtures <set-id>
+                   List the fixtures an example can use: what each is for,
+                   the pages it answers, and where they differ.
 
 For example: npm run designer:examples -- check high-risk-plants`
 
@@ -100,6 +108,9 @@ const links = (setId, base, io) =>
       io.out(`  ${example.label}`)
       io.out(`  ${signInLink(base, setId, example)}\n`)
     }
+    io.out(
+      'Each link opens the page the example stopped at. To open another page of the same notification, add ?page=<page> to a link without an organisation, for example ?page=task-list or ?page=notification-view (check your answers).'
+    )
     if (examples.some((example) => example.organisationId)) {
       io.out(
         'A link for another organisation signs you in as that organisation first. That only works on your own computer; on the deployed prototype, sign in as a different test user instead.'
@@ -107,6 +118,88 @@ const links = (setId, base, io) =>
     }
     return OK
   })
+
+const uniqueSlugs = (steps) => [...new Set(steps.map((step) => step.slug))]
+
+const fieldNamesAt = (steps, slug) =>
+  [
+    ...new Set(
+      steps
+        .filter((step) => step.slug === slug)
+        .flatMap((step) => Object.keys(step.fields ?? {}))
+    )
+  ].sort()
+
+/** Pages only some fixtures visit, and pages whose questions differ. */
+const differences = (walks) => {
+  const lines = []
+  const allSlugs = [...new Set(walks.flatMap((walk) => walk.slugs))]
+  for (const slug of allSlugs) {
+    const visiting = walks.filter((walk) => walk.slugs.includes(slug))
+    if (visiting.length < walks.length) {
+      lines.push(
+        `  ${slug}: only ${visiting.map((walk) => walk.name).join(', ')}`
+      )
+      continue
+    }
+    const byFields = new Map()
+    for (const walk of visiting) {
+      const fields = fieldNamesAt(walk.steps, slug).join(', ')
+      byFields.set(fields, [...(byFields.get(fields) ?? []), walk.name])
+    }
+    if (byFields.size > 1) {
+      lines.push(
+        `  ${slug} asks different questions: ${[...byFields]
+          .map(
+            ([fields, names]) => `${names.join(', ')} (${fields || 'nothing'})`
+          )
+          .join('; ')}`
+      )
+    }
+  }
+  return lines
+}
+
+/**
+ * Every fixture an example can use: what it is for, the pages it answers in
+ * order, and where fixtures differ (the branches of the journey).
+ */
+const fixtures = (setId, io) => {
+  const pool = io.loadFixturePool(setId)
+  const walks = Object.entries(pool).flatMap(([file, named]) =>
+    Object.entries(named)
+      .filter(([, fixture]) => Array.isArray(fixture?.steps))
+      .map(([name, fixture]) => ({
+        file,
+        name,
+        useCase: fixture.useCase ?? '',
+        late: fixture.late === true,
+        steps: fixture.steps,
+        slugs: uniqueSlugs(fixture.steps)
+      }))
+  )
+  if (walks.length === 0) {
+    io.out(noExamples(setId))
+    return OK
+  }
+  io.out(
+    `The fixtures an example in ${setId} can use (fixture: '<name>'), and the pages each one answers:\n`
+  )
+  for (const walk of walks) {
+    const where = walk.file === HAPPY_PATH ? '' : ' (in ' + walk.file + ')'
+    const late = walk.late ? ', arrives late' : ''
+    io.out(`  ${walk.name}${where}${late}: ${walk.useCase || 'no description'}`)
+    io.out(`    ${walk.slugs.join(' > ')}\n`)
+  }
+  const branches = differences(walks)
+  if (branches.length > 0) {
+    io.out('Where they differ:')
+    for (const line of branches) {
+      io.out(line)
+    }
+  }
+  return OK
+}
 
 const reportOverlays = (io) => {
   const { problems, counts } = checkOverlays()
@@ -168,7 +261,41 @@ const check = (setId, io) =>
     }
   })
 
-const scenarioFileText = (setId, examples) => `/**
+const quoted = (text) =>
+  `'${String(text).replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`
+
+const valueText = (value) =>
+  typeof value === 'string' ? quoted(value) : JSON.stringify(value)
+
+const exampleText = (example) =>
+  [
+    '  {',
+    Object.entries(example)
+      .map(([key, value]) => `    ${key}: ${valueText(value)}`)
+      .join(',\n'),
+    '  }'
+  ].join('\n')
+
+/**
+ * The short `fixture: 'warePotatoes'` form, as scenarios/high-risk-plants.js
+ * writes it, wherever the name is in only one fixture file. The long
+ * `{ file, name }` form repeated on every example trips the
+ * sonarjs/no-duplicate-string code rule as soon as one more example is added.
+ */
+export const shortFixtures = (examples, pool) =>
+  examples.map((example) => {
+    const { fixture } = example
+    if (typeof fixture !== 'object' || fixture === null) {
+      return example
+    }
+    const found = findFixture(pool, fixture.name)
+    return found.problem || found.file !== fixture.file
+      ? example
+      : { ...example, fixture: fixture.name }
+  })
+
+/** A scenario file laid out as Prettier leaves it. */
+export const scenarioFileText = (setId, examples) => `/**
  * The example notifications the ${setId} set starts with, and gets back after
  * Reset. Started from the set's four default examples.
  *
@@ -176,10 +303,10 @@ const scenarioFileText = (setId, examples) => `/**
  * real pages with a fixture from the set's happy path. \`slug\` is the stable
  * id its example link uses, so never rename one someone may have shared.
  */
-export const examples = ${JSON.stringify(examples, null, INDENT)}
+export const examples = [
+${examples.map(exampleText).join(',\n')}
+]
 `
-
-const INDENT = 2
 
 const init = (setId, io) => {
   const file = io.scenarioFileFor(setId)
@@ -189,7 +316,8 @@ const init = (setId, io) => {
     )
     return FAILED
   }
-  const examples = defaultExamples(io.loadFixturePool(setId))
+  const pool = io.loadFixturePool(setId)
+  const examples = shortFixtures(defaultExamples(pool), pool)
   if (examples.length === 0) {
     io.err(
       `${setId} has no happy-path fixture to replay, so it cannot have examples yet.`
@@ -223,7 +351,8 @@ const COMMANDS = {
   list: ({ setId }, io) => list(setId, io),
   links: ({ setId, base }, io) => links(setId, base, io),
   check: ({ setId }, io) => check(setId, io),
-  init: ({ setId }, io) => init(setId, io)
+  init: ({ setId }, io) => init(setId, io),
+  fixtures: ({ setId }, io) => fixtures(setId, io)
 }
 
 /**

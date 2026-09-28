@@ -98,7 +98,11 @@ const makeAgent = (overrides = {}, files = FILES) => {
         }))
       }
     }
-    if (label.startsWith('keep') || label.startsWith('put away')) {
+    if (
+      label.startsWith('keep') ||
+      label.startsWith('put away') ||
+      label === 'start release'
+    ) {
       return { done: true, reason: '' }
     }
     if (label === 'show') {
@@ -189,7 +193,7 @@ describe('design-session', () => {
     ])
     const showCall = calls.find((call) => call.opts.label === 'show')
     expect(showCall.prompt).toContain(
-      `npm run designer:show -- --set ${SET} --pages changed --before`
+      `npm run designer:show -- --set ${SET} --pages changed,dashboard --examples`
     )
     const text = logText(log)
     expect(text).toContain('1. Landed (change-the-words), saved as abc1')
@@ -198,6 +202,75 @@ describe('design-session', () => {
       `Gallery: .cache/designer/show/${SET}/latest/index.html`
     )
     expect(text).toContain('Saved 3 commits. Nothing was pushed')
+  })
+
+  it('shows only the changed pages when no example was added', async () => {
+    const routes = [ROUTES[0], { ...ROUTES[1], skill: 'match-the-design' }]
+    const { agent, calls } = makeAgent({
+      classify: {
+        releaseOk: true,
+        releaseMissing: false,
+        releaseReason: '',
+        sessionSlug: 'x',
+        requests: [...routes, ROUTES[2]]
+      }
+    })
+    await runWorkflow(ARGS, { agent })
+    const showCall = calls.find((call) => call.opts.label === 'show')
+    expect(showCall.prompt).toContain(
+      `npm run designer:show -- --set ${SET} --pages changed --before`
+    )
+  })
+
+  it('saves each commit from the staged files, never with a path list', async () => {
+    const { agent, calls } = makeAgent()
+    await runWorkflow(ARGS, { agent })
+    const save = calls.find((call) => call.opts.label === 'save 1').prompt
+    expect(save).toContain('Run: git restore --staged -- .')
+    expect(save).toContain(`Run: git add -A -- ${FILES[1].join(' ')}`)
+    expect(save).toContain('Run: git commit -m "<first line>" -m "<body>"\n')
+    expect(save).not.toMatch(/git commit [^\n]* -- /)
+  })
+
+  it('starts a release that does not exist yet, then carries on', async () => {
+    const { agent, calls } = makeAgent({
+      classify: {
+        releaseOk: true,
+        releaseMissing: true,
+        releaseReason: 'plants-working does not exist yet',
+        sessionSlug: 'x',
+        requests: ROUTES
+      }
+    })
+    const log = vi.fn()
+    await runWorkflow(ARGS, { agent, log })
+    const order = labels(calls)
+    expect(order.slice(0, 4)).toEqual([
+      'classify',
+      'prepare',
+      'start release',
+      'build 1'
+    ])
+    const start = calls.find((call) => call.opts.label === 'start release')
+    expect(start.prompt).toContain(
+      `npm run new:set -- ${SET} --from high-risk-plants --purpose working`
+    )
+    expect(logText(log)).toContain(`Started ${SET} from the real journey`)
+  })
+
+  it('stops when the new release cannot be started', async () => {
+    const { agent, calls } = makeAgent({
+      classify: {
+        releaseOk: true,
+        releaseMissing: true,
+        releaseReason: '',
+        sessionSlug: 'x',
+        requests: ROUTES
+      },
+      'start release': { done: false, reason: 'The hook failed.' }
+    })
+    await runWorkflow(ARGS, { agent })
+    expect(labels(calls)).toEqual(['classify', 'prepare', 'start release'])
   })
 
   it('makes the branch name from the judge’s slug', async () => {

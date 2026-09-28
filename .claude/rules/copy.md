@@ -37,8 +37,14 @@ You are editing words a user reads. Every string in a copy file reaches a page.
   it is not. In a design release the marker is the rule. On a `handoff/*`
   branch the marker is allowed, and the hand-off brief lists it as Welsh still
   needed.
+- **Link addresses are the same in both files, with no marker.** A value that
+  is only an address (`https://…`, `mailto:`, `tel:` or a path starting `/`),
+  or any key whose name ends in `Href` or `Url`, may be copied straight into
+  the Welsh. Never write `[Welsh needed]` in front of an address: it breaks
+  the link.
 - **Keep the comments at the top of a Welsh file.** They say the Welsh is a
-  machine draft awaiting a translator.
+  machine draft awaiting a translator. A code comment that quotes words you
+  changed is updated with them.
 - **Use curly apostrophes (’) in new text**, as the copy files do. If you use a
   straight one, put the string in double quotes.
 - **The designer's words win.** Suggest a style change once, in one line.

@@ -24,9 +24,10 @@ const JSON_INDENT = 2
  *
  * Only on a designer's own computer (`npm run dev` sets
  * `NODE_ENV=development`), and never in the clean-room runs: the Playwright
- * suite and `designer:show` start their own server with `PROTOTYPE_SEED=false`
- * and expect every dashboard to start empty. `PROTOTYPE_PERSIST=false` turns it
- * off by hand.
+ * suite starts its own server with `PROTOTYPE_SEED=false` and expects every
+ * dashboard to start empty, and `designer:show` sets `PROTOTYPE_PERSIST=false`
+ * so its private copy never touches a designer's saved data.
+ * `PROTOTYPE_PERSIST=false` turns it off by hand.
  *
  * @param {object} [env] - the environment to read, `process.env` by default.
  * @returns {boolean} true when data should survive a restart.

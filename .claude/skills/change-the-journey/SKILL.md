@@ -1,6 +1,6 @@
 ---
 name: change-the-journey
-description: 'Change how a journey flows in a design release by following the repo''s own recipes step by step — add a question, a page, a guidance page, a branch, a list of things, or a new task; move a page; regroup or rename the task list; reorder check your answers; change the confirmation page; change what counts as a valid answer. One change per run, checked, shown and ready to share. Use when a designer says "add a question", "add a field", "add a page", "add a guidance page", "add a list of things", "add another", "move this page", "ask X before Y", "only show this page when", "skip this page if", "regroup the task list", "rename the task list", "reorder check your answers", "change the confirmation page", "make this question optional". NOT for wording only (use change-the-words), layout or styling only (use match-the-design), dashboards, the address book or other shared features (use fake-a-service), example data (use example-data), or letting research participants past errors (use research-session).'
+description: 'Change how a journey flows in a design release by following the repo''s own recipes step by step — add a question, a page, a guidance page, a branch, a list of things, or a new task; move a page; regroup or rename the task list; reorder check your answers; change the confirmation page (its panel, reference number and next steps); change what counts as a valid answer. One change at a time, checked, shown and ready to share. Use when a designer says "add a question", "add a field", "add a page", "add a guidance page", "add a list of things", "add another", "move this page", "ask X before Y", "only show this page when", "skip this page if", "regroup the task list", "move a task to another group", "reorder check your answers", "change the confirmation page", "a green panel on the confirmation page", "show the reference number in a panel", "make this question optional". NOT for wording only, including renaming a task list group or task without moving anything (use change-the-words), layout or styling only (use match-the-design), dashboards, the address book or other shared features (use fake-a-service), example data (use example-data), or letting research participants past errors (use research-session).'
 ---
 
 # Change the journey
@@ -31,8 +31,12 @@ passes.
 - **Never change the real journey outside a hand-off.** `high-risk-plants` is
   the real service's journey. Change it only on a `handoff/<slug>` branch.
 - **Never change a frozen release.** Offer a working copy of it instead.
-- **One change per run.** If the designer asks for several, do the first one,
-  finish it, and list the rest for them to ask for next.
+- **One change at a time.** A request with two or three parts ("add a branch
+  and move the page") is done part by part in this run: finish, check and
+  show each part before the next. With four or more, or a list of notes from a
+  crit, start the `design-session` workflow instead (see CLAUDE.md,
+  "Workflows"). Never make the designer ask again for a part they already
+  asked for.
 - **No test files in a release.** Never create `*.test.js` or
   `*.fit.spec.js` inside a release. Hand-off mode is the only exception.
 - **English and Welsh together.** Every copy change goes in `copy.en.js` and
@@ -69,6 +73,12 @@ In release mode, work out which release:
 2. If not, run `npm run designer:release -- list` and pick the working release
    changed most recently. If two or more fit and nothing points to one, ask
    the designer one question: which release.
+3. If there is no working release at all (only `high-risk-plants` and
+   `sample-journey`), make one now without asking: follow `design-release`
+   section B with the id `plants-working` (or the id the designer named),
+   save it as its own commit as that section says, then come back to the
+   start of this step. Tell the designer in one line that you started
+   `plants-working` from the real journey for them.
 
 Refuse, in plain English, and offer the safe route, when:
 
@@ -89,6 +99,9 @@ If the branch is `main`, make a branch for the change before editing:
 git switch -c design/<release>-<short-slug>
 ```
 
+On any other branch that does not start with `handoff/` (a `design/` branch,
+or a `feat/` or trial branch), stay on it.
+
 ## Step 2: Pick the recipe
 
 Read `references/routes.md` and match the request to one recipe. If the
@@ -96,6 +109,23 @@ request is not a journey change, stop and name the skill that does it.
 
 Tell the designer in one line which recipe you will follow and what it will
 change. Do not ask for approval unless the request is unclear.
+
+## Step 2b: Check what is already true
+
+Before editing anything, look at how the pages are now:
+
+```bash
+npm run designer:show -- --set <release> --pages <the pages the request names>
+```
+
+Open the pictures, and for a move run
+`npm run designer:release -- orders <release> <pages>`. List each part of the
+request and whether it already holds. For example "the reference number is
+already in a green panel" on the confirmation page, or "place of destination
+already comes before the consignor". Tell the designer which parts already
+hold, and do only the parts that do not. If every part holds, change nothing:
+say so, with the picture or the printed orders as proof. That is a complete
+run.
 
 ## Step 3: Read before you edit
 
@@ -143,8 +173,10 @@ start if any part of a question is missing.
 
 As you go:
 
-- A new obligation gets a new random UUID. Search the release for it with the
-  Grep tool before using it: it must not appear anywhere.
+- A new obligation gets a new random UUID. Make one with `uuidgen` (one call
+  per UUID) and write it in lower case, like the ids already in the
+  obligations files. Search the release for it with the Grep tool before
+  using it: it must not appear anywhere.
 - A new `page.js` imports nothing.
 - When a question becomes required, or a new required question or page is
   added, update the release's `journeys/linear/flow/fixtures/happy-path.json`
@@ -153,45 +185,60 @@ As you go:
 Then format what you changed:
 
 ```bash
-npm run format
+npm run designer:format
 ```
+
+(`designer:format` is `npm run format` without the long list of files it did
+not change.)
 
 ## Step 7: Check and show it
 
 Run these one at a time. Each must pass before the next.
 
-1. Always:
-
-   ```bash
-   npm run designer:check -- --set <release> --full
-   ```
-
-2. If the example data changed, or a required question was added:
+1. If the example data changed, or a required question was added:
 
    ```bash
    npm run designer:examples -- check <release>
    ```
 
-3. If the page order, a branch or a new page changed:
+2. The check. If the page order, a branch or a new page changed, run the walk
+   (it runs the full check first, so do not run `--full` as well):
 
    ```bash
    npm run designer:check -- --set <release> --walk
    ```
 
-4. Show it. For a change to one or two pages:
+   Otherwise:
 
    ```bash
-   npm run designer:show -- --set <release> --pages changed --errors
+   npm run designer:check -- --set <release> --full
    ```
 
-   For a change to the page order, use `--pages all` instead, so the gallery
-   shows the whole journey in order.
+3. Show it, always with `--before`, so the designer gets a before and after
+   pair. For a change to one or two pages:
 
-5. For a branch, get one example that takes it and one that does not:
+   ```bash
+   npm run designer:show -- --set <release> --pages changed --errors --before
+   ```
+
+   - For a change to the page order, use `--pages all` instead, so the gallery
+     shows the whole journey in order.
+   - For a branch, add `--each-example`: each page is pictured once for every
+     example that reaches it, so both sides of the question show, including
+     check your answers.
+   - For a page reached from another page rather than by Continue (an "add"
+     form, a confirm page), add
+     `--url "notifications/{notification}/<page address>"`.
+   - After an undo, compare with the version before it:
+     `--before-commit HEAD~1`.
+
+4. For a branch, get one example that takes it and one that does not:
 
    ```bash
    npm run designer:examples -- links <release>
    ```
+
+   The add-a-branch recipe adds the second example in the same run.
 
 Read the key screenshots in the gallery yourself before describing them.
 Never claim something looks right without looking.
@@ -237,7 +284,13 @@ Recipe: <recipe name>
 
 Keep the `Recipe:` line in the commit message: the hand-off brief reads it.
 Do not commit. If the designer wants to save it, they say "save my work" and
-`share-my-change` commits with that message.
+`share-my-change` commits with that message. (Starting, freezing or retiring
+a release is the one thing saved straight away, by `design-release`, because
+every later change builds on it.)
+
+Before the designer shows the change to anyone, suggest saving it: "Say 'save
+my work' before you share this. Then 'undo that' later leaves a record of the
+change and its undo, instead of throwing it away."
 
 If the prototype is running (`npm run dev`), saving files restarted it. The
 example links above still work. If a page you made yourself has lost its

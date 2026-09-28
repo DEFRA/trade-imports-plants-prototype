@@ -41,7 +41,11 @@ describe('freeze', () => {
       })
     )
     expect(recordOf('plants-dr2')).toEqual(
-      expect.objectContaining({ frozen: true, frozenAt: NOW.toISOString() })
+      expect.objectContaining({
+        purpose: 'frozen',
+        frozen: true,
+        frozenAt: NOW.toISOString()
+      })
     )
     expect(recordOf('plants-dr2-1')).toEqual(
       expect.objectContaining({

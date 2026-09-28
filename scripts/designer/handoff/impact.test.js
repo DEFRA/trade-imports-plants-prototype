@@ -64,6 +64,16 @@ describe('findPinnedStrings', () => {
     ])
   })
 
+  it('Should list a line once, with the longest old words on it', () => {
+    const tests = {
+      'copy.test.js': "expect(caption).toBe('Consignment parties')"
+    }
+
+    expect(
+      findPinnedStrings(['Consignment', 'Consignment parties'], tests)
+    ).toEqual([{ text: 'Consignment parties', file: 'copy.test.js', line: 1 }])
+  })
+
   it('Should find nothing when no test pins the words', () => {
     expect(findPinnedStrings(['Unpinned'], { 'a.test.js': 'nothing' })).toEqual(
       []

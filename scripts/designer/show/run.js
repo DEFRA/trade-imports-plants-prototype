@@ -31,7 +31,12 @@ import {
 } from '../lib/index.js'
 import { buildClientAssets, needsClientBuild } from './assets.js'
 import { DESIGNER_CACHE, prepareBaseTree } from './base-tree.js'
-import { captureSet, missingFilesNote, recordWalkthrough } from './capture.js'
+import {
+  NOTIFICATION_PLACEHOLDER,
+  captureSet,
+  missingFilesNote,
+  recordWalkthrough
+} from './capture.js'
 import { GOVUK_STYLESHEET, renderGallery } from './gallery.js'
 import {
   STATES,
@@ -119,6 +124,31 @@ const changedKeysOf = async (setId, changedFiles, root) => {
   return pages.filter((page) => page.setId === setId).map(pageKey)
 }
 
+export const CHOOSER_KEY = 'chooser'
+
+/**
+ * The extra addresses to picture, `[{ key, address }]`: the chooser
+ * (`--pages chooser`), each example link (`--examples`) and each `--url`.
+ */
+export const addressesFor = (options) => [
+  ...(options.pages.keys.includes(CHOOSER_KEY)
+    ? [{ key: CHOOSER_KEY, address: '/' }]
+    : []),
+  ...(options.exampleLinks ?? []).map((slug) => ({
+    key: `example:${slug}`,
+    address: `/examples/${options.set}/${slug}`
+  })),
+  ...(options.urls ?? []).map((address) => ({ key: address, address }))
+]
+
+const withoutChooser = (pagesChoice) => ({
+  ...pagesChoice,
+  keys: pagesChoice.keys.filter((key) => key !== CHOOSER_KEY)
+})
+
+const needsNotification = (addresses) =>
+  addresses.some(({ address }) => address.includes(NOTIFICATION_PLACEHOLDER))
+
 /**
  * Works out which pages to show and how to reach them, without starting
  * anything.
@@ -129,11 +159,13 @@ export const planShow = async (options, { root = REPO_ROOT } = {}) => {
   const pages = await pagesOf(options.set, { root })
   const scenarios = readScenarios(setDir(options.set, { root }))
   const changedFiles = orNull(() => changedAndUntrackedPaths({ root })) ?? []
+  const addresses = addressesFor(options)
+  const pagesChoice = withoutChooser(options.pages)
   const changedKeys =
-    options.pages.mode === 'changed'
+    pagesChoice.mode === 'changed'
       ? await changedKeysOf(options.set, changedFiles, root)
       : []
-  const { keys, problems } = resolveWanted(options.pages, {
+  const { keys, problems } = resolveWanted(pagesChoice, {
     pages,
     scenarios,
     changedKeys,
@@ -154,11 +186,18 @@ export const planShow = async (options, { root = REPO_ROOT } = {}) => {
     changedFiles,
     references,
     wanted,
-    plan: planWalk({ pages, scenarios, wanted })
+    addresses,
+    plan: planWalk({
+      pages,
+      scenarios,
+      wanted,
+      eachExample: options.eachExample,
+      finish: needsNotification(addresses)
+    })
   }
 }
 
-const planFor = async (setId, wanted, root) => {
+const planFor = async (setId, wanted, root, options, addresses) => {
   const pages = await pagesOf(setId, { root })
   const scenarios = readScenarios(setDir(setId, { root }))
   const known = knownKeys(pages, scenarios)
@@ -168,9 +207,27 @@ const planFor = async (setId, wanted, root) => {
     plan: planWalk({
       pages,
       scenarios,
-      wanted: wanted.filter((key) => known.includes(key))
+      wanted: wanted.filter((key) => known.includes(key)),
+      eachExample: options.eachExample,
+      finish: needsNotification(addresses)
     })
   }
+}
+
+/**
+ * The gallery's page names in order: each wanted page, or (with
+ * --each-example) its one-per-example names where it has them, then every
+ * extra address.
+ */
+export const galleryKeys = (wanted, runs, addresses) => {
+  const taken = runs.flatMap(({ run }) => [...run.results.keys()])
+  const keys = wanted.flatMap((key) => {
+    const perExample = [
+      ...new Set(taken.filter((name) => name.startsWith(`${key}@`)))
+    ]
+    return perExample.length > 0 ? perExample : [key]
+  })
+  return [...keys, ...addresses.map(({ key }) => key)]
 }
 
 const pointLatest = (setFolder, runName) => {
@@ -236,25 +293,34 @@ const mergeResults = (wanted, runs, references) =>
 const optionsSummary = (options, wanted) => ({
   pages: options.pages.mode === 'list' ? wanted.join(',') : options.pages.mode,
   before: options.before,
+  beforeCommit: options.beforeCommit ?? null,
   errors: options.errors,
   mobile: options.mobile,
   video: options.video,
+  eachExample: options.eachExample ?? false,
+  examples: options.examples ?? true,
+  urls: options.urls ?? [],
   compare: options.compare,
   references: options.references
 })
 
-const startBefore = async (root, setId, folder, afterPort, notes) => {
-  const sha = revParse('HEAD', { root })
+const startBefore = async (context) => {
+  const { root, options, folder, afterPort, notes } = context
+  const setId = options.set
+  const ref = options.beforeCommit ?? 'HEAD'
+  const sha = revParse(ref, { root })
   if (!sha) {
     notes.push(
-      'There is no saved version (commit) yet, so there are no before pictures.'
+      ref === 'HEAD'
+        ? 'There is no saved version (commit) yet, so there are no before pictures.'
+        : `There is no saved version called "${ref}", so there are no before pictures. Use a commit id from git log, or HEAD~1 for the one before your last save.`
     )
     return null
   }
   const baseDir = await prepareBaseTree(root, sha)
   if (!existsSync(setDir(setId, { root: baseDir }))) {
     notes.push(
-      `${setId} is not in your last saved version, so there are no before pictures. Save (commit) it once, then --before compares against that.`
+      `${setId} is not in the saved version ${ref}, so there are no before pictures. Save (commit) it once, then --before compares against that.`
     )
     return null
   }
@@ -262,7 +328,8 @@ const startBefore = async (root, setId, folder, afterPort, notes) => {
   const server = await startShowServer({
     cwd: baseDir,
     port,
-    logFile: path.join(folder, 'server-before.log')
+    logFile: path.join(folder, 'server-before.log'),
+    examples: options.examples
   })
   return { ...server, baseDir }
 }
@@ -271,7 +338,7 @@ const captureAll = async (context) => {
   const { root, options, planned, folder, current, before, notes } = context
   const browser = await chromium.launch()
   try {
-    const shared = { outDir: folder, options }
+    const shared = { outDir: folder, options, addresses: planned.addresses }
     const runs = [
       {
         run: await captureSet(browser, {
@@ -286,7 +353,13 @@ const captureAll = async (context) => {
       }
     ]
     if (before) {
-      const other = await planFor(options.set, planned.wanted, before.baseDir)
+      const other = await planFor(
+        options.set,
+        planned.wanted,
+        before.baseDir,
+        options,
+        planned.addresses
+      )
       runs.push({
         run: await captureSet(browser, {
           ...shared,
@@ -300,7 +373,13 @@ const captureAll = async (context) => {
       })
     }
     if (options.compare) {
-      const other = await planFor(options.compare, planned.wanted, root)
+      const other = await planFor(
+        options.compare,
+        planned.wanted,
+        root,
+        options,
+        planned.addresses
+      )
       if (other.missing.length > 0) {
         notes.push(
           `${options.compare} has no page called ${other.missing.join(', ')}, so those have nothing beside them.`
@@ -374,7 +453,11 @@ export const runShow = async (
   { root = REPO_ROOT, say = () => {} } = {}
 ) => {
   const planned = await planShow(options, { root })
-  if (planned.wanted.length === 0 && !options.video) {
+  if (
+    planned.wanted.length === 0 &&
+    planned.addresses.length === 0 &&
+    !options.video
+  ) {
     return {
       folder: null,
       manifest: null,
@@ -407,18 +490,19 @@ export const runShow = async (
     const current = await startShowServer({
       cwd: root,
       port,
-      logFile: path.join(folder, 'server.log')
+      logFile: path.join(folder, 'server.log'),
+      examples: options.examples
     })
     stops.push(current.stop)
     const before = options.before
-      ? await startBefore(root, options.set, folder, port, notes)
+      ? await startBefore({ root, options, folder, afterPort: port, notes })
       : null
     if (before) {
       stops.push(before.stop)
     }
     const context = { root, options, planned, folder, current, before, notes }
     say(
-      `Taking pictures of ${planned.wanted.length} page(s) in ${options.set}.`
+      `Taking pictures of ${planned.wanted.length + planned.addresses.length} page(s) in ${options.set}.`
     )
     runs = await captureAll(context)
     if (options.video) {
@@ -449,7 +533,7 @@ export const runShow = async (
     localUrl: `${DESIGNER_PORT_URL}/${options.set}`,
     options: optionsSummary(options, planned.wanted),
     pages: mergeResults(
-      planned.wanted,
+      galleryKeys(planned.wanted, runs, planned.addresses),
       runs,
       copyReferences(planned.references, folder)
     ),

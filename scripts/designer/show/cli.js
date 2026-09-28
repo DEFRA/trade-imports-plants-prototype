@@ -60,6 +60,11 @@ export const summaryLines = (manifest, folder, root = REPO_ROOT) => {
   for (const note of manifest.notes) {
     lines.push(`Note: ${note}`)
   }
+  for (const page of manifest.pages) {
+    for (const note of page.notes ?? []) {
+      lines.push(`Note on ${page.key}: ${note}`)
+    }
+  }
   return lines
 }
 

@@ -79,16 +79,46 @@ Cursor and other agents cannot run these scripts. Each skill that starts a
 workflow also describes the same steps run one after another, and
 `design-session` is simple to follow by hand:
 
-1. Check the release is yours and not frozen:
+1. Make sure there are no unsaved changes (`git status --porcelain` prints
+   nothing). On `main`, make a `design/<release>-<slug>` branch; on any other
+   branch that is not `handoff/*`, stay on it.
+2. If the release does not exist yet (`ls src/server/app/sets/<release>/set.js`
+   says there is no such file), start it: `design-release` section B, saved
+   as its own commit. Otherwise check it is yours and not frozen:
    `npm run designer:where -- src/server/app/sets/<release>/set.js`.
-2. Make sure there are no unsaved changes (`git status`) and that you are on a
-   `design/<release>-<slug>` branch.
-3. For each request in turn: pick its skill from the routing table in
-   `CLAUDE.md`, follow that skill's `SKILL.md` to make the change, then run
-   `npm run designer:check -- --set <release>`. If it fails, repair once. If it
-   still fails, undo that request's edits and note why.
-4. Run `npm run designer:show -- --set <release> --pages changed --before`
-   once, for the whole session.
-5. Run `npm run designer:check -- --set <release> --full`, then save each
-   landed request as its own commit, following
-   `.claude/skills/share-my-change/references/commit-message.md`. Never push.
+3. For each request in turn:
+   1. Pick its skill from the routing table in `CLAUDE.md`, and follow that
+      skill's `SKILL.md` to make the change, skipping its check, show and save
+      steps.
+   2. Run `npm run designer:check -- --set <release>` (`--full` for
+      `change-the-journey` and `fake-a-service`). If it fails, repair once.
+   3. **It passed: keep it aside.** Stage its files by name,
+      `git add -A -- <each file it changed>`. Staged files are what the
+      later steps treat as landed, and what an undo of a later request goes
+      back to.
+   4. **It still fails: put it away.** For each file it changed, run
+      `git status --porcelain=v1 -uall -- <file>`. New files (`??`) go into
+      the stash in one go, so they can come back:
+      `git stash push --include-untracked -m "design-session parked: request <n>" -- <new files>`.
+      Every other file goes back to its staged (or saved) version:
+      `git restore --worktree -- <file>`. Note the request as parked, with
+      the check's plain reason.
+4. Run the show once, for the whole session:
+   `npm run designer:show -- --set <release> --pages changed --before`
+   (with an example-data request: `--pages changed,dashboard --examples <new slugs>`).
+5. Run `npm run designer:check -- --set <release> --full`.
+6. Save each landed request as its own commit. Requests that changed the same
+   file go in one commit together, because git cannot split one file's
+   changes between two commits. For each group:
+   1. `git restore --staged -- .` (takes everything off the staging area;
+      nothing on disk changes)
+   2. `git add -A -- <the group's files>`
+   3. `git diff --cached --name-only` lists exactly those files
+   4. `git commit -m "<first line>" -m "<body>"`, with the message written
+      from `git diff --cached` following
+      `.claude/skills/share-my-change/references/commit-message.md`. Never
+      put paths after the message: a commit with paths runs the pre-commit
+      checks against a temporary staging area, which their own git tests
+      trip over.
+7. Report each request as landed (with its commit), parked (with why) or not
+   done (with why), and the gallery path. Never push.

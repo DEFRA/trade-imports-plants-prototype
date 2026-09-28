@@ -28,24 +28,30 @@ afterEach(async () => {
 })
 
 describe('showServerEnv', () => {
-  it('Should run with stub data, no example data and its own port', () => {
+  it('Should run with stub data, the example notifications, nothing saved to disk and its own port', () => {
     expect(
       showServerEnv(3204, {
         PATH: '/bin',
         PORT: '3103',
-        PROTOTYPE_SEED: 'true'
+        PROTOTYPE_SEED: 'false'
       })
     ).toEqual({
       PATH: '/bin',
       NODE_ENV: 'development',
       STUB_MODE: 'true',
-      PROTOTYPE_SEED: 'false',
+      PROTOTYPE_SEED: 'true',
       PROTOTYPE_PERSIST: 'false',
       PORT: '3204',
       HOST: '127.0.0.1',
       NUNJUCKS_WATCH: 'false',
       AWS_EMF_ENVIRONMENT: 'Local'
     })
+  })
+
+  it('Should leave the examples out when asked for an empty dashboard', () => {
+    expect(
+      showServerEnv(3204, { PATH: '/bin' }, { examples: false })
+    ).toMatchObject({ PROTOTYPE_SEED: 'false', PROTOTYPE_PERSIST: 'false' })
   })
 })
 

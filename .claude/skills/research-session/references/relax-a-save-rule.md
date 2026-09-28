@@ -80,7 +80,17 @@ date now saves. A date that is not real, or is in the future when the
 consignment has already arrived, still shows its error.
 
 The potato time and place of landing (`requiredTime`, `requiredOneOf` in
-`potatoRules`) are separate rules. Relax them only if the designer asked.
+`potatoRules`) are separate rules. Relax them only if the designer asked for
+them, and read what they asked like this:
+
+- "let them leave the date blank": that one rule only.
+- "let them get past arrival details", "don't let the page stop them": every
+  required rule on that page, the potato time and place of landing included.
+- Not sure which: relax the rules they named, and say which other required
+  rules on the page are still on.
+
+Either way, `research-mode.md` lists every rule you relaxed, one row each, so
+the designer can see exactly what participants can skip.
 
 ## 3. Relax the submit requirement too (only if the task submits)
 

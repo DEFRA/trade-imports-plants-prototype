@@ -19,22 +19,34 @@ honestly how close the result is.
   - a web address of the page on the old prototype (it may need a password,
     in which case ask for the `.html` file or a screenshot instead)
   - a screenshot (a file path)
+  - only its name ("the transporter page", "here's the old page" with nothing
+    attached): find the source yourself with
+    [references/find-the-old-page.md](references/find-the-old-page.md). It
+    says where the old prototype's clone is, and which of its copies of a page
+    is the current one.
 - **The release** to add the page to. Default: the working release they
-  changed most recently.
+  changed most recently. If there is no working release at all, make one now
+  without asking: follow `design-release` section B with the id
+  `plants-working`, save it as its own commit as that section says, then come
+  back here.
 - **Where it goes**: the page it comes straight after, for example "after
   arrival details" (`arrival-details`).
 
 Pick the new page's slug yourself from its heading, in lower-case words joined
-by hyphens (for example `transporter-type`). Do not ask anything else: make
-the obvious choice and say what you chose at the end.
+by hyphens (for example `transporter-type`). The one exception is a **list**
+page (search, pick one, or add a new one): it follows `fake-a-service`'s
+worked example 1, whose names win (`transporter-select`, and
+`transporter-select/add` for its add form). Do not ask anything else: make the
+obvious choice and say what you chose at the end.
 
 ## Guard rails
 
 - Only into a design release the designer owns. Never into
   `high-risk-plants` or `sample-journey`, never into a frozen release.
 - Change only files under `src/server/app/sets/<release-id>/` and
-  `src/server/app/routes-<release-id>.js`, plus the port's notes under
-  `.cache/designer/port/`.
+  `src/server/app/routes-<release-id>.js`, plus the port's working notes
+  under `.cache/designer/port/`. (A list page's fake, under
+  `src/server/prototype-services/`, is `fake-a-service`'s to change.)
 - No Sass, no client JavaScript, no `src/client/**`, no
   `src/server/app/shared/**`, no new `app-*` classes, no `style` attributes.
   What the old page did with them becomes a design gap.
@@ -42,7 +54,11 @@ the obvious choice and say what you chose at the end.
   `*.test.js` or `*.fit.spec.js` file.
 - Every visible string goes in copy, word for word. Welsh gets
   `'[Welsh needed] <English>'`.
-- One page per run. One Bash command per call. Do not commit.
+- One old page per run. A list page that needs its "add a new one" page and
+  a card on check your answers counts as one port: build all of it in this
+  run, as `fake-a-service`'s worked example 1 does. One Bash command per
+  call. Do not commit (starting a release in section B is the one exception
+  that saves).
 
 ## Steps
 
@@ -65,9 +81,11 @@ Workflow({
 ```
 
 It writes the inventory to
-`.cache/designer/port/<release-id>/<slug>/inventory.json`, the fidelity table
-to `.cache/designer/port/<release-id>/<slug>/fidelity.md` and any gap rows to
-the release's `design-gaps.md`. Read `fidelity.md` when it finishes.
+`.cache/designer/port/<release-id>/<slug>/inventory.json` (working notes),
+the fidelity table to `src/server/app/sets/<release-id>/docs/fidelity-<slug>.md`
+(in the release, so it is saved and reaches reviewers and the hand-off brief)
+and any gap rows to the release's `design-gaps.md`. Read the fidelity table
+when it finishes. Without the Workflow tool, write it to the same place.
 
 If the Workflow tool is not available (for example in Cursor), do the same
 steps yourself, one after another.
@@ -108,8 +126,11 @@ recipe its kind needs:
 - static: `change-the-journey`'s `guidance-page` recipe
 - data-collecting: `change-the-journey`'s `add-a-page` recipe, which uses
   `add-a-field` for each answer
-- list: `fake-a-service` for the data, then `change-the-journey` to place the
-  page
+- list: follow `fake-a-service`'s `references/fake-a-service.md`, "Worked
+  example 1", from start to end. It places the page with `change-the-journey`,
+  builds the picker and its add page on the fake, and shows the choice on
+  check your answers with ready-made code. Its names and its steps win over
+  anything here.
 
 Place it straight after the page the designer named. Build the template with
 GOV.UK macros (`.claude/skills/match-the-design/references/components-we-have.md`
@@ -131,11 +152,13 @@ away).
 ### 5. Show it beside the original
 
 ```bash
-npm run designer:show -- --set <release-id> --pages <slug> --reference <slug>=<picture of the old page>
+npm run designer:show -- --set <release-id> --pages <slug>,notification-view --reference <slug>=<picture of the old page> --errors --mobile
 ```
 
-Leave out `--reference` when there is no picture of the old page. Open the
-new screenshot and look at it.
+Leave out `--reference` when there is no picture of the old page. For a list
+page, add its add form and the page after adding:
+`--url "notifications/{notification}/<slug>/add"`. Open the new screenshots
+and look at them, including the phone width one: a wide table wraps badly.
 
 ### 6. Grade the fidelity
 
@@ -157,7 +180,7 @@ In plain English, short:
 
 - the new page's link, for example
   `http://localhost:3103/<release-id>`, and where it sits in the journey
-- the fidelity table
+- the fidelity table, and where it is saved in the release
 - what was left out and logged as a design gap
 - any accessibility findings from the gallery
 - "The Welsh for this page is marked '[Welsh needed]'."

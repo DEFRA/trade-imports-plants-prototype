@@ -55,7 +55,9 @@ All of these are the prototype's own. The weekly update never touches them.
 
 1. Use the set the designer names. If they name none, use their working design
    release (`npm run designer:release -- list`). `high-risk-plants` is fine for
-   examples: its scenario file is the prototype's own.
+   examples: its scenario file is the prototype's own. If they mean "my
+   release" and there is none, make one now without asking: `design-release`
+   section B (`plants-working`), saved as its own commit, then back here.
 2. Run `npm run designer:where -- <each file you will change>`. For a
    scenario file that does not exist yet, name it anyway: it reports "Yours".
 
@@ -73,6 +75,20 @@ default examples. To add to them, start the file:
 npm run designer:examples -- init <set-id>
 ```
 
+To see which fixtures an example can use, what each is for and which pages it
+answers:
+
+```
+npm run designer:examples -- fixtures <set-id>
+```
+
+It ends with "Where they differ": the pages only some fixtures visit (the
+consignor page is only for plants and wood, for example) and the pages that
+ask different questions (arrival details asks potatoes for a time and a place
+of landing, plants only for a date). Pick the fixture from this list. When the
+designer gives a number of examples or research tasks but does not name them,
+propose them from this list, one per kind of journey, and say which you chose.
+
 ### 3. Make the change
 
 **An example.** Add one entry to `src/server/prototype-seed/scenarios/<set-id>.js`,
@@ -89,6 +105,12 @@ following the grammar at the top of `src/server/prototype-seed/grammar.js`:
 | "copied"                                        | `copy: '<slug of an earlier example>'`, plus `answers` for what differs                                                                                       |
 | "another organisation"                          | `organisationId: '<organisation id>'`                                                                                                                         |
 | "fill the dashboard"                            | several entries, each with a different fixture or `answers`                                                                                                   |
+| "an example that takes the other branch"        | `fixture: '<the scenario that answers the other way>'`: any scenario in the happy path can be an example, not only the first four                             |
+
+Write `fixture` in the short form, `fixture: 'warePotatoes'`, never
+`fixture: { file: 'happy-path', name: 'warePotatoes' }`. The long form
+repeated on five examples breaks a code rule (`sonarjs/no-duplicate-string`)
+and the save is refused. `init` writes the short form.
 
 - Page addresses are the `slug` values in the set's
   `journeys/linear/flow/fixtures/happy-path.json`, for example `origin`,
@@ -131,8 +153,9 @@ suggest another country or another fixture.
 npm run designer:check -- --set <set-id>
 ```
 
-Explain any failure in plain English and fix it (the `check-my-change` skill
-explains every message).
+It runs the code rules on the scenario file too, and names the file, line and
+rule of each error. Explain any failure in plain English and fix it (the
+`check-my-change` skill explains every message).
 
 ### 6. Show it
 
@@ -140,15 +163,16 @@ Tell the designer: "Saving restarted the prototype. Open the set while signed
 in, or press **Reset this prototype's data** under it on
 `http://localhost:3103/`, and the examples are made again."
 
-Then take the pictures, with the dashboard and the page the new example stops
-on:
+Then take the pictures: the dashboard (pictured with every example on it,
+before and after), and where each new example's link lands:
 
 ```
-npm run designer:show -- --set <set-id> --pages dashboard,<stop page>
+npm run designer:show -- --set <set-id> --pages dashboard --examples <new slugs, comma-separated> --before
 ```
 
 Read the key PNGs yourself before you describe them. Never claim a visual
-result you have not looked at.
+result you have not looked at. (An example made for another organisation is
+not on the dashboard pictures: they are taken as the example-data user.)
 
 ### 7. Give the links
 
@@ -159,6 +183,11 @@ npm run designer:examples -- links <set-id>
 Give the designer the new examples' links. For another organisation's example,
 the link signs in as that organisation first (on their computer only; on the
 deployed prototype they sign in as a test user in that organisation).
+
+A link opens the page the example stopped at. Add `?page=<page>` to open
+another page of the same notification: `?page=task-list`, or
+`?page=notification-view` for check your answers. Use these in pull requests
+and research sheets to link straight to the page that changed.
 
 ## Verify
 
@@ -183,4 +212,4 @@ team."
 ## Without the npm scripts
 
 If `designer:examples` is not in `package.json` yet, run the same script
-directly: `node src/server/prototype-seed/cli/index.js <list|check|links|init> <set-id>`.
+directly: `node src/server/prototype-seed/cli/index.js <list|check|links|init|fixtures> <set-id>`.

@@ -82,6 +82,32 @@ describe('compareCopy', () => {
     expect(rulesOf(result)).toEqual(['same-as-english'])
   })
 
+  it('Should let a link address be the same in both languages', () => {
+    const result = compareCopy(
+      {
+        guidanceHref: 'https://www.gov.uk/guidance/plant-health',
+        help: { contactUrl: 'Contact us' },
+        start: '/plants-working/dashboard'
+      },
+      {
+        guidanceHref: 'https://www.gov.uk/guidance/plant-health',
+        help: { contactUrl: 'Contact us' },
+        start: '/plants-working/dashboard'
+      }
+    )
+
+    expect(result).toEqual({ problems: [], markers: [] })
+  })
+
+  it('Should still refuse a sentence that only starts with a link', () => {
+    const result = compareCopy(
+      { hint: 'https://www.gov.uk explains this' },
+      { hint: 'https://www.gov.uk explains this' }
+    )
+
+    expect(rulesOf(result)).toEqual(['same-as-english'])
+  })
+
   it('Should accept and list the Welsh needed marker', () => {
     const result = compareCopy(
       { heading: 'Arrival', hint: (count) => `${count} items` },

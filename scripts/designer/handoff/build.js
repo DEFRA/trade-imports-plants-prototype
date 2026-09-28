@@ -313,7 +313,21 @@ const statusOf = (change) => {
   return change.after === null ? 'deleted' : 'changed'
 }
 
+const NEEDS_A_REAL_SERVICE =
+  /needsARealService:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/
+
+/** The fake's own "needs a real service" sentence from its index.js, or null. */
+const needsARealServiceOf = (root, found) => {
+  const source = readIfExists(
+    root,
+    `src/server/${found.kind}/${found.name}/index.js`
+  )
+  const match = source ? NEEDS_A_REAL_SERVICE.exec(source) : null
+  return match ? (match[1] ?? match[2]) : null
+}
+
 const serviceShape = (root, found) => {
+  const needs = needsARealServiceOf(root, found)
   const candidates = [
     `src/server/${found.kind}/${found.name}/data.json`,
     `src/server/app/${found.kind}/${found.name}/data.json`
@@ -324,16 +338,39 @@ const serviceShape = (root, found) => {
       try {
         const data = JSON.parse(content)
         const rows = Array.isArray(data) ? data : (data.results ?? [data])
-        return { file: candidate, example: rows[0] ?? null }
+        return { file: candidate, example: rows[0] ?? null, needs }
       } catch {
-        return { file: candidate, example: null }
+        return { file: candidate, example: null, needs }
       }
     }
   }
-  return null
+  return needs ? { file: null, example: null, needs } : null
 }
 
-const splitByScope = (changes, { features, all }) => {
+/**
+ * The release files changed since `since` (a commit): saved after it, or not
+ * saved yet. Null when no `since` was given.
+ */
+const changedSince = (root, set, since) => {
+  if (!since) {
+    return null
+  }
+  const ref = resolveCommit(root, since)
+  if (!ref) {
+    throw new HandoffError(
+      `Cannot find the saved change "${since}". Give a commit id from git log with --since.`
+    )
+  }
+  return new Set(changedInWorkingTree(root, ref, setDirOf(set)))
+}
+
+const splitByScope = (changes, { features, all }, since) => {
+  if (since) {
+    return {
+      inScope: changes.filter((change) => since.has(change.releasePath)),
+      outOfScope: changes.filter((change) => !since.has(change.releasePath))
+    }
+  }
   if (all || !features?.length) {
     return { inScope: changes, outOfScope: [] }
   }
@@ -452,6 +489,17 @@ const recipesUsed = (root, setId, createdIn, extra) => {
   return RECIPES.filter((recipe) => text.includes(recipe))
 }
 
+/** Why there is nothing to hand over, and what to do about it. */
+const nothingToHandOver = (set, allChanges, options) => {
+  if (allChanges.length === 0) {
+    return `Nothing in ${set} differs from the real journey it was made from, so there is nothing to hand over. If the change you mean is not made yet, make it in ${set} first (for words, the change-the-words skill), save it, then hand it over.`
+  }
+  const scope = options.since
+    ? `since ${options.since}`
+    : `in the features you named (${options.features.join(', ')})`
+  return `${set} changes ${allChanges.length} file(s), but none ${scope}. Check the name, or leave the option out to hand over everything.`
+}
+
 const checkTargetFiles = (root, changes, ref) =>
   Object.fromEntries(
     changes.map((change) => [change.path, showFile(root, ref, change.path)])
@@ -477,7 +525,11 @@ export const buildHandoff = (options) => {
     ? realJourneyChanges(root, options.base ?? 'main')
     : releaseChanges(root, set, hops)
 
-  const { inScope, outOfScope } = splitByScope(allChanges, options)
+  const since = changedSince(root, set, options.since)
+  const { inScope, outOfScope } = splitByScope(allChanges, options, since)
+  if (inScope.length === 0) {
+    throw new HandoffError(nothingToHandOver(set, allChanges, options))
+  }
   const services = []
   const shippable = []
   const needsService = []
@@ -525,7 +577,9 @@ export const buildHandoff = (options) => {
     leftOut: [
       ...outOfScope.map((change) => ({
         path: change.releasePath,
-        reason: 'Not in the features you chose to hand over.'
+        reason: since
+          ? `Not changed since ${options.since}.`
+          : 'Not in the features you chose to hand over.'
       })),
       ...needsService.map((change) => ({
         path: change.releasePath,

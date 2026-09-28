@@ -49,6 +49,7 @@
     "designer:words": "node scripts/designer/words/cli.js",
     "designer:research": "node scripts/designer/research/cli.js",
     "designer:handoff": "node scripts/designer/handoff/cli.js",
+    "designer:format": "node scripts/designer/format/cli.js",
     "lighthouse": "run-s lighthouse:targets lighthouse:run",
     "lighthouse:targets": "node scripts/lighthouse/seed-audit-targets.js",
     "lighthouse:run": "node scripts/lighthouse/run-audit.js",

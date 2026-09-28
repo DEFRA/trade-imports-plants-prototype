@@ -7,7 +7,8 @@ import {
   ReleaseRefused,
   existingSet,
   refuseNonRelease,
-  relativePathsOf
+  relativePathsOf,
+  setIdsIn
 } from './sets.js'
 
 const NO_BLOB = /^0+$/
@@ -133,6 +134,71 @@ const rewriteBlock = (repoRoot, block, { rewrite, mode }) => {
   return rewritten.replace(INDEX_LINE, `index ${newBefore}..${newAfter}`)
 }
 
+const setFolderOf = (setId) => `src/server/app/sets/${setId}`
+
+/**
+ * The source release as it was at `commit`: `{ setId, record }`, or null when
+ * the commit has no such set. Lets a change saved on another branch be
+ * carried without merging that branch first.
+ */
+const releaseAtCommit = (repoRoot, commit, setId) => {
+  const folder = setFolderOf(setId)
+  if (
+    runGit(repoRoot, ['cat-file', '-e', `${commit}:${folder}/set.js`]).status
+  ) {
+    return null
+  }
+  const record = runGit(repoRoot, ['show', `${commit}:${folder}/release.json`])
+  return {
+    setId,
+    record: record.status === 0 ? JSON.parse(record.stdout) : null
+  }
+}
+
+/**
+ * The release a change is carried from. It is read from the checkout when it
+ * is here, and otherwise from the named commit, so a release saved on another
+ * branch can still be carried from.
+ */
+const sourceRelease = (repoRoot, from, commit) => {
+  try {
+    return existingSet(repoRoot, from)
+  } catch (error) {
+    if (!(error instanceof ReleaseRefused)) {
+      throw error
+    }
+    const verified =
+      commit &&
+      runGit(repoRoot, ['rev-parse', '--verify', `${commit}^{commit}`])
+        .status === 0
+    const atCommit = verified ? releaseAtCommit(repoRoot, commit, from) : null
+    if (atCommit) {
+      return atCommit
+    }
+    throw new ReleaseRefused(
+      commit
+        ? `${error.message} The saved change ${commit} does not have it either: check the commit id with "git log --all --oneline -- ${setFolderOf(from)}".`
+        : `${error.message} If "${from}" is on another branch, name the saved change with --commit <commit id>: the carry reads the release from that commit, so the branch does not need merging first.`
+    )
+  }
+}
+
+/** Working releases made from `setId`, the places a change can go instead. */
+const workingCopiesOf = (repoRoot, setId) =>
+  setIdsIn(repoRoot).filter((candidate) => {
+    const { record } = existingSet(repoRoot, candidate)
+    return record?.from === setId && !record.frozen
+  })
+
+const frozenTargetRefusal = (repoRoot, to) => {
+  const copies = workingCopiesOf(repoRoot, to)
+  const instead =
+    copies.length > 0
+      ? `Carry it into ${copies.map((id) => `"${id}"`).join(' or ')}, the working release made from it, instead: carry --to ${copies[0]}.`
+      : `Start a working release from it first (npm run new:set -- <new-id> --from ${to} --purpose working), then carry the change into that.`
+  return `"${to}" is frozen, so nothing can be added to it. ${instead} To have a change in a frozen release, carry it in before you freeze.`
+}
+
 const changedFilesOf = (patch) =>
   splitPatch(patch).map(
     (block) => block.match(NEW_PATH)?.[1] ?? block.split('\n')[0]
@@ -185,12 +251,10 @@ export const carryChange = ({ from, to, commit, working, repoRoot }) => {
     )
   }
   refuseNonRelease(to, 'carry a change into')
-  const source = existingSet(repoRoot, from)
+  const source = sourceRelease(repoRoot, from, commit)
   const target = existingSet(repoRoot, to)
   if (target.record?.frozen) {
-    throw new ReleaseRefused(
-      `"${to}" is frozen, so nothing can be added to it. Carry the change into a working release instead, or make one from it: npm run designer:release -- freeze ${to} --as <new-id>.`
-    )
+    throw new ReleaseRefused(frozenTargetRefusal(repoRoot, to))
   }
 
   const sourcePaths = relativePathsOf(from)

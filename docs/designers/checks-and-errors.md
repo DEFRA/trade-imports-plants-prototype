@@ -35,18 +35,29 @@ If you ran the quick check but changed how pages work, the check ends with a
 2. **Whose files you changed.** Each changed file is yours, shared with the
    real service on purpose, belongs to the real service, or is removed by the
    weekly update. A file that is not yours is marked "Check". This is advice,
-   not a failure. See [Where your changes go](where-changes-go.md).
+   not a failure. See [Where your changes go](where-changes-go.md). The one
+   exception: a change to a release that was frozen at your last save is
+   FAILED, and the pre-commit hook refuses it too. Freezing a release is not a
+   change to it: the freeze's own `release.json` shows as "You froze …".
 3. **English and Welsh words.** In your set, `copy.en.js` and `copy.cy.js` must
    have the same keys, nothing may be empty, and no Welsh text may be a
    straight copy of the English. Welsh nobody has written yet reads
    `'[Welsh needed] <the English>'`. The check counts and lists those markers.
+   A link address may be the same in both: a value that is only an address
+   (starting `https://`, `mailto:`, `tel:` or `/`), or any key whose name ends
+   in `Href` or `Url`. Never write `[Welsh needed]` in front of an address: it
+   breaks the link.
 4. **Page templates.** Every `.njk` file in your set compiles, and every file
    it extends, includes or imports exists.
-5. **Pages open (prototype checks).** The prototype starts in the background,
+5. **Code rules in the files you changed.** ESLint on every `.js` file you
+   changed, the same rules the pre-commit hook runs, so a broken rule shows
+   now and not only when you save. Each error is named with its file, line
+   and rule.
+6. **Pages open (prototype checks).** The prototype starts in the background,
    starts a notification, walks the set's example journey and opens every page
    the set's `flow.js` lists. Each page must open, or send you somewhere else
    in the same set. None may show the error page.
-6. **Real journey unit tests.** Only when you check `high-risk-plants`.
+7. **Real journey unit tests.** Only when you check `high-risk-plants`.
 
 ### What the pre-commit hook runs
 
@@ -65,8 +76,11 @@ hook first time. Never skip the hook with `--no-verify`.
 
 ### The prototype checks
 
-Two tests in `src/server/prototype-checks/` run inside `npm test`, so every
+Three tests in `src/server/prototype-checks/` run inside `npm test`, so every
 design release is checked on every commit and every pull request:
+
+- `frozen-releases.test.js`: nothing in a frozen release has changed since
+  the commit that froze it.
 
 - `copy-shape.test.js`: the English and Welsh rules above, for every set
   except `high-risk-plants`. The real journey has its own, stricter tests: it
@@ -124,7 +138,8 @@ constant`.
 - It means: some files do not match the house layout. The pre-commit hook
   refuses the commit until they do.
 - Fix: run the check again. Its first step tidies every file you changed. If
-  the files named are ones you did not change, run `npm run format`.
+  the files named are ones you did not change, run `npm run designer:format`
+  (the same as `npm run format`, but it only prints the files it changed).
 - Skill: `check-my-change`
 
 ### English and Welsh words do not match
@@ -310,14 +325,28 @@ assets-manifest.json not found`, or `Module not found`.
   release's `design-gaps.md` and tell the maintainer.
 - Skill: `run-the-prototype`
 
+### A frozen release was changed
+
+- You see: `frozen-release: plants-dr2 was frozen in 0f54597, and 1 file in it
+changed since: …`.
+- It means: a file in a release that was frozen at your last save has
+  changed. Frozen releases are a record of what was designed.
+- Fix: undo the edits to the frozen release, then make the change in a
+  working release made from it. To have a change in a frozen release, carry it
+  in before you freeze.
+- Skill: `design-release`
+
 ### A code rule is broken
 
 - You see: `✖ 1 problem (1 error, 0 warnings)` and a line such as
-  `12:7 error 'unused' is assigned a value but never used`.
+  `12:7 error 'unused' is assigned a value but never used`. The check lists
+  each one under "Where" as `file:line rule: message`.
 - It means: a code rule was broken, for example an unused name, a missing
-  import or a very long function.
+  import, a repeated piece of text or a very long function.
 - Fix: say "fix the lint errors" and Claude will read each rule and fix it.
-  Many are fixed by `npm run lint:js:fix`.
+  Many are fixed by `npm run lint:js:fix`. A rule about a long or complicated
+  function (`sonarjs/cognitive-complexity`, `sonarjs/cyclomatic-complexity`)
+  means splitting the code you added into a small helper in the same file.
 - Skill: `check-my-change`
 
 ### A test failed

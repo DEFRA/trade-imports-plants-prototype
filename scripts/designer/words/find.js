@@ -40,6 +40,21 @@ export const pagesOfLeaf = (leaf, map) => {
   return pages.length > 0 ? pages.map((page) => page.id) : [leaf.feature]
 }
 
+/**
+ * The name designer:show's --pages takes for a page id: its address inside a
+ * notification (`consignors/select`), or the id itself for a page with no
+ * address of its own (`dashboard`, `hub`).
+ */
+export const showNameOf = (pageId, map) => {
+  for (const pages of map.featurePages.values()) {
+    const page = pages.find((candidate) => candidate.id === pageId)
+    if (page) {
+      return page.slug || page.id
+    }
+  }
+  return pageId
+}
+
 const pagesOfFeature = (feature, map) => {
   const pages = map.featurePages.get(feature) ?? []
   return pages.length > 0 ? pages.map((page) => page.id) : [feature]
@@ -64,15 +79,20 @@ export const describeLeaf = (leaf, map) => {
       `fills in ${leaf.en.length} value(s): keep every \${…} placeholder`
     )
   }
+  const pages = map ? pagesOfLeaf(leaf, map) : []
+  const alsoOn = map
+    ? (map.shownOn.get(leaf.feature) ?? []).flatMap((feature) =>
+        pagesOfFeature(feature, map)
+      )
+    : []
   return {
     setId: leaf.setId,
     shared: leaf.shared,
     feature: leaf.feature,
-    pages: map ? pagesOfLeaf(leaf, map) : [],
-    alsoOn: map
-      ? (map.shownOn.get(leaf.feature) ?? []).flatMap((feature) =>
-          pagesOfFeature(feature, map)
-        )
+    pages,
+    alsoOn,
+    showPages: map
+      ? [...new Set([...pages, ...alsoOn].map((id) => showNameOf(id, map)))]
       : [],
     keyPath: leaf.keyPath,
     file: leaf.file,

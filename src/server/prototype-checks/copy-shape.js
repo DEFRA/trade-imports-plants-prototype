@@ -53,6 +53,18 @@ const preview = (value) => {
     : text
 }
 
+const LINK_VALUE = /^(?:https?:\/\/|mailto:|tel:|\/)\S*$/
+const LINK_KEY = /(?:href|url)$/i
+
+/**
+ * A link address is the same in English and Welsh, so it may be copied
+ * straight across: a value that is one address with no spaces (starting
+ * https://, http://, mailto:, tel: or /), or any value of a key whose name
+ * ends in Href or Url.
+ */
+export const isLinkAddress = (keyPath, value) =>
+  LINK_KEY.test(keyPath) || LINK_VALUE.test(String(value).trim())
+
 const inputsLabel = (count) => (count === 1 ? '1 input' : `${count} inputs`)
 
 const problem = (rule, keyPath, message) => ({ rule, keyPath, message })
@@ -111,7 +123,8 @@ const pairProblem = (key, englishValue, welshValue) => {
   if (
     typeof englishValue === 'string' &&
     englishValue.trim() !== '' &&
-    welshValue === englishValue
+    welshValue === englishValue &&
+    !isLinkAddress(key, englishValue)
   ) {
     return problem(
       'same-as-english',

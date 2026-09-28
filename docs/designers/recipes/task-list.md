@@ -29,9 +29,12 @@ or change all three if they say "everywhere":
    These are in `flow/section-captions/copy/`. They are a different list,
    finer than the groups.
 
-A rename that only changes words, in any of the three, is also something
-`change-the-words` does. Use this recipe when the change also moves, adds or
-removes tasks or groups.
+A rename that only changes words, in any of the three, belongs to
+`change-the-words`, not this recipe: it finds every home of the words and
+runs the quick check. Use this recipe only when the change also moves, adds
+or removes tasks or groups. If the designer names a group that does not exist
+exactly ("the Arrival group" when it is "2. Arrival and destination"), use
+the nearest match and say which one you took.
 
 ## Files in a release
 

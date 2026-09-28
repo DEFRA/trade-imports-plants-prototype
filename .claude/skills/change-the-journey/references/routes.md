@@ -41,14 +41,19 @@ Match the request to the first line that fits.
    makes, and do it only in a working release.
 7. "Move this page", "ask X before Y", "change the order of the pages": the
    designer recipe **move-a-page** (`docs/designers/recipes/move-a-page.md`).
-8. "Regroup the task list", "rename a task list group", "move a task to another
-   group", "rename a task": the designer recipe **task-list**
+8. "Regroup the task list", "move a task to another group", "add or remove a
+   group": the designer recipe **task-list**. A rename that only changes words
+   ("rename a task list group", "rename a task") is `change-the-words`, not
+   this skill.
    (`docs/designers/recipes/task-list.md`).
 9. "Reorder check your answers", "rename a check your answers heading or
    card", "add or remove a row on check your answers": the designer recipe
    **check-answers** (`docs/designers/recipes/check-answers.md`).
-10. "Change the confirmation page", "add a what happens next section", "show a
-    different confirmation for X": the designer recipe **confirmation-variant**
+10. "Change the confirmation page", "a green panel with the reference number",
+    "add a what happens next section", "show a different confirmation for X":
+    the designer recipe **confirmation-variant**. Check first what the page
+    already shows (step 2b): the reference number is already in a green panel
+    today.
     (`docs/designers/recipes/confirmation-variant.md`).
 11. "Make this question optional", "make this question required", "add a rule
     that X must be Y", "change what counts as a valid answer": the designer

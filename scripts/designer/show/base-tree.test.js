@@ -13,6 +13,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { gitEnv } from '../lib/git-env.js'
 import { makeFixtureRepo } from '../lib/test-support.js'
 import {
   READY_MARKER,
@@ -42,13 +43,15 @@ const fixtureRepo = () => {
 const headOf = (root) =>
   execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: root,
-    encoding: 'utf8'
+    encoding: 'utf8',
+    env: gitEnv()
   }).trim()
 
 const statusOf = (root) =>
   execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], {
     cwd: root,
-    encoding: 'utf8'
+    encoding: 'utf8',
+    env: gitEnv()
   })
 
 describe('baseFolderName', () => {

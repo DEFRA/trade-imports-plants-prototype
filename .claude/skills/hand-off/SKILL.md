@@ -49,12 +49,27 @@ without explaining it once ("the real service's code").
    is on and its rules can never ship. Offer to switch it off first
    (`npm run designer:research -- off <set-id>`, the `research-session`
    skill). If they keep it on, the brief lists each rule under "cannot ship".
-4. Agree a slug for the folder, two to four words with hyphens, for example
+4. **Check the change exists.** The designer names a change ("hand off the
+   Consignment addresses wording"). Look for it in the release: for words,
+   `npm run designer:words -- find "<the new words>" --set <set-id>`; for
+   anything else, `git log --oneline -- src/server/app/sets/<set-id>`. If it
+   is not there, it was never made, or it was made in another release: say
+   so, and offer to make it now with the right skill (`change-the-words` for
+   words), save it, and then hand it off. Never hand off an empty change:
+   `designer:handoff` refuses one in plain words.
+5. Agree a slug for the folder, two to four words with hyphens, for example
    `consignment-addresses`. Ask once what the change is for and why, in one or
    two sentences, unless the conversation already says. That becomes `--why`.
-5. Ask whether all of the release's changes go, or only some pages. Some pages
+   **Use only the designer's own words for `--why`.** Never make up a reason
+   ("traders read parties as legal jargon") they did not give. If they give
+   none and you cannot ask, leave `--why` out: the brief then shows a
+   placeholder the designer fills in, which is honest.
+6. Ask whether all of the release's changes go, or only some. Some pages
    means `--features <feature folders>` (the folder names under
-   `journeys/linear/features/`). Default: everything (`--all`).
+   `journeys/linear/features/`). Only the latest change means
+   `--since <commit>`, the commit before it (for a release whose first commit
+   only copied the journey, `--since` that commit hands off everything after
+   the copy). Default: everything (`--all`).
 
 Then choose the route:
 
@@ -77,13 +92,18 @@ Then choose the route:
    Read `.cache/designer/handoff/<yyyy-mm-dd>-<slug>/report.json` and
    `brief.md`. Note the page slugs in `pages[].slugs`.
 
+   If it says there is nothing to hand over, go back to step 4 above.
+
 2. Photograph those pages beside the real journey:
 
    ```
    npm run designer:show -- --set <set-id> --pages <slug,slug> --compare high-risk-plants
    ```
 
-   (Add `--errors` when error messages changed.)
+   (Add `--errors` when error messages changed.) A change across the journey
+   (a section caption, the task list, flow) has no page slugs in the report:
+   picture the pages the words are on (`designer:words -- find` lists them).
+   The brief then takes every picture in the gallery for that part.
 
 3. Write the hand-off folder:
 
@@ -91,8 +111,11 @@ Then choose the route:
    npm run designer:handoff -- --set <set-id> --slug <slug> --all --title "<short heading>" --why "<what and why>"
    ```
 
-   Use `--features <a,b>` in place of `--all` for only some pages, and
-   `--recipe <name>` for a recipe the commit messages do not name.
+   Use `--features <a,b>` or `--since <commit>` in place of `--all` for only
+   some of the change, and `--recipe <name>` for a recipe the commit messages
+   do not name. The brief's "Welsh needed" tables show the Welsh each marker
+   replaced, for the translator. Its file paths are the real service's paths
+   once the patch is applied: a file may not exist in the real journey yet.
 
 4. Read `handoffs/<yyyy-mm-dd>-<slug>/brief.md` in full. Look at the
    screenshots it links. Tell the designer, in plain words:
@@ -110,7 +133,7 @@ Then choose the route:
 5. Save the folder on the designer's branch:
 
    ```
-   npm run format
+   npm run designer:format
    ```
 
    ```
@@ -194,8 +217,9 @@ update the pinned tests the dry run's `report.json` lists under
 and switch back); run
 `npm run designer:show -- --set high-risk-plants --pages changed --before`;
 run `npm run designer:handoff -- --set high-risk-plants --base main --slug <slug> --title "<title>" --why "<why>"`;
-`npm run format`; commit the change and the folder separately (stage by
-name); then `git switch <the designer's branch>`.
+`npm run designer:format`; commit the change and the folder separately
+(stage by name, then commit with no paths after the message); then
+`git switch <the designer's branch>`.
 
 ## Verify
 

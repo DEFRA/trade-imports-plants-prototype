@@ -69,7 +69,13 @@ Talk to the designer in GDS plain English. Say "your research release", not
 ### 2. Agree the tasks and give each a stable link
 
 1. Ask the designer for the tasks, in order, and the page each one starts on.
-   Keep to what they asked for. If they are unsure, suggest at most 5.
+   Keep to what they asked for. If they are unsure, or give a number of tasks
+   without naming them ("three tasks"), propose them yourself from
+   `npm run designer:examples -- fixtures <set-id>`: it lists each fixture's
+   kind of journey, the pages it answers and where fixtures differ (potatoes
+   are asked for a time and a place of landing, plants only for a date). Pick
+   one task per difference that matters to the round's topic, at most 5, and
+   say which you picked and why.
 2. For each task that does not start on the dashboard, follow the
    `example-data` skill to add an example **stopped at the task's starting
    page**, with a short example id (for example `arrival-task`). The example
@@ -137,10 +143,13 @@ them (the default), or should some pages let them through?"
    ```
 
    It refuses high-risk-plants, frozen releases, a changed rule file the log
-   does not name, and deletions. It commits only the controllers, obligations
-   and `research-mode.md` inside the release, and lists anything it left
-   unsaved. The checks that run before every commit run here too, so it takes a
-   few minutes.
+   does not name, deletions, and other files already staged for a save
+   (unstage them with `git restore --staged <file>`: the edits stay). It
+   stages and commits only the controllers, obligations and
+   `research-mode.md` inside the release, and lists anything it left
+   unsaved. The checks that run before every commit run here too, so it takes
+   a few minutes. If it says the commit did not go through, read the reason it
+   prints under that line: it is the pre-commit check's own message.
 
 ### 4. Make the participant sheet
 
@@ -187,6 +196,14 @@ Say both of these, every time:
    page, what to change, why (the finding), and the skill that makes it
    (`change-the-words`, `change-the-journey`, `match-the-design`,
    `example-data`, `fake-a-service`). Offer to start with the first row.
+3. **Where a change after the round goes.** Any change asked for after the
+   sessions (a wording change, a moved page) goes in a working release: the
+   one this research release was made from (`from` in its `release.json`), or
+   a new one made from this research release with `design-release`
+   section B (`--from <set-id> --purpose working`). The research release stays
+   exactly as participants saw it, as the record of the round. Change the
+   research release itself only for a change meant for the sessions ("fix
+   the typo on task 2 before Thursday").
 
 ## Verify
 
@@ -196,20 +213,26 @@ Say both of these, every time:
    npm run designer:check -- --set <set-id>
    ```
 
-2. Photograph each task's starting page with its error state:
+2. Photograph each task's starting page with its error state, where each
+   task link lands, and the chooser:
 
    ```
-   npm run designer:show -- --set <set-id> --pages <start pages, comma-separated> --errors
+   npm run designer:show -- --set <set-id> --pages <start pages, comma-separated>,chooser --examples <task example ids, comma-separated> --errors
    ```
 
-   Read the key PNGs yourself. With research mode on, a relaxed page must have
-   **no** error state when submitted empty. With research mode off (or after
-   `off`), the error state must be back. Never claim either without looking.
+   It runs its own copy of the prototype on a free port from 3203, so it
+   works even when something else holds 3103. The command prints a note per
+   page ("Note on arrival-details: Sending this page empty moved on to the
+   next page, so it has no error state to show"): with research mode on, that
+   note is the proof a relaxed page lets participants through. Read the key
+   PNGs yourself. With research mode off (or after `off`), the error state
+   must be back. Never claim either without looking.
 
 3. Open the sheet at `.cache/designer/research/<set-id>/sheet.html` and check
    every task has a link.
-4. Confirm the chooser at `http://localhost:3103/` shows the "Research mode on"
-   tag while `research-mode.md` exists, and not after `off`.
+4. In the chooser picture, the release shows the "Research mode on" tag while
+   `research-mode.md` exists, and not after `off`. Each `example:<id>` picture
+   is the page a participant starts on.
 
 ## Hand-off
 

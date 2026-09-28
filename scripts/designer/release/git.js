@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process'
 
+import { gitEnv } from '../lib/git-env.js'
+
 const MAX_BUFFER = 64 * 1024 * 1024
 
 /**
@@ -11,6 +13,7 @@ export const runGit = (repoRoot, args, { input } = {}) => {
   const result = spawnSync('git', args, {
     cwd: repoRoot,
     encoding: 'utf8',
+    env: gitEnv(),
     input,
     maxBuffer: MAX_BUFFER
   })

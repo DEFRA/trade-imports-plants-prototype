@@ -57,6 +57,19 @@ npm run designer:examples -- init <set-id>
 `high-risk-plants` has its own scenario file with nine examples, covering every
 kind below.
 
+To see the fixtures you can use, what each is for, the pages it answers and
+where they differ (which pages only plants visit, which questions only
+potatoes are asked):
+
+```
+npm run designer:examples -- fixtures <set-id>
+```
+
+Write `fixture` as a plain name, `fixture: 'warePotatoes'`. The longer
+`{ file: 'happy-path', name: … }` form, repeated on many examples, breaks a
+code rule and stops the save: use it only when the same name is in two
+fixture files.
+
 ## Writing an example
 
 A scenario file is a list. Each example is one entry:
@@ -169,7 +182,14 @@ http://localhost:3103/examples/<set-id>/<slug>
 It opens the page the example stopped on: the `through` page for a draft, the
 confirmation page for a submitted one, check your answers for a cancelled
 amendment, the task list for an amendment, and the dashboard for a deleted
-one. Sign in first. To print every link for a set:
+one. Sign in first.
+
+Add `?page=<page>` to open another page of the same notification:
+`?page=task-list` for the task list, `?page=notification-view` for check your
+answers, or any page's address such as `?page=arrival-details`. Handy for
+pull requests and research sheets that point at one page.
+
+To print every link for a set:
 
 ```
 npm run designer:examples -- links <set-id>

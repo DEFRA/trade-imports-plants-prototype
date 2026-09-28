@@ -62,8 +62,12 @@ passes.
   `*.fit.spec.js` inside `sets/<release>/`. A new fake service under
   `src/server/prototype-services/` is the exception: it gets an
   `index.test.js` (see `references/fake-a-service.md`).
-- **One change per run.** If the designer asks for several, do the first,
-  finish it, and list the rest for them to ask for next.
+- **One change at a time.** A request with two or three parts is done part by
+  part in this run, each checked before the next. A request that needs other
+  skills too follows "Requests that need more than this skill" below. With
+  four or more changes, start the `design-session` workflow (CLAUDE.md,
+  "Workflows"). Never make the designer ask again for a part they already
+  asked for.
 - **One Bash command per call.** Install only with `npx --yes npm@11.6.2 ci`.
   Never `--no-verify`, never push.
 
@@ -93,9 +97,32 @@ Refuse in plain English, and offer the safe route, when the target is
 `high-risk-plants`, `sample-journey` (a placeholder: never change it), or a
 frozen release.
 
-If the designer has no release yet, stop and offer `design-release` first. A
-service home page is the one exception: it is a new set of its own, made from
-`sample-journey` (see `references/service-home.md`).
+If the designer has no working release yet, make one now without asking:
+follow `design-release` section B with the id `plants-working` (or the id the
+designer used), save it as its own commit as that section says, then come
+back here and carry on. A service home page is the one exception: it is a new
+set of its own, made from `sample-journey` (see
+`references/service-home.md`).
+
+## Requests that need more than this skill
+
+Many real asks cross skills. Do the parts in this order, in one run, and
+report them together:
+
+1. **No working release**: `design-release` section B (above).
+2. **Example notifications to fill the page** ("filled with examples", "a
+   late one", "one for another organisation"): `example-data`, before the
+   dashboard change, so the counts and tabs have something to show.
+3. **The fake itself**: this skill.
+4. **A journey page for it** (a lookup page that collects an answer):
+   `change-the-journey`'s add-a-page recipe, as step 5 says.
+5. **Matching a Figma frame**: `show-my-change` with `--reference`, last, once
+   the page exists. `match-the-design` for any layout tweaks it shows.
+
+For example, "make my dashboard look like this Figma, filled with examples":
+1 if needed, then 2 (a late, a submitted and an amended example), then
+`references/dashboard-filters-and-tabs.md`, then 5 with the Figma frame
+beside the dashboard picture.
 
 ## Step 2: Pick the reference
 
@@ -169,7 +196,7 @@ release's own files (never import from `high-risk-plants`). As you go:
 Then format what you changed:
 
 ```bash
-npm run format
+npm run designer:format
 ```
 
 ## Step 6: Check and show it
@@ -183,25 +210,35 @@ Run these one at a time. Each must pass before the next.
    npm run designer:check -- --set <release> --full
    ```
 
-2. Show the dashboard and every page you added:
+2. Show the dashboard and every page you added, before and after. The
+   dashboard is pictured with the release's example notifications on it:
 
    ```bash
-   npm run designer:show -- --set <release> --pages dashboard,<new pages> --errors
+   npm run designer:show -- --set <release> --pages dashboard,<new pages> --errors --before --mobile
    ```
 
-3. Prove Reset clears the fake. Ask the designer to open
-   `http://localhost:3103/`, press "Reset this prototype's data" under the
-   release, then open the page again: anything they added (a transporter, a
-   template) is gone and the starter rows are back. If `npm run dev` is not
-   running, use `run-the-prototype` first.
+   - `--mobile` matters for tables and lists: a wide table wraps badly at
+     phone width, and the picture shows it (`match-the-design`'s
+     `references/nearest-equivalent.md` says which columns to drop or merge).
+   - A page reached from another page rather than by Continue (an "add a
+     transporter" form, a confirm page, the page you come back to with its
+     banner) is pictured with `--url`, as it shows in the browser after the
+     release's address. Inside a notification, write `{notification}` for its
+     reference:
+     `--url "notifications/{notification}/transporter-select/add"`.
+     `--errors` pictures each one sent empty, too.
+   - Filters, tabs and empty or error states on the dashboard are each a
+     `--url` with a query: see "Check it" in
+     `references/dashboard-filters-and-tabs.md`. Never hand the designer
+     links to click instead.
 
-4. For a dashboard change, give the designer these links to click, because the
-   gallery shows the dashboard without a filter:
-
-   - filtered: `http://localhost:3103/<release>?status=submitted`
-   - nothing matches: `http://localhost:3103/<release>?status=amend` (on a
-     release with no amended notifications) or a commodity nobody imported
-   - error state: `http://localhost:3103/<release>?dateFrom-day=31&dateFrom-month=2&dateFrom-year=2026`
+3. Reset. No tool can press the chooser's "Reset this prototype's data"
+   button, so this is the one thing to ask the designer: open
+   `http://localhost:3103/`, press it under the release, then open the page
+   again: anything they added (a transporter, a template) is gone and the
+   starter rows are back. If the designer is not there, say you could not
+   press Reset yourself and they should try it once. Do not hold the change
+   back for it.
 
 Read the key screenshots in the gallery yourself before describing them.
 Never claim something looks right without looking.
@@ -253,7 +290,7 @@ Pages changed: <page names>
 Fake: <fake name> — needs a real service: <one line>
 See it: http://localhost:3103/<release>/... (<filtered, empty and error links for a dashboard>)
 Gallery: <path printed by designer:show>
-Checks: full check passed · Reset clears the fake
+Checks: full check passed · Reset clears the fake (or: "please press Reset once to confirm")
 Welsh needed: <keys, or "none">
 
 Suggested commit message:

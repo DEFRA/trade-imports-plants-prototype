@@ -157,7 +157,10 @@ describe('designer:handoff end to end', () => {
       expect(dir).toBe(path.join(root, 'handoffs/2026-09-27-arrival-time-hint'))
       const brief = readFile(dir, 'brief.md')
       expect(brief).toContain(`[Welsh needed] followed by the English`)
-      expect(brief).toContain(`line 24: "${NEW_HINT}"`)
+      expect(brief).toContain(
+        `line 24 (once the patch is applied): "${NEW_HINT}"`
+      )
+      expect(brief).toContain(`| \`time.hint\` | ${OLD_WELSH} | ${NEW_HINT} |`)
       expect(brief).toContain(
         `\`${REAL}/${FEATURE}/copy/copy.test.js\` line 89: "${OLD_HINT}"`
       )
@@ -366,7 +369,8 @@ describe('designer:handoff on small releases', () => {
           kind: 'prototype-services',
           shape: {
             file: 'src/server/prototype-services/transporters/data.json',
-            example: { id: 't1', name: 'Haulage Ltd', country: 'NL' }
+            example: { id: 't1', name: 'Haulage Ltd', country: 'NL' },
+            needs: null
           }
         })
       ])
@@ -377,6 +381,18 @@ describe('designer:handoff on small releases', () => {
         { page: 'transporter', why: 'No saved-transporter service' }
       ])
       expect(report.applyCheck.empty).toBe(true)
+    },
+    TIMEOUT_MS
+  )
+
+  it(
+    'Should refuse, in plain words, a release that changes nothing',
+    () => {
+      scaffoldRelease(root)
+
+      expect(() => buildHandoff({ root, set: 'plants-working' })).toThrow(
+        /there is nothing to hand over\. If the change you mean is not made yet/
+      )
     },
     TIMEOUT_MS
   )

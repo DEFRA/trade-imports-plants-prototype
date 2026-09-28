@@ -44,7 +44,7 @@ export const SIGNATURES = [
       /Code style issues found[^\n]*|\[warn\] \S+\.(?:js|cjs|md|json)\b|Prettier could not tidy[^\n]*/,
     cause:
       'The layout of some files (spaces, quotes, line breaks) does not match the house style. The pre-commit hook refuses the commit until it does.',
-    fix: 'Run the check again: its first step tidies every file you changed. If the files named are ones you did not change, run `npm run format`.',
+    fix: 'Run the check again: its first step tidies every file you changed. If the files named are ones you did not change, run `npm run designer:format`.',
     skill: 'check-my-change'
   },
   {
@@ -230,15 +230,25 @@ export const SIGNATURES = [
     skill: 'run-the-prototype'
   },
   {
+    id: 'frozen-release',
+    title: 'A frozen release was changed',
+    pattern: /frozen-release: ([a-z0-9-]+) was frozen in ([0-9a-f]+)[^\n]*/,
+    cause: (match) =>
+      `${match[1]} was frozen in ${match[2]}, so nothing in it may change, but some of its files did.`,
+    fix: 'Undo the edits to the frozen release (say "undo that" and name the files), then make the change in a working release made from it. To have a change in a frozen release, carry it in before you freeze.',
+    skill: 'design-release'
+  },
+  {
     id: 'lint',
     title: 'A code rule is broken',
     generic: true,
     pattern:
       /✖ \d+ problems? \(\d+ errors?[^\n]*|^\s*\d+:\d+\s+error\s+[^\n]*/m,
     cause:
-      'A code rule was broken, for example an unused name, a missing import or a very long function.',
-    fix: 'Say "fix the lint errors" and Claude will read each rule and fix it. Many are fixed by `npm run lint:js:fix`.',
-    skill: 'check-my-change'
+      'A code rule was broken, for example an unused name, a missing import, a repeated piece of text or a very long function.',
+    fix: 'Say "fix the lint errors" and Claude will read each rule named under "Where" and fix it. Many are fixed by `npm run lint:js:fix`. A rule about a long or complicated function (sonarjs/cognitive-complexity, sonarjs/cyclomatic-complexity) means splitting the code you added into a small helper function in the same file.',
+    skill: 'check-my-change',
+    where: (text) => eslintProblems(text)
   },
   {
     id: 'failing-test',
@@ -263,6 +273,35 @@ export const UNKNOWN = {
 
 const textOf = (value, match) =>
   typeof value === 'function' ? value(match) : value
+
+const MAX_WHERE = 8
+const ESLINT_FILE = /^(?:\/|[A-Za-z]:\\)\S+\.[cm]?js$/
+const ESLINT_PROBLEM = /^\s+(\d+):\d+\s+error\s+(.+?)\s{2,}(\S+)\s*$/
+
+const repoPathOf = (absolute) => {
+  const named = filesNamedIn(absolute.replaceAll('\\', '/'))
+  return named[0] ?? absolute
+}
+
+/**
+ * Every ESLint error in stylish output, as "file:line rule: message", with
+ * the file repo-relative. At most the first eight.
+ */
+export const eslintProblems = (text) => {
+  const problems = []
+  let file = null
+  for (const line of String(text).split('\n')) {
+    if (ESLINT_FILE.test(line.trim())) {
+      file = repoPathOf(line.trim())
+      continue
+    }
+    const problem = ESLINT_PROBLEM.exec(line)
+    if (problem && file) {
+      problems.push(`${file}:${problem[1]} ${problem[3]}: ${problem[2]}`)
+    }
+  }
+  return problems.slice(0, MAX_WHERE)
+}
 
 const lineRangeAround = (output, index) => {
   const start = output.lastIndexOf('\n', index) + 1
@@ -314,7 +353,8 @@ const findingFrom = (signature, match, output, changedPaths) => {
     skill: signature.skill,
     evidence: evidence.trim(),
     files: filesNamedIn(evidence),
-    attribution: attribute(evidence, changedPaths)
+    where: signature.where ? signature.where(output) : [],
+    attribution: attribute(signature.where ? output : evidence, changedPaths)
   }
 }
 

@@ -126,4 +126,8 @@ describe('longDate', () => {
   it('Should write a date the GOV.UK way', () => {
     expect(longDate('2026-09-27T10:00:00.000Z')).toBe('27 September 2026')
   })
+
+  it('Should use the UK calendar day, not the UTC one', () => {
+    expect(longDate('2026-09-27T23:28:00.000Z')).toBe('28 September 2026')
+  })
 })

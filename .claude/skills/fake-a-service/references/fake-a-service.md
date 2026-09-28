@@ -103,13 +103,25 @@ The designer says: "After arrival details, add a Transporter page like the one
 in the GB prototype: search saved transporters, pick one from the list, or add
 a new one."
 
-This is two jobs:
+This is one request with three parts, all done in this run (it is the
+designer's one change, even though it adds two pages):
 
 1. **A new journey page that stores an answer.** That is
-   `change-the-journey` (the add-a-page recipe): a new obligation for the
-   transporter (stored as `{ transporterId }`), the page, and its place in
-   `flow.js`. Do that first, or after, but not in the same step as the fake.
-2. **The picker behind the page.** That is this reference.
+   `change-the-journey` (the add-a-page recipe): a new obligation named
+   `transporter` (stored as `{ transporterId }`), the page, and its place in
+   `flow.js`. Do it first.
+2. **The picker behind the page, and its "add a new one" page.** That is this
+   reference.
+3. **The answer on check your answers.** Also this reference, below. The
+   add-a-page recipe's own check-your-answers step does not cover a record
+   that lives in a fake service.
+
+The names are settled here, whatever the old page was called: the page is
+`transporter-select` (folder `features/transporter-select/`, slug
+`transporter-select`), and the add page is `transporter-select/add` (folder
+`features/transporter-add/`). This follows the picker it is copied from
+(`consignors/select`), so its links and tests read the same way.
+`port-a-kit-page` follows these names too when it ports a list page.
 
 The address book picker is the pattern. The consignor page
 (`features/consignor-select/`) is one picker page built on it. In the release:
@@ -163,6 +175,100 @@ For "add a new one", add a page that is not a journey step:
   as well.
 
 - Link to it from the picker page with `pagePath(journeyId, 'transporter-select/add')`.
+- Put any link the page shows (a GOV.UK guidance page, say) in its copy under
+  a key ending `Href`, for example `guidanceHref`. The English and Welsh
+  check lets a link address be the same in both files, so never put
+  `[Welsh needed]` in front of an address.
+
+### Show the transporter on check your answers
+
+Check your answers looks up the address book for the consignor and the place
+of destination (`partiesFor` in its `controller.js`). A transporter lives in
+the fake, so give it a small lookup of its own, in a new file. Never add it
+to `partiesFor`: that function is already at the code rules' complexity
+limit, and one more branch fails `sonarjs/cyclomatic-complexity`.
+
+1. A new file, `features/check-answers/fake-parties.js`:
+
+   ```js
+   import * as transporters from '../../../../../../../prototype-services/transporters/index.js'
+   import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
+
+   /**
+    * Parties kept in the prototype's fake services, not the address book:
+    * the answer field, the key its saved answer holds the id in, and the
+    * lookup. Needs a real service: see design-gaps.md.
+    */
+   const FAKE_PARTIES = [
+     {
+       field: 'transporter',
+       idKey: 'transporterId',
+       find: transporters.transporter
+     }
+   ]
+
+   const lookUp = async (request, saved, { idKey, find }) => {
+     const id = saved?.[idKey]
+     return id ? find(organisationIdOf(request), id) : undefined
+   }
+
+   /** Each fake-backed party the notification has, by answer field. */
+   export const fakePartiesFor = async (request, source, scope) => {
+     const found = {}
+     for (const entry of FAKE_PARTIES) {
+       const party = scope.has(entry.field)
+         ? await lookUp(request, source[entry.field], entry)
+         : undefined
+       if (party && !party.deleted) {
+         found[entry.field] = party
+       }
+     }
+     return found
+   }
+   ```
+
+   Another fake-backed party is one more line in `FAKE_PARTIES`.
+
+2. In `features/check-answers/controller.js`, import it and change only the
+   `parties` line in `render`:
+
+   ```js
+   import { fakePartiesFor } from './fake-parties.js'
+   // …
+   const parties = {
+     ...(await partiesFor(request, source, current.scope)),
+     ...(await fakePartiesFor(request, source, current.scope))
+   }
+   ```
+
+3. In `features/check-answers/view-model/index.js`, add the card to
+   `partiesSection`, after the consignor card:
+
+   ```js
+   ...(scope.has('transporter')
+     ? [
+         partyCard(
+           'transporter',
+           copy.cards.transporter,
+           parties.transporter,
+           journeyId,
+           readOnly
+         )
+       ]
+     : []),
+   ```
+
+   A transporter has a `name` and an `address` like an address book record,
+   so `partyCard` shows it as it is. Its Change link finds the
+   `transporter-select` page by itself.
+
+4. Add `cards.transporter: 'Transporter'` to both check-answers copy files
+   (`'[Welsh needed] Transporter'` in the Welsh).
+
+5. Picture it: `--pages transporter-select,notification-view --url "notifications/{notification}/transporter-select/add" --errors --before`.
+   The example data (the release's `happy-path.json`) needs a
+   `transporter-select` step with `{ "transporter": "<a starter id from data.json>" }`
+   so the examples reach the page and check your answers shows the card.
 
 The design-gaps row:
 

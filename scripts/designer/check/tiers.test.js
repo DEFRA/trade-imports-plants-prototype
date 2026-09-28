@@ -12,6 +12,7 @@ describe('stepsFor', () => {
       'ownership',
       'copy',
       'templates',
+      'code-rules',
       'prototype-checks'
     ])
   })

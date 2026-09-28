@@ -92,14 +92,8 @@ export const resolveWanted = (choice, context) => {
   if (choice.mode === 'all') {
     return { keys, problems: [] }
   }
-  if (choice.mode === 'changed') {
-    return {
-      keys: keys.filter((key) => changedKeys.includes(key)),
-      problems: []
-    }
-  }
   const problems = []
-  const resolved = []
+  const resolved = choice.mode === 'changed' ? [...changedKeys] : []
   for (const name of choice.keys) {
     const key = resolvePageName(name, pages, scenarios)
     if (key) {
@@ -149,25 +143,85 @@ const runsFor = (scenarios, reaches, wanted, primaryMustFinish) => {
       .filter(
         ([key, reach]) => reach.scenario === scenario.name && wanted.has(key)
       )
-      .map(([key, reach]) => ({ key, index: reach.index }))
+      .map(([key, reach]) => ({ key, index: reach.index, as: key }))
       .sort((a, b) => a.index - b.index)
     const finish = position === 0 && primaryMustFinish
     if (captures.length > 0 || finish) {
-      runs.push({ scenario: scenario.name, captures, finish })
+      runs.push({ scenario: scenario.name, captures, finish, suffix: '' })
     }
   })
   return runs
 }
 
+/** The name a picture taken in one example gets: `origin@warePotatoes`. */
+export const exampleKey = (key, scenario) => `${key}@${scenario}`
+
+/** The page name before any `@example`. */
+export const baseKeyOf = (key) => String(key).split('@')[0]
+
+/**
+ * `--each-example`: every example that reaches a wanted page photographs it,
+ * so the two sides of a question (a potato example and a plant one, say) sit
+ * side by side. A page only one example reaches keeps its plain name. When
+ * the hub or a page after the examples is wanted, every example finishes.
+ */
+const runsForEach = (scenarios, wanted, mustFinish) => {
+  const reachedBy = new Map()
+  for (const scenario of scenarios) {
+    const seen = new Set()
+    for (const step of scenario.steps) {
+      if (!seen.has(step.slug)) {
+        seen.add(step.slug)
+        reachedBy.set(step.slug, (reachedBy.get(step.slug) ?? 0) + 1)
+      }
+    }
+  }
+  const several = scenarios.length > 1
+  return scenarios
+    .map((scenario) => {
+      const seen = new Set()
+      const captures = []
+      scenario.steps.forEach((step, index) => {
+        if (!seen.has(step.slug) && wanted.has(step.slug)) {
+          seen.add(step.slug)
+          captures.push({
+            key: step.slug,
+            index,
+            as:
+              reachedBy.get(step.slug) > 1
+                ? exampleKey(step.slug, scenario.name)
+                : step.slug
+          })
+        }
+      })
+      return {
+        scenario: scenario.name,
+        captures,
+        finish: mustFinish,
+        suffix: several ? `@${scenario.name}` : ''
+      }
+    })
+    .filter((run) => run.captures.length > 0 || run.finish)
+}
+
 /**
  * The walk plan for a set.
  *
- * @param {object} input - `{ pages, scenarios, wanted }`; `wanted` is a list
- * of page names from resolveWanted.
+ * @param {object} input - `{ pages, scenarios, wanted, eachExample, finish }`;
+ * `wanted` is a list of page names from resolveWanted, `eachExample` takes
+ * each page once per example that reaches it, and `finish` makes the first
+ * example answer every step (for addresses inside its notification).
  * @returns {{ landing: object|null, runs: object[], hub: boolean,
- *   after: object[], unreached: string[], neverReached: string[] }}
+ *   after: object[], unreached: string[], neverReached: string[],
+ *   eachExample: boolean }}
  */
-export const planWalk = ({ pages, scenarios, wanted }) => {
+export const planWalk = ({
+  pages,
+  scenarios,
+  wanted,
+  eachExample = false,
+  finish = false
+}) => {
   const want = new Set(wanted)
   const landingKey = pages.length > 0 ? pageKey(pages[0]) : null
   const reaches = firstReaches(scenarios)
@@ -183,7 +237,13 @@ export const planWalk = ({ pages, scenarios, wanted }) => {
     .slice(0, lastWantedAfter + 1)
     .map((key) => ({ key, capture: want.has(key) }))
   const hub = scenarios.length > 0 && want.has(HUB_KEY)
-  const runs = runsFor(scenarios, reaches, want, hub || after.length > 0)
+  const mustFinish = hub || after.length > 0 || finish
+  const runs = eachExample
+    ? runsForEach(scenarios, want, hub || after.length > 0)
+    : runsFor(scenarios, reaches, want, mustFinish)
+  if (eachExample && finish && runs.length > 0 && !runs[0].finish) {
+    runs[0].finish = true
+  }
 
   const reachable = new Set([
     ...(landingKey ? [landingKey] : []),
@@ -199,6 +259,7 @@ export const planWalk = ({ pages, scenarios, wanted }) => {
     runs,
     hub,
     after,
+    eachExample,
     unreached: wanted.filter((key) => !reachable.has(key)),
     neverReached: flowKeys.filter((key) => !reachable.has(key))
   }

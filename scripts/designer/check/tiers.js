@@ -1,7 +1,8 @@
 /**
  * Which steps each tier runs, and which tier a change needs.
  *
- * quick: tidy, ownership, copy shape, templates, the prototype checks (and
+ * quick: tidy, ownership, copy shape, templates, code rules (ESLint) on the
+ *        changed code files, the prototype checks (and
  *        the real journey's own unit tests when the set is high-risk-plants).
  * full:  quick, then exactly what .husky/pre-commit runs
  *        (`npm run git:pre-commit-hook`): format:check, lint and npm test.
@@ -16,6 +17,7 @@ export const STEP_TITLES = Object.freeze({
   ownership: 'Whose files you changed',
   copy: 'English and Welsh words',
   templates: 'Page templates',
+  'code-rules': 'Code rules in the files you changed',
   'prototype-checks': 'Pages open (prototype checks)',
   'real-journey-tests': 'Real journey unit tests',
   'format-check': 'Code layout of every file (pre-commit hook)',
@@ -29,6 +31,7 @@ const QUICK = [
   'ownership',
   'copy',
   'templates',
+  'code-rules',
   'prototype-checks',
   'real-journey-tests'
 ]

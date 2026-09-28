@@ -43,6 +43,7 @@ export const freezeRelease = (
   if (!alreadyFrozen) {
     writeReleaseRecord(release.setDir, {
       ...release.record,
+      purpose: 'frozen',
       frozen: true,
       frozenAt: now.toISOString()
     })

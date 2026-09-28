@@ -100,6 +100,9 @@ if (config.reference !== null && typeof config.reference !== 'string') {
 
 const SET_DIR = `src/server/app/sets/${config.set}`
 const WORK_DIR = `.cache/designer/port/${config.set}/${config.slug}`
+// The fidelity table is a deliverable, so it is kept in the release (docs/
+// never travels in a hand-off patch), not in the ignored .cache folder.
+const FIDELITY_FILE = `${SET_DIR}/docs/fidelity-${config.slug}.md`
 const screenshotSource =
   config.sourceKind === 'screenshot' ? config.source : null
 const REFERENCE = config.reference ?? screenshotSource
@@ -466,7 +469,7 @@ const fidelityTable = (rows) =>
 const writeRecords = (graded, table) =>
   agent(
     [
-      `1. Write this text, exactly, to ${WORK_DIR}/fidelity.md:`,
+      `1. Write this text, exactly, to ${FIDELITY_FILE} (in the release, so it is saved with the page and reaches reviewers and the hand-off):`,
       '<<<',
       `# Fidelity: ${config.slug} in ${config.set}`,
       '',
@@ -542,7 +545,7 @@ const main = async () => {
       `${config.slug} is built in ${config.set} and passes its check.`,
       graded.summary,
       table,
-      `Written to ${WORK_DIR}/fidelity.md. Design gaps logged: ${graded.gapRows.length}.`,
+      `Written to ${FIDELITY_FILE}. Design gaps logged: ${graded.gapRows.length}.`,
       `Accessibility: ${(shown?.axeFindings ?? []).join(' ') || 'no findings reported'}`
     ].join('\n')
   )

@@ -43,34 +43,72 @@ cannot tell, ask.
 
 Build one command from what they asked:
 
-| The designer asked for                            | Add                                               |
-| ------------------------------------------------- | ------------------------------------------------- |
-| "show me", "screenshot my pages" (after a change) | nothing: the pages their changed files show up on |
-| "what does the X page look like"                  | `--pages <X>`                                     |
-| every page, "the whole journey"                   | `--pages all`                                     |
-| "before and after"                                | `--before`                                        |
-| "show the error messages"                         | `--errors`                                        |
-| "on a phone", "mobile"                            | `--mobile` (320 pixels wide)                      |
-| "compare with the Figma", a design they attached  | `--reference <page>=<image>` (one per page)       |
-| "compare with the real journey"                   | `--compare high-risk-plants`                      |
-| "compare with release X"                          | `--compare <X>`                                   |
-| "record a walkthrough", "demo video"              | `--video`                                         |
-| "make a review pack"                              | `--pages all --before --errors --mobile --video`  |
-| "open it" when done                               | `--open`                                          |
+| The designer asked for                            | Add                                                |
+| ------------------------------------------------- | -------------------------------------------------- |
+| "show me", "screenshot my pages" (after a change) | nothing: the pages their changed files show up on  |
+| "what does the X page look like"                  | `--pages <X>`                                      |
+| every page, "the whole journey"                   | `--pages all`                                      |
+| "before and after"                                | `--before`                                         |
+| "show the error messages"                         | `--errors`                                         |
+| "on a phone", "mobile"                            | `--mobile` (320 pixels wide)                       |
+| "compare with the Figma", a design they attached  | `--reference <page>=<image>` (one per page)        |
+| "compare with the real journey"                   | `--compare high-risk-plants`                       |
+| "compare with release X"                          | `--compare <X>`                                    |
+| "record a walkthrough", "demo video"              | `--video`                                          |
+| "make a review pack"                              | `--pages all --before --errors --mobile --video`   |
+| "open it" when done                               | `--open`                                           |
+| "the chooser", "the list of prototypes"           | `--pages chooser`                                  |
+| "where the X example link goes"                   | `--examples <slug>,<slug>`                         |
+| both sides of a question, "the Yes and the No"    | `--each-example` (one picture per example)         |
+| a filtered dashboard, a tab, an add or side page  | `--url "<address after the set name>"` (see below) |
+| an empty dashboard, as a new user sees it         | `--no-examples`                                    |
+| "compare with before the undo", an older version  | `--before-commit HEAD~1` (or a commit id)          |
 
 Page names are the page's address inside a notification, for example
 `arrival-details`, `origin`, `commodities/details`,
 `consignment/contact/select`, or `dashboard`, `hub` (the task list, also
-`task-list`), `check-answers`, `declaration`, `confirmation`. Separate several
-with commas. A wrong name gets a list of the right ones.
+`task-list`), `check-answers` (also `notification-view`, its id),
+`declaration`, `confirmation`. A page id from `designer:words -- find`
+(`consignor-select`) and a picture's file name (`consignors-select`) work
+too. Separate several with commas, and add `changed` to keep the changed
+pages as well (`--pages changed,dashboard`). A wrong name gets a list of the
+right ones.
 
-A reference image must be a picture file (PNG or JPG). Ask the designer to
-export the Figma frame as a PNG and give you its path, or save an image they
-pasted into the repo folder first, for example under `.cache/designer/refs/`.
-The path can be relative to the prototype's folder.
+`--url` pictures any address in the set, written as it shows in the browser
+after the set's name. Repeat it for several:
+
+- `--url "?status=submitted"`: the dashboard with a filter or a tab
+  (`?tab=drafts`)
+- `--url "transporters"`: a page of the set outside a notification
+- `--url "notifications/{notification}/transporter-select/add"`: a page
+  inside a notification; `{notification}` becomes the one the pictures filled
+  in, which has answered every page
+- `--url "/"`: an address of the whole prototype (it starts with `/`)
+
+`--errors` also pictures each `--url` page sent empty, when it has a form.
+
+The dashboard is pictured with the release's example notifications on it (the
+same ones `npm run dev` makes), plus the notifications the pictures filled in.
+
+A reference image must be a picture file: PNG, JPEG, GIF, WebP or SVG. A PDF
+does not work: ask for the frame exported as PNG. The path can be relative to
+the prototype's folder. To get the designer's Figma frame into a file:
+
+- Best: in Figma, select the frame, Export, PNG, 1x, and give you the file's
+  path. Dragging the file into the terminal pastes its path.
+- If they pasted the image into the chat, you can see it but cannot save it
+  as a file. Say so, and ask for the exported file's path. If they say it is
+  in Downloads, run `ls -t ~/Downloads` and take the newest image with a
+  matching name.
+- Copy it to `.cache/designer/refs/<page>.png` with `cp`, so the next run
+  finds it too.
+
+Never draw a stand-in wireframe and present it as their design.
 
 `--before` compares with the last saved version (commit). A release that has
-never been saved has no before picture; the gallery says so.
+never been saved has no before picture; the gallery says so. After an undo,
+use `--before-commit HEAD~1`: the last saved version is then the undo itself,
+so a plain `--before` pair would match.
 
 ## Step 3: Run it
 
@@ -100,7 +138,9 @@ What it can say instead of a gallery:
 The last lines name the gallery, for example
 `.cache/designer/show/<set-id>/<date-and-time>/index.html`, and a
 `latest` folder that always holds the newest run. Pictures sit beside it,
-named `<page>--<version>--<state>--<width>.png`:
+named `<page>--<version>--<state>--<width>.png` (with `--each-example`, the
+page is `<page>_<example>`, and a `--url` address is written with `_` for
+`?`, `=` and `{ }`):
 
 - version: `now` (the working copy), `before` (last saved version),
   `compare` (the other set), `reference` (their image)
@@ -134,7 +174,8 @@ Keep it short and concrete:
   automatic and cannot catch everything; say so when it finds nothing.
 - **Notes:** repeat any note, for example an example that stopped before a
   page, a page no example reaches, or files the pages could not load (the
-  pictures may then be missing fonts or styles, not the design's fault).
+  pictures may then be missing fonts or styles, not the design's fault). The
+  command prints each page's notes as "Note on <page>: …".
 - **Video:** give the `walk.webm` path. You cannot watch it, so say so; the
   designer can open it in a browser.
 

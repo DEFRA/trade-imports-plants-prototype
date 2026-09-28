@@ -80,6 +80,34 @@ describe('designer:where', () => {
     expect(entry.path).toBe('src/server/app/sets/plants-working/set.js')
   })
 
+  it('Should read a repo-relative path from the repo root when run from a parent folder (npm --prefix)', () => {
+    const [entry] = answer(
+      { paths: ['src/server/app/sets/plants-working/set.js'], changed: false },
+      options({ cwd: path.dirname(fixture.root) })
+    )
+    expect(entry).toMatchObject({
+      path: 'src/server/app/sets/plants-working/set.js',
+      owner: 'yours'
+    })
+  })
+
+  it('Should read a repo-relative path from the repo root when it names nothing from the folder the designer is in', () => {
+    const cwd = path.join(fixture.root, 'src/server/app')
+    const [entry] = answer(
+      { paths: ['src/server/app/sets/plants-working/set.js'], changed: false },
+      options({ cwd })
+    )
+    expect(entry.path).toBe('src/server/app/sets/plants-working/set.js')
+  })
+
+  it('Should still call a path outside the repo outside', () => {
+    const [entry] = answer(
+      { paths: [path.join(path.dirname(fixture.root), 'elsewhere.js')] },
+      options()
+    )
+    expect(entry.path).toBeNull()
+  })
+
   it('Should say so when --changed finds nothing', () => {
     expect(run(['--changed'], options())).toBe(
       'Nothing has changed since your last save.'

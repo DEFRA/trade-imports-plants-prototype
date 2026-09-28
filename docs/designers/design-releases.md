@@ -72,15 +72,21 @@ call it, then:
 1. makes it with
    `npm run new:set -- <release-id> --from high-risk-plants --describe "<one line>" --purpose working`
    (`research` or `frozen` in place of `working` when that is its purpose)
-2. tidies the files with `npm run format`
+2. tidies the files with `npm run designer:format`
 3. checks it with `npm run designer:check -- --set <release-id> --full`
-4. takes screenshots of every page with
-   `npm run designer:show -- --set <release-id> --pages all`
+4. takes screenshots of every page and the chooser with
+   `npm run designer:show -- --set <release-id> --pages all,chooser`
 5. saves it as one commit: "Start design release <release-id> from
-   high-risk-plants"
+   high-risk-plants". The commit adds about 150 files, the copy of the
+   journey. Saving it on its own keeps every later change small.
 
 To copy another release instead of the real journey, name it: "make a copy
 of plants-dr2 for research".
+
+You do not have to start one first. If you ask for a change ("change the
+wording on my working release") and you have no working release yet, Claude
+Code starts `plants-working` from the real journey, saves it, tells you, and
+carries on with your change.
 
 The first time you open a new release while signed in, it makes its example
 notifications. The chooser links to each one.
@@ -99,10 +105,16 @@ npm run designer:release -- freeze plants-dr2 --as plants-dr2-1
 
 This marks `plants-dr2` as frozen and makes `plants-dr2-1`, a working
 release copied from it, for you to carry on in. Without `--as`, the new
-release is called `plants-dr2-working`.
+release is called `plants-dr2-working`. Add `--describe "<one line>"` to give
+the working copy its line on the chooser.
+
+Want a change in the frozen release too ("freeze DR2 with last week's change
+in it")? Say so in the same breath: the change is copied in first, then the
+release is frozen. Nothing can be added once it is frozen.
 
 Nobody changes a frozen release after that. Claude Code refuses to edit one
-and offers you the working copy instead.
+and offers you the working copy instead, and the checks and the pre-commit
+hook fail on any change to a frozen release after the commit that froze it.
 
 ## Copying a change to another release
 
@@ -115,7 +127,9 @@ npm run designer:release -- carry --from plants-working --to plants-dr2 --commit
 
 or `--working` in place of `--commit <commit id>` for a change you have not
 saved yet. It changes the release name inside the change to match the
-target, then applies it.
+target, then applies it. A saved change can come from a release on another
+branch ("last week's release"): the carry reads that release from the commit,
+so the other branch does not need merging first.
 
 If the target has changed in the same place, you get both versions marked in
 the file, and Claude Code asks you which to keep.
@@ -153,6 +167,30 @@ It will not retire:
 - `high-risk-plants` or `sample-journey`
 - a release with changes you have not saved: save or undo them first
 
+## Two branches that each started a release
+
+Every new release adds a line at the same place in three shared files
+(`overrides.json` and two files in `src/server/prototype-sets/`). So when two
+branches that each started a release are merged, git always stops on those
+three files. You do not settle that by hand. Say "fix the release clash", and
+Claude Code runs:
+
+```
+npm run designer:release -- remount
+```
+
+It rebuilds the three files from the release folders on disk, so every
+release is mounted, on the chooser and marked as yours.
+
+## Where pages sit
+
+To see the order a page is asked in, where Continue goes, and which task list
+group it is in:
+
+```
+npm run designer:release -- orders plants-working consignors/select
+```
+
 ## Keep a handful
 
 Every live release is loaded each time the prototype starts. Keep to about
@@ -180,7 +218,9 @@ http://localhost:3103/examples/<release-id>/<example>
 ```
 
 The chooser shows these links under each release. They open the page the
-example stopped at. See [Example data](example-data.md) to add examples.
+example stopped at. Add `?page=<page>` to open another page of the same
+notification, for example `?page=task-list` or `?page=notification-view`
+(check your answers). See [Example data](example-data.md) to add examples.
 
 ## Checks that keep releases working
 

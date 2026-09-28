@@ -251,7 +251,7 @@ describe('port-kit-page workflow', () => {
     await runWorkflow(ARGS, { agent })
     const prompt = promptFor(agent, 'write records')
     expect(prompt).toContain(
-      '.cache/designer/port/plants-working/transporter-type/fidelity.md'
+      'src/server/app/sets/plants-working/docs/fidelity-transporter-type.md'
     )
     expect(prompt).toContain(
       '| 1 | Warning text | govukWarningText | matched | Same component. |'

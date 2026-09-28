@@ -58,6 +58,20 @@ const mountPatterns = (setId) => {
   ]
 }
 
+/** Whether `prototype-sets/index.js` already mounts the set. */
+export const isRegistered = (prototypeSetsIndexPath, { setId }) => {
+  const content = readFileSync(prototypeSetsIndexPath, 'utf8')
+  return mountPatterns(setId).every((pattern) => pattern.test(content))
+}
+
+/** The set ids `prototype-sets/index.js` imports a gateway for. */
+export const registeredSetIds = (prototypeSetsIndexPath) =>
+  [
+    ...readFileSync(prototypeSetsIndexPath, 'utf8').matchAll(
+      /from\s*'\.\.\/app\/routes-([a-z0-9-]+)\.js'/g
+    )
+  ].map((match) => match[1])
+
 /**
  * Takes a set's mount back out of `prototype-sets/index.js` — the reverse of
  * `registerSet`, for retiring a design release.

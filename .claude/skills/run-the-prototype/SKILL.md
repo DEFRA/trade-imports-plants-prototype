@@ -86,16 +86,25 @@ already running, in another terminal or an editor.
 Tell the designer: "The prototype is probably already running. Open
 http://localhost:3103." Then go to step 5.
 
-If they say it is not working, or they want a fresh start, ask: "Shall I stop
-the program on port 3103 (process 4242) and start the prototype again?" Only
-if they say yes, stop that one process by its number:
+If they say it is not working, or they want a fresh start: first run
+`npm run designer:preflight` again, straight before you ask, because the
+number changes. `npm run dev` restarts its program on every saved file and
+every git switch or commit, so a number from a few minutes ago is usually
+out of date. Then ask with the number it just printed: "Shall I stop the
+program on port 3103 (process 4242) and start the prototype again?" Only if
+they say yes, stop that one process by its number:
 
 ```bash
 kill 4242
 ```
 
-Then run `npm run designer:preflight` again and go to step 4. Never stop a
-process the preflight did not name.
+If the preflight then names a different process on 3103, the dev watcher
+started a new copy: that means `npm run dev` is still running in another
+terminal. Ask the designer to stop it there (Ctrl+C) rather than chasing
+process numbers. Then run `npm run designer:preflight` again and go to step 4. Never stop a process the preflight did not name.
+
+For pictures, nothing needs stopping: `show-my-change` runs its own copy on a
+free port from 3203, whatever holds 3103.
 
 ## Step 4: Start the prototype
 

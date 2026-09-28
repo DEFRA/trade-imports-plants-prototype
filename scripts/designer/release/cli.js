@@ -3,14 +3,18 @@ import { fileURLToPath } from 'node:url'
 import { carryChange } from './carry.js'
 import { freezeRelease } from './freeze.js'
 import { formatList, listReleases } from './list.js'
+import { formatOrders, readOrders } from './orders.js'
+import { MOUNT_FILES, remountReleases } from './remount.js'
 import { retireRelease } from './retire.js'
 import { REPO_ROOT } from './sets.js'
 
 export const USAGE = [
   'npm run designer:release -- list [--json]',
+  'npm run designer:release -- orders <release> [<page> ...]   (the four orders a page sits in)',
   'npm run designer:release -- freeze <release> [--as <new-working-release>] [--describe "<text>"]',
   'npm run designer:release -- carry --from <release> --to <release> [--commit <commit id> | --working]',
-  'npm run designer:release -- retire <release>'
+  'npm run designer:release -- retire <release>',
+  'npm run designer:release -- remount   (after a merge clash in overrides.json or src/server/prototype-sets/)'
 ].join('\n')
 
 const FLAGS_WITH_VALUES = new Set([
@@ -41,7 +45,12 @@ export const parseArgs = (argv) => {
       positional.push(arg)
     }
   }
-  return { command, target: positional[0], flags }
+  return {
+    command,
+    target: positional[0],
+    rest: positional.slice(1),
+    flags
+  }
 }
 
 const printList = ({ flags }, repoRoot) => {
@@ -62,9 +71,9 @@ const printFreeze = ({ target, flags }, repoRoot) => {
     `Carry on in "${result.working}", a new working release made from it.`,
     '',
     'Next steps:',
-    '  1. Run `npm run format`.',
+    '  1. Run `npm run designer:format`.',
     `  2. Open http://localhost:3103/${result.working} (run \`npm run dev\` first).`,
-    '  3. Save both with one commit (say "save my work").'
+    '  3. Save both with one commit (say "save my work"). Freeze on its own: carry any change you want in the frozen release before freezing, never after.'
   ].join('\n')
 }
 
@@ -106,18 +115,51 @@ const printRetire = ({ target }, repoRoot) => {
   ].join('\n')
 }
 
+const printRemount = (_args, repoRoot) => {
+  const { resolved, added, removed } = remountReleases({ repoRoot })
+  const changed = [...added, ...removed]
+  const lines = []
+  if (resolved.length > 0) {
+    lines.push(
+      'Put back this branch’s side of the files the merge could not join:',
+      ...resolved.map((file) => `  - ${file}`)
+    )
+  }
+  lines.push(
+    changed.length > 0
+      ? 'Rebuilt the release mounts from the release folders:'
+      : 'Every release folder is already mounted, described and marked as yours. Nothing to change.',
+    ...changed.map((line) => `  - ${line}`)
+  )
+  if (resolved.length > 0 || changed.length > 0) {
+    lines.push(
+      '',
+      'Next steps:',
+      '  1. Run `npm run designer:format`.',
+      `  2. Mark them resolved: git add ${MOUNT_FILES.join(' ')}`,
+      '  3. Check it: npm run designer:check -- --set <release> --full, then finish the merge (say "save my work").'
+    )
+  }
+  return lines.join('\n')
+}
+
+const printOrders = async ({ target, rest }, repoRoot) =>
+  formatOrders(target, await readOrders(target, { repoRoot }), rest)
+
 const COMMANDS = {
+  orders: printOrders,
   list: printList,
   freeze: printFreeze,
   carry: printCarry,
-  retire: printRetire
+  retire: printRetire,
+  remount: printRemount
 }
 
 /**
  * `npm run designer:release -- list|freeze|carry|retire`: look after your
  * design releases. See docs/designers/design-releases.md.
  */
-export const run = (argv, { repoRoot = REPO_ROOT } = {}) => {
+export const run = async (argv, { repoRoot = REPO_ROOT } = {}) => {
   const args = parseArgs(argv)
   const command = COMMANDS[args.command]
   if (!command) {
@@ -126,7 +168,7 @@ export const run = (argv, { repoRoot = REPO_ROOT } = {}) => {
     return
   }
   try {
-    console.log(command(args, repoRoot))
+    console.log(await command(args, repoRoot))
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1
@@ -134,5 +176,5 @@ export const run = (argv, { repoRoot = REPO_ROOT } = {}) => {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  run(process.argv.slice(2))
+  await run(process.argv.slice(2))
 }

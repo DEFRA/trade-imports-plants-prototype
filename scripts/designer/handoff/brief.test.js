@@ -104,7 +104,7 @@ describe('the Markdown brief', () => {
 
   it('Should list the Welsh still needed', () => {
     expect(markdown).toContain(
-      `- \`${COPY_CY}\` line 24: "Use the 24-hour clock, for example 14:30."`
+      `- \`${COPY_CY}\` line 24 (once the patch is applied): "Use the 24-hour clock, for example 14:30."`
     )
   })
 
@@ -127,7 +127,9 @@ describe('the Markdown brief', () => {
   })
 
   it('Should name what cannot ship and what was left out', () => {
-    expect(markdown).toContain('pretend "transporters"')
+    expect(markdown).toContain(
+      'uses "transporters" (prototype-services), which only exists in the prototype: it needs a real service.'
+    )
     expect(markdown).toContain(
       'Design gap: page: dashboard; why: No chip component'
     )

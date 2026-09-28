@@ -14,6 +14,10 @@ import path from 'node:path'
 
 export const SCREENSHOT_CAP_BYTES = 2 * 1024 * 1024
 
+/** In the slugs list: also take every other page in the gallery, after the
+ * named ones. */
+export const ANY_PAGE = '*'
+
 const SHOW_NAME =
   /^(.+)--(now|before|compare|reference)--(page|errors)--(desktop|mobile)\.png$/
 
@@ -87,18 +91,27 @@ export const pickScreenshots = (
   if (!galleryDir || !existsSync(galleryDir)) {
     return { picked: [], skipped: [], found: false, totalBytes: 0 }
   }
-  const names = slugs.map(fileSafe)
+  const anyPage = slugs.includes(ANY_PAGE)
+  const named = slugs.filter((slug) => slug !== ANY_PAGE)
+  const names = named.map(fileSafe)
+  const order = (page) => {
+    const index = names.indexOf(page)
+    return index === -1 ? names.length : index
+  }
   const shots = pngsUnder(galleryDir)
     .map((shot) => ({ ...shot, shown: describeShot(shot.relative) }))
-    .filter((shot) => shot.shown && names.includes(shot.shown.page))
+    .filter(
+      (shot) => shot.shown && (anyPage || names.includes(shot.shown.page))
+    )
     .map((shot) => ({
       ...shot,
-      slug: slugs[names.indexOf(shot.shown.page)],
+      slug: named[names.indexOf(shot.shown.page)] ?? shot.shown.page,
       state: shotLabel(shot.shown)
     }))
     .sort(
       (a, b) =>
-        names.indexOf(a.shown.page) - names.indexOf(b.shown.page) ||
+        order(a.shown.page) - order(b.shown.page) ||
+        a.shown.page.localeCompare(b.shown.page) ||
         rank(VERSION_ORDER, a.shown.version) -
           rank(VERSION_ORDER, b.shown.version) ||
         rank(STATE_ORDER, a.shown.state) - rank(STATE_ORDER, b.shown.state) ||

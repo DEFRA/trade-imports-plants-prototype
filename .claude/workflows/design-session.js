@@ -88,8 +88,10 @@ const SESSION_SKILLS = [
   'fake-a-service'
 ]
 
-// check-my-change's rule: words, layout and examples need the quick check;
-// flow, model and service changes need the full one.
+// check-my-change's rule: words, layout and examples need the quick check
+// (which also runs the code rules on every changed file, so an example that
+// breaks one is caught here, not in a later request's check); flow, model and
+// service changes need the full one.
 const CHECK_LEVEL = {
   'change-the-words': 'quick',
   'match-the-design': 'quick',
@@ -109,7 +111,7 @@ if (typeof config.set !== 'string' || !KEBAB.test(config.set)) {
 }
 if (NOT_RELEASES.includes(config.set)) {
   refuse(
-    `${config.set} is not a design release. Run the session in a working release instead (the design-release skill makes one)`
+    `${config.set} is not a design release. Name a working release instead, such as plants-working: the session starts it from the real journey when it does not exist yet`
   )
 }
 if (
@@ -141,6 +143,7 @@ const CLASSIFY_SCHEMA = {
   type: 'object',
   properties: {
     releaseOk: { type: 'boolean' },
+    releaseMissing: { type: 'boolean' },
     releaseReason: { type: 'string' },
     sessionSlug: { type: 'string' },
     requests: {
@@ -158,7 +161,13 @@ const CLASSIFY_SCHEMA = {
       }
     }
   },
-  required: ['releaseOk', 'releaseReason', 'sessionSlug', 'requests']
+  required: [
+    'releaseOk',
+    'releaseMissing',
+    'releaseReason',
+    'sessionSlug',
+    'requests'
+  ]
 }
 
 const PREPARE_SCHEMA = {
@@ -245,12 +254,16 @@ const classify = () =>
       numbered(config.requests),
       '',
       'Step 1. Check the release is one this session may change.',
-      `Run: npm run designer:where -- ${SET_DIR}/set.js`,
-      'releaseOk is false when the answer does not start with "Yours", when it says the release is frozen, or when the set does not exist. Put the plain reason in releaseReason.',
+      `Run: ls ${SET_DIR}/set.js`,
+      `If it says there is no such file, the release does not exist yet: releaseMissing is true, releaseOk is true and releaseReason is "${config.set} does not exist yet, so the session starts it from the real journey first." Go on to step 2.`,
+      `Otherwise releaseMissing is false. Run: npm run designer:where -- ${SET_DIR}/set.js`,
+      'releaseOk is false when the answer does not start with "Yours", or when it says the release is frozen. Put the plain reason in releaseReason.',
       '',
       'Step 2. Route each request to exactly one skill.',
-      'Read the "Routing" table in CLAUDE.md, then the description of each of these skills in .claude/skills/<skill>/SKILL.md:',
+      'Read the "Routing" table in CLAUDE.md (and its "Requests that fit two skills" rules), then the description of each of these skills in .claude/skills/<skill>/SKILL.md:',
       SESSION_SKILLS.join(', '),
+      'A request with two parts (new words and a layout change, say) is two requests: route it to the skill for its main part and name the other part in reason.',
+      'When a request names something the release does not have (a task list group called "Arrival" when the group is "Arrival and destination"), route it to the nearest match and say which in reason, so the summary shows it.',
       'For each request return: index (1-based), skill (one of the names above), pages (the page addresses it changes, for example arrival-details; use the flow in the release to find them) and refused.',
       'Set refused to true, with a plain reason a designer understands, when the request:',
       '- needs a skill that is not in the list (a new release, research mode, saving or sharing, handing off, re-creating an old Prototype Kit page, running, checking or showing),',
@@ -278,7 +291,8 @@ const prepare = (slug) =>
       '   - If the branch starts with design/, stay on it.',
       `   - If it is main, run: git switch -c design/${config.set}-${slug}`,
       '     If git says the branch already exists, stop: ready is false and reason names the branch and asks the designer to switch to it or pick another name.',
-      '   - Otherwise stop: ready is false and reason is "A design session runs on main or on a design/ branch. You are on <branch>."',
+      '   - If it starts with handoff/, stop: ready is false and reason is "You are on <branch>, a hand-off branch for the real team. Switch back to your design branch (or main) and start the session again."',
+      '   - Any other branch (a feat/ or trial branch, say): stay on it. The session saves its commits there.',
       '3. Run: git branch --show-current, and return the branch name in branch.',
       GUARD_RAILS
     ].join('\n'),
@@ -286,6 +300,26 @@ const prepare = (slug) =>
       label: 'prepare',
       phase: 'Prepare',
       schema: PREPARE_SCHEMA
+    })
+  )
+
+const startRelease = () =>
+  agent(
+    [
+      `The design release "${config.set}" does not exist yet. Start it from the real journey and save it as its own commit, following section B of .claude/skills/design-release/SKILL.md with these answers already given:`,
+      `1. Run: npm run new:set -- ${config.set} --from high-risk-plants --purpose working --describe "Working release for a design session"`,
+      '2. Run: npm run designer:format',
+      '3. Run: git add -A',
+      `4. Run: git commit -m "Start design release ${config.set}" -m "Copied from high-risk-plants for a design session."`,
+      '   The pre-commit hook runs the full check. Never add --no-verify.',
+      'done is true when the commit went through. Otherwise done is false and reason is the plain reason the command or the hook gave.',
+      'new:set also adds lines to overrides.json and src/server/prototype-sets/: that is expected here, and the only change outside the release this step may make. Never edit files by hand in this step.',
+      GUARD_RAILS
+    ].join('\n'),
+    withModel('runner', {
+      label: 'start release',
+      phase: 'Prepare',
+      schema: DONE_SCHEMA
     })
   )
 
@@ -301,7 +335,7 @@ const build = (request, route) =>
       '- When the skill says to confirm something with the designer, take the request as confirmed.',
       '- When you cannot make the change without an answer only the designer has, change nothing and return built false with the question in notes.',
       "- New words go in copy.en.js, and the same key in copy.cy.js as '[Welsh needed] <English>' unless the designer gave the Welsh.",
-      '- Run npm run format when you have finished editing.',
+      '- Run npm run designer:format when you have finished editing.',
       'Return built, every file you created or changed (repo-relative paths), the recipe you followed (its file name, such as add-a-field or move-a-page, or "none"), whether you added any [Welsh needed] marker, and notes in one or two plain sentences.',
       GUARD_RAILS
     ].join('\n'),
@@ -333,7 +367,7 @@ const repair = (request, route, failure) =>
       `Summary: ${failure.summary}`,
       `Full log: ${failure.logPath} (read it).`,
       `Fix the cause in the files this request changed, following .claude/skills/${route.skill}/SKILL.md and .claude/skills/check-my-change/SKILL.md. If the failure is in a file this request did not touch, change nothing and say so in notes.`,
-      'Run npm run format when you have finished. Return what you changed.',
+      'Run npm run designer:format when you have finished. Return what you changed.',
       GUARD_RAILS
     ].join('\n'),
     withModel('builder', {
@@ -377,10 +411,19 @@ const putAway = (index, request, paths) =>
     })
   )
 
-const show = () =>
+const show = (landedSkills) =>
   agent(
     [
-      `Run: npm run designer:show -- --set ${config.set} --pages changed --before`,
+      ...(landedSkills.includes('example-data')
+        ? [
+            `An example-data request landed. Run: git diff --cached -- src/server/prototype-seed/scenarios/${config.set}.js`,
+            "Note the slug of every example it adds (the lines starting + with slug: '...').",
+            `Then run: npm run designer:show -- --set ${config.set} --pages changed,dashboard --examples <those slugs, comma-separated> --before`,
+            'Leave out --examples when it adds no slug.'
+          ]
+        : [
+            `Run: npm run designer:show -- --set ${config.set} --pages changed --before`
+          ]),
       'Report the gallery folder it prints (the index.html path), the pages it pictured and its summary, including any "None of your changes show on a page" or page-health note, word for word.',
       'Do not describe what the pictures look like. Change nothing.',
       GUARD_RAILS
@@ -412,12 +455,18 @@ const commit = (group) =>
         .join('\n'),
       `Files: ${group.paths.join(' ')}`,
       `Recipes followed: ${group.recipes.join(', ') || 'none'}`,
+      'Every landed request is staged. Save only these files, from the staged changes, with no path list on the commit: a commit with paths makes git run the pre-commit hook against a temporary index, which the hook’s own tests trip over.',
       '1. Read .claude/skills/share-my-change/references/commit-message.md and follow it exactly.',
-      `2. Run: git diff --cached -- ${group.paths.join(' ')}`,
+      '2. Run: git restore --staged -- .',
+      '   This only takes every change off the staging area. Nothing on disk changes.',
+      `3. Run: git add -A -- ${group.paths.join(' ')}`,
+      '4. Run: git diff --cached --name-only',
+      '   It must list exactly the files above. If it lists any other file, change nothing more and return committed false naming it.',
+      '5. Run: git diff --cached',
       '   Write the message from that change, never from the request text alone.',
-      `3. Run: git commit -m "<first line>" -m "<body>" -- ${group.paths.join(' ')}`,
+      '6. Run: git commit -m "<first line>" -m "<body>"',
       "   The pre-commit hook runs the full check. Never add --no-verify. If the commit fails, change nothing and return committed false with the hook's plain reason.",
-      '4. Run: git log -1 --format=%h and return it in commit, with the whole message in message.',
+      '7. Run: git log -1 --format=%h and return it in commit, with the whole message in message.',
       GUARD_RAILS
     ].join('\n'),
     withModel('builder', {
@@ -642,6 +691,16 @@ const main = async () => {
     return
   }
   log(`Working on branch ${prepared.branch}.`)
+  if (classified.releaseMissing) {
+    const started = await startRelease()
+    if (!started?.done) {
+      log(
+        `Stopped before any change: ${config.set} could not be started (${started?.reason ?? 'the step did not answer'}). Ask for it with "start a new design release called ${config.set}".`
+      )
+      return
+    }
+    log(`Started ${config.set} from the real journey, saved as its own commit.`)
+  }
 
   phase('Build')
   const results = await buildAll(routes)
@@ -652,7 +711,7 @@ const main = async () => {
   }
 
   phase('Show')
-  const shown = await show()
+  const shown = await show(landed.map((item) => item.skill))
   const gallery = shown?.ran
     ? `Gallery: ${shown.galleryPath}`
     : `No gallery: ${shown?.summary ?? 'the show step did not answer'}`

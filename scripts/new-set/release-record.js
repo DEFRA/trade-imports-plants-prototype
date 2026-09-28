@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { longDate } from '../../src/server/prototype-sets/releases.js'
+import { gitEnv } from '../designer/lib/git-env.js'
 import { RELEASE_FILE } from './copy-set.js'
 
 export const PURPOSES = ['working', 'frozen', 'research']
@@ -15,6 +16,7 @@ const gitOutput = (repoRoot, args) => {
     return execFileSync('git', args, {
       cwd: repoRoot,
       encoding: 'utf8',
+      env: gitEnv(),
       stdio: ['ignore', 'pipe', 'ignore']
     }).trim()
   } catch {

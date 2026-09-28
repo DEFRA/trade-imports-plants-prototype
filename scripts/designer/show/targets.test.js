@@ -124,6 +124,12 @@ describe('resolveWanted', () => {
     })
   })
 
+  it('Should add named pages to the changed ones', () => {
+    expect(
+      resolveWanted({ mode: 'changed', keys: ['dashboard'] }, context)
+    ).toEqual({ keys: ['dashboard', 'origin', 'hub'], problems: [] })
+  })
+
   it('Should give named pages in journey order and explain unknown names', () => {
     expect(
       resolveWanted(
@@ -152,15 +158,80 @@ describe('planWalk', () => {
       runs: [
         {
           scenario: 'warePotatoes',
-          captures: [{ key: 'arrival-details', index: 5 }],
-          finish: false
+          captures: [
+            { key: 'arrival-details', index: 5, as: 'arrival-details' }
+          ],
+          finish: false,
+          suffix: ''
         }
       ],
       hub: false,
       after: [],
+      eachExample: false,
       unreached: [],
       neverReached: []
     })
+  })
+
+  it('Should picture a page once per example that reaches it with --each-example', () => {
+    const plan = planWalk({
+      pages: PAGES,
+      scenarios: SCENARIOS,
+      wanted: ['arrival-details', 'arrival-status'],
+      eachExample: true
+    })
+    expect(plan.runs).toEqual([
+      {
+        scenario: 'warePotatoes',
+        captures: [
+          {
+            key: 'arrival-details',
+            index: 5,
+            as: 'arrival-details@warePotatoes'
+          }
+        ],
+        finish: false,
+        suffix: '@warePotatoes'
+      },
+      {
+        scenario: 'plantsForPlanting',
+        captures: [
+          { key: 'arrival-status', index: 5, as: 'arrival-status' },
+          {
+            key: 'arrival-details',
+            index: 6,
+            as: 'arrival-details@plantsForPlanting'
+          }
+        ],
+        finish: false,
+        suffix: '@plantsForPlanting'
+      }
+    ])
+  })
+
+  it('Should finish every example for check your answers with --each-example', () => {
+    const plan = planWalk({
+      pages: PAGES,
+      scenarios: SCENARIOS,
+      wanted: ['notification-view'],
+      eachExample: true
+    })
+    expect(plan.runs.map((run) => [run.scenario, run.finish])).toEqual([
+      ['warePotatoes', true],
+      ['plantsForPlanting', true]
+    ])
+  })
+
+  it('Should finish the first example when an address needs its notification', () => {
+    const plan = planWalk({
+      pages: PAGES,
+      scenarios: SCENARIOS,
+      wanted: [],
+      finish: true
+    })
+    expect(plan.runs).toEqual([
+      { scenario: 'warePotatoes', captures: [], finish: true, suffix: '' }
+    ])
   })
 
   it('Should use a later example for a page only it fills in', () => {
@@ -172,13 +243,15 @@ describe('planWalk', () => {
     expect(plan.runs).toEqual([
       {
         scenario: 'warePotatoes',
-        captures: [{ key: 'origin', index: 4 }],
-        finish: false
+        captures: [{ key: 'origin', index: 4, as: 'origin' }],
+        finish: false,
+        suffix: ''
       },
       {
         scenario: 'plantsForPlanting',
-        captures: [{ key: 'arrival-status', index: 5 }],
-        finish: false
+        captures: [{ key: 'arrival-status', index: 5, as: 'arrival-status' }],
+        finish: false,
+        suffix: ''
       }
     ])
   })
@@ -190,7 +263,7 @@ describe('planWalk', () => {
       wanted: ['hub', 'declaration', 'dashboard']
     })
     expect(plan.runs).toEqual([
-      { scenario: 'warePotatoes', captures: [], finish: true }
+      { scenario: 'warePotatoes', captures: [], finish: true, suffix: '' }
     ])
     expect(plan.hub).toBe(true)
     expect(plan.after).toEqual([
@@ -224,6 +297,7 @@ describe('planWalk', () => {
       runs: [],
       hub: false,
       after: [],
+      eachExample: false,
       unreached: ['second'],
       neverReached: ['second']
     })

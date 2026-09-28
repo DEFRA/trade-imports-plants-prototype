@@ -26,6 +26,7 @@ const fakeRunners = (overrides = {}) => ({
   ownership: vi.fn(async () => passing()),
   copy: vi.fn(async () => passing()),
   templates: vi.fn(async () => passing()),
+  'code-rules': vi.fn(async () => passing()),
   'prototype-checks': vi.fn(async () => passing()),
   'real-journey-tests': vi.fn(async () => passing()),
   'format-check': vi.fn(async () => passing()),
@@ -51,6 +52,7 @@ describe('runCheck with stand-in steps', () => {
     expect(result.ok).toBe(true)
     expect(result.findings).toEqual([])
     expect(result.steps.map((step) => step.status)).toEqual([
+      'pass',
       'pass',
       'pass',
       'pass',

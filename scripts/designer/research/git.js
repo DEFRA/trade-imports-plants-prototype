@@ -5,6 +5,8 @@
  */
 import { execFileSync } from 'node:child_process'
 
+import { gitEnv } from '../lib/git-env.js'
+
 const RECORD = '\u001e'
 const FIELD = '\u001f'
 const STATUS_CODE_LENGTH = 2
@@ -13,6 +15,7 @@ const git = (repoRoot, args) =>
   execFileSync('git', args, {
     cwd: repoRoot,
     encoding: 'utf8',
+    env: gitEnv(),
     stdio: ['ignore', 'pipe', 'pipe']
   })
 
@@ -67,9 +70,20 @@ export const commitsMentioning = (repoRoot, text) =>
 export const addPaths = (repoRoot, paths) =>
   git(repoRoot, ['add', '--', ...paths])
 
-/** Commits only the named paths, whatever else happens to be staged. */
-export const commitPaths = (repoRoot, { title, body, paths }) =>
-  git(repoRoot, ['commit', '-m', title, '-m', body, '--only', '--', ...paths])
+/** Every path staged for the next commit. */
+export const stagedPaths = (repoRoot) =>
+  git(repoRoot, ['diff', '--cached', '--name-only', '-z'])
+    .split('\0')
+    .filter((entry) => entry !== '')
+
+/**
+ * Commits what is staged, with no pathspec. A pathspec commit (`--only` or
+ * `-- <paths>`) makes git run the pre-commit hook against a temporary index
+ * (`GIT_INDEX_FILE=.git/next-index-NNNN.lock`), which the hook's own git
+ * tests trip over. The caller checks that only its own paths are staged.
+ */
+export const commitStaged = (repoRoot, { title, body }) =>
+  git(repoRoot, ['commit', '-m', title, '-m', body])
 
 export const revert = (repoRoot, sha) =>
   git(repoRoot, ['revert', '--no-edit', sha])

@@ -9,15 +9,52 @@ describe('parseShowArgs', () => {
         set: 'plants-working',
         pages: { mode: 'changed', keys: [] },
         before: false,
+        beforeCommit: null,
         errors: false,
         mobile: false,
         video: false,
         open: false,
         help: false,
+        eachExample: false,
+        examples: true,
         compare: null,
-        references: []
+        references: [],
+        urls: [],
+        exampleLinks: []
       },
       problems: []
+    })
+  })
+
+  it('Should read the addresses, example links and example options', () => {
+    const { options, problems } = parseShowArgs([
+      '--set',
+      'plants-working',
+      '--pages',
+      'chooser,dashboard',
+      '--url',
+      '?status=submitted',
+      '--url',
+      'notifications/{notification}/transporter-select/add',
+      '--examples',
+      'submitted, amended',
+      '--each-example',
+      '--no-examples',
+      '--before-commit',
+      'HEAD~1'
+    ])
+    expect(problems).toEqual([])
+    expect(options).toMatchObject({
+      pages: { mode: 'list', keys: ['chooser', 'dashboard'] },
+      urls: [
+        '?status=submitted',
+        'notifications/{notification}/transporter-select/add'
+      ],
+      exampleLinks: ['submitted', 'amended'],
+      eachExample: true,
+      examples: false,
+      before: true,
+      beforeCommit: 'HEAD~1'
     })
   })
 
@@ -42,13 +79,18 @@ describe('parseShowArgs', () => {
       set: 'plants-working',
       pages: { mode: 'list', keys: ['arrival-details', 'origin'] },
       before: true,
+      beforeCommit: null,
       errors: true,
       mobile: true,
       video: true,
       open: true,
       help: false,
+      eachExample: false,
+      examples: true,
       compare: 'high-risk-plants',
-      references: [{ page: 'origin', image: 'designs/origin.png' }]
+      references: [{ page: 'origin', image: 'designs/origin.png' }],
+      urls: [],
+      exampleLinks: []
     })
   })
 
@@ -130,6 +172,13 @@ describe('parsePages', () => {
 
   it('Should fall back to changed when nothing is named', () => {
     expect(parsePages(['changed'])).toEqual({ mode: 'changed', keys: [] })
+  })
+
+  it('Should add named pages to the changed ones', () => {
+    expect(parsePages(['changed,dashboard'])).toEqual({
+      mode: 'changed',
+      keys: ['dashboard']
+    })
   })
 })
 

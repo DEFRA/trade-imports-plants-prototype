@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
@@ -176,6 +177,18 @@ describe('npm run designer:examples', () => {
     })
   })
 
+  describe('fixtures', () => {
+    it('Should list each fixture with its pages and say where they differ', async () => {
+      const { code, out } = await run(['fixtures', SET_ID])
+
+      expect(code).toBe(0)
+      expect(out).toContain('warePotatoes')
+      expect(out).toContain('plantsForPlanting')
+      expect(out).toMatch(/commodity-type > /)
+      expect(out).toContain('Where they differ:')
+    })
+  })
+
   describe('init', () => {
     it('Should start a scenario file from the four default examples, once', async () => {
       const file = join(
@@ -189,10 +202,35 @@ describe('npm run designer:examples', () => {
       const second = await run(['init', release], io)
 
       expect(first.code).toBe(0)
-      expect(readFileSync(file, 'utf8')).toContain('export const examples = [')
-      expect(readFileSync(file, 'utf8')).toContain('"slug": "draft-midway"')
+      const text = readFileSync(file, 'utf8')
+      expect(text).toContain('export const examples = [')
+      expect(text).toContain("slug: 'draft-midway'")
+      expect(text).toContain("fixture: 'plantsForPlanting'")
+      expect(text).not.toContain('happy-path')
       expect(second.code).toBe(1)
       expect(second.err).toContain('already exists')
+    })
+
+    it('Should write a file Prettier leaves as it is, and the seed can read', async () => {
+      const { format, resolveConfig } = await import('prettier')
+      const dir = mkdtempSync(join(tmpdir(), 'scenarios-'))
+      const file = join(dir, 'plants-dr2.js')
+      await run(['init', SET_ID], { scenarioFileFor: () => file })
+      const text = readFileSync(file, 'utf8')
+
+      const options = await resolveConfig(
+        fileURLToPath(
+          new URL('../scenarios/high-risk-plants.js', import.meta.url)
+        )
+      )
+      expect(await format(text, { ...options, filepath: file })).toBe(text)
+      const { examples } = await import(pathToFileURL(file).href)
+      expect(() =>
+        validateExamples(examples, {
+          pool: loadFixturePool(SET_ID),
+          source: 'the new file'
+        })
+      ).not.toThrow()
     })
   })
 })

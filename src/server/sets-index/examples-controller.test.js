@@ -15,9 +15,10 @@ import { exampleLink } from './examples.js'
 
 const SET_ID = 'plants-examples-route'
 const SET_BASE = `/${SET_ID}`
+const MIDWAY_THROUGH = 'midway-through'
 
 const EXAMPLES = {
-  'midway-through': { journeyId: 'DRAFT-2', stopAt: 'arrival-details' },
+  [MIDWAY_THROUGH]: { journeyId: 'DRAFT-2', stopAt: 'arrival-details' },
   submitted: { journeyId: 'SUBMITTED-1' },
   'custom-href': { href: `${SET_BASE}/some/where` }
 }
@@ -60,13 +61,13 @@ afterAll(async () => {
 
 describe('stable example links', () => {
   it('Should send the reader to the page the example stopped at', async () => {
-    const response = await server.inject(exampleLink(SET_ID, 'midway-through'))
+    const response = await server.inject(exampleLink(SET_ID, MIDWAY_THROUGH))
 
     expect(response.statusCode).toBe(302)
     expect(response.headers.location).toBe(
       `${SET_BASE}/notifications/DRAFT-2/arrival-details`
     )
-    expect(lookups).toContainEqual([SET_ID, 'midway-through'])
+    expect(lookups).toContainEqual([SET_ID, MIDWAY_THROUGH])
   })
 
   it('Should send the reader to the notification when the example did not stop at a page', async () => {
@@ -76,6 +77,25 @@ describe('stable example links', () => {
       `${SET_BASE}/notifications/SUBMITTED-1`
     )
   })
+
+  const DRAFT = `${SET_BASE}/notifications/DRAFT-2`
+
+  it.each([
+    ['task-list', DRAFT],
+    ['notification-view', `${DRAFT}/notification-view`],
+    ['consignors/select', `${DRAFT}/consignors/select`],
+    ['../../elsewhere', `${DRAFT}/arrival-details`]
+  ])(
+    'Should open ?page=%s inside the example’s notification',
+    async (page, location) => {
+      const response = await server.inject(
+        `${exampleLink(SET_ID, MIDWAY_THROUGH)}?page=${encodeURIComponent(page)}`
+      )
+
+      expect(response.statusCode).toBe(302)
+      expect(response.headers.location).toBe(location)
+    }
+  )
 
   it('Should use the link the example data gives when it gives one', async () => {
     const response = await server.inject(exampleLink(SET_ID, 'custom-href'))

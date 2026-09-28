@@ -17,11 +17,11 @@ Say "your design release", not "set". Say "the check", not "the pipeline".
 `npm run designer:check -- --set <set-id> [--quick|--full|--walk] [--json]`
 runs, in order:
 
-| Level               | Steps                                                                                                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--quick` (default) | Tidy the changed files (Prettier), whose files they are, English and Welsh copy shape, every template compiles, every page opens (`src/server/prototype-checks`) |
-| `--full`            | Quick, then `npm run format:check`, `npm run lint` and `npm test`: exactly what `.husky/pre-commit` runs (`npm run git:pre-commit-hook`)                         |
-| `--walk`            | Full, then `npm run test:fit:journeys`: every journey walked in a real browser                                                                                   |
+| Level               | Steps                                                                                                                                                                                                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--quick` (default) | Tidy the changed files (Prettier), whose files they are (a frozen release changed after its freeze fails here), English and Welsh copy shape, every template compiles, the code rules (ESLint) on every changed `.js` file, every page opens (`src/server/prototype-checks`) |
+| `--full`            | Quick, then `npm run format:check`, `npm run lint` and `npm test`: exactly what `.husky/pre-commit` runs (`npm run git:pre-commit-hook`)                                                                                                                                     |
+| `--walk`            | Full, then `npm run test:fit:journeys`: every journey walked in a real browser. It includes the full check, so never run `--full` and then `--walk`: run `--walk` alone                                                                                                      |
 
 It prints a pass or fail table, then "What went wrong" with each failure's
 cause, fix and fixing skill, then the path of the full log under
@@ -63,7 +63,8 @@ the check picks the working release changed most recently and names it on its
 first line. If that is not the one they meant, run again with `--set`.
 
 If the check says "Say which set to check", there is no working release. Ask
-which set, or offer `design-release` to make one.
+which set. (A change skill makes the release itself before any change, so
+this only happens when nothing has been changed yet.)
 
 ## Step 2: Choose the level
 
@@ -117,8 +118,9 @@ Say it in one or two lines, then give the detail that matters:
 For each item under "What went wrong", in order:
 
 1. Say what happened, in the check's words or simpler ones.
-2. Say how to fix it, naming the file and line from the log where you can.
-   Read the log file the check named if the table is not enough.
+2. Say how to fix it, naming the file and line. A broken code rule lists each
+   error under "Where" as `file:line rule: message`; read the log file the
+   check named only if that is not enough.
 3. Name the skill that fixes it and offer it: "Say 'fix it' and I will", or
    "This needs `change-the-journey`: say 'use change-the-journey' to go on".
 4. If it is marked "Not caused by your change: tell the maintainer", say
@@ -146,6 +148,12 @@ mechanical and inside their own release:
 - A template typing slip or a misspelt include path in their release.
 - An example that stopped at a page after the designer changed a required
   question: follow `example-data`.
+- A code rule in the designer's own release file, such as
+  `sonarjs/no-duplicate-string` (a repeated piece of text: use the short
+  `fixture: 'name'` form in a scenario file, or a `const` for the text) or
+  `sonarjs/cognitive-complexity` and `cyclomatic-complexity` (the function is
+  too long: move the code you added into a small helper function in the same
+  file, and call it). Never add an `eslint-disable` comment.
 
 For anything else, follow the fixing skill named in the finding.
 
@@ -169,8 +177,11 @@ from an earlier run, or from a lower level than the change needs.
 When the check passes, show the change:
 
 ```bash
-npm run designer:show -- --set <set-id> --pages changed
+npm run designer:show -- --set <set-id> --pages changed --before
 ```
+
+(For a words change, name the pages instead of `changed`: the change skill's
+report lists them.)
 
 Give the designer the gallery path it prints and the page links, for example
 `http://localhost:3103/<set-id>`. Read the key screenshots yourself before

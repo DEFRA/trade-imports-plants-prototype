@@ -425,7 +425,7 @@ Write the hand-off folder and save the work on the ${HANDOFF_BRANCH} branch.
 1. Run \`npm run designer:handoff -- --set ${REAL_JOURNEY} --base main --slug ${slug} --title "${title}" --why "${why}"${gapsFlag}\`.
 2. Read the brief.md it wrote. The pinned tests section should say "None found" (they were updated); if it lists any, update those tests and run step 1 again. If any items were parked, add a section "## Not in this hand-off" to brief.md and brief.jira.txt listing each with its reason:
 ${JSON.stringify(parked, null, 2)}
-3. Run \`npm run format\`.
+3. Run \`npm run designer:format\`.
 4. Stage the real-journey change: \`git add <path>\` for each changed path under src/server/app/sets/${REAL_JOURNEY}/ and fit/ that \`git status --porcelain\` lists.
 5. Commit it: \`git commit -m "${title} (from design release ${set})"\`. The pre-commit checks run. If they fail, fix only formatting and try once more.
 6. Stage the folder with \`git add handoffs/<folder>\` and commit: \`git commit -m "Hand-off brief: ${title}"\`.

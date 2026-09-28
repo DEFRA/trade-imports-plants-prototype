@@ -25,6 +25,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
+import { gitEnv } from '../lib/git-env.js'
+
 /** Where designer:show writes its galleries, inside the repo (git ignores it). */
 export const DESIGNER_CACHE = '.cache/designer'
 export const READY_MARKER = '.designer-base-ready'
@@ -62,6 +64,7 @@ const unpack = (root, sha, target) =>
   new Promise((resolve, reject) => {
     const archive = spawn('git', ['archive', '--format=tar', sha], {
       cwd: root,
+      env: gitEnv(),
       stdio: ['ignore', 'pipe', 'pipe']
     })
     const extract = spawn('tar', ['-x', '-f', '-', '-C', target], {

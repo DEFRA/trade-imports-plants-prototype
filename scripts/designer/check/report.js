@@ -48,6 +48,9 @@ const findingBlock = (finding, index) => [
   '',
   `${index + 1}. ${finding.title} (${finding.step})`,
   `   What happened: ${finding.cause}`,
+  ...(finding.where?.length > 0
+    ? ['   Where:', ...finding.where.map((line) => `     - ${line}`)]
+    : []),
   `   How to fix it: ${finding.fix}`,
   `   Skill that fixes it: ${finding.skill}`,
   ...(finding.attribution === 'not-yours' ? [`   ${NOT_YOURS}`] : [])

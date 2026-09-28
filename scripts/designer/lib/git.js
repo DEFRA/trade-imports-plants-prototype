@@ -5,6 +5,7 @@
  */
 import { execFileSync } from 'node:child_process'
 
+import { gitEnv } from './git-env.js'
 import { REPO_ROOT } from './repo.js'
 
 const STATUS_CODE_LENGTH = 2
@@ -13,6 +14,7 @@ export const runGit = (args, { root = REPO_ROOT } = {}) =>
   execFileSync('git', args, {
     cwd: root,
     encoding: 'utf8',
+    env: gitEnv(),
     stdio: ['ignore', 'pipe', 'pipe']
   })
 

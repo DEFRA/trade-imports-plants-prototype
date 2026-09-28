@@ -9,7 +9,10 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+
+import { gitEnv } from '../lib/git-env.js'
 import { statusOf, turnOff, turnOn } from './switch.js'
 
 const SET = 'plants-research-arrival-202610'
@@ -28,7 +31,11 @@ const LOG = `# Research mode for ${SET}
 let repoRoot
 
 const git = (...args) =>
-  execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim()
+  execFileSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: gitEnv()
+  }).trim()
 
 const write = (relative, content) => {
   const file = path.join(repoRoot, relative)
@@ -123,6 +130,37 @@ describe('turnOn', () => {
       '  - journeys/linear/features/origin/controller.js'
     )
     expect(subjects()).toHaveLength(1)
+  })
+
+  it('Should refuse, and save nothing, when another file is already staged', () => {
+    relaxArrivalDetails()
+    write('notes.md', 'x\n')
+    git('add', 'notes.md')
+    const result = turnOn(repoRoot, SET)
+    expect(result.ok).toBe(false)
+    expect(result.lines).toContain('  - notes.md')
+    expect(subjects()).toHaveLength(1)
+  })
+
+  it('Should still save when run inside a git hook that set GIT_INDEX_FILE', () => {
+    const before = process.env.GIT_INDEX_FILE
+    process.env.GIT_INDEX_FILE = path.join(
+      tmpdir(),
+      'no-such-repo',
+      '.git',
+      'next-index-1.lock'
+    )
+    try {
+      relaxArrivalDetails()
+      expect(turnOn(repoRoot, SET).ok).toBe(true)
+      expect(subjects()[0]).toBe(`Research mode on for ${SET}`)
+    } finally {
+      if (before === undefined) {
+        delete process.env.GIT_INDEX_FILE
+      } else {
+        process.env.GIT_INDEX_FILE = before
+      }
+    }
   })
 
   it('Should refuse while research mode is already on', () => {

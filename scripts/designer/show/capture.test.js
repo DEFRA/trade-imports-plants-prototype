@@ -1,6 +1,36 @@
 import { describe, expect, it } from 'vitest'
 
-import { addressPattern, missingFilesNote } from './capture.js'
+import { addressPath, addressPattern, missingFilesNote } from './capture.js'
+
+describe('addressPath', () => {
+  const where = { setBase: '/plants-working', journeyId: 'GBN-1' }
+
+  it.each([
+    ['/', '/'],
+    [
+      '/examples/plants-working/submitted',
+      '/examples/plants-working/submitted'
+    ],
+    ['?status=submitted', '/plants-working?status=submitted'],
+    ['', '/plants-working'],
+    ['transporters', '/plants-working/transporters'],
+    [
+      'notifications/{notification}/transporter-select/add',
+      '/plants-working/notifications/GBN-1/transporter-select/add'
+    ]
+  ])('Should read "%s" as %s', (address, expected) => {
+    expect(addressPath(address, where)).toBe(expected)
+  })
+
+  it('Should answer null when the address needs a notification and there is none', () => {
+    expect(
+      addressPath('notifications/{notification}/origin', {
+        setBase: '/plants-working',
+        journeyId: null
+      })
+    ).toBeNull()
+  })
+})
 
 describe('addressPattern', () => {
   it('Should swap the notification id for a placeholder', () => {

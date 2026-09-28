@@ -1,6 +1,6 @@
 ---
 name: match-the-design
-description: Make a page in a design release look like a Figma frame, a screenshot or a described layout, using only real GOV.UK Frontend components and classes, and log anything the toolbox cannot do as a design gap for the plants team. Use when the designer says "make this page match the design", "match the Figma", "move this above", "change the spacing", "make it wider", "make it a table", "make it a summary list", "make it cards", "make it tabs", "add a tag", "add an inset", "add a warning", "custom dropdown", "change the header" or "change the navigation". NOT for wording (use change-the-words), NOT for page order, new questions or new pages (use change-the-journey), NOT for re-creating a whole page from the old Prototype Kit prototype (use port-a-kit-page).
+description: Make a page in a design release look like a Figma frame, a screenshot or a described layout, using only real GOV.UK Frontend components and classes, and log anything the toolbox cannot do as a design gap for the plants team. Use when the designer says "make this page match the design", "match the Figma", "move this above", "change the spacing", "make it wider", "make it a table", "make it a summary list", "make it cards", "make it tabs", "add a tag", "add an inset", "add a warning", "drop these subheadings", "custom dropdown", "change the header" or "change the navigation". NOT for wording (use change-the-words), NOT for page order, new questions or new pages (use change-the-journey), NOT for the confirmation page's panel and reference number (use change-the-journey's confirmation-variant recipe), NOT for re-creating a whole page from the old Prototype Kit prototype (use port-a-kit-page).
 ---
 
 # Match the design
@@ -14,11 +14,15 @@ GOV.UK option and logged for the plants team.
 - **The page**: a page slug (`arrival-details`), a page name ("the
   dashboard"), or a link such as
   `http://localhost:3103/plants-working/notifications/<id>/arrival-details`.
-- **The design**: a Figma frame exported as PNG, a screenshot, or words.
-  Images need a file path: ask the designer to export the frame and save it in
-  `.cache/designer/references/` (that folder never goes into git).
+- **The design**: a Figma frame exported as PNG (or SVG), a screenshot, or
+  words. Images need a file path: `show-my-change`, "A reference image", says
+  how to get one from the designer and where to keep it
+  (`.cache/designer/refs/`, which never goes into git). An image pasted into
+  the chat cannot be saved as a file: ask for the exported file's path.
 - **The release**, if they have more than one. Otherwise use the working
-  release they changed most recently.
+  release they changed most recently. If there is none, make one now without
+  asking: `design-release` section B (`plants-working`), saved as its own
+  commit, then back here.
 
 Do not ask anything else. If something is unclear, make the obvious choice,
 do it, and say what you chose at the end.
@@ -93,6 +97,14 @@ Write one numbered line per difference: what the page shows now, what the
 design shows, and which line of the template makes it. Include spacing, type
 size, width, order, colour, component type, missing or extra elements. Skip
 differences in wording: those belong to `change-the-words`.
+
+Every request names something on the page ("drop the extra subheadings",
+"remove the grey box"). Find it in the template and in the picture before
+changing anything. If the page has no such thing (a request remembered from
+the old Prototype Kit prototype, say), change nothing for that part and tell
+the designer "already done: <page> here has no <thing>", with the picture as
+proof. Never remove something that only looks similar, such as the numbered
+section headings on check your answers.
 
 ### 4. Map each difference to the toolbox
 

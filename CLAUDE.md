@@ -25,10 +25,11 @@ Interaction and content designers. They know HTML, Nunjucks and the GOV.UK Desig
 3. **Change `copy.en.js` and `copy.cy.js` together.** Keep the same keys and the same function arguments. With no Welsh given, write `'[Welsh needed] <English>'`.
 4. **Stay in the GOV.UK toolbox.** Use Nunjucks macros and `govuk-*` classes (`moj-*` only through the date picker macro). No Sass, inline styles, new client JavaScript or webpack entries. Log what the toolbox cannot do in `src/server/app/sets/<id>/design-gaps.md`.
 5. **Example data replays real pages.** Never write records by hand. Use the `example-data` skill.
-6. **One change per request.** Then check it, show it, and end with the hand-off line (below).
+6. **One change at a time, and every part of the request.** Do each part in turn (see "Requests that fit two skills"), check it, show it, and end with the hand-off line (below). For four or more changes, use the `design-session` workflow. Never make the designer ask again for a part they already asked for.
 7. **Install only with `npx --yes npm@11.6.2 ci`.** Never `npm install` or bare `npm ci`. One Bash command per call: no `&&`, `;` or `|`.
-8. **Never use `--no-verify`, never force-push, and never push or open a pull request without asking.**
-9. **Never edit** `.claude/settings.json`, `src/client/**`, `webpack.config.js`, `vitest.config.js`, `src/server/app/{engine,model,bridge,flow,shared,services,lib}/**` or `src/server/app/shared/layout.njk`, except on a `handoff/*` or `maintain/*` branch.
+8. **Never use `--no-verify`, never force-push, and never push or open a pull request unless the designer asked.** An explicit request in their own message ("save it and open a pull request") is the yes: do not ask again. Otherwise ask first.
+9. **No working release yet? Make one, then carry on.** When a change needs the designer's working release and there is none (only `high-risk-plants` and `sample-journey`), follow `design-release` section B for `plants-working` without asking, save it as its own commit (the one save made without being asked), tell the designer in one line, and go back to the change.
+10. **Never edit** `.claude/settings.json`, `src/client/**`, `webpack.config.js`, `vitest.config.js`, `src/server/app/{engine,model,bridge,flow,shared,services,lib}/**` or `src/server/app/shared/layout.njk`, except on a `handoff/*` or `maintain/*` branch.
 
 Never add a file to `ours` in `overrides.json` just to make it editable: that hides the clash, it does not avoid it.
 
@@ -36,23 +37,38 @@ Never add a file to `ours` in `overrides.json` just to make it editable: that hi
 
 Match what the designer says to a skill, then follow that skill's `SKILL.md` in `.claude/skills/<skill>/`.
 
-| Skill                | The designer says things like                                                                                                                                                                    | What it does                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `run-the-prototype`  | "run the prototype", "start it", "it won't start", "port in use", "where did my data go", "open the arrival details page"                                                                        | Checks the computer, starts `npm run dev`, prints the links                  |
-| `design-release`     | "start a new design release", "make a working copy of the journey", "freeze what we've got as design release 2", "copy this change to release X", "which releases are there", "retire release X" | Starts, freezes, carries changes between and retires releases                |
-| `change-the-words`   | "change the wording", "reword this", "rename X to Y everywhere", "change the hint", "change the error message", "show me the Welsh"                                                              | Finds every place a phrase lives and changes English and Welsh together      |
-| `match-the-design`   | "make this page match the Figma", "change the spacing", "make it wider", "make it a summary list", "add a tag", "change the header"                                                              | Rebuilds a layout with GOV.UK components and logs design gaps                |
-| `port-a-kit-page`    | "re-create this page from the old prototype", "port the GB notification page for X", "build this Prototype Kit page here", "bring over the transporter page"                                     | Rebuilds an old Prototype Kit page in a release, with a fidelity table       |
-| `change-the-journey` | "add a question", "add a page", "add a guidance page", "move this page", "only show this page when", "skip this page if", "rename the task list group", "change the confirmation page"           | Follows the repo's recipes to change the flow                                |
-| `example-data`       | "add an example", "show a late notification", "an example stopped at the X page", "a link straight to the X page", "add a port", "fill the dashboard", "another organisation"                    | Adds example notifications, parties, ports and countries, with stable links  |
-| `fake-a-service`     | "add a transporter lookup", "saved transporters", "templates", "add filters to the dashboard", "add tabs with counts", "confirm before deleting", "a success banner after deleting"              | Builds things the real service cannot do yet, flagged "needs a real service" |
-| `research-session`   | "get ready for research", "user testing next week", "let participants through", "turn errors off", "turn errors back on", "print a sheet for the session"                                        | A research release, one link per task, errors off by one revertible commit   |
-| `check-my-change`    | "check my changes", "did I break anything", "is it ready", "why won't it start", "what does this error mean", "the tests are failing"                                                            | Runs the right check and explains every failure plainly                      |
-| `show-my-change`     | "show me", "what does it look like", "before and after", "compare with the Figma", "compare with the real journey", "record a walkthrough", "make a review pack"                                 | Takes pictures into a gallery, with error states, phone width and video      |
-| `share-my-change`    | "save my work", "share this", "make a pull request", "undo my last change", "throw away what I just did", "go back to how it was"                                                                | Branch, commit message from the change, pull request when asked, safe undo   |
-| `hand-off`           | "hand this to the real team", "send this to the developers", "make this real", "raise this with plants-frontend", "write a brief for the developers"                                             | Writes a brief, screenshots and a checked patch for plants-frontend          |
+| Skill                | The designer says things like                                                                                                                                                                                         | What it does                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `run-the-prototype`  | "run the prototype", "start it", "it won't start", "port in use", "where did my data go", "open the arrival details page"                                                                                             | Checks the computer, starts `npm run dev`, prints the links                  |
+| `design-release`     | "start a new design release", "make a working copy of the journey", "freeze what we've got as design release 2", "copy this change to release X", "which releases are there", "retire release X"                      | Starts, freezes, carries changes between and retires releases                |
+| `change-the-words`   | "change the wording", "reword this", "rename X to Y everywhere", "change the hint", "change the error message", "show me the Welsh"                                                                                   | Finds every place a phrase lives and changes English and Welsh together      |
+| `match-the-design`   | "make this page match the Figma", "change the spacing", "make it wider", "make it a summary list", "add a tag", "change the header"                                                                                   | Rebuilds a layout with GOV.UK components and logs design gaps                |
+| `port-a-kit-page`    | "re-create this page from the old prototype", "port the GB notification page for X", "build this Prototype Kit page here", "bring over the transporter page"                                                          | Rebuilds an old Prototype Kit page in a release, with a fidelity table       |
+| `change-the-journey` | "add a question", "add a page", "add a guidance page", "move this page", "only show this page when", "skip this page if", "regroup the task list", "change the confirmation page", "a green panel with the reference" | Follows the repo's recipes to change the flow                                |
+| `example-data`       | "add an example", "show a late notification", "an example stopped at the X page", "a link straight to the X page", "add a port", "fill the dashboard", "another organisation"                                         | Adds example notifications, parties, ports and countries, with stable links  |
+| `fake-a-service`     | "add a transporter lookup", "saved transporters", "templates", "add filters to the dashboard", "add tabs with counts", "confirm before deleting", "a success banner after deleting"                                   | Builds things the real service cannot do yet, flagged "needs a real service" |
+| `research-session`   | "get ready for research", "user testing next week", "let participants through", "turn errors off", "turn errors back on", "print a sheet for the session"                                                             | A research release, one link per task, errors off by one revertible commit   |
+| `check-my-change`    | "check my changes", "did I break anything", "is it ready", "why won't it start", "what does this error mean", "the tests are failing"                                                                                 | Runs the right check and explains every failure plainly                      |
+| `show-my-change`     | "show me", "what does it look like", "before and after", "compare with the Figma", "compare with the real journey", "record a walkthrough", "make a review pack"                                                      | Takes pictures into a gallery, with error states, phone width and video      |
+| `share-my-change`    | "save my work", "share this", "make a pull request", "undo my last change", "throw away what I just did", "go back to how it was"                                                                                     | Branch, commit message from the change, pull request when asked, safe undo   |
+| `hand-off`           | "hand this to the real team", "send this to the developers", "make this real", "raise this with plants-frontend", "write a brief for the developers"                                                                  | Writes a brief, screenshots and a checked patch for plants-frontend          |
 
-When a request fits two skills, pick the one for the main change and say which part another skill will do next. When nothing fits, say so plainly and point at `docs/designers/README.md`.
+When nothing fits, say so plainly and point at `docs/designers/README.md`.
+
+### Requests that fit two skills
+
+Do every part in the same turn, one skill after another, and report the parts together:
+
+- **Words and layout** ("rename X, and drop the extra subheadings"): `change-the-words` first, then `match-the-design` for the layout part. If the page has no such element, say "already done: there is no such element", with the picture, and change nothing that only looks similar.
+- **Renaming a task list group** (only its words): `change-the-words`. Moving tasks between groups, or adding or removing a group: `change-the-journey`'s task-list recipe.
+- **The confirmation page's panel and reference number**: `change-the-journey` (confirmation-variant recipe), never `match-the-design`.
+- **A branch plus a move, or two journey changes**: `change-the-journey`, part by part in one run.
+- **A dashboard like a Figma frame, filled with examples**: `example-data`, then `fake-a-service` (filters, tabs, counts), then `show-my-change` with the frame as `--reference`. `fake-a-service`, "Requests that need more than this skill", has the order.
+- **An old Prototype Kit list page** (search, pick one or add a new one): `port-a-kit-page`, which follows `fake-a-service`'s worked example 1 for the page, its add page and its card on check your answers.
+- **A change, then "save it" or "open a pull request"**: make the change, then carry straight on with `share-my-change`.
+- **"Hand off" a change that was never made**: make it first with its skill, save it, then `hand-off`.
+
+Before building any part, check whether it is already true (look at the picture, or run `npm run designer:release -- orders <release> <pages>` for a move). Say which parts already hold and do only the rest.
 
 ## Workflows
 
@@ -65,7 +81,7 @@ Workflows run several agents for one big job. Launch each by `scriptPath` with e
 | `prepare-handoff` | `hand-off`         | A change the real team needs with its tests, on a `handoff/<slug>` branch ("prepare this for the real service with its tests")        |
 | `design-session`  | this file          | A list of several changes to one release at once ("here are my notes from the crit", "do all of these", "work through this feedback") |
 
-For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "..."] }`. It routes each request to a skill, checks each one, parks what fails with a plain reason, shows the whole session in one gallery and saves each landed request as its own commit. It never pushes.
+For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "..."] }`. It starts the release from the real journey when it does not exist yet, routes each request to a skill, checks each one, parks what fails with a plain reason, shows the whole session in one gallery and saves each landed request as its own commit. It never pushes. Without the Workflow tool, follow the manual steps in `.claude/workflows/README.md`.
 
 ## Branches
 
@@ -75,8 +91,8 @@ For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "
 
 ## How every change ends
 
-1. Check it: `npm run designer:check -- --set <id>` and its plain-English result.
-2. Show it: `npm run designer:show -- --set <id>`, the gallery path, and `http://localhost:3103/<id>/...` links to click. Open the key pictures yourself before describing them. Never claim a visual result you have not looked at.
+1. Check it: `npm run designer:check -- --set <id>` and its plain-English result. `--walk` includes `--full`: never run both.
+2. Show it: `npm run designer:show -- --set <id> --pages <the pages it is on> --before`, the gallery path, and links to click (`npm run designer:examples -- links <id>`; add `?page=<page>` to open another page of an example). Open the key pictures yourself before describing them. Never claim a visual result you have not looked at, and never hand the designer links to click instead of pictures you could take (`--url`, `--examples`, `--pages chooser`).
 3. The hand-off line, word for word: "If this should become part of the real service, say 'hand this to the real team' and I will prepare a brief and a patch for the plants-frontend team."
 
 ## The designer commands
@@ -84,8 +100,11 @@ For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "
 All run as `npm run <name> -- <arguments>`:
 
 - `designer:where` whose file is it · `designer:check` check a release · `designer:preflight` is the computer ready
-- `designer:show` pictures and gallery · `designer:release` list, freeze, carry, retire · `designer:examples` list, check, links, init
+- `designer:show` pictures and gallery (`--pages`, `--before`, `--errors`, `--mobile`, `--each-example`, `--url`, `--examples`, `--reference`, `--compare`, `--video`)
+- `designer:release` list, orders, freeze, carry, retire, remount · `designer:examples` list, check, links, init, fixtures
 - `designer:words` find words, Welsh report · `designer:research` research mode on, off, status, sheet · `designer:handoff` brief and patch
+- `designer:format` tidies every file like `npm run format`, printing only the files it changed. Use it in place of `npm run format`.
+- Commits run the pre-commit checks, which print hundreds of lines: send them to a log (`git commit … > .cache/designer/commit.log 2>&1`) and read its end. Never commit with paths after the message (`git commit -m … -- <paths>`).
 - `new:set -- <id> --from high-risk-plants --describe "<text>" --purpose working|frozen|research` starts a release (the `design-release` skill runs it)
 
 ## Read more

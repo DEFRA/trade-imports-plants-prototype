@@ -25,8 +25,10 @@ pages that changed and give links.
   pass.
 - **Never `git reset --hard`, `git rebase`, `git commit --amend`,
   `git push --force` or `git clean`.** Undo always adds a new commit.
-- **Never push or open a pull request without asking first**, in words, every
-  time. Pull requests go to the prototype repository only
+- **Never push or open a pull request unless the designer asked for it.** An
+  explicit request in their own message ("save it and open a pull request",
+  "then make a PR") is the yes: do not ask again. Otherwise ask first, in
+  words, every time. Pull requests go to the prototype repository only
   (`DEFRA/trade-imports-plants-prototype`), never to plants-frontend.
 - **Check ownership before saving.** Run `npm run designer:where` and follow
   it. On a `design/*` branch, never save a file that "belongs to the real
@@ -52,8 +54,10 @@ pages that changed and give links.
 
 Tell the designer, in two to five short lines, what changed: which pages,
 which words, which layout, which examples. For example: "You renamed
-'Consignment parties' to 'Consignment addresses' on 6 pages of plants-working.
-The Welsh still says [Welsh needed]."
+'Consignment parties' to 'Consignment addresses' on 4 pages of plants-working.
+The Welsh still says [Welsh needed]." Count the pages from the change itself
+(`npm run designer:words -- find "<new words>" --set <set-id>` lists them),
+never from an example.
 
 ### 2. Stop on anything that is not theirs
 
@@ -92,14 +96,19 @@ ignores them).
 
 ### 4. Format and check
 
-1. Run `npm run format`. Then run `git status --porcelain` again: if format
-   changed files that were not in step 1's list, do not save them, and
+1. Run `npm run designer:format`. Then run `git status --porcelain` again: if
+   format changed files that were not in step 1's list, do not save them, and
    mention them as "tidied by the formatter, not part of your change".
 2. Run `npm run designer:check -- --set <set-id> --full`. This runs the same
    checks as the save itself, so a save after a green result passes first
    time. If it fails, explain each failure in plain words and fix it with the
    skill `check-my-change` names (at most 3 attempts), then check again. Never
    save on a failing check.
+
+   Skip this run when a `--full` or `--walk` check of this release passed
+   earlier in this conversation and no file has changed since (step 1 and the
+   formatter found nothing new). The save runs the same checks again anyway;
+   running them twice in a row only doubles the wait.
 
 ### 5. Save it
 
@@ -116,26 +125,36 @@ ignores them).
    marker. For example:
 
    ```
-   plants-working: rename 'Consignment parties' to 'Consignment addresses' on 6 pages; Welsh needed
+   plants-working: rename 'Consignment parties' to 'Consignment addresses' on 4 pages; Welsh needed
    ```
 
-3. Save it (the second `-m` is the body: pages, recipe used, design gaps):
+3. Save it (the second `-m` is the body: pages, recipe used, design gaps).
+   Never add paths after the message (`git commit -m … -- <paths>`): a commit
+   with paths runs the checks against a temporary copy of the staging area,
+   which the checks' own git tests trip over. Stage by name (step 1), then
+   commit what is staged. The checks print hundreds of lines (a coverage
+   table), so send them to a log:
 
    ```
-   git commit -m "<first line>" -m "<body>"
+   git commit -m "<first line>" -m "<body>" > .cache/designer/commit.log 2>&1
    ```
 
-   The pre-commit checks run and take a few minutes. If they fail, nothing was
-   saved: read the error, fix it, stage the fix, and run the same `git commit`
-   again. Never add `--no-verify`.
+   (`.cache/designer/` is made by `designer:check`. If the shell says the
+   folder does not exist, run the same commit without `> … 2>&1`.)
+
+   The pre-commit checks run and take a few minutes. Read the end of the log
+   with the Read tool (the last 40 lines are enough). If the checks failed,
+   nothing was saved: read the error, fix it, stage the fix, and run the same
+   `git commit` again. Never add `--no-verify`.
 
 4. Run `git log -1 --stat` and tell the designer what was saved, in one
    sentence.
 
 ### 6. Send it to GitHub and open a pull request (only when asked)
 
-Ask: "Shall I send this to GitHub and open a pull request so others can see
-it?" Only on a clear yes:
+If the designer already asked for a pull request (in this message or the one
+that led here), go straight on. Otherwise ask: "Shall I send this to GitHub
+and open a pull request so others can see it?", and go on only on a clear yes:
 
 1. `git push -u origin <branch>`
 2. Write the pull request body to `.cache/designer/share/pr-body.md` from
@@ -146,7 +165,11 @@ it?" Only on a clear yes:
    `show-my-change` first if there is none), the ownership answers from
    step 1, the Welsh markers
    (`grep -rn "\[Welsh needed\]" src/server/app/sets/<set-id>`), and the rows
-   of `src/server/app/sets/<set-id>/design-gaps.md`.
+   of `src/server/app/sets/<set-id>/design-gaps.md`. For the page links, run
+   `npm run designer:examples -- links <set-id>` and add `?page=<page>` to an
+   example link to open the page that changed, for example
+   `http://localhost:3103/examples/plants-working/draft-midway?page=task-list`
+   or `?page=notification-view` (check your answers).
 3. Open the pull request against the prototype, never plants-frontend:
 
    ```
@@ -160,8 +183,13 @@ it?" Only on a clear yes:
 
 ## Undo
 
-Ask which of these three the designer means, unless it is obvious. Always
-list exactly what will be undone and get a yes before doing it.
+First run `git status --porcelain` and `git log -1 --format="%h %s"`. Then
+say which of these three it is: unsaved edits (the change skills do not save,
+so "undo that" straight after a change is usually this one) or a saved
+change. Ask when both could be meant. Tell the designer the difference in one
+line: undoing unsaved edits leaves no record in the history; undoing a saved
+change adds an undo commit, so the history shows the change and its undo.
+Always list exactly what will be undone and get a yes before doing it.
 
 ### Unsaved edits ("throw away what I just did")
 
@@ -246,6 +274,9 @@ the branch is already on GitHub, offer to send the undo too (ask first).
 3. After an undo, run `npm run designer:check -- --set <set-id>` and
    `npm run designer:show -- --set <set-id> --pages <the pages it touched>`,
    read the key PNGs yourself, and describe what the pages look like now.
+   After undoing a saved change, add `--before-commit HEAD~1` to picture the
+   version before the undo beside it (plain `--before` would compare with the
+   undo commit itself, so both pictures would match).
    Never claim a visual result you have not looked at.
 4. After a pull request, `gh pr view --repo DEFRA/trade-imports-plants-prototype <branch>`
    shows it open against `main`.

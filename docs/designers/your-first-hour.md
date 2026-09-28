@@ -116,8 +116,11 @@ Or run, then tidy the new lines:
 
 ```
 npm run new:set -- plants-working --from high-risk-plants --describe "My working copy" --purpose working
-npm run format
+npm run designer:format
 ```
+
+You can also skip this step: the first time you ask for a change with no
+working release, Claude Code starts `plants-working` for you.
 
 Everything in `src/server/app/sets/plants-working/` is now yours. It appears
 on the Prototypes page at `http://localhost:3103/plants-working`. Press

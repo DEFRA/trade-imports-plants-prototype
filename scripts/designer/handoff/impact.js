@@ -50,22 +50,26 @@ export const removedLiterals = (before, after, options) => {
 }
 
 /**
- * Every place a test or browser spec still pins one of `oldStrings`.
- * `testFiles` maps a repo-relative path to its content.
+ * Every place a test or browser spec still pins one of `oldStrings`, once per
+ * line: when several old strings sit on one line (a whole sentence and a
+ * piece of it), the longest is kept. `testFiles` maps a repo-relative path to
+ * its content.
  */
 export const findPinnedStrings = (oldStrings, testFiles) => {
-  const hits = []
+  const byPlace = new Map()
   for (const [file, content] of Object.entries(testFiles)) {
     const fileLines = content.split('\n')
     for (const text of oldStrings) {
       fileLines.forEach((line, index) => {
-        if (line.includes(text)) {
-          hits.push({ text, file, line: index + 1 })
+        const place = `${file}:${index + 1}`
+        const kept = byPlace.get(place)
+        if (line.includes(text) && (!kept || text.length > kept.text.length)) {
+          byPlace.set(place, { text, file, line: index + 1 })
         }
       })
     }
   }
-  return hits
+  return [...byPlace.values()]
 }
 
 const TEST_FILE = /(\.test\.js|\.fit\.spec\.js)$|(^|\/)fit\//

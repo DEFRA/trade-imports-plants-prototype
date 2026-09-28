@@ -234,13 +234,29 @@ Now the example data covers both branches, and `designer:show` screenshots the
 branch page from the new scenario.
 
 The release's ready-made examples (the ones with links on the chooser) are
-built from the first four scenarios, and all of them answer No. For a link
-straight to the Yes branch, ask `example-data` to add an example that uses the
-`plantsForPlantingTwoVehicles` scenario. That is a separate change.
+built from the first four scenarios, and all of them answer No. Add a Yes
+example in the same run, so the designer gets a link to each branch without
+asking again. It is part of this change, not a separate one:
+
+1. If `src/server/prototype-seed/scenarios/<release>.js` does not exist yet,
+   run `npm run designer:examples -- init <release>`.
+2. Add one example to its list:
+
+   ```js
+   {
+     label: 'Draft, more than one vehicle',
+     slug: 'draft-two-vehicles',
+     fixture: 'plantsForPlantingTwoVehicles',
+     through: 'number-of-vehicles'
+   }
+   ```
+
+3. `npm run designer:examples -- check <release>` must say it was reached.
 
 ## What you will see
 
-- On arrival details, a Yes or No question below the date.
+- On arrival details, a Yes or No question at the end of the page (for potatoes
+  that is after the time and the place of landing).
 - Answer No: Continue goes on as before. The number-of-vehicles page never
   shows.
 - Answer Yes: Continue goes to "How many vehicles?". Check your answers shows
@@ -255,16 +271,35 @@ straight to the Yes branch, ask `example-data` to add an example that uses the
 2. `npm run designer:examples -- check <release>`. Every example must say it
    was reached.
 3. `npm run designer:check -- --set <release> --walk`. This walks both
-   scenarios to the confirmation page.
-4. `npm run designer:show -- --set <release> --pages arrival-details,number-of-vehicles,notification-view --errors`.
+   scenarios to the confirmation page. It includes the full check, so you can
+   skip step 1 when you run this one.
+4. `npm run designer:show -- --set <release> --pages arrival-details,number-of-vehicles,notification-view --each-example --errors --before`.
    (`notification-view` is the id of the check your answers page.)
-   Look at the gallery: the question, its error state, and the branch page. If
-   the gallery lists the branch page under "Pages no example reaches", step 7
-   is missing.
+   `--each-example` takes arrival-details and check your answers once for
+   every example, so the Yes and the No side sit side by side. Look at the
+   gallery: the question, its error state, the branch page, and check your
+   answers with and without the number of vehicles. If the gallery lists the
+   branch page under "Pages no example reaches", step 7 is missing.
 5. Give the designer the example links from
-   `npm run designer:examples -- links <release>`. "Draft, part way through"
-   takes the No branch. If `example-data` has added a Yes example, give that
-   link too; if not, offer to ask for one.
+   `npm run designer:examples -- links <release>`: "Draft, part way through"
+   takes the No branch and "Draft, more than one vehicle" the Yes branch.
+
+### What no check proves: changing Yes to No
+
+No automatic check changes an answer from Yes to No and looks at what is
+left. The clearing comes from the `applyTo` gate in step 1, the same code the
+real journey uses for arrival status, so it works when step 1 is right. To
+prove it, check both of these yourself and tell the designer you did:
+
+- the branch question's obligation has the `applyTo` gate naming the gate
+  question and the value `'yes'`
+- check your answers uses `scopedRows(['numberOfVehicles'])` (step 6), not
+  `answerRow`
+
+Then ask the designer to try it once in the browser: open the Yes example
+link, change the answer to No on arrival details, Continue, and open check
+your answers (`?page=notification-view` on the example link). The number of
+vehicles row must be gone.
 
 ## Hand-off notes
 

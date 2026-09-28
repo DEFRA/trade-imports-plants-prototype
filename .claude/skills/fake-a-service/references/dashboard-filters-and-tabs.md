@@ -238,57 +238,113 @@ it.
 
 ## Step 3: tabs
 
-The GOV.UK Tabs script is not started in this service, so `govukTabs` shows a
-list of links and then every panel, one after another. Two ways to build tabs,
-best first:
+**Never use the `govukTabs` macro in a release.** The GOV.UK Tabs script is
+not started in this service, but the macro still marks every panel after the
+first `govuk-tabs__panel--hidden`, and the GOV.UK styles hide those panels. So
+only the first tab's list ever shows, and the other tabs cannot be opened. In
+a picture it looks like working tabs, which hides the problem.
 
-**Tab links.** One list, one link per tab, each with its count. The open tab
-is in the address (`?tab=drafts`), so a research link can open a tab directly.
-In the controller:
+Build tabs on the server instead: each tab is a real link (`?tab=drafts`), and
+only the open tab's list is rendered. It uses the GOV.UK tabs classes, so it
+looks like GOV.UK tabs on a wide screen and like a list of links on a phone
+(as GOV.UK tabs do), with no script. A research link can open a tab directly.
+
+In the controller (import `DEFAULT_TABS` from the same `records/index.js`):
 
 ```js
+const openTab = values.tab || 'all'
+const keptQuery = (tab) =>
+  buildDashboardListQueryString({ sort, referenceNumber, filters: { ...filters, tab } })
+// …
+openTab,
 tabLinks: Object.keys(DEFAULT_TABS).map((tab) => ({
+  id: tab,
   text: `${copy.tabs[tab]} (${counts.byTab[tab]})`,
-  href: `${dashboardPath()}?tab=${tab}`,
-  current: (values.tab || 'all') === tab
+  href: `${dashboardPath()}${keptQuery(tab)}`,
+  current: openTab === tab
 }))
 ```
 
-(import `DEFAULT_TABS` from the same `records/index.js`). In the template,
-above the list:
+`keptQuery` keeps the filters, the sort and the search when the tab changes
+(it is the `buildDashboardListQueryString` from step 1, with the tab added).
+The list itself already follows the open tab: `filtersFromQuery` reads `tab`,
+and `listKnownWithFilters` lists only its statuses.
+
+In the template, in place of the heading above the list:
 
 ```njk
-<nav aria-label="{{ copy.tabsLabel }}">
-  <ul class="govuk-list">
+<div class="govuk-tabs">
+  <h2 class="govuk-tabs__title">{{ copy.tabsLabel }}</h2>
+  <ul class="govuk-tabs__list">
     {% for tab in tabLinks %}
-      <li>
-        {% if tab.current %}
-          <a class="govuk-link govuk-!-font-weight-bold" href="{{ tab.href }}" aria-current="page">{{ tab.text }}</a>
-        {% else %}
-          <a class="govuk-link" href="{{ tab.href }}">{{ tab.text }}</a>
-        {% endif %}
+      <li class="govuk-tabs__list-item{% if tab.current %} govuk-tabs__list-item--selected{% endif %}">
+        <a class="govuk-tabs__tab" href="{{ tab.href }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.text }}</a>
       </li>
     {% endfor %}
   </ul>
-</nav>
+  <div class="govuk-tabs__panel" id="notifications-{{ openTab }}">
+    {# the list of notifications, exactly as before: only the open tab's #}
+  </div>
+</div>
 ```
 
-and the words, in both copy files:
+No `data-module`, no `role="tablist"` and no `govuk-tabs__panel--hidden`:
+these are links to other pages, not script tabs, so they must read as links
+to a screen reader. Add the words to both copy files:
 
 ```js
 tabsLabel: 'Notifications by status',
 tabs: { all: 'All', drafts: 'Drafts', submitted: 'Submitted', amended: 'Amended' },
 ```
 
-**Sections.** Each tab as its own `h2` with its count and its own list, one
-after another. Call `listKnownWithFilters` once per tab (`{ tab: 'drafts' }`
-and so on). This is what `govukTabs` shows without its script.
+If the design only needs the groups one after another, **sections** are
+simpler: each tab as its own `h2` with its count and its own list. Call
+`listKnownWithFilters` once per tab (`{ tab: 'drafts' }` and so on).
 
 Either way, add the design gap row (same words as `match-the-design` uses):
 
 ```text
-| dashboard | Tabs for Drafts, Submitted and Amended | Tab links with counts | Tabs need the Tabs script started in the real service (`createAll(Tabs)` in `src/client/javascripts/application.js`). | <frame> |
+| dashboard | Tabs for Drafts, Submitted and Amended | Server-side tab links styled as GOV.UK tabs, one page per tab | Script tabs need the Tabs script started in the real service (`createAll(Tabs)` in `src/client/javascripts/application.js`); the real backend also needs to list by status. | <frame> |
 ```
+
+## One form for search, sort, filters and the open tab
+
+The dashboard already has a reference search form and a sort form. With
+filters, use one `method="get"` form for all of them, so applying a filter
+keeps the search, the sort and the open tab, and changing the sort keeps the
+filters:
+
+```njk
+<form method="get" action="{{ listAction }}" novalidate>
+  <input type="hidden" name="tab" value="{{ openTab }}" />
+
+  {{ govukInput({
+    id: "referenceNumber",
+    name: "referenceNumber",
+    label: { text: copy.search.label, classes: "govuk-label--s" },
+    value: referenceNumber
+  }) }}
+
+  {{ govukSelect({
+    id: "sort",
+    name: "sort",
+    label: { text: copy.sort.label, classes: "govuk-label--s" },
+    items: sortItems
+  }) }}
+
+  {# the status, commodity, late and date filters from step 2 #}
+
+  {{ govukButton({ text: copy.filters.apply, classes: "govuk-button--secondary" }) }}
+  <p class="govuk-body">
+    <a class="govuk-link" href="{{ listAction }}?tab={{ openTab }}">{{ copy.filters.clear }}</a>
+  </p>
+</form>
+```
+
+Use the dashboard's own names for the search and sort fields and their copy
+keys (read its template first; `referenceNumber` and `sort` are the ones the
+controller reads). Then delete the old separate search and sort forms, and any
+copy key only they used from both copy files, so no key is left unused.
 
 ### The release's own tabs
 
@@ -337,9 +393,18 @@ the counts are real.
 ## Check it
 
 1. `npm run designer:check -- --set <release> --full`
-2. `npm run designer:show -- --set <release> --pages dashboard`
-3. Open these in the running prototype and read each page:
-   - filtered: `http://localhost:3103/<release>?status=submitted`
-   - a tab: `http://localhost:3103/<release>?tab=drafts`
-   - nothing matches: `http://localhost:3103/<release>?commodity=nothing-like-this`
-   - error: `http://localhost:3103/<release>?dateFrom-day=31&dateFrom-month=2&dateFrom-year=2026`
+2. Picture every state in one gallery. The dashboard is pictured with the
+   release's example notifications in it; each `--url` is the dashboard with
+   a query:
+
+   ```bash
+   npm run designer:show -- --set <release> --pages dashboard --before --url "?status=submitted" --url "?tab=drafts" --url "?tab=submitted" --url "?commodity=nothing-like-this" --url "?dateFrom-day=31&dateFrom-month=2&dateFrom-year=2026"
+   ```
+
+3. Read each picture yourself: the filtered list, each tab showing its own
+   notifications (the Submitted tab must show submitted ones, not the drafts),
+   the "No notifications match your filters" state, and the error state with
+   its summary. `--errors` does nothing on the dashboard (its forms send with
+   GET), so the last `--url` is its error state.
+4. Clear filters is a plain link: the unfiltered dashboard picture is what it
+   shows. Nothing here needs the designer to click.
