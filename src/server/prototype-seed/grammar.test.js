@@ -173,6 +173,23 @@ describe('the example grammar', () => {
     expect(example.organisationId).toBe('org-b')
   })
 
+  it('Should carry a story sentence, for the walkthrough report', () => {
+    const [told, untold] = check([
+      {
+        label: 'Late',
+        slug: 'late',
+        fixture: 'latePotatoes',
+        story: 'A trader whose potatoes arrived yesterday sends it late.'
+      },
+      { label: 'Plain', slug: 'plain', fixture: 'latePotatoes' }
+    ])
+
+    expect(told.story).toBe(
+      'A trader whose potatoes arrived yesterday sends it late.'
+    )
+    expect(untold.story).toBeNull()
+  })
+
   it('Should add a field a page never sent to that page’s last step', () => {
     const { steps, problems } = applyAnswers(walk, {
       [DETAILS]: { potatoVariety: 'Maris Piper' }
@@ -293,6 +310,14 @@ describe('the example grammar, refusing examples written wrongly', () => {
         "uses the slug 'same', which another example already uses"
       )
     ])
+  })
+
+  it('Should refuse a story that is not text', () => {
+    expect(
+      problemsOf([
+        { label: 'Story', slug: 'story', fixture: 'latePotatoes', story: 42 }
+      ])[0]
+    ).toContain('has a story that is not text')
   })
 
   it('Should say where the examples came from', () => {

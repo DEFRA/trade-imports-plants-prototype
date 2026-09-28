@@ -117,6 +117,41 @@ The last line gives the log file, for example
 `.cache/designer/check/2026-09-27T10-11-12.log`. It holds everything each step
 printed, in full. Git ignores it.
 
+## Walkthroughs
+
+Every pull request also publishes a **walkthrough**: a run through every
+example in every release, page by page, with a picture, a video and a
+trace. It is documentation, not a check: **a red story is reported, but it
+never blocks the pull request.** Only a crash (the report never wrote, or
+nothing ran at all) fails the "Walkthroughs" check itself.
+
+Three notes you may see on a red or unusual story:
+
+- **"Sent directly"**: the on-screen form did not move on when the
+  walkthrough sent it, so it posted the answers straight to the page's own
+  address instead of clicking the button. The story carries on. This can
+  mean nothing (a page that always redirects) or that the page changed in a
+  way worth a look.
+- **"the story stops here, left to fill in"**: the example's `through` stops
+  the story on that page on purpose (see [Example data](example-data.md)),
+  so the walkthrough stops there too. This is expected, not a failure.
+- **"ran out of time before it finished"**: the story took longer than
+  its five minutes. A whole walkthrough takes about a minute, so this
+  almost always means the computer slept or was very busy part way through.
+  `npm run designer:walkthrough` keeps a Mac awake while it runs; run it
+  again, and if the same story runs out of time twice, look at its trace.
+
+See [Seeing your change](seeing-your-change.md#the-walkthrough-on-every-pull-request)
+for where to watch a walkthrough, and how to run one yourself.
+
+### The production boot check
+
+One of the pull request's checks, "Production boot check", proves a
+signed-out visitor is sent to sign in. It checks the address
+(`/auth/sign-in`), not the exact link: the real page may add its own
+`?redirect=` query naming the page they asked for, and that is expected, not
+a failure.
+
 ## Every error the check explains
 
 These are listed in the order the check looks for them. The heading is the

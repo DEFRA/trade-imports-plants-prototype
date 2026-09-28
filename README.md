@@ -48,6 +48,15 @@ weekly sync pull requests.
   every participant's data. Ask the team not to merge anything from
   "before a demo or a research session" (PROTOTYPE.md, "Deploying and
   merging") until the session ends.
+- **Playwright reports.** Every pull request, and every push to `main`,
+  publishes a merged Playwright report — FIT tests plus the walkthroughs —
+  to the `gh-pages` branch: `reports/pr-<n>/` for a pull request,
+  `reports/main/` for `main`. The pull request gets a comment with its link.
+  A nightly job (`.github/workflows/prune-reports.yml`) removes closed pull
+  requests' reports and keeps `main`'s pruned to the same folder each time,
+  so `gh-pages` stays small. Each run is also uploaded as the
+  `prototype-playwright-report` Actions artifact, so the checks are useful
+  even before Pages is turned on.
 
 Two things are still pending:
 
@@ -61,6 +70,11 @@ Two things are still pending:
   [`scripts/designer/prototype.json`](scripts/designer/prototype.json) (the
   research sheet reads it from there) and in PROTOTYPE.md, "Deploying and
   merging".
+- **Turn on GitHub Pages** for this repository: Settings, Pages, "Deploy
+  from a branch", `gh-pages`, `/ (root)`. The branch appears after the first
+  pull request or merge publishes a report. Until Pages is on, the report
+  links above resolve to nothing and the pull request comment says so, but
+  nothing fails: the Actions artifact is still there.
 
 ## Current state
 

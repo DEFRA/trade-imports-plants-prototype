@@ -8,6 +8,16 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const port = Number(process.env.PORT ?? 3003)
 
+// Prototype: the walkthrough report (fit/walkthroughs) is a project only
+// when asked for, so the test:fit* scripts never run it. And for the
+// published report, every project can record video, trace and screenshots.
+const walkthroughsOn = process.env.PROTOTYPE_WALKTHROUGHS === 'true'
+const recordEverything = process.env.PLAYWRIGHT_RECORD_EVERYTHING === 'true'
+const recorded = recordEverything
+  ? { video: 'on', trace: 'on', screenshot: 'on' }
+  : {}
+const WALKTHROUGH_SIZE = { width: 1280, height: 720 }
+
 export default defineConfig({
   testDir: './fit',
   testMatch: '**/*.spec.js',
@@ -42,7 +52,8 @@ export default defineConfig({
         },
         // Retain a video for every run, not just failures.
         video: 'on',
-        trace: 'on'
+        trace: 'on',
+        ...recorded
       }
     },
     {
@@ -54,9 +65,31 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: `http://localhost:${port}`,
         video: 'off',
-        trace: 'retain-on-failure'
+        trace: 'retain-on-failure',
+        ...recorded
       }
-    }
+    },
+    ...(walkthroughsOn
+      ? [
+          {
+            name: 'walkthroughs',
+            testDir: './fit/walkthroughs',
+            testMatch: '**/*.walkthrough.spec.js',
+            timeout: 300_000,
+            use: {
+              ...devices['Desktop Chrome'],
+              baseURL: `http://localhost:${port}`,
+              viewport: WALKTHROUGH_SIZE,
+              video: { mode: 'on', size: WALKTHROUGH_SIZE },
+              trace: 'on',
+              screenshot: 'on',
+              launchOptions: {
+                slowMo: Number(process.env.WALKTHROUGH_SLOWMO ?? 250)
+              }
+            }
+          }
+        ]
+      : [])
   ],
   webServer: [
     {

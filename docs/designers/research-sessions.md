@@ -54,7 +54,18 @@ tasks it lists come from `research-session.json` in your release.
 
 ## Before the session
 
-1. **Merge the day before.** The deployed prototype only changes after your work
+1. **Run the walkthrough as a dry run.** Each task's example is a story in
+   the release's walkthrough, so running it proves every task link works
+   before anyone sees it:
+
+   ```
+   npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:walkthrough -- --set <release-id>
+   ```
+
+   With errors off (research mode), the error story shows no error
+   messages — that is expected, not a failure.
+
+2. **Merge the day before.** The deployed prototype only changes after your work
    is merged to `main`. Share it ("save my work", then a pull request) and get it
    merged in good time (see "Getting it merged" in
    [Saving, sharing, undoing and handing off](sharing-and-handing-off.md)).
@@ -63,10 +74,10 @@ tasks it lists come from `research-session.json` in your release.
    the facilitator's laptop with `npm run designer:fresh`: the same
    prototype, but every restart starts from the examples. The sheet then has
    only local links.
-2. **Open every task link** on the prototype you will use, once.
-3. **Check at phone width** if participants might use a phone. Ask Claude to
+3. **Open every task link** on the prototype you will use, once.
+4. **Check at phone width** if participants might use a phone. Ask Claude to
    "show my pages at phone width".
-4. **Reset** before the first participant.
+5. **Reset** before the first participant.
 
 ## Reset between participants
 
@@ -95,6 +106,11 @@ prototypes page. Merge it to update the deployed prototype.
 If you share what you found, Claude can turn it into a list of changes for your
 next working release, each with the skill that makes it. Findings go into a
 working release, not the research release.
+
+Link the walkthrough report in your write-up of the round, so anyone who was
+not there can see what participants saw:
+`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@<release-id>`
+once it is merged.
 
 ## Why research mode never ships
 

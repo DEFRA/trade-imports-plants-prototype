@@ -340,6 +340,37 @@ export const specCapabilitiesFor = (pages, exists) =>
     .map((page) => `journey-pages/${page.feature}`)
     .filter((capability) => exists(`${capability}/spec.md`))
 
+const withTrailingSlash = (url) => (url.endsWith('/') ? url : `${url}/`)
+
+/**
+ * The link to the set's walkthrough in the published Playwright report, from
+ * `reportsUrl` in `scripts/designer/prototype.json`. With a pull request
+ * number it is that pull request's report (`pr-<n>/`); without one it is the
+ * report for `main`, which shows the release once the pull request is merged.
+ *
+ * @param {{ reportsUrl?: string|null }} prototype - the prototype's facts.
+ * @param {string} setId
+ * @param {{ pullRequest?: number|string|null }} [options]
+ * @returns {{ url: string, line: string }|null} the link and the story's line
+ *   for it, or null when no report is published.
+ */
+export const walkthroughLink = (
+  prototype,
+  setId,
+  { pullRequest = null } = {}
+) => {
+  const reportsUrl = prototype?.reportsUrl
+  if (!reportsUrl) {
+    return null
+  }
+  const folder = pullRequest ? `pr-${pullRequest}` : 'main'
+  const url = `${withTrailingSlash(reportsUrl)}${folder}/#?q=@${setId}`
+  const note = pullRequest
+    ? ''
+    : ' (this shows the saved version once the pull request is merged)'
+  return { url, line: `See it walked through, page by page: ${url}${note}` }
+}
+
 /**
  * The example links for the changed pages: each opens a saved example
  * notification on that page. Uses an example with no organisation, so the

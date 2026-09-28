@@ -94,6 +94,13 @@ same shape, with made-up data. It is yours, and the hand-off tells the
 developers what real backend it needs. See
 [Where your changes go](where-changes-go.md).
 
+## Playwright trace
+
+A step-by-step recording of a walkthrough: every action, every network call
+and a snapshot of the page at each point, opened in a viewer so you can see
+exactly what happened. Every walkthrough story keeps one, alongside its
+video and pictures.
+
 ## Real journey changed since
 
 A column in the list of releases ("which releases are there"): how many of
@@ -107,6 +114,16 @@ The live plants import notification service, built by the plants-frontend
 team. This prototype is a copy of it. A file that "belongs to the real
 service" is one the real team changes, and the weekly update brings their
 changes in.
+
+## Report
+
+The single web page every walkthrough and browser test makes together: a
+picture of each page, a video and a trace, filterable to one release
+(`#?q=@<release-id>`) or to just the walkthroughs (`#?q=@walkthrough`).
+Published to
+`https://defra.github.io/trade-imports-plants-prototype/reports/` on every
+pull request and every merge to `main`, and linked from the pull request's
+comment.
 
 ## Research mode
 
@@ -134,12 +151,26 @@ Taking screenshots of your change so you can see it and share it. Run it with
 `npm run designer:show -- --set <set-id>`. It starts its own copy of the
 prototype, so it never disturbs the one you have running. It makes a gallery.
 
+## Story
+
+One example, walked through page by page in a walkthrough. Its name is the
+example's `label`, or a one-sentence `story` you write in its scenario file
+to say why it exists. See [Example data](example-data.md).
+
 ## Upstream
 
 Another name for the real service's code (the `trade-imports-plants-frontend`
 repository). This prototype's `upstream` is where the weekly update fetches
 changes from. "Belongs upstream" means the same as "belongs to the real
 service".
+
+## Walkthrough
+
+A run through every example a set already has, page by page, made
+automatically — nobody writes it and nobody keeps it up to date. It is
+documentation, not a test: a red story never blocks a pull request. Run one
+yourself with `npm run designer:walkthrough -- --set <set-id>`. See
+PROTOTYPE.md, "Walkthroughs".
 
 ## Weekly update
 

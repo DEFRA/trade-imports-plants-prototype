@@ -56,6 +56,17 @@ seed refuses it too, and says why.
    origin page when the commodity only comes from certain countries. When an
    example stops, fix the example, not the page.
 
+## Examples are walkthrough stories
+
+Every example you write also becomes one story in that set's walkthrough — a
+run through the release's pages that shows up in the published report.
+`label` is the story's name, so write it for someone who was not in the
+room: "Submitted, then amended", not "test3". Add a one-sentence `story` to
+say why it exists, for example `story: 'A trader whose potatoes arrived
+yesterday sends the notification late.'` — leave it out and the walkthrough
+names the story after the fixture's use case instead. `story` is checked the
+same way as every other text key: it must not be empty.
+
 ## After the edit
 
 ```

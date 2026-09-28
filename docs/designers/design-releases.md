@@ -108,6 +108,12 @@ call it, then:
    high-risk-plants". The commit adds about 150 files, the copy of the
    journey. Saving it on its own keeps every later change small.
 
+Your release also gets its own walkthrough automatically, made from its
+examples: there is nothing to write. It runs on every pull request and
+whenever you say "record a walkthrough", and the real journey's own
+walkthrough sits beside it as the baseline. See
+[Seeing your change](seeing-your-change.md#the-walkthrough-on-every-pull-request).
+
 To copy another release instead of the real journey, name it: "make a copy
 of plants-dr2 for research".
 
@@ -151,6 +157,9 @@ then the release is frozen. Nothing can be added once it is frozen.
 Nobody changes a frozen release after that. Claude Code refuses to edit one
 and offers you the working copy instead, and the checks and the pre-commit
 hook fail on any change to a frozen release after the commit that froze it.
+
+Its walkthrough carries on being made from its examples too, so it stays a
+lasting record of exactly what was designed.
 
 ## Copying a change to another release
 
@@ -199,7 +208,8 @@ npm run designer:release -- retire plants-research-oct
 
 It removes the release's folder, its line on the chooser, its two lines in
 `overrides.json`, and its example data, then saves the removal as one
-commit. The release stays in git history, so it can be brought back.
+commit. Its walkthrough stops being made with it: with no folder and no
+examples left, there is nothing left to walk. The release stays in git history, so it can be brought back.
 
 It will not retire:
 

@@ -10,38 +10,51 @@
  * `slug` is the example's stable id: its example link keeps working after the
  * prototype restarts, even though the reference number changes. Never rename a
  * slug someone may have shared.
+ *
+ * Each example is also a story in the walkthrough report: `label` is its name
+ * and `story` says why it is there.
  */
 export const examples = [
   {
     label: 'Draft, just started',
     slug: 'draft-just-started',
     fixture: 'warePotatoes',
-    through: 'commodities/details'
+    through: 'commodities/details',
+    story:
+      'A trader has started a notification for ware potatoes and left it after the first question.'
   },
   {
     label: 'Draft, part way through',
     slug: 'draft-midway',
     fixture: 'plantsForPlanting',
-    through: 'destinations/select'
+    through: 'destinations/select',
+    story:
+      'A trader bringing in plants for planting has answered about half the questions and will come back to finish.'
   },
   {
     label: 'Submitted',
     slug: 'submitted',
     fixture: 'seedPotatoes',
-    submit: true
+    submit: true,
+    story:
+      'A trader answers every question about seed potatoes, checks the answers and sends the notification.'
   },
   {
     label: 'Submitted, then amended',
     slug: 'amended',
     fixture: 'woodWithoutBark',
     submit: true,
-    amend: true
+    amend: true,
+    story:
+      'A trader sends a notification for wood without bark, then starts to change it.'
   },
   {
     label: 'Submitted late (the potatoes arrived yesterday)',
     slug: 'submitted-late',
     fixture: 'warePotatoesLate',
-    submit: true
+    submit: true,
+    story:
+      'A trader whose potatoes arrived yesterday sends the notification late, so the dashboard shows it as late.'
   },
   {
     label: 'Amendment started, then cancelled',
@@ -49,7 +62,9 @@ export const examples = [
     fixture: 'woodWithoutBark',
     submit: true,
     amend: true,
-    cancelAmend: true
+    cancelAmend: true,
+    story:
+      'A trader starts to change a notification they sent, then changes their mind and keeps the one they sent.'
   },
   {
     label:
@@ -58,13 +73,16 @@ export const examples = [
     copy: 'submitted',
     answers: {
       'arrival-details': { proposedPlaceOfLanding: 'GB FXT' }
-    }
+    },
+    story:
+      'A trader reuses the answers from an earlier notification, with the goods arriving at Felixstowe instead.'
   },
   {
     label: 'Deleted draft',
     slug: 'deleted',
     fixture: 'warePotatoes',
-    delete: true
+    delete: true,
+    story: 'A trader answers every question, then deletes the draft.'
   },
   {
     label: 'Another organisation’s submitted notification',
@@ -74,6 +92,8 @@ export const examples = [
     organisationId: 'example-organisation-b',
     answers: {
       'identification-numbers': { producerIdentificationNumber: 'P999' }
-    }
+    },
+    story:
+      'A notification sent by a different organisation. People signed in to other organisations never see it.'
   }
 ]

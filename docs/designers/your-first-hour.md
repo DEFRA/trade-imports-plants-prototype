@@ -3,6 +3,9 @@
 This guide takes you from nothing to a changed page you can show someone. It
 takes about an hour the first time, most of it waiting for installs.
 
+Before you install anything, you can see the whole prototype walked through,
+page by page: `https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`.
+
 You can do every step by asking Claude Code in plain words. You never need
 to know the names of Claude's skills or commands: just say what you want. If
 Claude seems lost, say "use the design skill". Each step says what to ask,

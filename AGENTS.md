@@ -28,6 +28,9 @@ in a Claude Code session opened at the workspace root
    Their stub plumbing lives in `src/server/prototype-support/`.
 6. The designer's guide is `PROTOTYPE.md`. The designer docs are in
    `docs/designers/` (start at `docs/designers/README.md`).
+7. Every set gets a **walkthrough**: a run through its examples, page by
+   page, generated at run time from `fit/walkthroughs/` and published by CI
+   to `gh-pages`. See `PROTOTYPE.md`, "Walkthroughs".
 
 ## Load-bearing rules
 
@@ -74,6 +77,12 @@ in a Claude Code session opened at the workspace root
     `src/server/app/shared/layout.njk`, except on a `chore/*` branch (a
     maintainer's own change to this repo's contract), with the one
     exception in rule 6 above.
+11. **No walkthrough spec per release, and a walkthrough never gates.**
+    The one spec, `fit/walkthroughs/walkthroughs.walkthrough.spec.js`, is
+    prototype-owned and generates every set's stories at run time from its
+    examples. Never write or commit a spec for one release: change its
+    examples (`label`, `story`) instead. A red walkthrough story is
+    reported, never a reason a pull request is blocked.
 
 ## Branches
 
@@ -142,6 +151,8 @@ here or at the workspace root; another agent reads them by hand.
   `src/server/prototype-data/`): `.claude/rules/prototype-seed.md`
 - the real journey, the shared platform, `src/server/app/services/`,
   `src/client/`, `fit/` and the build config: `.claude/rules/ownership.md`
+  (`fit/walkthroughs/**`, the walkthrough spec that generates every set's
+  stories, is prototype-owned — see the exception there)
 
 ## Read more
 

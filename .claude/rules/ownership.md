@@ -35,6 +35,14 @@ files. Every other folder under `src/server/app/services/` (such as
 `address-book`, `countries`, `ports`, `persistence` and `set-context`)
 belongs to the real service, and the rules below apply to it in full.
 
+A second exception is **the walkthrough spec**, `fit/walkthroughs/**`.
+`overrides.json` lists it in `ours`. Its one checked-in file,
+`walkthroughs.walkthrough.spec.js`, generates every set's stories at run
+time from the set's examples, for `designer:walkthrough` and CI, so no
+release ever gets a spec of its own. A designer never needs to touch it
+(they change a story through the release's examples); a maintainer may, on
+a `chore/*` branch.
+
 Before any edit:
 
 1. Run `npm run designer:where -- <the file>` and read the answer out to the
@@ -65,6 +73,9 @@ Exceptions:
   (above), and nothing else in `src/server/app/services/`.
 - On a `handoff/*` branch (the upstream-bound route) you may edit the real
   journey and shared chrome, to make the patch the hand-off checks.
+- `fit/walkthroughs/**` (the walkthrough spec) is prototype-owned
+  throughout, editable only on a `chore/*` branch, and never needed on a
+  `design/*` branch: never add a spec there for one release.
 
 Never change `overrides.json` to make a file "yours" so you can edit it. That
 hides the clash rather than avoiding it. A new prototype-owned service gets

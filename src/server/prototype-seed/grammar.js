@@ -19,9 +19,17 @@ import { findFixture } from './fixtures.js'
  *     cancelAmend: true,                  then cancel the amendment
  *     delete: true,                       then delete it
  *     copy: 'submitted',                  start from another example's answers
- *     organisationId: 'example-organisation-b'   made by, and shown to, this
+ *     organisationId: 'example-organisation-b',  made by, and shown to, this
  *                                         organisation only
+ *     story: 'A trader whose potatoes arrived yesterday sends the
+ *             notification late.'         why the example exists, in one or
+ *                                         two plain sentences. The seed ignores
+ *                                         it; the walkthrough report shows it
  *   }
+ *
+ * Every example is also a story in the walkthrough report
+ * (fit/walkthroughs/): its label is the story's name, so write it for
+ * someone who has never seen the prototype.
  */
 
 export const EXAMPLE_KEYS = Object.freeze([
@@ -35,7 +43,8 @@ export const EXAMPLE_KEYS = Object.freeze([
   'cancelAmend',
   'delete',
   'copy',
-  'organisationId'
+  'organisationId',
+  'story'
 ])
 
 const ACTIONS = Object.freeze(['submit', 'amend', 'cancelAmend', 'delete'])
@@ -180,6 +189,11 @@ const identityProblems = (raw, slugsSoFar) => {
       "has an organisationId that is not text, like organisationId: 'example-organisation-b'"
     )
   }
+  if (raw.story !== undefined && !isText(raw.story)) {
+    problems.push(
+      "has a story that is not text. Write one or two plain sentences, like story: 'A trader whose potatoes arrived yesterday sends the notification late.'"
+    )
+  }
   return problems
 }
 
@@ -307,7 +321,8 @@ const checkOne = (raw, context) => {
     amend: raw.amend === true,
     cancelAmend: raw.cancelAmend === true,
     delete: raw.delete === true,
-    organisationId: raw.organisationId ?? null
+    organisationId: raw.organisationId ?? null,
+    story: raw.story ?? null
   }
   return { problems, example: { ...example, status: statusOf(example) } }
 }

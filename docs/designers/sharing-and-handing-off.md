@@ -49,9 +49,19 @@ The pull request says:
 - any Welsh still needed and any design gaps,
 - how to make it real.
 
-The pull request's checks include a browser test run. Its
-`frontend-playwright-report` download has a video walking through each design
-release, which is handy for show and tell.
+The pull request's checks publish a walkthrough of every release on this
+branch as a web page: a picture of each page, a video and a trace. A comment
+appears on the pull request with its link, usually within about ten minutes.
+Send that link to stakeholders — it is the shareable demo. If the comment
+says GitHub Pages is not turned on yet, download the
+`prototype-playwright-report` artifact from the check's run instead and open
+its `index.html`.
+
+Something to send before a show and tell, with no web link yet? Say "record
+a walkthrough", then zip the folder
+`.cache/designer/walkthrough/report/` and send the zip. The person unzips it
+and opens `index.html` in their browser: every step, picture and video
+works. Only the trace needs the web link.
 
 No GitHub command line (`gh`) on your computer? Claude sends your branch and
 gives you a link that opens the pull request form in your browser, with the

@@ -10,7 +10,8 @@ import {
   testsToAdd,
   TICKET_DESCRIPTION_FILE,
   TICKET_SCHEMA,
-  ticketManifestFor
+  ticketManifestFor,
+  walkthroughLink
 } from './story.js'
 
 describe('parseCriteria', () => {
@@ -278,5 +279,35 @@ describe('exampleLinks', () => {
 
   it('Should give no links for a release with no examples', () => {
     expect(exampleLinks('http://x', 'set', [], ['origin'])).toEqual([])
+  })
+})
+
+describe('walkthroughLink', () => {
+  const prototype = {
+    reportsUrl:
+      'https://defra.github.io/trade-imports-plants-prototype/reports/'
+  }
+
+  it('Should link the release’s walkthrough on main, saying when it shows', () => {
+    expect(walkthroughLink(prototype, 'plants-working')).toEqual({
+      url: 'https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@plants-working',
+      line: 'See it walked through, page by page: https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@plants-working (this shows the saved version once the pull request is merged)'
+    })
+  })
+
+  it('Should link a pull request’s own report before it is merged', () => {
+    expect(
+      walkthroughLink(
+        { reportsUrl: 'https://example.test/reports' },
+        'plants-working',
+        { pullRequest: 12 }
+      ).line
+    ).toBe(
+      'See it walked through, page by page: https://example.test/reports/pr-12/#?q=@plants-working'
+    )
+  })
+
+  it('Should give no link when no report is published', () => {
+    expect(walkthroughLink({ reportsUrl: null }, 'plants-working')).toBeNull()
   })
 })

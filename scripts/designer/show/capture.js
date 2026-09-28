@@ -11,8 +11,20 @@
 import path from 'node:path'
 
 import AxeBuilder from '@axe-core/playwright'
-import * as cheerio from 'cheerio'
 
+import {
+  ERROR_STATE_NOTES,
+  ExampleStopped,
+  canShowErrors,
+  captureErrors as sendEmpty,
+  goTo,
+  pathnameOf,
+  send,
+  startNotification,
+  startOnScreen,
+  walkOnFromHub as walkOnFrom,
+  walkStep
+} from './drive.js'
 import {
   AXE_TAGS,
   STATES,
@@ -24,15 +36,8 @@ import {
 } from './manifest.js'
 import { HUB_KEY, baseKeyOf } from './targets.js'
 import { journeyIdOfPath, journeyPath, resolveStepFields } from './steps.js'
-import {
-  fillFields,
-  hasPostForm,
-  pageHeading,
-  submitAndWait,
-  tickEveryCheckbox
-} from './walk.js'
+import { pageHeading } from './walk.js'
 
-const REDIRECTS = new Set([301, 302, 303, 307, 308])
 const HTTP_NOT_FOUND = 404
 const HTTP_ERROR = 400
 const VIDEO_SLOW_MO_MS = 600
@@ -40,15 +45,7 @@ const VIDEO_SIZE = { width: 1280, height: 720 }
 const PAUSE_ON_HUB_MS = 1000
 const PAUSE_AT_END_MS = 1500
 
-/** An example that could not get as far as it should. */
-export class ExampleStopped extends Error {}
-
-const pathOf = (location, baseUrl) => {
-  const url = new URL(location, baseUrl)
-  return `${url.pathname}${url.search}`
-}
-
-const pathnameOf = (location, baseUrl) => new URL(location, baseUrl).pathname
+export { ExampleStopped }
 
 /** The page's address with the notification's id swapped for a placeholder. */
 export const addressPattern = (pathname, setBase) => {
@@ -56,14 +53,6 @@ export const addressPattern = (pathname, setBase) => {
   return id
     ? pathname.replace(`/notifications/${id}`, '/notifications/<reference>')
     : pathname
-}
-
-const errorSummaryOf = (html) => {
-  const $ = cheerio.load(html)
-  return $('.govuk-error-summary__list li')
-    .map((_, element) => $(element).text().trim())
-    .get()
-    .filter((text) => text !== '')
 }
 
 /**
@@ -108,30 +97,6 @@ const openSession = async (browser, { baseUrl, setBase }, missing) => {
   await page.goto('/auth/stub-sign-in')
   const landing = await page.goto(setBase)
   return { context, page, baseUrl, setBase, opened: Boolean(landing?.ok()) }
-}
-
-/**
- * Sends `fields` to `formPath` as the signed-in person, with the form token
- * the pages hand out. Returns where the prototype sent the browser next.
- */
-const send = async (session, formPath, fields, where) => {
-  const cookies = await session.context.cookies()
-  const crumb = cookies.find((cookie) => cookie.name === 'crumb')?.value ?? ''
-  const response = await session.page.request.post(
-    `${session.baseUrl}${formPath}`,
-    { form: { ...fields, crumb }, maxRedirects: 0, failOnStatusCode: false }
-  )
-  const location = response.headers().location
-  if (REDIRECTS.has(response.status()) && location) {
-    return pathOf(location, session.baseUrl)
-  }
-  const messages = errorSummaryOf(await response.text())
-  const said = messages.length
-    ? `the page said "${messages.join('; ')}"`
-    : `the prototype answered ${response.status()}`
-  throw new ExampleStopped(
-    `The example "${where.example}" stopped at ${where.page}: ${said}.`
-  )
 }
 
 const runAxe = async (page) => {
@@ -231,47 +196,26 @@ const photograph = async (page, run, shot) => {
 const settle = (page) =>
   page.waitForLoadState('networkidle').catch(() => undefined)
 
-// The chooser's forms reset a set's data, and an example link lands on a
-// page already pictured: sending either empty would change data, not show an
-// error.
-const NO_ERROR_STATE = /^(?:chooser$|example:)/
-
-const canShowErrors = (key, run) => {
-  const base = baseKeyOf(key)
-  return (
-    base !== HUB_KEY && base !== run.landingKey && !NO_ERROR_STATE.test(base)
-  )
-}
-
 const captureErrors = async (page, key, run, result) => {
-  if (!(await hasPostForm(page))) {
-    if (run.variant === VARIANTS.now) {
-      result.notes.push(
-        'This page has no form to send, so it has no error state to show.'
+  const outcome = await sendEmpty(page, {
+    onErrors: async () => {
+      result.captures.push(
+        await photograph(page, run, {
+          key,
+          state: STATES.errors,
+          width: WIDTHS.desktop
+        })
       )
+      result.axe[`${run.variant}/${STATES.errors}`] = await runAxe(page)
     }
+  })
+  if (outcome === 'errors') {
     return
   }
-  const here = page.url()
-  const sent = await submitAndWait(page)
-  if (sent.outcome === 'errors') {
-    await settle(page)
-    result.captures.push(
-      await photograph(page, run, {
-        key,
-        state: STATES.errors,
-        width: WIDTHS.desktop
-      })
-    )
-    result.axe[`${run.variant}/${STATES.errors}`] = await runAxe(page)
-  } else {
-    result.notes.push(
-      sent.outcome === 'moved'
-        ? 'Sending this page empty moved on to the next page, so it has no error state to show.'
-        : 'Sending this page empty showed no error messages.'
-    )
+  if (outcome === 'no-form' && run.variant !== VARIANTS.now) {
+    return
   }
-  await page.goto(here)
+  result.notes.push(ERROR_STATE_NOTES[outcome])
 }
 
 const titleFor = async (page, key) => {
@@ -322,32 +266,6 @@ const capturePage = async (session, key, run) => {
   }
 }
 
-const goTo = async (session, target) => {
-  await session.page.goto(target)
-}
-
-const startNotification = async (session, example) => {
-  const location = await send(
-    session,
-    `${session.setBase}/notifications`,
-    {},
-    {
-      example,
-      page: 'the start'
-    }
-  )
-  const journeyId = journeyIdOfPath(
-    session.setBase,
-    pathnameOf(location, session.baseUrl)
-  )
-  if (!journeyId) {
-    throw new ExampleStopped(
-      `The example "${example}" did not start a notification.`
-    )
-  }
-  return { journeyId, location }
-}
-
 const lastStepToReplay = (scenario, plannedRun) =>
   plannedRun.finish
     ? scenario.steps.length - 1
@@ -389,31 +307,19 @@ const replay = async (session, scenario, plannedRun, run) => {
  * every example walks on.
  */
 const walkOnFromHub = async (session, journeyId, plan, run, suffix = '') => {
-  const { page, setBase } = session
   if (plan.hub) {
-    await goTo(session, journeyPath(setBase, journeyId))
+    await goTo(session, journeyPath(session.setBase, journeyId))
     await capturePage(session, `${HUB_KEY}${suffix}`, run)
   }
-  for (let index = 0; index < plan.after.length; index += 1) {
-    const { key, capture } = plan.after[index]
-    const expected = journeyPath(setBase, journeyId, key)
-    if (new URL(page.url()).pathname !== expected) {
-      await goTo(session, expected)
-    }
-    if (capture) {
-      await capturePage(session, `${key}${suffix}`, run)
-    }
-    if (index < plan.after.length - 1) {
-      await tickEveryCheckbox(page)
-      const sent = await submitAndWait(page)
-      if (sent.outcome !== 'moved') {
-        run.notes.push(
-          `Could not get past ${key}${sent.errors.length ? `: the page said "${sent.errors.join('; ')}"` : ''}.`
-        )
-        return
+  await walkOnFrom(session, journeyId, {
+    after: plan.after.map(({ key }) => key),
+    onPage: async (key, index) => {
+      if (plan.after[index].capture) {
+        await capturePage(session, `${key}${suffix}`, run)
       }
-    }
-  }
+    },
+    onNote: (text) => run.notes.push(text)
+  })
 }
 
 export const NOTIFICATION_PLACEHOLDER = '{notification}'
@@ -545,46 +451,6 @@ export const captureSet = async (browser, input) => {
   }
 }
 
-const sendDirectly = async (session, step, journeyId, example) => {
-  const target = journeyPath(session.setBase, journeyId, step.slug)
-  const location = await send(session, target, resolveStepFields(step), {
-    example,
-    page: step.slug
-  })
-  await goTo(session, location)
-}
-
-const walkStep = async (session, step, journeyId, notes, example) => {
-  const { page } = session
-  const expected = journeyPath(session.setBase, journeyId, step.slug)
-  if (new URL(page.url()).pathname !== expected) {
-    await goTo(session, expected)
-  }
-  await fillFields(page, resolveStepFields(step))
-  const sent = await submitAndWait(page)
-  if (sent.outcome !== 'moved') {
-    notes.push(
-      `The walkthrough could not fill in ${step.slug} on screen${sent.errors.length ? ` (the page said "${sent.errors.join('; ')}")` : ''}, so it sent those answers directly.`
-    )
-    await sendDirectly(session, step, journeyId, example)
-  }
-}
-
-const startOnScreen = async (session, example) => {
-  const { page } = session
-  const sent = await submitAndWait(page)
-  const journeyId =
-    sent.outcome === 'moved'
-      ? journeyIdOfPath(session.setBase, new URL(page.url()).pathname)
-      : null
-  if (journeyId) {
-    return journeyId
-  }
-  const started = await startNotification(session, example)
-  await goTo(session, started.location)
-  return started.journeyId
-}
-
 /**
  * Records the first example's whole journey, slowed down, into `walk.webm`
  * in `outDir`. Launches its own slowed-down browser.
@@ -620,18 +486,16 @@ export const recordWalkthrough = async (browserType, input) => {
     try {
       const journeyId = await startOnScreen(session, scenario.name)
       for (const step of scenario.steps) {
-        await walkStep(session, step, journeyId, notes, scenario.name)
+        await walkStep(session, step, journeyId, {
+          example: scenario.name,
+          onNote: (text) => notes.push(text)
+        })
       }
       await page.waitForTimeout(PAUSE_ON_HUB_MS)
-      await walkOnFromHub(
-        session,
-        journeyId,
-        {
-          hub: false,
-          after: plan.after.map((item) => ({ ...item, capture: false }))
-        },
-        { notes }
-      )
+      await walkOnFrom(session, journeyId, {
+        after: plan.after.map(({ key }) => key),
+        onNote: (text) => notes.push(text)
+      })
       await page.waitForTimeout(PAUSE_AT_END_MS)
     } catch (error) {
       if (!(error instanceof ExampleStopped)) {

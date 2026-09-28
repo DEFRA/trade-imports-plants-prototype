@@ -12,17 +12,12 @@ Every designer document is listed in
 
 ## Just say what you want
 
-Clone the workspace, run its setup, then open Claude Code at the workspace
-root — not in this repo's own folder. See "Getting started" below. Once
-you are there, say what you want in your own words. You do not need to
-learn the code, the commands or the names of anything. Claude works out
-what you mean, makes the change in your design release, checks it, shows
-you pictures of it and tells you what to click.
-
-It runs entirely on its own: `npm run dev` needs no docker stack, no
-backend and no Jira access to show a change. The workspace is only for
-Claude to read while it builds, so what it makes for you matches the real
-service.
+Open Claude Code at the workspace root (see "Getting started" below) and
+say what you want in your own words. You do not need to learn the code, the
+commands or the names of anything. Claude works out what you mean, makes the
+change in your design release, checks it, shows you pictures of it and
+tells you what to click. `npm run dev` needs no docker stack, no backend and
+no Jira access.
 
 | You want to                                   | Say something like                                                           |
 | --------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -97,28 +92,34 @@ Very close, with these differences. All of them are known.
 
 ## Known gaps
 
-- **It is not deployed yet.** Its own `Dockerfile` builds and boots it with
-  stub sign-in, same as `npm run dev`, and every pull request's checks prove
-  that boot works — but nobody has stood up the CDP environment itself yet.
-  Until it is deployed, run demos and research sessions from a laptop with
-  `npm run dev`. The research sheet prints a local link for each task.
+- **It is not deployed yet.** Every pull request proves its `Dockerfile`
+  boots, but the CDP environment is not stood up. Until it is, run demos
+  and research from a laptop with `npm run dev`.
 - **No custom styles or scripts yet**, as above: they are design gaps.
+
+## Walkthroughs: the prototype documents itself
+
+Every set gets a **walkthrough**: each of its examples, page by page, with
+pictures, a video and a trace, made from the words the release already has.
+It is documentation, not a test: a red story never stops a pull request.
+Every pull request gets a comment linking to it; once merged, the lasting
+link is
+`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`
+(once the maintainer turns GitHub Pages on; until then the comment points
+at a download). Say "record a walkthrough" to make one yourself. See
+[Seeing your change](docs/designers/seeing-your-change.md#the-walkthrough-on-every-pull-request).
 
 ## Deploying and merging
 
 Once deployed, the maintainer puts its address here and in `deployedUrl`
-in `scripts/designer/prototype.json`. It signs you in with stub sign-in,
-same as `npm run dev`: anyone who reaches the link is signed in
-automatically, deliberately and temporarily, until CDP puts its own auth in
-front or a later change restores real sign-in.
+in `scripts/designer/prototype.json`. Like `npm run dev`, it uses stub
+sign-in: anyone who reaches the link is signed in automatically, on purpose,
+until CDP puts its own auth in front.
 
 The deployed prototype only changes when a pull request is merged into
-`main`. Your pull request is reviewed and merged by the prototype maintainer
-(ask in your team if you do not know who that is). Say "make a pull
-request", send the link to the maintainer, and leave at least a working day
-before a demo or a research session. "Is my pull request merged yet?"
-explains any red check. With merge rights and an approval, "merge my pull
-request" merges only when every check is green.
+`main`, by the prototype maintainer. Say "make a pull request", send them
+the link, and leave a working day before a demo or research session. "Is my
+pull request merged yet?" explains any red check.
 
 ## If you're not sure
 

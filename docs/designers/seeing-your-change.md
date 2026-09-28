@@ -20,25 +20,25 @@ your files: `git status` is the same before and after.
 
 ## What to ask for
 
-| You want                                  | Ask Claude                      | Or add to the command                            |
-| ----------------------------------------- | ------------------------------- | ------------------------------------------------ |
-| The pages your change affects             | "show me"                       | nothing                                          |
-| Particular pages                          | "what does origin look like"    | `--pages origin,arrival-details`                 |
-| Every page                                | "show me the whole journey"     | `--pages all`                                    |
-| Before and after                          | "before and after"              | `--before`                                       |
-| Error messages                            | "show the error messages"       | `--errors`                                       |
-| Phone width                               | "show it on a phone"            | `--mobile`                                       |
-| Your Figma frame beside the page          | "compare with the Figma"        | `--reference origin=designs/origin.png`          |
-| The same pages in the real journey        | "compare with the real journey" | `--compare high-risk-plants`                     |
-| A video of the whole journey              | "record a walkthrough"          | `--video`                                        |
-| Everything, for a review or show and tell | "make a review pack"            | `--pages all --before --errors --mobile --video` |
-| The gallery opened for you                | "and open it"                   | `--open`                                         |
-| The prototypes page (the chooser)         | "show me the chooser"           | `--pages chooser`                                |
-| Where example links land                  | "show the example links"        | `--examples submitted,amended`                   |
-| Both sides of a question                  | "show the Yes and the No"       | `--each-example`                                 |
-| A filtered dashboard, a tab, a side page  | "show the Submitted tab"        | `--url "?tab=submitted"`                         |
-| The dashboard with no notifications       | "show a new user's dashboard"   | `--no-examples`                                  |
-| Compared with an older save               | "compare with before the undo"  | `--before-commit HEAD~1`                         |
+| You want                                        | Ask Claude                      | Or add to the command                                                                                          |
+| ----------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| The pages your change affects                   | "show me"                       | nothing                                                                                                        |
+| Particular pages                                | "what does origin look like"    | `--pages origin,arrival-details`                                                                               |
+| Every page                                      | "show me the whole journey"     | `--pages all`                                                                                                  |
+| Before and after                                | "before and after"              | `--before`                                                                                                     |
+| Error messages                                  | "show the error messages"       | `--errors`                                                                                                     |
+| Phone width                                     | "show it on a phone"            | `--mobile`                                                                                                     |
+| Your Figma frame beside the page                | "compare with the Figma"        | `--reference origin=designs/origin.png`                                                                        |
+| The same pages in the real journey              | "compare with the real journey" | `--compare high-risk-plants`                                                                                   |
+| A video in your gallery, alongside the pictures | "add a video to my gallery"     | `--video`                                                                                                      |
+| Everything, for a review or show and tell       | "make a review pack"            | `--pages all --before --errors --mobile`, plus a walkthrough run (see "The walkthrough on every pull request") |
+| The gallery opened for you                      | "and open it"                   | `--open`                                                                                                       |
+| The prototypes page (the chooser)               | "show me the chooser"           | `--pages chooser`                                                                                              |
+| Where example links land                        | "show the example links"        | `--examples submitted,amended`                                                                                 |
+| Both sides of a question                        | "show the Yes and the No"       | `--each-example`                                                                                               |
+| A filtered dashboard, a tab, a side page        | "show the Submitted tab"        | `--url "?tab=submitted"`                                                                                       |
+| The dashboard with no notifications             | "show a new user's dashboard"   | `--no-examples`                                                                                                |
+| Compared with an older save                     | "compare with before the undo"  | `--before-commit HEAD~1`                                                                                       |
 
 You can combine any of them. `npm run designer:show -- --help` lists them.
 
@@ -203,23 +203,54 @@ The folder also holds:
 The folder is complete on its own: zip it and send it, and it opens anywhere.
 Old galleries stay until you delete them. They are never committed.
 
-## The video on every pull request
+## The walkthrough on every pull request
 
-Every pull request runs the browser tests, and they now walk every design
-release too: `fit/designer-sets.fit.spec.js` fills in each example in each
-release's `happy-path.json`, on screen, all the way to confirmation, and
-checks every page for serious accessibility problems.
+Every pull request, and every push to `main`, publishes a **walkthrough**: a
+run through every example in every release on the branch, page by page, with
+a picture of each page, a video and a trace. It is documentation, not a
+test: a red story is reported, but it never blocks the pull request.
 
-The tests record a video of every walk. To watch one:
+Within about ten minutes, a comment appears on the pull request with the
+report's link. Add `#?q=@walkthrough` to see only the walkthroughs, or
+`#?q=@<release-id>` for one release's alone. Once merged, the lasting link is
+`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`.
+If the comment says GitHub Pages is not turned on for this repository yet,
+download the `prototype-playwright-report` Actions artifact from the run
+instead and open its `index.html`.
 
-1. Open the pull request on GitHub and go to its checks.
-2. Open the run and download the `frontend-playwright-report` file at the
-   bottom of its summary.
-3. Unzip it and open `index.html`. Each walk, including one per example in
-   each release, has its video.
+Each story in the report is one example, walked through:
 
-The weekly update runs the same walks, so it also notices when the real
+- its name is the example's `label`, or the one-sentence `story` you gave it;
+- each step is named after the page's own heading, with a picture, and any
+  note the walk made — "Sent directly" means the answers were posted to the
+  page's own route because the on-screen form did not move on, and "the
+  story stops here, left to fill in" means the example's `through` stopped
+  there on purpose;
+- the video and the trace sit alongside it, for the whole story.
+
+The browser tests still walk every design release too, separately from the
+walkthrough:
+`fit/designer-sets.fit.spec.js` fills in each example in each release's
+`happy-path.json`, on screen, all the way to confirmation, and checks every
+page for serious accessibility problems. It is part of the same report,
+under its own filter.
+
+The weekly update runs the same checks, so it also notices when the real
 team's changes break one of your releases.
+
+## Record a walkthrough on your laptop
+
+Ask Claude to **"record a walkthrough"**, or run:
+
+```
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:walkthrough -- --set <set-id>
+```
+
+It takes a few minutes: it walks every example in the set, page by page, and
+opens the report in your browser when it is done. `--all` walks every set;
+leave `--set` out and it uses your working release. Run
+`npm run designer:walkthrough -- --show` on its own to open the last report
+again without making a new one.
 
 ## If something goes wrong
 
