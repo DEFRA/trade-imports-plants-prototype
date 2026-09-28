@@ -86,12 +86,16 @@ it, so trust `designer:where` over this picture.
     ├── config/config.js                    [shared on purpose]
     └── server/
         ├── router.js                       [shared on purpose]
-        ├── prototype-*/                    [yours]  chooser, examples, fake services
+        ├── prototype-*/                    [yours]  chooser, examples, stub plumbing
         ├── sets-index/                     [yours]  the chooser page
         └── app/
             ├── engine/, model/, bridge/,
             │   flow/, lib/, shared/        [real service]  the platform every set runs on
-            ├── services/                   [real service, some files shared on purpose]
+            ├── services/
+            │   ├── transporters/, templates/,
+            │   │   ins-address-book/,
+            │   │   notification-search/    [yours]  prototype-owned services
+            │   └── everything else         [real service, some files shared on purpose]
             ├── routes.js                   [real service]
             ├── routes-high-risk-plants.js  [real service]
             ├── routes-<your release>.js    [yours]
@@ -102,10 +106,35 @@ it, so trust `designer:where` over this picture.
                 └── <your release>/         [yours]  unless it is frozen
 ```
 
+## Prototype-owned services
+
+When a design needs something the real service cannot do yet (saved
+transporters, templates, dashboard filters), Claude builds it as a
+prototype-owned service in `src/server/app/services/<name>/`, beside the
+real services and in the same shape: an `index.js` that picks stub data in
+the prototype, a `client.js` that would call a real backend, and a
+`stub.js` with its starter rows. Each one has its own line in `ours` in
+`overrides.json`, so it is yours while every other folder in `services/`
+stays the real service's. Pages use it exactly as they would use a real
+service, and the hand-off gives the developers its `index.js`, `client.js`
+and a description of the backend it needs.
+
+`npm run designer:service -- list` lists them. Only Claude makes one, with
+`npm run designer:service -- new <name>`, and it refuses a name the real
+service already uses. See [Services and dashboards](services-and-dashboards.md).
+
+## The header and navigation
+
 `shared/layout.njk` (the header, footer and navigation) belongs to the real
 service and is shared by every set. A change to the header or navigation is a
 design gap: write it down in your release's `design-gaps.md` so it travels
 with the hand-off.
+
+The header's "Address book" link goes nowhere in the prototype. The real
+service sends it to a separate service (the Import Notification Service
+frontend), which this prototype does not run. Locally it points at
+`http://localhost:3002`, and a deployed prototype will point there too
+unless its environment sets `TRADE_IMPORTS_INS_FRONTEND_URL`.
 
 ## What the weekly update really does
 
@@ -144,6 +173,23 @@ the clash or the failing check, and then merge it.
 If you see a `needs-person` pull request, or a set you use started behaving
 oddly after a Monday, that is the place to look. If the clash is in a file you
 changed, you are the best person to say which version is right.
+
+## How a change reaches the real service
+
+This prototype never sends anything back to the real service on its own.
+If a change you make here should also happen in the real service, it needs
+making there separately: say "hand this to the real team" (or "write this up
+as a story for the developers"). Claude writes a hand-off folder under
+`handoffs/`: a brief in plain English and a copy ready to paste into Jira,
+before and after pictures, a table of changed words, and a patch the
+plants-frontend team can apply. The brief also lists what cannot ship as it
+is: Welsh still needed, prototype-owned services, design gaps and
+research-only rules.
+
+The real team, or a developer, applies the patch there and raises the pull
+request. Once it is merged into the real service, the next weekly update
+brings it into the real journey here: you don't need to redo it. See
+[Saving, sharing, undoing and handing off](sharing-and-handing-off.md).
 
 ## Words used on this page
 

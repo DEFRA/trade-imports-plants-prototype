@@ -12,6 +12,16 @@
  *   on this branch are compared with `base` (default `main`). This is the
  *   upstream-bound route, where a `handoff/*` branch changed the real journey
  *   and its tests directly.
+ *
+ * Either mode can be brief only (`briefOnly`): the story, pages, services and
+ * checks are worked out, but there is no patch. A release made from the
+ * sample-journey placeholder is always brief only: it has no real page to
+ * patch.
+ *
+ * A page that imports a prototype-owned service
+ * (`src/server/app/services/<name>/`, its own `ours` line in overrides.json)
+ * stays in the patch, and the service's `index.js` and `client.js` travel with
+ * it as proposed files.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -38,14 +48,19 @@ import {
 import {
   findPinnedStrings,
   findPrototypeImports,
+  findPrototypeServiceImports,
   findWelshMarkers,
   isTestFile,
+  ownedServicesFrom,
   parseDesignGaps,
   parseResearchRules,
   relativeImportsOf,
   removedLiterals
 } from './impact.js'
 import { copyChanges, isCopyFile, isWelshCopyFile } from './copy-table.js'
+import { describeService } from './contract.js'
+import { gateChangesOf, validationRowsFor } from './flow.js'
+import { specCapabilitiesFor } from './story.js'
 
 export const REAL_JOURNEY = 'high-risk-plants'
 export const PLACEHOLDER = 'sample-journey'
@@ -126,17 +141,14 @@ export const readReleaseInfo = (root, setId) => {
  * The steps from a release back to the real journey: one step for a release
  * made from high-risk-plants, more for a release made from another release.
  * `fromOverride` names what the release was made from when it has no
- * `release.json`.
+ * `release.json`. A chain that ends at the sample-journey placeholder stops
+ * there: its last step's `fromId` is `sample-journey`, and the hand-off is
+ * brief only.
  */
 export const resolveChain = (root, setId, fromOverride) => {
   const hops = []
   let current = setId
-  while (current !== REAL_JOURNEY) {
-    if (current === PLACEHOLDER) {
-      throw new HandoffError(
-        `${setId} was made from the sample-journey placeholder, not the real journey. There is no real page to patch, so hand it over as a brief and screenshots only.`
-      )
-    }
+  while (current !== REAL_JOURNEY && current !== PLACEHOLDER) {
     if (!existsSync(path.join(root, setDirOf(current)))) {
       throw new HandoffError(
         `There is no design release called "${current}" in ${SETS_DIR}.`
@@ -309,6 +321,27 @@ const realJourneyChanges = (root, base) => {
   return { changes, baseRef }
 }
 
+/** Scaffolding `new:set` writes; it says nothing about the design. */
+const SCAFFOLDING = /^(set\.js|journeys\/linear\/config\.js)$/
+
+/**
+ * A release made from the sample-journey placeholder has no real page to
+ * compare with, so every file it has is new.
+ */
+const placeholderChanges = (root, setId) => {
+  const dir = setDirOf(setId)
+  const changes = walk(path.join(root, dir))
+    .filter((relative) => !isPrototypeOnly(relative))
+    .filter((relative) => !SCAFFOLDING.test(relative))
+    .map((relative) => ({
+      path: `${dir}/${relative}`,
+      releasePath: `${dir}/${relative}`,
+      before: null,
+      after: readIfExists(root, `${dir}/${relative}`)
+    }))
+  return { changes, baseRef: null }
+}
+
 const statusOf = (change) => {
   if (change.before === null) {
     return 'added'
@@ -316,38 +349,13 @@ const statusOf = (change) => {
   return change.after === null ? 'deleted' : 'changed'
 }
 
-const NEEDS_A_REAL_SERVICE =
-  /needsARealService:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/
-
-/** The fake's own "needs a real service" sentence from its index.js, or null. */
-const needsARealServiceOf = (root, found) => {
-  const source = readIfExists(
-    root,
-    `src/server/${found.kind}/${found.name}/index.js`
-  )
-  const match = source ? NEEDS_A_REAL_SERVICE.exec(source) : null
-  return match ? (match[1] ?? match[2]) : null
-}
-
-const serviceShape = (root, found) => {
-  const needs = needsARealServiceOf(root, found)
-  const candidates = [
-    `src/server/${found.kind}/${found.name}/data.json`,
-    `src/server/app/${found.kind}/${found.name}/data.json`
-  ]
-  for (const candidate of candidates) {
-    const content = readIfExists(root, candidate)
-    if (content !== null) {
-      try {
-        const data = JSON.parse(content)
-        const rows = Array.isArray(data) ? data : (data.results ?? [data])
-        return { file: candidate, example: rows[0] ?? null, needs }
-      } catch {
-        return { file: candidate, example: null, needs }
-      }
-    }
+/** overrides.json as data, or null when it is missing or unreadable. */
+const readOverrides = (root) => {
+  try {
+    return JSON.parse(readIfExists(root, 'overrides.json') ?? 'null')
+  } catch {
+    return null
   }
-  return needs ? { file: null, example: null, needs } : null
 }
 
 /**
@@ -467,23 +475,47 @@ const oldStringsOf = (changes) => {
 const testImpactOf = (root, changes) =>
   findPinnedStrings(oldStringsOf(changes), testFilesOnDisk(root))
 
+/** The trade-imports workspace's behaviour spec for plants, as the workspace
+ * lays it out (`repos/<this repo>` beside `openspec/`). */
+export const WORKSPACE_PLANTS_SPEC = 'openspec/specs/plants'
+
+/** Where the workspace's plants behaviour spec is on this computer, or null
+ * when the prototype was cloned on its own. */
+export const workspaceSpecDir = (root, override) => {
+  const dir = override ?? path.resolve(root, '../..', WORKSPACE_PLANTS_SPEC)
+  return existsSync(dir) ? dir : null
+}
+
 /** The real journey's requirement files (`spec/`): the journey spec, the
- * decisions, the panel rulings and the backlog extras. */
-const specFilesOnDisk = (root) =>
-  Object.fromEntries(
+ * decisions, the panel rulings and the backlog extras. Then, when the
+ * workspace is there, its plants behaviour spec (`spec.md` files), named by
+ * their workspace path. */
+const specFilesOnDisk = (root, openspecDir) => ({
+  ...Object.fromEntries(
     walk(path.join(root, setDirOf(REAL_JOURNEY), 'spec')).map((relative) => {
       const file = `${setDirOf(REAL_JOURNEY)}/spec/${relative}`
       return [file, readIfExists(root, file) ?? '']
     })
-  )
+  ),
+  ...(openspecDir
+    ? Object.fromEntries(
+        walk(openspecDir)
+          .filter((relative) => relative.endsWith('.md'))
+          .map((relative) => [
+            `${WORKSPACE_PLANTS_SPEC}/${relative}`,
+            readFileSync(path.join(openspecDir, relative), 'utf8')
+          ])
+      )
+    : {})
+})
 
 /**
- * Lines of the real journey's requirement files that still quote the old
- * words: the real team updates them with the patch, or the spec and the page
- * disagree.
+ * Lines of the real journey's requirement files, and of the workspace's
+ * plants behaviour spec, that still quote the old words: the real team
+ * updates them with the patch, or the spec and the page disagree.
  */
-const specImpactOf = (root, changes) =>
-  findPinnedStrings(oldStringsOf(changes), specFilesOnDisk(root))
+const specImpactOf = (root, changes, openspecDir) =>
+  findPinnedStrings(oldStringsOf(changes), specFilesOnDisk(root, openspecDir))
 
 /**
  * Takes out of `shippable` every file that imports a left-out file, and every
@@ -556,15 +588,149 @@ const nothingToHandOver = (set, allChanges, options) => {
   return `${set} changes ${allChanges.length} file(s), but none ${scope}. Check the name, or leave the option out to hand over everything.`
 }
 
-const checkTargetFiles = (root, changes, ref) =>
+/**
+ * What each patched file looks like where the patch is checked. A proposed
+ * service file is new to plants-frontend, so the check against the
+ * prototype's own copy leaves it out (the prototype has it already); the
+ * check against plants-frontend reads it from there, so a service the real
+ * team has since built shows up as a clash.
+ */
+const checkTargetFiles = (
+  root,
+  changes,
+  ref,
+  { proposedFromRef = false } = {}
+) =>
   Object.fromEntries(
-    changes.map((change) => [change.path, showFile(root, ref, change.path)])
+    changes.map((change) => [
+      change.path,
+      change.proposed && !proposedFromRef
+        ? null
+        : showFile(root, ref, change.path)
+    ])
   )
+
+const JS_SOURCE = /\.js$/
+const NOT_SOURCE = /(\.test\.js|\.fit\.spec\.js|\/copy\/copy\.(en|cy)\.js)$/
+
+/** One row per validation rule on each changed page, read from the set on
+ * disk: the page's code, its English copy and its Welsh copy. */
+const validationOf = (root, setId, pages) =>
+  pages
+    .filter((page) => page.feature)
+    .flatMap((page) => {
+      const dir = `${setDirOf(setId)}/journeys/linear/features/${page.feature}`
+      const sources = walk(path.join(root, dir))
+        .map((relative) => `${dir}/${relative}`)
+        .filter((file) => JS_SOURCE.test(file) && !NOT_SOURCE.test(file))
+        .map((file) => readIfExists(root, file) ?? '')
+      return validationRowsFor({
+        page: page.feature,
+        sources,
+        en: readIfExists(root, `${dir}/copy/copy.en.js`),
+        cy: readIfExists(root, `${dir}/copy/copy.cy.js`)
+      })
+    })
+
+/**
+ * Sorts the changes in scope: files that import prototype-only code
+ * (prototype-data or prototype-support) cannot ship; everything else can,
+ * including pages that use a prototype-owned service, which is noted so its
+ * proposed files travel with them.
+ */
+const sortChanges = (inScope, owned) => {
+  const prototypeOnly = []
+  const shippable = []
+  const needsService = []
+  const serviceUsers = new Map()
+  for (const change of inScope) {
+    const found = change.after
+      ? findPrototypeImports(change.releasePath, change.after)
+      : []
+    if (found.length) {
+      needsService.push(change)
+      prototypeOnly.push(...found)
+    } else {
+      shippable.push(change)
+    }
+    const uses = change.after
+      ? findPrototypeServiceImports(change.releasePath, change.after, owned)
+      : []
+    for (const use of uses) {
+      serviceUsers.set(use.name, [
+        ...(serviceUsers.get(use.name) ?? []),
+        change.path
+      ])
+    }
+  }
+  return { prototypeOnly, shippable, needsService, serviceUsers }
+}
+
+const proposedChangesOf = (services) =>
+  services.flatMap((service) =>
+    service.proposed.map((file) => ({
+      path: file.path,
+      releasePath: file.path,
+      before: null,
+      after: file.after,
+      proposed: true
+    }))
+  )
+
+const withoutFileContents = ({ proposed, ...service }) => ({
+  ...service,
+  proposedFiles: proposed.map((file) => file.path)
+})
+
+const BRIEF_ONLY_REASONS = {
+  placeholder:
+    'It was made from the sample-journey placeholder, not the real journey, so there is no real page to patch.',
+  asked:
+    'Brief only, as asked: the story, pictures and services, with no patch.'
+}
+
+/**
+ * The patch and both checks: against the real journey as the prototype has
+ * it, and against plants-frontend's `upstream/main` when it has been fetched.
+ * Brief only: no patch and nothing to check.
+ */
+const patchAndChecks = (root, patchChanges, applyRef, briefOnly) => {
+  if (briefOnly) {
+    return {
+      patch: '',
+      applyCheck: {
+        ok: true,
+        empty: true,
+        briefOnly: true,
+        message: 'Brief only: there is no patch.'
+      },
+      upstreamApplyCheck: null
+    }
+  }
+  const patch = buildPatch(patchChanges)
+  const applyCheck = checkPatchApplies(
+    patch,
+    checkTargetFiles(root, patchChanges, applyRef)
+  )
+  const upstreamRef = resolveCommit(root, UPSTREAM_MAIN)
+  const upstreamApplyCheck = upstreamRef
+    ? {
+        ref: UPSTREAM_MAIN,
+        ...checkPatchApplies(
+          patch,
+          checkTargetFiles(root, patchChanges, upstreamRef, {
+            proposedFromRef: true
+          })
+        )
+      }
+    : null
+  return { patch, applyCheck, upstreamApplyCheck }
+}
 
 /**
  * Builds the hand-off report for a set. Options:
- * `{ root, set, features, all, base, from, gapsFrom, recipes }`.
- * Throws HandoffError with a plain reason when it cannot.
+ * `{ root, set, features, all, base, from, gapsFrom, recipes, briefOnly,
+ * openspecDir }`. Throws HandoffError with a plain reason when it cannot.
  */
 export const buildHandoff = (options) => {
   const { root, set } = options
@@ -573,59 +739,74 @@ export const buildHandoff = (options) => {
   }
   const realMode = set === REAL_JOURNEY
   const hops = realMode ? [] : resolveChain(root, set, options.from)
-  const uuidMaps = hops.map((hop) => uuidMapForHop(root, hop))
+  const placeholder = set === PLACEHOLDER || hops.at(-1)?.fromId === PLACEHOLDER
+  const briefOnly = placeholder || Boolean(options.briefOnly)
+  const uuidMaps = hops.map((hop) =>
+    placeholder
+      ? { map: {}, unpaired: [], source: 'none (made from the placeholder)' }
+      : uuidMapForHop(root, hop)
+  )
   hops.forEach((hop, index) => {
     hop.uuidMap = uuidMaps[index].map
   })
-  const { changes: allChanges, baseRef } = realMode
-    ? realJourneyChanges(root, options.base ?? 'main')
-    : releaseChanges(root, set, hops)
+  let found
+  if (placeholder) {
+    found = placeholderChanges(root, set)
+  } else if (realMode) {
+    found = realJourneyChanges(root, options.base ?? 'main')
+  } else {
+    found = releaseChanges(root, set, hops)
+  }
+  const { changes: allChanges, baseRef } = found
 
   const since = changedSince(root, set, options.since)
   const { inScope, outOfScope } = splitByScope(allChanges, options, since)
   if (inScope.length === 0) {
     throw new HandoffError(nothingToHandOver(set, allChanges, options))
   }
-  const services = []
-  const shippable = []
-  const needsService = []
-  for (const change of inScope) {
-    const found = change.after
-      ? findPrototypeImports(change.releasePath, change.after)
-      : []
-    if (found.length) {
-      needsService.push(change)
-      found.forEach((item) =>
-        services.push({ ...item, shape: serviceShape(root, item) })
-      )
-    } else {
-      shippable.push(change)
-    }
-  }
-  const dependents = leaveOutDependents(shippable, needsService)
-
-  const patch = buildPatch(shippable)
-  const applyRef = realMode ? baseRef : 'HEAD'
-  const applyCheck = checkPatchApplies(
-    patch,
-    checkTargetFiles(root, shippable, applyRef)
+  const owned = ownedServicesFrom(readOverrides(root))
+  const { prototypeOnly, shippable, needsService, serviceUsers } = sortChanges(
+    inScope,
+    owned
   )
-  const upstreamRef = resolveCommit(root, UPSTREAM_MAIN)
-  const upstreamApplyCheck = upstreamRef
-    ? {
-        ref: UPSTREAM_MAIN,
-        ...checkPatchApplies(
-          patch,
-          checkTargetFiles(root, shippable, upstreamRef)
-        )
-      }
-    : null
+  const dependents = leaveOutDependents(shippable, needsService)
+  const services = [...serviceUsers.keys()]
+    .sort()
+    .map((name) =>
+      describeService(
+        name,
+        (filePath) => readIfExists(root, filePath),
+        serviceUsers.get(name)
+      )
+    )
+  const patchChanges = [
+    ...shippable,
+    ...(briefOnly ? [] : proposedChangesOf(services))
+  ]
+
+  const applyRef = realMode ? baseRef : 'HEAD'
+  const { patch, applyCheck, upstreamApplyCheck } = patchAndChecks(
+    root,
+    patchChanges,
+    applyRef,
+    briefOnly
+  )
   const gapsSet = realMode ? options.gapsFrom : set
-  const patchPaths = new Set(shippable.map((change) => change.path))
+  const patchPaths = new Set(patchChanges.map((change) => change.path))
+  const pages = groupPages(root, set, shippable)
+  const openspecDir = workspaceSpecDir(root, options.openspecDir)
 
   return {
     set,
     mode: realMode ? 'real-journey' : 'release',
+    placeholder,
+    briefOnly: briefOnly
+      ? {
+          reason: placeholder
+            ? BRIEF_ONLY_REASONS.placeholder
+            : BRIEF_ONLY_REASONS.asked
+        }
+      : null,
     chain: hops.map(({ releaseId, fromId, createdIn }, index) => ({
       releaseId,
       fromId,
@@ -636,11 +817,21 @@ export const buildHandoff = (options) => {
     release: hops[0]?.info ?? null,
     baseRef,
     applyRef,
-    files: shippable.map((change) => ({
+    files: (briefOnly ? [] : patchChanges).map((change) => ({
       path: change.path,
       releasePath: change.releasePath,
-      status: statusOf(change)
+      status: statusOf(change),
+      ...(change.proposed ? { proposed: true } : {})
     })),
+    servicesToBuild: services.map(withoutFileContents),
+    gateChanges: placeholder ? [] : gateChangesOf(shippable),
+    validation: validationOf(root, set, pages),
+    specSources: { workspace: openspecDir !== null },
+    specCapabilities: openspecDir
+      ? specCapabilitiesFor(pages, (relative) =>
+          existsSync(path.join(openspecDir, relative))
+        )
+      : [],
     leftOut: [
       ...outOfScope.map((change) => ({
         path: change.releasePath,
@@ -651,24 +842,26 @@ export const buildHandoff = (options) => {
       ...needsService.map((change) => ({
         path: change.releasePath,
         reason: dependents.has(change.path)
-          ? `Imports ${dependents.get(change.path)}, which is left out because it uses a service that only exists in the prototype. Shipped without it, the real service would not start.`
-          : 'Uses a service that only exists in the prototype. The real team needs to build or connect a real one first.'
+          ? `Imports ${dependents.get(change.path)}, which is left out because it uses code that only exists in the prototype. Shipped without it, the real service would not start.`
+          : 'Uses code that only exists in the prototype (its example data or its stub plumbing). The real team needs a real source for that data first.'
       }))
     ],
-    pages: groupPages(root, set, shippable),
+    pages,
     patch,
     applyCheck,
     upstreamApplyCheck,
     wordsOnly:
+      !placeholder &&
       shippable.length > 0 &&
       shippable.every((change) => isCopyFile(change.path)),
-    drift: realMode
-      ? { ref: null, overlapping: [], elsewhere: [] }
-      : driftOf(root, hops, patchPaths, baseRef),
+    drift:
+      realMode || placeholder
+        ? { ref: null, overlapping: [], elsewhere: [] }
+        : driftOf(root, hops, patchPaths, baseRef),
     testImpact: testImpactOf(root, shippable),
-    specImpact: specImpactOf(root, shippable),
+    specImpact: specImpactOf(root, shippable, openspecDir),
     cannotShip: {
-      services,
+      services: prototypeOnly,
       welshNeeded: shippable
         .filter((change) => change.after && isWelshCopyFile(change.path))
         .flatMap((change) => findWelshMarkers(change.path, change.after)),

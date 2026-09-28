@@ -7,19 +7,14 @@ const CONFIGURE_RECORDS = 'configureRecords(SET_ID, records)'
 const WRAPPED = 'designerRecords('
 
 /**
- * Where the prototype's records wrapper (the fake-a-service deliverable) may
- * live, and how a gateway in `src/server/app/` imports it from there. The
- * second place is its fallback if the first is refused by the architecture
- * checks.
+ * Where the prototype's records wrapper lives (stub plumbing, in
+ * `src/server/prototype-support/`), and how a gateway in `src/server/app/`
+ * imports it from there.
  */
 const CANDIDATES = [
   {
-    file: 'src/server/prototype-services/records/index.js',
-    specifier: '../prototype-services/records/index.js'
-  },
-  {
-    file: 'src/server/app/prototype-services/records/index.js',
-    specifier: './prototype-services/records/index.js'
+    file: 'src/server/prototype-support/records.js',
+    specifier: '../prototype-support/records.js'
   }
 ]
 

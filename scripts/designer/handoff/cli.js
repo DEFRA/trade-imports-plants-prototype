@@ -2,9 +2,10 @@
  * `npm run designer:handoff -- --set <release> [options]`
  *
  * Writes `handoffs/<yyyy-mm-dd>-<slug>/` for the real plants-frontend team:
- * `brief.md`, `brief.jira.txt`, `upstream.patch`, `report.json` and a
- * `screenshots/` folder (at most 2 MB). With `--dry-run` the same folder goes
- * under `.cache/designer/handoff/` instead, which git ignores.
+ * `brief.md`, `brief.jira.txt` (a story ready to paste into Jira),
+ * `upstream.patch`, `report.json` and a `screenshots/` folder (at most 2 MB).
+ * With `--dry-run` the same folder goes under `.cache/designer/handoff/`
+ * instead, which git ignores. With `--brief-only` there is no patch.
  *
  * Options:
  *   --set <id>            the design release to hand over (required). Use
@@ -16,8 +17,22 @@
  *                         commit that started the release
  *   --all                 everything the release changed (the default)
  *   --slug <slug>         folder name after the date (default: the set id)
- *   --title "<text>"      the brief's heading
- *   --why "<text>"        what the change is and why, for the brief
+ *   --title "<text>"      the story's summary and the brief's heading
+ *   --why "<text>"        what the change is and why, in the designer's words
+ *   --as "<text>"         who it is for, in the designer's words (the story's
+ *                         "As"); left out, the story shows a placeholder
+ *   --want "<text>"       what they need to do (the story's "I want")
+ *   --so-that "<text>"    why they need it (the story's "So that")
+ *   --criteria <file>     acceptance criteria as Given, When, Then lines, one
+ *                         blank line between criteria (the agent drafts it,
+ *                         the designer confirms it). A change of words only
+ *                         gets its criteria written for it when this is left
+ *                         out.
+ *   --link <url>          a link to see the prototype: the design branch, the
+ *                         pull request (repeat for each)
+ *   --brief-only          the story, pictures, links and services, with no
+ *                         patch (always so for a release made from
+ *                         sample-journey)
  *   --recipe <name>       a recipe the change followed (repeat or a,b)
  *   --base <ref>          with --set high-risk-plants: compare with (main)
  *   --from <id>           what the release was made from, if it has no
@@ -44,14 +59,21 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { tidyFiles } from '../format/cli.js'
+import { readPrototypeConfig } from '../lib/prototype-config.js'
+import { installCommandFor } from '../preflight/checks.js'
+import { loadExamples } from '../../../src/server/prototype-seed/examples.js'
 import { buildHandoff, HandoffError, REAL_JOURNEY } from './build.js'
 import {
   briefOutline,
   isContentNote,
   renderBriefJira,
-  renderBriefMarkdown
+  renderBriefMarkdown,
+  storyOf
 } from './brief.js'
+import { readJourneyFlow } from './flow.js'
+import { gitOrNull } from './git.js'
 import { ANY_PAGE, pickScreenshots } from './screenshots.js'
+import { CriteriaError, parseCriteria } from './story.js'
 
 export const REPO_ROOT = path.resolve(
   fileURLToPath(import.meta.url),
@@ -68,6 +90,11 @@ const VALUE_OPTIONS = {
   '--slug': 'slug',
   '--title': 'title',
   '--why': 'why',
+  '--as': 'as',
+  '--want': 'want',
+  '--so-that': 'soThat',
+  '--criteria': 'criteria',
+  '--link': 'links',
   '--recipe': 'recipes',
   '--base': 'base',
   '--from': 'from',
@@ -79,9 +106,13 @@ const VALUE_OPTIONS = {
 const FLAG_OPTIONS = {
   '--all': 'all',
   '--no-screenshots': 'noScreenshots',
+  '--brief-only': 'briefOnly',
   '--dry-run': 'dryRun',
   '--json': 'json'
 }
+
+/** Options that may be given more than once, each adding to a list. */
+const LIST_OPTIONS = new Set(['features', 'recipes', 'links'])
 
 const splitList = (value) =>
   value
@@ -91,7 +122,7 @@ const splitList = (value) =>
 
 /** Parses the command line. Throws HandoffError for anything it does not know. */
 export const parseArgs = (argv) => {
-  const options = { features: [], recipes: [] }
+  const options = { features: [], recipes: [], links: [] }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     const [name, inlineValue] = arg.includes('=') ? arg.split(/=(.*)/s) : [arg]
@@ -103,10 +134,13 @@ export const parseArgs = (argv) => {
         throw new HandoffError(`${name} needs a value.`)
       }
       const key = VALUE_OPTIONS[name]
-      options[key] =
-        key === 'features' || key === 'recipes'
+      if (key === 'links') {
+        options.links = [...options.links, value.trim()]
+      } else {
+        options[key] = LIST_OPTIONS.has(key)
           ? [...options[key], ...splitList(value)]
           : value
+      }
     } else {
       throw new HandoffError(
         `I do not know "${arg}". See the top of scripts/designer/handoff/cli.js for the options.`
@@ -195,21 +229,96 @@ export const galleryDirFor = (root, resolved) => {
 }
 
 /**
- * Builds the report and writes the folder. Returns `{ report, dir, meta }`.
+ * The acceptance criteria from `--criteria`, or null when none was named.
+ * The file is read from the repo root when the path is relative.
  */
-export const runHandoff = (root, resolved) => {
-  const report = buildHandoff({ ...resolved, root })
+export const readCriteria = (root, criteriaPath) => {
+  if (!criteriaPath) {
+    return null
+  }
+  const full = path.resolve(root, criteriaPath)
+  if (!existsSync(full)) {
+    throw new HandoffError(
+      `There is no criteria file at ${criteriaPath}. Write the acceptance criteria there first, as Given, When and Then lines.`
+    )
+  }
+  try {
+    return parseCriteria(readFileSync(full, 'utf8'))
+  } catch (error) {
+    if (error instanceof CriteriaError) {
+      throw new HandoffError(error.message)
+    }
+    throw error
+  }
+}
+
+/** The set's example notifications, or none when they cannot be loaded. */
+const examplesOf = (setId) => {
+  try {
+    return loadExamples(setId)
+  } catch {
+    return []
+  }
+}
+
+/** The install command `designer:preflight` prints, from package.json. */
+const installCommandOf = (root) => {
+  try {
+    const { packageManager } = JSON.parse(
+      readFileSync(path.join(root, 'package.json'), 'utf8')
+    )
+    return installCommandFor(packageManager)
+  } catch {
+    return installCommandFor(null)
+  }
+}
+
+const currentBranchOf = (root) =>
+  gitOrNull(['branch', '--show-current'], { cwd: root })?.trim() || null
+
+/**
+ * The things the brief reads that live outside the report: the set's
+ * examples, the page orders, the prototype's settings, the branch and the
+ * install command. Tests replace them.
+ */
+export const DEFAULT_SOURCES = Object.freeze({
+  examples: (_root, setId) => examplesOf(setId),
+  journeyFlow: (root, report) => readJourneyFlow(root, report),
+  prototype: (root) => readPrototypeConfig({ root }),
+  branch: currentBranchOf,
+  installCommand: installCommandOf
+})
+
+/**
+ * Builds the report and writes the folder. Returns
+ * `{ report, dir, meta, shots, story }`.
+ */
+export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
+  const use = { ...DEFAULT_SOURCES, ...sources }
+  const criteria = readCriteria(root, resolved.criteria)
+  const built = buildHandoff({ ...resolved, root })
+  const report = { ...built, journeyFlow: await use.journeyFlow(root, built) }
   const galleryDir = galleryDirFor(root, resolved)
   const shots = pickScreenshots(galleryDir, screenshotSlugs(report))
   const meta = {
     title: resolved.title,
     why: resolved.why ?? null,
+    as: resolved.as ?? null,
+    want: resolved.want ?? null,
+    soThat: resolved.soThat ?? null,
+    criteria,
+    links: resolved.links ?? [],
     date: resolved.date,
     slug: resolved.slug,
     branch: `feat/EUDPA-XXXX-${resolved.slug}`,
+    designBranch: use.branch(root),
+    installCommand: use.installCommand(root),
+    prototype: use.prototype(root),
+    examples: use.examples(root, report.set),
     screenshots: shots.picked,
     skippedScreenshots: shots.skipped
   }
+  const story = storyOf(report, meta)
   const blocks = briefOutline(report, meta)
   const dir = outputDir(root, resolved)
   mkdirSync(dir, { recursive: true })
@@ -221,7 +330,12 @@ export const runHandoff = (root, resolved) => {
       copyFileSync(shot.full, path.join(shotsDir, shot.fileName))
     }
   }
-  writeFileSync(path.join(dir, 'upstream.patch'), report.patch)
+  const patchFile = path.join(dir, 'upstream.patch')
+  if (report.briefOnly) {
+    rmSync(patchFile, { force: true })
+  } else {
+    writeFileSync(patchFile, report.patch)
+  }
   writeFileSync(path.join(dir, 'brief.md'), renderBriefMarkdown(blocks))
   writeFileSync(path.join(dir, 'brief.jira.txt'), renderBriefJira(blocks))
   const { patch, ...withoutPatch } = report
@@ -230,13 +344,27 @@ export const runHandoff = (root, resolved) => {
     JSON.stringify(
       {
         ...withoutPatch,
-        patchLines: patch.split('\n').length - 1,
+        patchLines: patch ? patch.split('\n').length - 1 : 0,
         screenshots: {
           galleryFound: shots.found,
           picked: shots.picked.map((shot) => shot.fileName),
           skipped: shots.skipped.map((shot) => shot.relative)
         },
-        meta: { title: meta.title, why: meta.why, date: meta.date }
+        meta: {
+          title: meta.title,
+          why: meta.why,
+          as: meta.as,
+          want: meta.want,
+          soThat: meta.soThat,
+          links: meta.links,
+          date: meta.date,
+          designBranch: meta.designBranch
+        },
+        story: {
+          criteriaFrom: story.criteriaSource,
+          criteria: story.scenarios.length,
+          placeholders: story.placeholders
+        }
       },
       null,
       2
@@ -245,25 +373,40 @@ export const runHandoff = (root, resolved) => {
   tidyFiles([path.join(dir, 'brief.md'), path.join(dir, 'report.json')], {
     root
   })
-  return { report, dir, meta, shots }
+  return { report, dir, meta, shots, story }
 }
 
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`
 
+const patchLine = (report) =>
+  report.briefOnly
+    ? `- Brief only, no upstream.patch. ${report.briefOnly.reason}`
+    : `- ${plural(report.files.length, 'file')} in upstream.patch. ${report.applyCheck.message.split('\n')[0]}`
+
+const storyLines = (story) => [
+  `- The story's acceptance criteria: ${plural(story.scenarios.length, 'criterion')}, ${story.criteriaSource === 'placeholder' ? 'still a placeholder' : `from ${story.criteriaSource}`}.`,
+  story.placeholders.length
+    ? `- Still to fill in with the designer's own words: ${story.placeholders.join('; ')}.`
+    : '- The story has no placeholders left.'
+]
+
 /** The plain-English summary printed after a run. */
-export const summaryLines = ({ report, dir, shots }, root) => {
+export const summaryLines = ({ report, dir, shots, story }, root) => {
   const relativeDir = path.relative(root, dir)
   const designGaps = report.cannotShip.designGaps.filter(
     (row) => !isContentNote(row)
   )
   const contentNotes = report.cannotShip.designGaps.length - designGaps.length
+  const services = report.servicesToBuild ?? []
   const lines = [
     `Hand-off written to ${relativeDir}/`,
-    `- ${plural(report.files.length, 'file')} in upstream.patch. ${report.applyCheck.message.split('\n')[0]}`,
+    ...(story ? storyLines(story) : []),
+    patchLine(report),
     `- ${plural(report.cannotShip.welshNeeded.length, 'Welsh string')} still need translating.`,
     `- ${plural(report.testImpact.length, 'place')} in the tests still expect the old words.`,
-    `- ${plural((report.specImpact ?? []).length, 'place')} in the real journey's requirement files (spec/) still quote the old words.`,
-    `- ${plural(report.cannotShip.services.length, 'use')} of a service that only exists in the prototype (needs a real service), and ${plural(designGaps.length, 'design gap')}, cannot ship as they are.`,
+    `- ${plural((report.specImpact ?? []).length, 'place')} in the requirement files (the real journey's spec/ folder and the workspace's openspec/specs/plants) still quote the old words.`,
+    `- ${plural(services.length, 'new service')} to build${services.length ? ` (${services.map((service) => service.name).join(', ')}: index.js and client.js${report.briefOnly ? ' are described in the brief' : ' travel in the patch as proposed files'})` : ''}.`,
+    `- ${plural(report.cannotShip.services.length, 'use')} of the prototype's own example data or stub plumbing, and ${plural(designGaps.length, 'design gap')}, cannot ship as they are.`,
     ...(contentNotes > 0
       ? [
           `- ${plural(contentNotes, 'content note')} for a content designer (they do not stop it shipping).`
@@ -273,7 +416,7 @@ export const summaryLines = ({ report, dir, shots }, root) => {
   ]
   if (report.cannotShip.services.length > 0) {
     lines.push(
-      '- The patch leaves out every file that uses a prototype-only service, and every file that imports one. It applies, but the whole change only works once the real team builds those services.'
+      "- The patch leaves out every file that uses the prototype's own example data or stub plumbing, and every file that imports one. It applies, but the whole change only works once the real team has a real source for that data."
     )
   }
   if (report.upstreamApplyCheck && !report.upstreamApplyCheck.ok) {
@@ -300,13 +443,17 @@ export const summaryLines = ({ report, dir, shots }, root) => {
   return lines
 }
 
-export const main = (argv, root = REPO_ROOT) => {
+export const main = async (
+  argv,
+  root = REPO_ROOT,
+  sources = DEFAULT_SOURCES
+) => {
   try {
     const resolved = resolveOptions(parseArgs(argv))
     if (resolved.set === REAL_JOURNEY && !resolved.base) {
       resolved.base = 'main'
     }
-    const result = runHandoff(root, resolved)
+    const result = await runHandoff(root, resolved, sources)
     if (resolved.json) {
       console.log(
         JSON.stringify(
@@ -329,5 +476,5 @@ export const main = (argv, root = REPO_ROOT) => {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  process.exitCode = main(process.argv.slice(2))
+  process.exitCode = await main(process.argv.slice(2))
 }

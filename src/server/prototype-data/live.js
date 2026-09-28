@@ -32,7 +32,7 @@ const readOnlyTraps = {
  * change, so a reader looping over a few hundred ports does not copy the list
  * on every index it reads.
  */
-const combiner = (base, extras) => {
+export const combiner = (base, extras) => {
   let lastExtras
   let lastCombined = base
   return () => {
@@ -49,15 +49,14 @@ const combiner = (base, extras) => {
 }
 
 /**
- * A list that reads like `[...base, ...extras()]` on every access.
+ * A read-only array view that reads `current()` on every access. Keep
+ * `current` cheap: answer the same array while nothing has changed.
  *
- * @param {object[]} base - the stub rows, never changed.
- * @param {() => object[]} extras - the active set's extra rows.
+ * @param {() => object[]} current - the rows as they are now.
  * @returns {object[]} a read-only array view.
  */
-export const liveList = (base, extras) => {
-  const current = combiner(base, extras)
-  return new Proxy([], {
+export const liveView = (current) =>
+  new Proxy([], {
     ...readOnlyTraps,
     get: (_target, key) => Reflect.get(current(), key),
     has: (_target, key) => Reflect.has(current(), key),
@@ -71,7 +70,15 @@ export const liveList = (base, extras) => {
         : descriptor
     }
   })
-}
+
+/**
+ * A list that reads like `[...base, ...extras()]` on every access.
+ *
+ * @param {object[]} base - the stub rows, never changed.
+ * @param {() => object[]} extras - the active set's extra rows.
+ * @returns {object[]} a read-only array view.
+ */
+export const liveList = (base, extras) => liveView(combiner(base, extras))
 
 /**
  * A code-to-name lookup that reads like `{ ...base, ...extras() }` on every

@@ -24,14 +24,16 @@ import { transformContent, transformPath } from '../../new-set/transform.js'
 import { briefOutline, renderBriefMarkdown } from './brief.js'
 import { buildHandoff } from './build.js'
 import { runHandoff } from './cli.js'
-import { git } from './git.js'
+import { checkPatchApplies, git, resolveCommit, showFile } from './git.js'
 import {
   commitAll,
   copyRealJourney,
   editFile,
   makeRepo,
+  OVERRIDES_WITH_TRANSPORTERS,
   readFile,
   removeRepo,
+  TRANSPORTERS_SERVICE,
   writeFiles
 } from './fixture-repo.js'
 
@@ -45,6 +47,22 @@ const OLD_WELSH = 'Defnyddiwch y cloc 24 awr. Er enghraifft, 14:30.'
 const TIMEOUT_MS = 120_000
 
 const RENAME = { fromId: 'high-risk-plants', newId: 'plants-working' }
+
+/** A scratch repository has no examples or engine to load: stand in for them. */
+const TEST_SOURCES = {
+  examples: () => [{ slug: 'complete', label: 'Complete' }],
+  journeyFlow: async () => ({ rows: [], before: null, error: null })
+}
+
+/** The real plants-frontend beside the prototype, as the workspace lays it
+ * out. Present on a workspace checkout, absent in CI. */
+const PLANTS_FRONTEND = path.resolve(
+  REPO_ROOT,
+  '../trade-imports-plants-frontend'
+)
+const hasPlantsFrontend =
+  existsSync(path.join(PLANTS_FRONTEND, '.git')) &&
+  resolveCommit(PLANTS_FRONTEND, 'main') !== null
 
 /** Copies the real journey the way `new:set` does: every path and file
  * rewritten by the real transform, each UUID given a fresh value. Tests and
@@ -150,29 +168,52 @@ describe('designer:handoff end to end', () => {
   )
 
   it(
-    'Should write a brief that lists the Welsh marker and the pinned test, plus the Jira version',
-    () => {
+    'Should write a story and a brief that lists the Welsh marker and the pinned test, plus the Jira version',
+    async () => {
       scaffoldRelease(root)
       changeHintAndTemplate(root)
       const gallery = '.cache/designer/show/plants-working/latest'
       writeFiles(root, {
         [`${gallery}/arrival-details--before--page--desktop.png`]: 'png',
         [`${gallery}/arrival-details--now--page--desktop.png`]: 'png',
-        [`${gallery}/origin--now--page--desktop.png`]: 'png'
+        [`${gallery}/origin--now--page--desktop.png`]: 'png',
+        '.cache/designer/handoff/arrival.criteria.txt': `Given I am on the Arrival details page\nWhen I look at the time question\nThen the hint says "${NEW_HINT}"\n`
       })
 
-      const { dir } = runHandoff(root, {
-        set: 'plants-working',
-        slug: 'arrival-time-hint',
-        date: '2026-09-27',
-        folderName: '2026-09-27-arrival-time-hint',
-        title: 'Clearer arrival time hint',
-        why: 'Traders were unsure about the time format.',
-        features: [],
-        recipes: []
-      })
+      const { dir, story } = await runHandoff(
+        root,
+        {
+          set: 'plants-working',
+          slug: 'arrival-time-hint',
+          date: '2026-09-27',
+          folderName: '2026-09-27-arrival-time-hint',
+          title: 'Clearer arrival time hint',
+          why: 'Traders were unsure about the time format.',
+          as: 'a trader notifying potatoes',
+          want: 'to know how to write the arrival time',
+          soThat: 'I get it right the first time',
+          criteria: '.cache/designer/handoff/arrival.criteria.txt',
+          features: [],
+          recipes: [],
+          links: []
+        },
+        TEST_SOURCES
+      )
 
       expect(dir).toBe(path.join(root, 'handoffs/2026-09-27-arrival-time-hint'))
+      expect(story.placeholders).toEqual([])
+      expect(story.criteriaSource).toBe('the designer')
+      const jira = readFile(dir, 'brief.jira.txt')
+      expect(jira).toMatch(
+        /^\*Summary:\* Clearer arrival time hint\n\n\*As\* a trader notifying potatoes,\n/
+      )
+      expect(jira).toContain(
+        `+*Acceptance Criteria*+\n*Given* I am on the Arrival details page\n*When* I look at the time question\n*Then* the hint says "${NEW_HINT}"`
+      )
+      expect(jira).toContain('{panel:title=Tech Notes|bgColor=#deebff}')
+      expect(jira).toContain(
+        '||Page||Field||Rule||English error||Welsh error||\n|arrival-details|{{arrivalDate}}|Must be answered|Enter the arrival date|'
+      )
       const brief = readFile(dir, 'brief.md')
       expect(brief).toContain(`[Welsh needed] followed by the English`)
       expect(brief).toContain(
@@ -251,6 +292,91 @@ describe('designer:handoff end to end', () => {
         `${REAL}/${FEATURE}/copy/copy.en.js`
       )
       expect(report.applyCheck.ok).toBe(false)
+    },
+    TIMEOUT_MS
+  )
+
+  const TRANSPORTER_PAGES = {
+    [`${RELEASE}/journeys/linear/features/transporter/page.js`]:
+      "export const transporterPage = { id: 'transporter', slug: 'transporter' }\n",
+    [`${RELEASE}/journeys/linear/features/transporter/controller.js`]:
+      "import * as transporters from '../../../../../../services/transporters/index.js'\nimport { transporterPage as page } from './page.js'\n\nexport const meta = { ...page }\n\nexport const list = (orgId) => transporters.listTransporters(orgId)\n",
+    [`${RELEASE}/journeys/linear/features/transporter-add/controller.js`]:
+      "import { list } from '../transporter/controller.js'\n\nexport const add = list\n"
+  }
+
+  const releaseUsingTransporters = () => {
+    writeFiles(root, {
+      'overrides.json': OVERRIDES_WITH_TRANSPORTERS,
+      ...TRANSPORTERS_SERVICE
+    })
+    commitAll(root, 'The prototype-owned transporters service')
+    scaffoldRelease(root)
+    writeFiles(root, TRANSPORTER_PAGES)
+    return buildHandoff({ root, set: 'plants-working' })
+  }
+
+  it(
+    'Should hand over a page that uses a prototype-owned service with the service’s index.js and client.js, and keep the pages that depend on it',
+    () => {
+      const report = releaseUsingTransporters()
+      const FEATURES = `${REAL}/journeys/linear/features`
+
+      expect(report.files.map((file) => file.path).sort()).toEqual([
+        'src/server/app/services/transporters/client.js',
+        'src/server/app/services/transporters/index.js',
+        `${FEATURES}/transporter-add/controller.js`,
+        `${FEATURES}/transporter/controller.js`,
+        `${FEATURES}/transporter/page.js`
+      ])
+      expect(
+        report.files.filter((file) => file.proposed).map((file) => file.path)
+      ).toEqual([
+        'src/server/app/services/transporters/index.js',
+        'src/server/app/services/transporters/client.js'
+      ])
+      expect(report.leftOut).toEqual([])
+      expect(report.patch).toContain(
+        "+import { isStubMode } from '../../../common/services/mode.js'"
+      )
+      expect(report.patch).not.toContain('isStubDataMode')
+      expect(report.patch).not.toContain('transporters/stub.js b/')
+      expect(report.patch).not.toContain('plants-working')
+      expect(report.servicesToBuild).toEqual([
+        expect.objectContaining({
+          name: 'transporters',
+          target: 'src/server/app/services/transporters',
+          usedBy: [`${FEATURES}/transporter/controller.js`],
+          stubPrototypeImports: ['src/server/prototype-support/fake-store.js'],
+          proposedFiles: [
+            'src/server/app/services/transporters/index.js',
+            'src/server/app/services/transporters/client.js'
+          ]
+        })
+      ])
+      expect(report.servicesToBuild[0].contract.baseUrlEnv).toBe(
+        'TRADE_IMPORTS_TRANSPORTERS_URL'
+      )
+      expect(report.applyCheck.ok).toBe(true)
+      expect(applyCheckInScratchCopy(root, report.patch)).toBe(true)
+    },
+    TIMEOUT_MS
+  )
+
+  it.runIf(hasPlantsFrontend)(
+    'Should give a patch with the service and its pages that applies cleanly to plants-frontend main',
+    () => {
+      const report = releaseUsingTransporters()
+      const plantsFrontendMain = Object.fromEntries(
+        report.files.map((file) => [
+          file.path,
+          showFile(PLANTS_FRONTEND, 'main', file.path)
+        ])
+      )
+
+      expect(checkPatchApplies(report.patch, plantsFrontendMain)).toMatchObject(
+        { ok: true, empty: false }
+      )
     },
     TIMEOUT_MS
   )
@@ -367,16 +493,13 @@ describe('designer:handoff on small releases', () => {
   )
 
   it(
-    'Should leave a file that uses a prototype-only service out of the patch and name its data',
+    'Should leave a file that uses the prototype’s own example data out of the patch',
     () => {
       writeFiles(root, {
-        'src/server/prototype-services/transporters/data.json': JSON.stringify([
-          { id: 't1', name: 'Haulage Ltd', country: 'NL' }
-        ]),
         [`${RELEASE}/set.js`]: "export const SET_ID = 'plants-working'\n",
         [`${RELEASE}/obligations/sections/arrival.js`]: `export const arrival = {\n  id: '${ORIGINAL}',\n  label: 'Arrival'\n}\n`,
         [`${RELEASE}/journeys/linear/features/transporter/controller.js`]:
-          "import { search } from '../../../../../../prototype-services/transporters/index.js'\nexport const controller = search\n",
+          "import { withExtraParties } from '../../../../../../../prototype-data/index.js'\nexport const controller = withExtraParties\n",
         [`${RELEASE}/design-gaps.md`]:
           '| Page | Why |\n| --- | --- |\n| transporter | No saved-transporter service |\n'
       })
@@ -385,16 +508,14 @@ describe('designer:handoff on small releases', () => {
 
       expect(report.files).toEqual([])
       expect(report.cannotShip.services).toEqual([
-        expect.objectContaining({
-          name: 'transporters',
-          kind: 'prototype-services',
-          shape: {
-            file: 'src/server/prototype-services/transporters/data.json',
-            example: { id: 't1', name: 'Haulage Ltd', country: 'NL' },
-            needs: null
-          }
-        })
+        {
+          file: `${RELEASE}/journeys/linear/features/transporter/controller.js`,
+          specifier: '../../../../../../../prototype-data/index.js',
+          kind: 'prototype-data',
+          name: 'index'
+        }
       ])
+      expect(report.servicesToBuild).toEqual([])
       expect(report.leftOut[0].path).toBe(
         `${RELEASE}/journeys/linear/features/transporter/controller.js`
       )
@@ -414,7 +535,7 @@ describe('designer:handoff on small releases', () => {
         [`${RELEASE}/set.js`]: "export const SET_ID = 'plants-working'\n",
         [`${RELEASE}/obligations/sections/arrival.js`]: `export const arrival = {\n  id: '${ORIGINAL}',\n  label: 'Arrival'\n}\n`,
         [`${FEATURES}/transporter-picker/render.js`]:
-          "import { search } from '../../../../../../prototype-services/transporters/index.js'\nexport const render = search\n",
+          "import { createFakeStore } from '../../../../../../../prototype-support/fake-store.js'\nexport const render = createFakeStore\n",
         [`${FEATURES}/transporter-picker/controller.js`]:
           "import { render } from './render.js'\nexport const controller = render\n",
         [`${FEATURES}/transporter-add/controller.js`]:
@@ -496,16 +617,75 @@ describe('designer:handoff on small releases', () => {
   )
 
   it(
-    'Should refuse a set made from the sample-journey placeholder',
+    'Should hand over a release made from the sample-journey placeholder as a brief only, not refuse it',
+    async () => {
+      const WELCOME = `${RELEASE}/journeys/linear/features/welcome`
+      writeFiles(root, {
+        [`${RELEASE}/set.js`]: "export const SET_ID = 'plants-working'\n",
+        [`${RELEASE}/release.json`]: JSON.stringify({ from: 'sample-journey' }),
+        [`${WELCOME}/page.js`]:
+          "export const welcomePage = { id: 'welcome', slug: 'welcome' }\n",
+        [`${WELCOME}/copy/copy.en.js`]:
+          "export const copy = { title: 'Save a vehicle you use often' }\n"
+      })
+
+      const report = buildHandoff({ root, set: 'plants-working' })
+
+      expect(report.briefOnly.reason).toContain(
+        'made from the sample-journey placeholder'
+      )
+      expect(report.patch).toBe('')
+      expect(report.files).toEqual([])
+      expect(report.pages.map((page) => page.feature)).toEqual(['welcome'])
+
+      const { dir } = await runHandoff(
+        root,
+        {
+          set: 'plants-working',
+          slug: 'saved-vehicles',
+          date: '2026-09-28',
+          folderName: '2026-09-28-saved-vehicles',
+          title: 'Save a vehicle you use often',
+          features: [],
+          recipes: [],
+          links: []
+        },
+        TEST_SOURCES
+      )
+      expect(existsSync(path.join(dir, 'upstream.patch'))).toBe(false)
+      const jira = readFile(dir, 'brief.jira.txt')
+      expect(jira).toMatch(/^\*Summary:\* Save a vehicle you use often\n/)
+      expect(jira).toContain('* Patch: No patch. It was made from the')
+      expect(
+        JSON.parse(readFile(dir, 'report.json')).story.placeholders
+      ).toEqual([
+        'As (who it is for)',
+        'I want (what they need to do)',
+        'So that (why they need it)',
+        'Description (what the change is and why)',
+        'Acceptance criteria'
+      ])
+    },
+    TIMEOUT_MS
+  )
+
+  it(
+    'Should write no patch for a brief only, while still finding the pages',
     () => {
       writeFiles(root, {
         [`${RELEASE}/set.js`]: "export const SET_ID = 'plants-working'\n",
-        [`${RELEASE}/release.json`]: JSON.stringify({ from: 'sample-journey' })
+        [`${RELEASE}/obligations/sections/arrival.js`]: `export const arrival = {\n  id: '${ORIGINAL}',\n  label: 'Arrival and transport'\n}\n`
       })
 
-      expect(() => buildHandoff({ root, set: 'plants-working' })).toThrow(
-        'sample-journey placeholder'
-      )
+      const report = buildHandoff({
+        root,
+        set: 'plants-working',
+        briefOnly: true
+      })
+
+      expect(report.briefOnly.reason).toContain('Brief only, as asked')
+      expect(report.patch).toBe('')
+      expect(report.pages).toHaveLength(1)
     },
     TIMEOUT_MS
   )

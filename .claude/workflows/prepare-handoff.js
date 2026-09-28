@@ -3,7 +3,7 @@ export const meta = {
   description:
     'Prepare a design release change for the real plants-frontend team: triage it, apply the ready part to high-risk-plants on a handoff/<slug> branch with its tests, prove it, and write the hand-off folder',
   whenToUse:
-    'The hand-off skill, route 2 (upstream-bound). Launch by scriptPath with args { set, slug, scope, paths, includeDesignGaps }. Never pushes.',
+    'The hand-off skill, route 2 (upstream-bound). Launch by scriptPath with args { set, slug, scope, paths, includeDesignGaps, story }. Never pushes.',
   phases: [
     { title: 'Dry run', detail: 'designer:handoff --dry-run on the release' },
     {
@@ -77,7 +77,14 @@ const PLACEHOLDER = 'sample-journey'
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 const WORKFLOW_NAME = meta.name
-const REQUIRED_KEYS = ['set', 'slug', 'scope', 'paths', 'includeDesignGaps']
+const REQUIRED_KEYS = [
+  'set',
+  'slug',
+  'scope',
+  'paths',
+  'includeDesignGaps',
+  'story'
+]
 const config = parseArgs(WORKFLOW_NAME, args)
 requireKeys(WORKFLOW_NAME, config, REQUIRED_KEYS)
 logResolvedConfig(WORKFLOW_NAME, config)
@@ -122,8 +129,27 @@ if (config.paths !== null && !pathsIsList) {
 if (typeof config.includeDesignGaps !== 'boolean') {
   fail('includeDesignGaps must be true or false')
 }
+const STORY_TEXT_KEYS = ['as', 'want', 'soThat', 'why', 'criteria']
+const storyIsValid =
+  config.story === null ||
+  (typeof config.story === 'object' &&
+    !Array.isArray(config.story) &&
+    STORY_TEXT_KEYS.every(
+      (key) =>
+        config.story[key] === undefined ||
+        config.story[key] === null ||
+        typeof config.story[key] === 'string'
+    ) &&
+    (config.story.links === undefined ||
+      (Array.isArray(config.story.links) &&
+        config.story.links.every((link) => typeof link === 'string'))))
+if (!storyIsValid) {
+  fail(
+    'story must be null or { as, want, soThat, why, criteria, links }: the designer’s own words (strings), a criteria file path and a list of links'
+  )
+}
 
-const { set, slug, scope, paths, includeDesignGaps } = config
+const { set, slug, scope, paths, includeDesignGaps, story } = config
 const HANDOFF_BRANCH = `handoff/${slug}`
 const SCOPE_FLAG = scope === 'all' ? '--all' : `--features ${scope.join(',')}`
 const LOGS = '.cache/designer/handoff/logs'
@@ -279,6 +305,22 @@ const candidates = paths
   ? `Only these release files are candidates; everything else is out of scope for this hand-off: ${JSON.stringify(paths)}.`
   : 'Every file in report.json "files" is a candidate.'
 
+// Prototype-owned services the change uses: each is a folder under
+// src/server/app/services/<name>/ with its own `ours` line. They travel with
+// the pages that use them, so the handoff branch needs the whole folder.
+const SERVICE_DIRS = (dryRun.report.servicesToBuild ?? [])
+  .map((service) => service.dir)
+  .filter((dir) => typeof dir === 'string' && dir !== '')
+const ALLOWED = [
+  `src/server/app/sets/${REAL_JOURNEY}/`,
+  'fit/',
+  ...SERVICE_DIRS.map((dir) => `${dir}/`)
+]
+const ALLOWED_TEXT = ALLOWED.join(', ')
+const SERVICE_STEP = SERVICE_DIRS.length
+  ? `\n2a. The change uses prototype-owned services: ${SERVICE_DIRS.join(', ')}. For each one, run \`git ls-files <folder>\`. If it prints nothing, the service is not on main yet: run \`git checkout ${dryRun.startBranch} -- <folder>\` to bring the whole folder (index.js, client.js, stub.js and its test) across. Never apply its files from upstream.patch: they are marked proposed there, for plants-frontend, and the prototype already has them.`
+  : ''
+
 phase('Triage')
 const triage = await agent(
   `${GUARD_RAILS}
@@ -290,8 +332,8 @@ ${candidates}
 Design gaps ${includeDesignGaps ? 'DO' : 'do NOT'} travel with this hand-off.
 
 Put every candidate file, every report.leftOut entry and every report.cannotShip entry into exactly one category:
-- upstream-ready: works in the real service as it is: real GOV.UK components, real copy, real flow, no prototype-only imports. A "[Welsh needed]" marker does not stop a file being upstream-ready; the brief lists it.
-- needs-real-service: depends on prototype-services or prototype-data, or on data the real backend does not have.
+- upstream-ready: works in the real service as it is: real GOV.UK components, real copy, real flow, no prototype-only imports. A "[Welsh needed]" marker does not stop a file being upstream-ready; the brief lists it. A page that imports a prototype-owned service (a folder under src/server/app/services/<name>/ that report.json lists under "servicesToBuild") is upstream-ready too: the service travels with it, and the brief's "Service to build" section asks the real team for its backend.
+- needs-real-service: imports src/server/prototype-data/ or src/server/prototype-support/ (report.json "cannotShip.services"), or shows data that no service, real or prototype-owned, provides.
 - design-gap: something the GOV.UK toolbox could not build (a row in the release's design-gaps.md).
 - research-only: a research-mode relaxation, or anything made only for a research session.
 
@@ -325,10 +367,10 @@ const applied = await agent(
 Apply the upstream-ready part of a designer's change to the real journey, on its own branch, with its tests.
 
 1. Run \`git switch -c ${HANDOFF_BRANCH} main\`.
-2. Run \`git apply --3way ${INCLUDES} ${dryRun.folder}/upstream.patch\`. If a hunk conflicts, keep the real journey's newer code and apply the designer's intent on top. Afterwards no file may contain conflict markers.
+2. Run \`git apply --3way ${INCLUDES} ${dryRun.folder}/upstream.patch\`. If a hunk conflicts, keep the real journey's newer code and apply the designer's intent on top. Afterwards no file may contain conflict markers.${SERVICE_STEP}
 3. report.json "testImpact" in ${dryRun.folder}/ lists tests that still expect the old words. Update each one that belongs to a file you applied so it expects the new words. Then search the unit tests (*.test.js) and browser tests (*.fit.spec.js and fit/) under src/server/app/sets/${REAL_JOURNEY}/ for any other place pinning a changed string, section caption or label, and update those too. Change what a test expects, never what it checks.
-4. If a page, field or rule was added, follow the matching recipe in src/server/app/sets/${REAL_JOURNEY}/docs/ in full, including the tests it asks for.
-5. Touch nothing outside src/server/app/sets/${REAL_JOURNEY}/ and fit/. Do not commit.
+4. If a page, field or rule was added, follow the matching recipe in src/server/app/sets/${REAL_JOURNEY}/docs/ in full, including the tests it asks for. The brief's "Tests to add" section in ${dryRun.folder}/brief.md lists them.
+5. Touch nothing outside ${ALLOWED_TEXT}. Do not commit.
 
 ${PARK}
 
@@ -359,7 +401,7 @@ const repairPrompt = (failures) => `${GUARD_RAILS}
 The checks failed on the ${HANDOFF_BRANCH} branch. Fix the cause, not the check:
 ${JSON.stringify(failures, null, 2)}
 
-Read each log. Only change files under src/server/app/sets/${REAL_JOURNEY}/ and fit/. Update a test only where it pins wording or structure the designer deliberately changed. Never weaken what a test checks, never skip or delete a test. Do not commit. Return ok, a plain summary and changedFiles.`
+Read each log. Only change files under ${ALLOWED_TEXT}. Update a test only where it pins wording or structure the designer deliberately changed. Never weaken what a test checks, never skip or delete a test. Do not commit. Return ok, a plain summary and changedFiles.`
 
 phase('Verify')
 let verdict = await agent(
@@ -413,8 +455,20 @@ Run \`npm run designer:show -- --set ${REAL_JOURNEY} --pages changed --before\`.
 
 const plain = (text) => text.replaceAll('"', "'")
 const title = plain(triage.title)
-const why = plain(triage.why)
+// The designer's own words win over the triage summary; the story's As, I
+// want and So that are never written by an agent.
+const why = plain(story?.why || triage.why)
 const gapsFlag = includeDesignGaps ? ` --gaps-from ${set}` : ''
+const storyFlags = [
+  ['--as', story?.as],
+  ['--want', story?.want],
+  ['--so-that', story?.soThat],
+  ['--criteria', story?.criteria],
+  ...(story?.links ?? []).map((link) => ['--link', link])
+]
+  .filter(([, value]) => typeof value === 'string' && value.trim() !== '')
+  .map(([flag, value]) => ` ${flag} "${plain(value)}"`)
+  .join('')
 const parked = triage.items.filter((item) => item.category !== 'upstream-ready')
 
 phase('Write')
@@ -423,11 +477,11 @@ const written = await agent(
 
 Write the hand-off folder and save the work on the ${HANDOFF_BRANCH} branch.
 
-1. Run \`npm run designer:handoff -- --set ${REAL_JOURNEY} --base main --slug ${slug} --title "${title}" --why "${why}"${gapsFlag}\`.
-2. Read the brief.md it wrote. The pinned tests section should say "None found" (they were updated); if it lists any, update those tests and run step 1 again. If any items were parked, add a section "## Not in this hand-off" to brief.md and brief.jira.txt listing each with its reason:
+1. Run \`npm run designer:handoff -- --set ${REAL_JOURNEY} --base main --slug ${slug} --title "${title}" --why "${why}"${storyFlags}${gapsFlag}\`.
+2. Read the brief.md it wrote. The pinned tests section should say "None found" (they were updated); if it lists any, update those tests and run step 1 again. Never fill in the story's placeholders yourself: only the designer's words go there. If any items were parked, add a section "## Not in this hand-off" to brief.md (and "h2. Not in this hand-off" to brief.jira.txt) listing each with its reason:
 ${JSON.stringify(parked, null, 2)}
 3. Run \`npm run designer:format\`.
-4. Stage the real-journey change: \`git add <path>\` for each changed path under src/server/app/sets/${REAL_JOURNEY}/ and fit/ that \`git status --porcelain\` lists.
+4. Stage the real-journey change: \`git add <path>\` for each changed path under ${ALLOWED_TEXT} that \`git status --porcelain\` lists.
 5. Save it: \`npm run designer:save -- -m "${title} (from design release ${set})"\`. The pre-commit checks run; it prints one line, or "Nothing was saved" and the end of the log. If they fail, fix only formatting and try once more.
 6. Stage the folder with \`git add handoffs/<folder>\` and save it: \`npm run designer:save -- -m "Hand-off brief: ${title}"\`.
 7. \`git status --porcelain\` must print nothing.

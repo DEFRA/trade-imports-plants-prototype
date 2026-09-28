@@ -47,7 +47,9 @@ const ROUTES = [
   { index: 3, skill: 'change-the-words', pages: ['hub'] }
 ].map((route) => ({ ...route, refused: false, reason: '' }))
 
-const numberIn = (label) => Number(/(\d+)$/.exec(label)?.[1])
+// A step's label ends with the id of the request, or of one part of a split
+// request: "build 2" or "build 2.1".
+const idIn = (label) => /(\d+(?:\.\d+)?)$/.exec(label)?.[1]
 
 /**
  * An agent stand-in that answers each step by its label. `overrides` maps a
@@ -73,7 +75,7 @@ const makeAgent = (overrides = {}, files = FILES) => {
       }
     }
     if (label.startsWith('build') || label.startsWith('repair')) {
-      const paths = files[numberIn(label)]
+      const paths = files[idIn(label)]
       paths.forEach((filePath) => changed.add(filePath))
       return {
         built: true,
@@ -495,5 +497,168 @@ describe('design-session', () => {
     await runWorkflow(ARGS, { agent, log })
     expect(labels(calls)).not.toContain('show')
     expect(logText(log)).toContain('Nothing landed')
+  })
+
+  describe('routing through AGENTS.md', () => {
+    const classifyPrompt = (calls) =>
+      calls.find((call) => call.opts.label === 'classify').prompt
+
+    it('reads the routing from AGENTS.md, not CLAUDE.md', async () => {
+      const { agent, calls } = makeAgent()
+      await runWorkflow(ARGS, { agent })
+      const prompt = classifyPrompt(calls)
+      expect(prompt).toContain('Read AGENTS.md')
+      expect(prompt).toContain('"Working out what they want"')
+      expect(prompt).toContain('"Outcomes" and "Phrases" tables')
+      expect(prompt).not.toContain('CLAUDE.md')
+    })
+
+    it('tells the judge to split vague notes, never to refuse them', async () => {
+      const { agent, calls } = makeAgent()
+      await runWorkflow(ARGS, { agent })
+      const prompt = classifyPrompt(calls)
+      expect(prompt).toContain('Never refuse a request for being vague')
+      expect(prompt).not.toContain('too vague to build')
+    })
+  })
+
+  describe('a request split into parts', () => {
+    const VAGUE = {
+      set: SET,
+      requests: [
+        "Change the hint on origin to 'The country the plants were grown in'",
+        'The dashboard should show which ones are overdue'
+      ]
+    }
+    const SPLIT_FILES = {
+      1: FILES[1],
+      2.1: [`src/server/prototype-seed/scenarios/${SET}.js`],
+      2.2: [
+        `${FEATURES}/dashboard/controller.js`,
+        'src/server/app/services/notification-search/stub.js'
+      ]
+    }
+    const SPLIT_ROUTES = [
+      { ...ROUTES[0], part: VAGUE.requests[0] },
+      {
+        index: 2,
+        part: 'Add two late example notifications',
+        skill: 'example-data',
+        pages: ['dashboard'],
+        refused: false,
+        reason: 'Read "overdue" as late.'
+      },
+      {
+        index: 2,
+        part: 'Add a late filter, a late count and a red late tag to the dashboard',
+        skill: 'fake-a-service',
+        pages: ['dashboard'],
+        refused: false,
+        reason: ''
+      }
+    ]
+    const classifyWith = (requests) => ({
+      classify: {
+        releaseOk: true,
+        releaseMissing: false,
+        releaseReason: '',
+        sessionSlug: 'overdue',
+        requests
+      }
+    })
+
+    it('builds, keeps and saves each part on its own', async () => {
+      const { agent, calls } = makeAgent(
+        classifyWith(SPLIT_ROUTES),
+        SPLIT_FILES
+      )
+      const log = vi.fn()
+      await runWorkflow(VAGUE, { agent, log })
+
+      expect(labels(calls)).toEqual([
+        'classify',
+        'prepare',
+        'build 1',
+        'check 1',
+        'keep 1',
+        'build 2.1',
+        'check 2.1',
+        'keep 2.1',
+        'build 2.2',
+        'check 2.2',
+        'keep 2.2',
+        'show',
+        'full check',
+        'save 1',
+        'save 2.1',
+        'save 2.2'
+      ])
+      const text = logText(log)
+      expect(text).toContain(
+        'Request 2 ("The dashboard should show which ones are overdue") was split into 2 parts: 2.1, 2.2.'
+      )
+      expect(text).toContain(
+        '2.2. Landed (fake-a-service), saved as abc2.2: Add a late filter'
+      )
+    })
+
+    it('tells each builder the whole request and only its own part', async () => {
+      const { agent, calls } = makeAgent(
+        classifyWith(SPLIT_ROUTES),
+        SPLIT_FILES
+      )
+      await runWorkflow(VAGUE, { agent })
+      const build = calls.find((call) => call.opts.label === 'build 2.2').prompt
+      expect(build).toContain(`"${VAGUE.requests[1]}"`)
+      expect(build).toContain(
+        'This step makes only this part of it: "Add a late filter, a late count and a red late tag to the dashboard"'
+      )
+      expect(build).toContain('.claude/skills/fake-a-service/SKILL.md')
+      const single = calls.find((call) => call.opts.label === 'build 1').prompt
+      expect(single).not.toContain('This step makes only this part')
+    })
+
+    it('still builds the other parts when one part is refused', async () => {
+      const routes = [
+        SPLIT_ROUTES[0],
+        SPLIT_ROUTES[1],
+        {
+          ...SPLIT_ROUTES[2],
+          skill: 'none',
+          refused: true,
+          reason: "Printing a sheet is research: say 'get ready for research'."
+        }
+      ]
+      const { agent, calls } = makeAgent(classifyWith(routes), SPLIT_FILES)
+      const log = vi.fn()
+      await runWorkflow(VAGUE, { agent, log })
+      expect(labels(calls)).toContain('save 2.1')
+      expect(labels(calls)).not.toContain('build 2.2')
+      expect(logText(log)).toContain(
+        "2.2. Not done: Add a late filter, a late count and a red late tag to the dashboard. Printing a sheet is research: say 'get ready for research'."
+      )
+    })
+  })
+
+  describe('guard rails', () => {
+    it('allow the prototype-owned services and their support code, and no other service', async () => {
+      const { agent, calls } = makeAgent()
+      await runWorkflow(ARGS, { agent })
+      const build = calls.find((call) => call.opts.label === 'build 1').prompt
+      for (const name of [
+        'transporters',
+        'templates',
+        'ins-address-book',
+        'notification-search'
+      ]) {
+        expect(build).toContain(`src/server/app/services/${name}/`)
+      }
+      expect(build).toContain('src/server/prototype-support/')
+      expect(build).toContain(
+        'Never change any other folder under src/server/app/services/'
+      )
+      // The old home of the fakes, spelt in two halves so no file names it.
+      expect(build).not.toContain(['prototype', 'services'].join('-'))
+    })
   })
 })

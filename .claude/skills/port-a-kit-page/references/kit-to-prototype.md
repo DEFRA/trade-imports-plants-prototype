@@ -72,7 +72,10 @@ instead.
   it exists; otherwise at the overview (`hubHref`). Say which in the fidelity
   table.
 - Fixture data from `app/data/*.js` (lists of transporters, addresses,
-  templates): this is a fake service. Use `fake-a-service` to build it.
+  templates): this is data a service would hold. Use `fake-a-service`: it
+  uses a prototype-owned service that fits (`transporters`, `templates`,
+  `ins-address-book`), or makes a new one, and its starter rows can come
+  from the Kit's list, with made-up names in place of real companies.
 
 ## Which kind of page it is
 

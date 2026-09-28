@@ -2,6 +2,7 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { carryChange } from './carry.js'
 import { formatChanges, releaseChanges } from './changes.js'
+import { formatDrift, releaseDrift } from './drift.js'
 import { freezeRelease } from './freeze.js'
 import { formatList, listReleases } from './list.js'
 import { formatOrders, readOrders } from './orders.js'
@@ -13,6 +14,7 @@ export const USAGE = [
   'npm run designer:release -- list [--json]',
   'npm run designer:release -- orders <release> [<page> ...]   (the four orders a page sits in)',
   'npm run designer:release -- changes <release> [--json]   (saved changes to it on every branch, newest first)',
+  'npm run designer:release -- drift <release> [--json]   (pages the real team has changed since the release was copied)',
   'npm run designer:release -- freeze <release> [--as <new-working-release>] [--describe "<text>"] [--title "<name>"] [--frozen-describe "<text>"] [--frozen-title "<name>"]',
   'npm run designer:release -- carry --from <release> --to <release> [--commit <commit id> | --working]',
   'npm run designer:release -- retire <release> [--discard]   (--discard: throw away a release that was never saved)',
@@ -97,6 +99,16 @@ const printChanges = ({ target, flags }, repoRoot) => {
     : formatChanges(target, changes)
 }
 
+const printDrift = ({ target, flags }, repoRoot) => {
+  if (!target) {
+    throw new Error(
+      'Say which release: npm run designer:release -- drift <release>'
+    )
+  }
+  const drift = releaseDrift(target, { repoRoot })
+  return flags.json ? JSON.stringify(drift, null, 2) : formatDrift(drift)
+}
+
 const printCarry = ({ flags }, repoRoot) => {
   const result = carryChange({
     from: flags.from,
@@ -175,6 +187,7 @@ const COMMANDS = {
   orders: printOrders,
   list: printList,
   changes: printChanges,
+  drift: printDrift,
   freeze: printFreeze,
   carry: printCarry,
   retire: printRetire,
@@ -182,7 +195,7 @@ const COMMANDS = {
 }
 
 /**
- * `npm run designer:release -- list|changes|freeze|carry|retire`: look after your
+ * `npm run designer:release -- list|changes|drift|freeze|carry|retire`: look after your
  * design releases. See docs/designers/design-releases.md.
  */
 export const run = async (argv, { repoRoot = REPO_ROOT } = {}) => {

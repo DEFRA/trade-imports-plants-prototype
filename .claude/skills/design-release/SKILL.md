@@ -1,6 +1,6 @@
 ---
 name: design-release
-description: Start, freeze, copy changes between, list and retire the designer's own design releases in the plants prototype - each release is a copy of the real high-risk-plants journey (or of another release) that the designer owns, that the weekly update never touches, and that shows on the chooser at / with a tag, the date it was made and links to its examples. Use when the designer says "start a new design release", "make a working copy of the journey", "make a research version", "freeze this release", "freeze what we've got as design release 2", "copy this change to release X", "carry this change into X", "retire release X", "delete release X", "which releases are there", "pick up the real team's changes", or when a merge clashes in overrides.json or src/server/prototype-sets/ (two branches that each started a release). Other skills send here first when the designer has no working release yet. NOT for changing pages, words, layout or flow inside a release (use change-the-words, match-the-design or change-the-journey), NOT for example data (use example-data), NOT for getting a release ready for a research session (use research-session, which calls this skill to make the release) and NOT for sending a change to the real service (use hand-off).
+description: Start, freeze, copy changes between, list and retire the designer's own design releases in the plants prototype - each release is a copy of the real high-risk-plants journey (or of another release) that the designer owns, that the weekly update never touches, and that shows on the chooser at / with a tag, the date it was made and links to its examples. Use when the designer says "start a new design release", "make a working copy of the journey", "make a research version", "freeze this release", "freeze what we've got as design release 2", "copy this change to release X", "carry this change into X", "retire release X", "delete release X", "which releases are there", "pick up the real team's changes", "is my release out of date", "has the real service changed since I made my copy", "I want the latest", or when a merge clashes in overrides.json or src/server/prototype-sets/ (two branches that each started a release). Other skills send here first when the designer has no working release yet. NOT for changing pages, words, layout or flow inside a release (use change-the-words, match-the-design or change-the-journey), NOT for example data (use example-data), NOT for getting a release ready for a research session (use research-session, which calls this skill to make the release) and NOT for sending a change to the real service (use hand-off).
 ---
 
 # Design releases
@@ -12,8 +12,9 @@ It lives in `src/server/app/sets/<release-id>/`, is served at
 update from the real service never touches it.
 
 A release is a **snapshot**. It does not pick up the real team's later
-changes. To pick them up, start a fresh release and carry the designer's
-changes across (section E).
+changes. `npm run designer:release -- list` shows how far each release has
+fallen behind ("Staying current", below). To pick the changes up, start a
+fresh release and carry the designer's changes across (section E).
 
 The designer guide is
 [docs/designers/design-releases.md](../../../docs/designers/design-releases.md).
@@ -75,9 +76,45 @@ npm run designer:release -- list
 ```
 
 It prints every set in the chooser's order with its kind, what it was made
-from, when, whether it is frozen, whether research mode is on and how many
-design gaps it has. Read it out as a short list. Use this first whenever the
-designer names a release you do not recognise.
+from, when, whether it is frozen, whether research mode is on, how many
+design gaps it has and how much of the real journey has changed since it was
+copied ("Real journey changed since"). Read it out as a short list. Use this
+first whenever the designer names a release you do not recognise.
+
+When a release the designer is working in shows more than 0 under "Real
+journey changed since", say so in one line and offer to catch up, for
+example: "The real team has changed 3 pages since plants-dr2 was copied. Say
+'pick up the real team's changes' and I will bring them in, keeping your
+changes." Do not catch up without a yes: it makes a new release. Say nothing
+about a frozen release's count unless asked, because a frozen release is meant
+to stay as it is.
+
+### Staying current
+
+- **What the count means.** The number of pages, plus other parts such as the
+  page order or the task list, that the real team changed in
+  `high-risk-plants` since the release was copied from it. For a release made
+  from another release, it counts from when the first release in that line
+  was copied. A `-` means it does not apply (the real journey itself, the
+  placeholder, or a release made from the placeholder).
+- **Which pages.** Name them with:
+
+  ```
+  npm run designer:release -- drift <release-id>
+  ```
+
+  It prints the changed pages by their address (`arrival-details`,
+  `consignors/select`), any other parts that changed, and how many files
+  nobody sees on a page (tests, notes and requirement files) changed as well.
+  Read the pages out; leave the unseen files out unless asked.
+
+- **It only knows your branch.** The count compares with the branch you are
+  on. The weekly update lands on `main`, so a branch started before it shows
+  0 until `main` is brought in (`git fetch origin main`, then
+  `git merge --no-edit origin/main`, with `share-my-change`'s rules and
+  section G for a clash in the three shared files). Offer that when the
+  designer expects a change the count does not show.
+- **Catching up** is section E. Offer it; never do it on your own.
 
 ## B. Start a new release
 
@@ -101,7 +138,7 @@ designer names a release you do not recognise.
    ```
 
    On any other branch that does not start with `handoff/`, stay on it (the
-   one branch rule in CLAUDE.md, "Branches"): the designer's change and its
+   one branch rule in AGENTS.md, "Branches"): the designer's change and its
    save then land on the same branch as the release, and `share-my-change`
    stays there too. If there are unsaved changes, ask the designer to save or
    undo them first (`share-my-change`): the release must be a commit of its
@@ -306,9 +343,13 @@ designer names a release you do not recognise.
 A release never updates itself. To bring in what the real team has built
 since the release was made:
 
-1. Start a fresh release from `high-risk-plants` (section B), for example
+1. Name what changed: `npm run designer:release -- drift <old-release>`.
+   Tell the designer which pages will change. If it says nothing changed,
+   stop there and say so (and see "Staying current" for a branch behind
+   `main`).
+2. Start a fresh release from `high-risk-plants` (section B), for example
    `plants-dr3`.
-2. List the designer's saved changes in the old release:
+3. List the designer's saved changes in the old release:
 
    ```
    npm run designer:release -- changes <old-release>
@@ -318,11 +359,14 @@ since the release was made:
    marked as the release itself ("Start design release …"), and any
    repeat of a message (take the one marked "pick this one").
 
-3. Carry each change across in that order (section D, `--commit`). Where the
+4. Carry each change across in that order (section D, `--commit`). Where the
    real team changed the same lines, the carry reports a clash: settle each
    one with the designer.
-4. Check, show and save as in section D. Offer to freeze or retire the old
-   release afterwards.
+5. Check and save as in section D. Show the pages step 1 named, so the
+   designer sees the real team's changes next to their own:
+   `npm run designer:show -- --set <new-release> --pages <the pages from step 1>`.
+6. `npm run designer:release -- list` now shows 0 for the new release. Offer
+   to freeze or retire the old one.
 
 ## F. Retire a release
 
@@ -402,7 +446,8 @@ so and changes nothing.
 ## Verify
 
 - `npm run designer:release -- list` shows the release with the right kind,
-  "made from" and date (or no longer shows it, after retiring).
+  "made from" and date (or no longer shows it, after retiring). A release
+  just made from the real journey shows 0 under "Real journey changed since".
 - `npm run designer:check -- --set <release-id> --full` passes. It includes
   every unit test, so "2 sets are mounted" never appears: no tests are copied.
 - The chooser shows the release's tag, its "Made from … on …" line, its
@@ -432,5 +477,5 @@ team."
 ## Without the npm script
 
 If `designer:release` is not in `package.json` yet, run the same script
-directly: `node scripts/designer/release/cli.js <list|orders|freeze|carry|retire|remount> …`
+directly: `node scripts/designer/release/cli.js <list|drift|orders|changes|freeze|carry|retire|remount> …`
 with the same arguments.

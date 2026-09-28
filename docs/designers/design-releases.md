@@ -7,14 +7,15 @@ from the real service never touches it.
 This guide covers starting a release, freezing one, copying a change from one
 release to another, and retiring a release you no longer need. You can ask
 Claude Code to do any of these in your own words, for example "start a new
-design release" or "freeze this release". The `design-release` skill does
-the work.
+design release" or "freeze this release". Claude does the work.
 
 ## What a release is
 
 A release is a folder, `src/server/app/sets/<release-id>/`, and one file
 beside it, `src/server/app/routes-<release-id>.js`. When the prototype is
-running, it is at `http://localhost:3103/<release-id>`.
+running, it is at `http://localhost:3103/<release-id>`. A page never appears
+at more than one address, and the root address (`/`) is never a set itself:
+it is always the chooser.
 
 Release ids are lower-case words joined by hyphens. Start them with
 `plants-`, for example:
@@ -38,11 +39,27 @@ another release. The copy:
 - gets a `release.json` saying what it was copied from, when, and what it is
   for
 
+### What is inside a release
+
+- **Templates**: the `.njk` files, one per page. These are the HTML and the
+  GOV.UK Design System components a page is built from.
+- **Copy**: each feature's `copy/copy.en.js` (and `copy.cy.js` for Welsh)
+  file. Wording changes almost always belong here, not in the template.
+- **Logic**: which page comes next, and what counts as a valid answer, lives
+  in the same feature's `controller.js` or in the release's `flow/flow.js`.
+  Claude follows the repo's own recipes to change it: see
+  [Journey recipes](recipes/README.md).
+
 ### A release is a snapshot
 
 A release is a copy of the real journey on the day you made it. It does not
 pick up anything the real team builds afterwards. That is what keeps it
 safe: nobody else's change can break your design.
+
+To see how far a release has fallen behind, ask "is my release out of
+date?". The release list has a "Real journey changed since" column: how
+many of the real journey's pages have changed since the release was made
+(see [Seeing all your releases](#seeing-all-your-releases)).
 
 To pick up the real team's later work, start a fresh release and copy your
 changes into it (see [Picking up the real team's changes](#picking-up-the-real-teams-changes)).
@@ -62,6 +79,15 @@ The chooser at `http://localhost:3103/` lists every set with a tag:
 Each release also shows its description, "Made from … on …", and links to
 its example notifications. The real journey comes first, then working,
 research and frozen releases, newest first.
+
+Once you are signed in, "Reset this prototype’s data" under a set clears
+everything anyone has done in that set, for everyone, and puts the example
+notifications back. Use it whenever a demo, or a colleague's testing, has
+left the data in a state you don't want.
+
+The chooser and every set sit behind sign-in, just as the real service's
+pages do. Sign-in is on unless someone sets `AUTH_ENABLED=false`; with it
+off, `/` and every set disappear. Leave it unset.
 
 ## Starting a release
 
@@ -84,6 +110,11 @@ call it, then:
 
 To copy another release instead of the real journey, name it: "make a copy
 of plants-dr2 for research".
+
+Without `--from`, `new:set` copies the `sample-journey` placeholder instead,
+for a journey that is not a plants notification at all and starts from
+nothing. For a new idea on the plants journey, start from the real journey
+anyway: every page you do not change is then already there.
 
 You do not have to start one first. If you ask for a change ("change the
 wording on my working release") and you have no working release yet, Claude
@@ -216,7 +247,14 @@ npm run designer:release -- list
 ```
 
 It lists every set with its kind, what it was made from, when, whether it is
-frozen, whether research mode is on, and how many design gaps it has logged.
+frozen, whether research mode is on, how many design gaps it has logged, and
+"Real journey changed since": how many of the real journey's pages (and
+other parts, such as the page order) have changed since the release was
+made. Above 0 means the real team has moved on; `-` means the release was
+not copied from the real journey.
+To see which pages, Claude runs
+`npm run designer:release -- drift <release-id>`. To catch up, see
+[Picking up the real team's changes](#picking-up-the-real-teams-changes).
 
 ## Links to examples
 

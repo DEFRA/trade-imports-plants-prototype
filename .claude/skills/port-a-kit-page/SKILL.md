@@ -47,8 +47,9 @@ obvious choice and say what you chose at the end.
   `high-risk-plants` or `sample-journey`, never into a frozen release.
 - Change only files under `src/server/app/sets/<release-id>/` and
   `src/server/app/routes-<release-id>.js`, plus the port's working notes
-  under `.cache/designer/port/`. (A list page's fake, under
-  `src/server/prototype-services/`, is `fake-a-service`'s to change.)
+  under `.cache/designer/port/`. (The prototype-owned service behind a list
+  page, under `src/server/app/services/<name>/`, is `fake-a-service`'s to
+  make or change.)
 - No Sass, no client JavaScript, no `src/client/**`, no
   `src/server/app/shared/**`, no new `app-*` classes, no `style` attributes.
   What the old page did with them becomes a design gap.
@@ -134,7 +135,8 @@ recipe its kind needs:
   `add-a-field` for each answer
 - list: follow `fake-a-service`'s `references/fake-a-service.md`, "Worked
   example 1", from start to end. It places the page with `change-the-journey`,
-  builds the picker and its add page on the fake, and shows the choice on
+  builds the picker and its add page on the prototype-owned service, and
+  shows the choice on
   check your answers with ready-made code. Its names and its steps win over
   anything here.
 

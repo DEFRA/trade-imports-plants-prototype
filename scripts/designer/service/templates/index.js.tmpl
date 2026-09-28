@@ -1,0 +1,111 @@
+import { isStubDataMode } from '../../../common/services/mode.js'
+import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
+import * as client from './client.js'
+import * as stub from './stub.js'
+
+/**
+ * Prototype-owned service: __TITLE__.
+ *
+ * Made by `npm run designer:service -- new __NAME__`. Built in the real
+ * services' shape (`index.js` picks `stub.js` or `client.js`), so a developer
+ * can copy `index.js` and `client.js` into plants-frontend unchanged.
+ * `stub.js` is the only file that uses the prototype's own plumbing.
+ *
+ * Fill in `CONTRACT` as the design settles: the fields a record needs, an
+ * example, and the questions the real team must answer.
+ */
+
+export { PAGE_SIZE } from './client.js'
+
+export const NEEDS_A_REAL_SERVICE = __NEEDS__
+
+const COLLECTION = '__CONTRACT_PATH__'
+const ONE_RECORD = `${COLLECTION}/{id}`
+
+export const CONTRACT = Object.freeze({
+  service: '__NAME__',
+  owner: '__OWNER__',
+  baseUrlEnv: '__ENV__',
+  operations: [
+    {
+      name: 'list__PLURAL__',
+      method: 'GET',
+      path: COLLECTION,
+      params: {
+        q: 'text to find in the name',
+        page: 'number, from 1',
+        pageSize: 'number'
+      },
+      returns: '{ items: [record], page, pageSize, totalItems, totalPages }',
+      errors: []
+    },
+    {
+      name: 'get__SINGULAR__',
+      method: 'GET',
+      path: ONE_RECORD,
+      params: {},
+      returns: 'record',
+      errors: ['404 when the organisation has no such record']
+    },
+    {
+      name: 'create__SINGULAR__',
+      method: 'POST',
+      path: COLLECTION,
+      params: { body: 'name' },
+      returns: 'the saved record, with its new id',
+      errors: [
+        '400 with a problem body, { errors: { field: [message] } }, for each field it refuses'
+      ]
+    },
+    {
+      name: 'delete__SINGULAR__',
+      method: 'DELETE',
+      path: ONE_RECORD,
+      params: {},
+      returns: '204 with no body',
+      errors: ['404 when the organisation has no such record']
+    }
+  ],
+  record: {
+    fields: [
+      { name: 'id', type: 'string', required: true },
+      { name: 'name', type: 'string', required: true },
+      { name: 'deleted', type: 'boolean', required: true }
+    ]
+  },
+  examples: [],
+  openQuestions: [
+    'Which service should own this data?',
+    'Which fields does a record need, and which are required?'
+  ]
+})
+
+const impl = () => (isStubDataMode() ? stub : client)
+
+/** One page of the organisation's records, in a picker's shape. */
+export const list__PLURAL__ = (orgId, options) =>
+  impl().list__PLURAL__(orgId, options)
+
+/** One record, or undefined when the organisation has none by that id. */
+export const get__SINGULAR__ = (orgId, id) => impl().get__SINGULAR__(orgId, id)
+
+/** Saves a new record. Throws a 400 problem when a field is refused. */
+export const create__SINGULAR__ = (orgId, body) =>
+  impl().create__SINGULAR__(orgId, body)
+
+/** Deletes a record. False when the organisation had none by that id. */
+export const delete__SINGULAR__ = (orgId, id) =>
+  impl().delete__SINGULAR__(orgId, id)
+
+/** The first message for each field a 400 problem names, for a form. */
+export const mapApiErrorsToFormErrors = (problemBody) =>
+  Object.fromEntries(
+    Object.entries(problemBody?.errors ?? {}).map(([field, messages]) => [
+      field,
+      messages[0]
+    ])
+  )
+
+/** Whether an error is a refused save with field errors. */
+export const isValidationFailure = (err) =>
+  err?.status === HTTP_STATUS_BAD_REQUEST && Boolean(err.body?.errors)

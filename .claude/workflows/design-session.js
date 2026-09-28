@@ -1,13 +1,14 @@
 export const meta = {
   name: 'design-session',
   description:
-    'Work through a list of design requests in one design release: route each to its skill, build it, check it, show the whole session in one gallery, and save each landed request as its own commit',
+    'Work through a list of design requests in one design release: split each into parts, route each part to its skill with AGENTS.md, build it, check it, show the whole session in one gallery, and save each landed part as its own commit',
   whenToUse:
     'Several changes to one design release in one go, such as notes from a crit or a feedback round. Launch by scriptPath with args {set, requests}; both are required. Never pushes.',
   phases: [
     {
       title: 'Classify',
-      detail: 'the release is yours; each request gets a skill and its pages'
+      detail:
+        'the release is yours; each request is split into parts, and each part gets a skill and its pages from AGENTS.md'
     },
     {
       title: 'Prepare',
@@ -126,10 +127,24 @@ if (
 
 const SET_DIR = `src/server/app/sets/${config.set}`
 
+// The prototype-owned service folders: each has its own line in the ours
+// list of overrides.json. Every other folder under src/server/app/services/
+// belongs to the real service.
+const PROTOTYPE_SERVICES = [
+  'transporters',
+  'templates',
+  'ins-address-book',
+  'notification-search'
+]
+const PROTOTYPE_SERVICE_GLOBS = PROTOTYPE_SERVICES.map(
+  (name) => `src/server/app/services/${name}/`
+)
+
 const GUARD_RAILS = [
   'GUARD RAILS:',
   '- Run one Bash command per call: no &&, ;, | or cd.',
-  `- Change files only under ${SET_DIR}/, src/server/app/routes-${config.set}.js, src/server/prototype-seed/scenarios/${config.set}.js, src/server/prototype-seed/fixtures/${config.set}/, src/server/prototype-data/${config.set}/ and src/server/prototype-services/, and only when your step says to change files.`,
+  `- Change files only under ${SET_DIR}/, src/server/app/routes-${config.set}.js, src/server/prototype-seed/scenarios/${config.set}.js, src/server/prototype-seed/fixtures/${config.set}/, src/server/prototype-data/${config.set}/, src/server/prototype-support/ and the prototype-owned service folders (${PROTOTYPE_SERVICE_GLOBS.join(', ')}, or any other src/server/app/services/<name>/ that overrides.json lists on its own line in ours), and only when your step says to change files. A new prototype-owned service is made only with npm run designer:service -- new, which adds its own ours line to overrides.json.`,
+  '- Never change any other folder under src/server/app/services/ (address-book, countries, ports, persistence, set-context): they belong to the real service.',
   '- Never change *.scss, src/client/**, webpack.config.js, src/server/app/shared/**, .claude/settings.json or any other set.',
   '- Never add *.test.js or *.fit.spec.js files to a design release.',
   '- Never push, never run git reset, never use --no-verify.',
@@ -152,6 +167,7 @@ const CLASSIFY_SCHEMA = {
         type: 'object',
         properties: {
           index: { type: 'integer' },
+          part: { type: 'string' },
           skill: { type: 'string' },
           pages: { type: 'array', items: { type: 'string' } },
           refused: { type: 'boolean' },
@@ -259,17 +275,19 @@ const classify = () =>
       `Otherwise releaseMissing is false. Run: npm run designer:where -- ${SET_DIR}/set.js`,
       'releaseOk is false when the answer does not start with "Yours", or when it says the release is frozen. Put the plain reason in releaseReason.',
       '',
-      'Step 2. Route each request to exactly one skill.',
-      'Read the "Routing" table in CLAUDE.md (and its "Requests that fit two skills" rules), then the description of each of these skills in .claude/skills/<skill>/SKILL.md:',
+      'Step 2. Split each request into parts and route each part to exactly one skill.',
+      'Read AGENTS.md: "Working out what they want", the "Outcomes" and "Phrases" tables, "When no single row fits" and "Requests that fit two skills". Then read the description of each of these skills in .claude/skills/<skill>/SKILL.md:',
       SESSION_SKILLS.join(', '),
-      'A request with two parts (new words and a layout change, say) is two requests: route it to the skill for its main part and name the other part in reason.',
+      'Follow "Working out what they want": name the outcome of each request, split it into parts, and map each part with the Outcomes table, then the Phrases table, matching on meaning rather than exact words ("overdue" is "late", "attach" is "upload").',
+      'A request with one part gets one entry. A request with several parts (new words and a layout change, say, or a vague note such as "the dashboard feels thin") gets one entry per part, in the order to build them, all with the same index. Give each entry a part: one short sentence saying exactly what that part changes, specific enough to build without asking. For a one-part request, part may repeat the request.',
+      'Never refuse a request for being vague. Split it into the concrete parts a designer most likely meant, using the release as it is now, and say in reason which reading you took.',
+      'Anything the real service cannot do yet (a new lookup, a saved list, an upload, a status the dashboard cannot filter on) is a fake-a-service part.',
       'When a request names something the release does not have (a task list group called "Arrival" when the group is "Arrival and destination"), route it to the nearest match and say which in reason, so the summary shows it.',
-      'For each request return: index (1-based), skill (one of the names above), pages (the page addresses it changes, for example arrival-details; use the flow in the release to find them) and refused.',
-      'Set refused to true, with a plain reason a designer understands, when the request:',
-      '- needs a skill that is not in the list (a new release, research mode, saving or sharing, handing off, re-creating an old Prototype Kit page, running, checking or showing),',
-      '- asks to change the real journey (high-risk-plants) or anything every set shares,',
-      '- is too vague to build without asking the designer something.',
-      'When refused is true, set skill to "none".',
+      'For each entry return: index (the 1-based number of the request it came from), part, skill (one of the names above), pages (the page addresses it changes, for example arrival-details; use the flow in the release to find them) and refused.',
+      'Set refused to true on an entry, with a plain reason a designer understands, only when that part:',
+      "- needs a skill that is not in the list (a new release, research mode, saving or sharing, handing off, re-creating an old Prototype Kit page, running, checking or showing): the reason says what to ask for afterwards, in the designer's words, for example \"say 'get ready for research'\",",
+      '- asks to change the real journey (high-risk-plants) or a real-service file every set shares.',
+      'When refused is true, set skill to "none". The other parts of the same request still build.',
       '',
       'Step 3. Suggest sessionSlug: 2 to 4 lower-case words joined by hyphens that sum up the session, for example crit-notes-oct.',
       'Change nothing.'
@@ -334,11 +352,21 @@ const startRelease = () =>
     })
   )
 
+// A part of a request that was split names that part, so the builder makes
+// only it and leaves the other parts to their own steps.
+const partLine = (request, route) =>
+  route.id.includes('.') && route.part && route.part !== request
+    ? [
+        `This step makes only this part of it: "${route.part}". Other steps make the other parts.`
+      ]
+    : []
+
 const build = (request, route) =>
   agent(
     [
       `Make one change in the design release "${config.set}". The designer asked:`,
       `"${request}"`,
+      ...partLine(request, route),
       `Follow .claude/skills/${route.skill}/SKILL.md. The pages involved are likely: ${route.pages.join(', ') || 'not known yet'}.`,
       'How to follow the skill in this session:',
       '- Do the steps that find, plan and make the change, including its ownership step (designer:where) and any reference or recipe it tells you to read.',
@@ -351,7 +379,7 @@ const build = (request, route) =>
       GUARD_RAILS
     ].join('\n'),
     withModel('builder', {
-      label: `build ${route.index}`,
+      label: `build ${route.id}`,
       phase: 'Build',
       schema: BUILD_SCHEMA
     })
@@ -375,6 +403,7 @@ const repair = (request, route, failure) =>
     [
       `The check of the design release "${config.set}" failed after this request was built:`,
       `"${request}"`,
+      ...partLine(request, route),
       `Summary: ${failure.summary}`,
       `Full log: ${failure.logPath} (read it).`,
       `Fix the cause in the files this request changed, following .claude/skills/${route.skill}/SKILL.md and .claude/skills/check-my-change/SKILL.md. If the failure is in a file this request did not touch, change nothing and say so in notes.`,
@@ -382,7 +411,7 @@ const repair = (request, route, failure) =>
       GUARD_RAILS
     ].join('\n'),
     withModel('builder', {
-      label: `repair ${route.index}`,
+      label: `repair ${route.id}`,
       phase: 'Build',
       schema: BUILD_SCHEMA
     })
@@ -462,7 +491,7 @@ const commit = (group) =>
     [
       `Save one commit for ${group.requests.length === 1 ? 'this request' : 'these requests, which changed the same files'}:`,
       group.requests
-        .map((item) => `- "${item.request}" (${item.skill})`)
+        .map((item) => `- "${item.text}" (${item.skill})`)
         .join('\n'),
       `Files: ${group.paths.join(' ')}`,
       `Recipes followed: ${group.recipes.join(', ') || 'none'}`,
@@ -481,7 +510,7 @@ const commit = (group) =>
       GUARD_RAILS
     ].join('\n'),
     withModel('builder', {
-      label: `save ${group.requests.map((item) => item.index).join('+')}`,
+      label: `save ${group.requests.map((item) => item.id).join('+')}`,
       phase: 'Save',
       schema: COMMIT_SCHEMA
     })
@@ -497,25 +526,49 @@ const sessionSlugFrom = (suggested) => {
   return words.length > 0 ? words.join('-') : 'design-session'
 }
 
-const routeFor = (classified, index) => {
-  const route = (classified.requests ?? []).find((item) => item.index === index)
-  if (!route) {
+const checkedRoute = (route) =>
+  !route.refused && !SESSION_SKILLS.includes(route.skill)
+    ? {
+        ...route,
+        refused: true,
+        reason: `"${route.skill}" is not a skill a design session can run.`
+      }
+    : route
+
+/**
+ * The units of work for one request: one per part the judge split it into.
+ * A request with one part keeps its number as its id ("2"); the parts of a
+ * split request are numbered under it ("2.1", "2.2"), in build order.
+ */
+const unitsFor = (classified, index) => {
+  const request = config.requests[index - 1]
+  const routes = (classified.requests ?? []).filter(
+    (item) => item.index === index
+  )
+  if (routes.length === 0) {
+    return [
+      {
+        id: String(index),
+        index,
+        request,
+        text: request,
+        skill: 'none',
+        pages: [],
+        refused: true,
+        reason: 'The request could not be matched to a skill.'
+      }
+    ]
+  }
+  return routes.map((route, position) => {
+    const split = routes.length > 1
     return {
+      ...checkedRoute({ pages: [], reason: '', ...route }),
+      id: split ? `${index}.${position + 1}` : String(index),
       index,
-      skill: 'none',
-      pages: [],
-      refused: true,
-      reason: 'The request could not be matched to a skill.'
+      request,
+      text: split && route.part ? route.part : request
     }
-  }
-  if (!route.refused && !SESSION_SKILLS.includes(route.skill)) {
-    return {
-      ...route,
-      refused: true,
-      reason: `"${route.skill}" is not a skill a design session can run.`
-    }
-  }
-  return route
+  })
 }
 
 const pathsOf = (records) => records.map((record) => record.path)
@@ -552,7 +605,7 @@ const groupByFiles = (landed) => {
     groups.push(merged)
   }
   return groups.sort(
-    (left, right) => left.requests[0].index - right.requests[0].index
+    (left, right) => left.requests[0].order - right.requests[0].order
   )
 }
 
@@ -566,11 +619,11 @@ const buildOne = async (request, route, alreadyChanged) => {
     }
   }
   const level = CHECK_LEVEL[route.skill]
-  let checked = await check(`check ${route.index}`, level)
+  let checked = await check(`check ${route.id}`, level)
   if (checked && !checked.passed) {
-    log(`Request ${route.index} failed its check. One repair.`)
+    log(`Request ${route.id} failed its check. One repair.`)
     await repair(request, route, checked)
-    checked = await check(`recheck ${route.index}`, level)
+    checked = await check(`recheck ${route.id}`, level)
   }
   const changedNow = checked?.changed ?? []
   const paths = [
@@ -609,10 +662,22 @@ const buildOne = async (request, route, alreadyChanged) => {
 
 const statusLine = (item) => {
   if (item.status === 'landed') {
-    return `${item.index}. Landed (${item.skill})${item.commit ? `, saved as ${item.commit}` : ', not saved'}: ${item.request}`
+    return `${item.id}. Landed (${item.skill})${item.commit ? `, saved as ${item.commit}` : ', not saved'}: ${item.text}`
   }
-  return `${item.index}. ${item.status === 'parked' ? 'Parked' : 'Not done'}: ${item.request}. ${item.reason}`
+  return `${item.id}. ${item.status === 'parked' ? 'Parked' : 'Not done'}: ${item.text}. ${item.reason}`
 }
+
+// A split request says once which parts it became, so the designer can see
+// how a vague note was read.
+const splitLines = (units) =>
+  config.requests.flatMap((request, position) => {
+    const parts = units.filter((unit) => unit.index === position + 1)
+    return parts.length > 1
+      ? [
+          `Request ${position + 1} ("${request}") was split into ${parts.length} parts: ${parts.map((unit) => unit.id).join(', ')}.`
+        ]
+      : []
+  })
 
 const summarise = (results, extra) => {
   log(
@@ -624,33 +689,40 @@ const summarise = (results, extra) => {
   )
 }
 
-const saveGroups = async (groups, results) => {
+// Each landed result is the same object the summary prints, so marking its
+// commit here shows in the summary.
+const saveGroups = async (groups) => {
   for (const group of groups) {
     const saved = await commit(group)
     if (!saved?.committed) {
       return `Saving stopped: ${saved?.reason ?? 'the commit step did not answer'}. The remaining changes are kept but not saved; say "check my changes".`
     }
     for (const item of group.requests) {
-      results[item.index - 1].commit = saved.commit
+      item.commit = saved.commit
     }
   }
   return `Saved ${groups.length} commit${groups.length === 1 ? '' : 's'}. Nothing was pushed: say "share this" to open a pull request.`
 }
 
-const buildAll = async (routes) => {
+const buildAll = async (units) => {
   const results = []
   const kept = []
-  for (const [position, request] of config.requests.entries()) {
-    const route = routes[position]
-    const base = { index: position + 1, request, skill: route.skill }
-    if (route.refused) {
-      results.push({ ...base, status: 'refused', reason: route.reason })
+  for (const [order, unit] of units.entries()) {
+    const base = {
+      id: unit.id,
+      order,
+      index: unit.index,
+      text: unit.text,
+      skill: unit.skill
+    }
+    if (unit.refused) {
+      results.push({ ...base, status: 'refused', reason: unit.reason })
       continue
     }
-    log(`Request ${base.index} of ${config.requests.length}: ${route.skill}`)
-    const outcome = await buildOne(request, route, kept)
+    log(`Request ${unit.id} of ${config.requests.length}: ${unit.skill}`)
+    const outcome = await buildOne(unit.request, unit, kept)
     if (outcome.landed) {
-      const staged = await stage(base.index, outcome.paths)
+      const staged = await stage(unit.id, outcome.paths)
       if (staged?.done) {
         kept.push(...outcome.paths)
         results.push({ ...base, status: 'landed', ...outcome })
@@ -659,7 +731,7 @@ const buildAll = async (routes) => {
       outcome.reason = `Its files could not be kept aside: ${staged?.reason ?? 'no answer'}`
     }
     if (outcome.paths.length > 0) {
-      await putAway(base.index, request, outcome.paths)
+      await putAway(unit.id, unit.text, outcome.paths)
     }
     results.push({ ...base, status: 'parked', reason: outcome.reason })
   }
@@ -677,18 +749,14 @@ const main = async () => {
     log(`Stopped before any change: ${classified.releaseReason}`)
     return
   }
-  const routes = config.requests.map((_, position) =>
-    routeFor(classified, position + 1)
+  const units = config.requests.flatMap((_, position) =>
+    unitsFor(classified, position + 1)
   )
-  if (routes.every((route) => route.refused)) {
+  const splits = splitLines(units)
+  if (units.every((unit) => unit.refused)) {
     summarise(
-      config.requests.map((request, position) => ({
-        index: position + 1,
-        request,
-        status: 'refused',
-        reason: routes[position].reason
-      })),
-      ['Nothing was changed.']
+      units.map((unit) => ({ ...unit, status: 'refused' })),
+      [...splits, 'Nothing was changed.']
     )
     return
   }
@@ -714,10 +782,13 @@ const main = async () => {
   }
 
   phase('Build')
-  const results = await buildAll(routes)
+  const results = await buildAll(units)
   const landed = results.filter((item) => item.status === 'landed')
   if (landed.length === 0) {
-    summarise(results, ['Nothing landed, so there is no gallery or commit.'])
+    summarise(results, [
+      ...splits,
+      'Nothing landed, so there is no gallery or commit.'
+    ])
     return
   }
 
@@ -731,13 +802,14 @@ const main = async () => {
   const checked = await fullCheck()
   if (!checked?.passed) {
     summarise(results, [
+      ...splits,
       gallery,
       `Not saved: the full check failed (${checked?.summary ?? 'no answer'}). The landed changes are kept but not saved; say "check my changes".`
     ])
     return
   }
-  const saving = await saveGroups(groupByFiles(landed), results)
-  summarise(results, [gallery, `Branch: ${prepared.branch}`, saving])
+  const saving = await saveGroups(groupByFiles(landed))
+  summarise(results, [...splits, gallery, `Branch: ${prepared.branch}`, saving])
 }
 
 await main()

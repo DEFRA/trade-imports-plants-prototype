@@ -1,9 +1,173 @@
-# Instructions for coding agents
+# Working with designers in the plants prototype
 
-This repo is a prototype of the plants import notification service, built for designers. If you are Cursor, Codex or any agent other than Claude Code:
+These are the instructions for every coding agent in this repo: Claude Code,
+Cursor, Codex, Copilot or any other. This file is the one full source. It
+holds every load-bearing rule and all the routing, so nothing here depends on
+skills being loaded. Each route names its steps file by path: open that file
+and follow it step by step.
 
-1. Read `CLAUDE.md` first and follow its load-bearing rules. They apply to every agent.
-2. Route each request with the table in `CLAUDE.md`, then follow the matching `.claude/skills/<skill>/SKILL.md` step by step.
-3. Read the matching file in `.claude/rules/` before you change copy, templates, sets, example data or files that belong to the real service.
-4. If you cannot run the workflows in `.claude/workflows/`, each skill that uses one lists the same steps to run one after another.
-5. The designer's own guide is `PROTOTYPE.md`, and the designer docs start at `docs/designers/README.md`.
+If the designer says "use the design skill" or "design", follow Working out what they want. This works with or without skills.
+
+## Who you are working with
+
+Interaction and content designers. They know HTML, Nunjucks and the GOV.UK Design System. They use git lightly and are not JavaScript architects.
+
+- Reply in GDS plain English: short sentences, active voice, no jargon. Explain any term that is not in `docs/designers/glossary.md`.
+- Say "your design release", not "set" or "plugin". Say what changed on which pages, and give links to click.
+- Run the commands yourself. Never ask a designer to type a command you could run.
+- Never ask a designer to name a skill, a workflow or a file. They say what they want; you work out the rest.
+
+## What this repo is
+
+1. A copy of the real plants frontend (plants-frontend), with real GOV.UK components and the real journey engine. The aim is one high-fidelity experience: work on one page and the next page is already there, because it is the real one.
+2. It runs with no backend: every service is stubbed, and the example notifications are made by replaying real pages.
+3. It holds several sets under `src/server/app/sets/<id>/`: `high-risk-plants` is the real journey, `sample-journey` a placeholder, and everything else is a designer's own design release.
+4. A weekly update merges the real service into it. `overrides.json` says which files are the prototype's own (`ours`); everything else belongs to the real service.
+5. Something the real service cannot do yet is built as a prototype-owned service in `src/server/app/services/<name>/`, in the same `index.js`, `client.js` and `stub.js` shape as the real services, with its own line in `ours`. `npm run designer:service` makes, lists and retires them. Their stub plumbing lives in `src/server/prototype-support/`.
+6. The designer's guide is `PROTOTYPE.md`. The designer docs are in `docs/designers/` (start at `docs/designers/README.md`).
+
+## Load-bearing rules
+
+1. **Ask whose file it is before any edit.** Run `npm run designer:where -- <paths>` and follow the answer. If a file belongs to the real service, offer two routes: "do it in your design release" (the default) or "prepare it for the real team" (hand-off: `.claude/skills/hand-off/SKILL.md`). Never edit a real-service file in place on a `design/*` branch.
+2. **Never edit a frozen release.** Offer to start a working release from it (`.claude/skills/design-release/SKILL.md`).
+3. **Change `copy.en.js` and `copy.cy.js` together.** Keep the same keys and the same function arguments. With no Welsh given, write `'[Welsh needed] <English>'`.
+4. **Stay in the GOV.UK toolbox.** Use Nunjucks macros and `govuk-*` classes (`moj-*` only through the date picker macro). No Sass, inline styles, new client JavaScript or webpack entries. Log what the toolbox cannot do in `src/server/app/sets/<id>/design-gaps.md`.
+5. **Example data replays real pages.** Never write records by hand. Follow `.claude/skills/example-data/SKILL.md`.
+6. **One change at a time, and every part of the request.** Do each part in turn (see "Working out what they want" and "Requests that fit two skills"), check it, show it, and end with the hand-off line (see "How every change ends"). Use the `design-session` workflow for any list of notes (from a crit, a review or feedback, however many), and for four or more separate changes. One request with two or three parts ("add a branch and move the page") is done part by part in one run. Never make the designer ask again for a part they already asked for.
+7. **Install only with the command `npm run designer:preflight` prints** (today `npx --yes npm@11.6.2 ci`, from `packageManager` in `package.json`). Never `npm install` or bare `npm ci`. One shell command per call: no `&&`, `;` or `|`.
+8. **Never use `--no-verify`, never force-push, and never push or open a pull request unless the designer asked.** An explicit request in their own message ("save it and open a pull request") is the yes: do not ask again. Otherwise ask first.
+9. **No working release yet? Make one, then carry on.** When a change needs the designer's working release and there is none (only `high-risk-plants` and `sample-journey`), follow `.claude/skills/design-release/SKILL.md` section B for `plants-working` without asking, save it as its own commit (the one save made without being asked), tell the designer in one line, and go back to the change.
+10. **Never edit** `.claude/settings.json`, `src/client/**`, `webpack.config.js`, `vitest.config.js`, `src/server/app/{engine,model,bridge,flow,shared,services,lib}/**` or `src/server/app/shared/layout.njk`, except on a `handoff/*` or `maintain/*` branch. One exception on `design/*` branches: a **prototype-owned service folder** may be made or changed, through `.claude/skills/fake-a-service/SKILL.md` only. A folder is prototype-owned when `overrides.json` lists it on its own line in `ours` as `src/server/app/services/<name>/**` (today `transporters`, `templates`, `ins-address-book` and `notification-search`). Every other folder under `src/server/app/services/` (such as `address-book`, `countries`, `ports`, `persistence` and `set-context`) belongs to the real service and stays forbidden.
+
+Never add a file to `ours` in `overrides.json` just to make it editable: that hides the clash, it does not avoid it. The one way a services folder joins `ours` is `npm run designer:service -- new <name>`, for a service the real one does not have. It refuses a name the real service already uses.
+
+## Working out what they want
+
+Designers describe outcomes in their own words. They never need a skill name. For every request:
+
+1. **Name the outcome.** Say to yourself, in one line, what the designer wants to be true when you finish ("a dashboard that shows which notifications are late", "a story the developers can build from").
+2. **Split it into parts.** Most requests have more than one: a page and the words on it, a feature and the examples that show it, a change and then a save.
+3. **Map each part with the outcomes table, then the phrase table.** A goal ("a demo", "a research round", "a ticket") matches the outcomes table. A single change matches a row of the phrase table. Match on meaning, not on the exact words: "overdue" is "late", "attach" is "upload", "the devs" are "the real team".
+4. **Check what already holds.** Look at the picture, or run `npm run designer:release -- orders <release> <pages>` for a move. Say which parts are already true and do only the rest.
+5. **Do the parts in order.** Follow each part's steps file, one after another in the same run, and report the parts together. A list of notes, or four or more changes, goes to the `design-session` workflow (see "Workflows").
+6. **Ask one plain question only when the request is truly ambiguous**, that is, when two readings lead to different work and nothing in the conversation picks one. For example: "Should participants start past the commodity pages in the research, or should those pages leave the journey?" Otherwise pick the likelier reading, do it, and say which reading you took in one line.
+
+## Outcomes
+
+When the designer names a goal rather than one change, do these parts in order.
+
+| They want                                   | They say things like                                                                                                    | Do this, in order                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A demo or stakeholder review                | "we've got a demo on Thursday", "get it ready for the playback", "show and tell", "stakeholder review"                  | 1. Pick the release to show; freeze it if it must stay put (`.claude/skills/design-release/SKILL.md`). 2. Examples on the pages to be shown, with links (`.claude/skills/example-data/SKILL.md`). 3. A review pack (`.claude/skills/show-my-change/SKILL.md`, "make a review pack"). 4. Save and open a pull request, and say it must merge before the demo to be seen on the deployed prototype (`.claude/skills/share-my-change/SKILL.md`). Until it is deployed, demo from a laptop with `npm run designer:fresh`. |
+| A research round                            | "user testing next week", "get ready for research", "the researcher needs…"                                             | `.claude/skills/research-session/SKILL.md`. It starts the research release and adds one example per task through the other skills.                                                                                                                                                                                                                                                                                                                                                                                    |
+| Crit notes, feedback or any list of changes | "here are my notes from the crit", "work through this feedback", "do all of these"                                      | The `design-session` workflow (see "Workflows"). Without the Workflow tool, follow the manual steps in `.claude/workflows/README.md`.                                                                                                                                                                                                                                                                                                                                                                                 |
+| I'm new, or what can I do here              | "I'm new", "what can I do here?", "where do I start?", "how does this work?"                                            | `.claude/skills/run-the-prototype/SKILL.md`, section "New here": check the computer, start the prototype, then show what they can ask for.                                                                                                                                                                                                                                                                                                                                                                            |
+| A new feature the real service lacks        | "the real service can't do that yet", "save a vehicle they use a lot", "let them upload a certificate", "a lookup for…" | `.claude/skills/fake-a-service/SKILL.md`. It builds a prototype-owned service in `src/server/app/services/<name>/` in the real `index.js`, `client.js` and `stub.js` pattern (`npm run designer:service -- new <name>`), then the pages that use it. Add examples that show it with `.claude/skills/example-data/SKILL.md`.                                                                                                                                                                                           |
+| A ticket, story or Jira for the developers  | "the devs need a ticket", "write this up as a story", "put it in the backlog", "raise a Jira"                           | `.claude/skills/hand-off/SKILL.md`. It writes the story ready to paste into Jira, with pictures and a patch. A change that was never made is made first, with its own skill, then saved, then handed off.                                                                                                                                                                                                                                                                                                             |
+| Stay current with the real service          | "has the real service changed since I made my copy?", "I want the latest", "is my release out of date?"                 | 1. `npm run designer:release -- list`: the "Real journey changed since" column says how far each release has fallen behind, and `npm run designer:release -- drift <release>` names the pages. 2. To catch up, `.claude/skills/design-release/SKILL.md` section E: a fresh release from the real journey, then carry the designer's changes across. When two branches that each started a release clash on merge, `npm run designer:release -- remount`.                                                              |
+| Start from scratch                          | "start something new", "a blank prototype", "a brand new idea"                                                          | A fresh working release from the real journey (`.claude/skills/design-release/SKILL.md` section B), so every page they do not change is already there. Only a journey that is not a plants notification at all starts from the placeholder: `npm run new:set -- <id> --describe "<one line>" --purpose working` (no `--from`), then `.claude/skills/change-the-journey/SKILL.md` adds its pages.                                                                                                                      |
+
+## Phrases
+
+For one change, match what the designer says to a row, then follow that steps file.
+
+| Steps file                                   | The designer says things like                                                                                                                                                                                                                                                                                                                                                                                     | What it does                                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `.claude/skills/design/SKILL.md`             | "design", "use the design skill", "help me design", "I need…", "can you make it so…"                                                                                                                                                                                                                                                                                                                              | Sends you back to "Working out what they want" in this file                                             |
+| `.claude/skills/run-the-prototype/SKILL.md`  | "run the prototype", "start it", "it won't start", "port in use", "where did my data go", "open the arrival details page", "I'm new", "what can I do here"                                                                                                                                                                                                                                                        | Checks the computer, starts `npm run dev`, prints the links, and welcomes newcomers                     |
+| `.claude/skills/design-release/SKILL.md`     | "start a new design release", "make a working copy of the journey", "freeze what we've got as design release 2", "copy this change to release X", "which releases are there", "retire release X", "I want the latest", "is my release out of date", "pick up the real team's changes"                                                                                                                             | Starts, freezes, carries changes between, catches up and retires releases                               |
+| `.claude/skills/change-the-words/SKILL.md`   | "change the wording", "reword this", "rename X to Y everywhere", "change the hint", "change the error message", "show me the Welsh"                                                                                                                                                                                                                                                                               | Finds every place a phrase lives and changes English and Welsh together                                 |
+| `.claude/skills/match-the-design/SKILL.md`   | "make this page match the Figma", "change the spacing", "make it wider", "make it a summary list", "add a tag", "change the header"                                                                                                                                                                                                                                                                               | Rebuilds a layout with GOV.UK components and logs design gaps                                           |
+| `.claude/skills/port-a-kit-page/SKILL.md`    | "re-create this page from the old prototype", "port the GB notification page for X", "build this Prototype Kit page here", "bring over the transporter page"                                                                                                                                                                                                                                                      | Rebuilds an old Prototype Kit page in a release, with a fidelity table                                  |
+| `.claude/skills/change-the-journey/SKILL.md` | "add a question", "add a page", "add a guidance page", "move this page", "only show this page when", "skip this page if", "regroup the task list", "change the confirmation page", "a green panel with the reference"                                                                                                                                                                                             | Follows the repo's recipes to change the flow                                                           |
+| `.claude/skills/example-data/SKILL.md`       | "add an example", "show a late notification", "an example stopped at the X page", "a link straight to the X page", "add a port", "fill the dashboard", "another organisation"                                                                                                                                                                                                                                     | Adds example notifications, parties, ports and countries, with stable links                             |
+| `.claude/skills/fake-a-service/SKILL.md`     | "add a transporter lookup", "saved transporters", "templates", "change the address book", "add an address manually", "delete an address", "copy as new", "add filters to the dashboard", "add tabs with counts", "which ones are overdue", "show the late ones on the dashboard", "which are behind", "let them upload a file", "attach a document", "confirm before deleting", "a success banner after deleting" | Builds what the real service cannot do yet as a prototype-owned service, flagged "needs a real service" |
+| `.claude/skills/research-session/SKILL.md`   | "get ready for research", "user testing next week", "let participants through", "participants skip the X bit", "participants start past the X page", "turn errors off", "turn errors back on", "print a sheet for the session"                                                                                                                                                                                    | A research release, one link per task (each can start on any page), errors off by one revertible commit |
+| `.claude/skills/check-my-change/SKILL.md`    | "check my changes", "did I break anything", "is it ready", "why won't it start", "what does this error mean", "the tests are failing"                                                                                                                                                                                                                                                                             | Runs the right check and explains every failure plainly                                                 |
+| `.claude/skills/show-my-change/SKILL.md`     | "show me", "what does it look like", "before and after", "compare with the Figma", "compare with the real journey", "record a walkthrough", "make a review pack", "pictures for the demo, playback or show and tell"                                                                                                                                                                                              | Takes pictures into a gallery, with error states, phone width and video                                 |
+| `.claude/skills/share-my-change/SKILL.md`    | "save my work", "share this", "make a pull request", "is my pull request merged yet", "merge my pull request", "undo my last change", "throw away what I just did", "go back to how it was"                                                                                                                                                                                                                       | Branch, commit message from the change, pull request when asked, safe undo                              |
+| `.claude/skills/hand-off/SKILL.md`           | "hand this to the real team", "send this to the developers", "make this real", "write a brief for the developers", "a ticket for the devs", "write it up as a story", "raise a Jira", "put it in the backlog"                                                                                                                                                                                                     | Writes a story and brief, screenshots and a checked patch for plants-frontend                           |
+
+### When no single row fits
+
+Never stop at "nothing fits". Split the request into parts, as in "Working out what they want", and map each part on its own. Most requests that match no row are two or three rows together.
+
+- A part that needs something the real service cannot do (a new lookup, a saved list, an upload, a status the dashboard cannot filter on) goes to `.claude/skills/fake-a-service/SKILL.md`, which builds it as a prototype-owned service.
+- A part that no steps file covers at all: say which part in one plain line, do the rest, and log the missing part in the release's `design-gaps.md` when it is a design the toolbox cannot build.
+- Ask one plain question only when the request is truly ambiguous (step 6 above).
+
+### Requests that fit two skills
+
+Do every part in the same turn, one skill after another, and report the parts together:
+
+- **Words and layout** ("rename X, and drop the extra subheadings"): `change-the-words` first, then `match-the-design` for the layout part. If the page has no such element, say "already done: there is no such element", with the picture, and change nothing that only looks similar. When something similar could be what they meant (the numbered headings on check your answers), add one line offering to remove it.
+- **Renaming a task list group** (only its words): `change-the-words`. Moving tasks between groups, or adding or removing a group: `change-the-journey`'s task-list recipe.
+- **The confirmation page's panel and reference number**: `change-the-journey` (confirmation-variant recipe), never `match-the-design`.
+- **A branch plus a move, or two journey changes**: `change-the-journey`, part by part in one run.
+- **A dashboard like a Figma frame, filled with examples**: `example-data`, then `fake-a-service` (filters, tabs, counts), then `show-my-change` with the frame as `--reference`. `fake-a-service`, "Requests that need more than this skill", has the order.
+- **A dashboard that shows which notifications are overdue, late or behind**: `example-data` for late examples if the release has none, then `fake-a-service`'s dashboard reference for the late filter, count and red late tag.
+- **A new page that needs data the stubs do not have** (an upload, a saved vehicle): `fake-a-service` for the service and its pages, then `example-data` for rows that show it.
+- **Participants who should skip or start past a page in research**: `research-session`, with a task link that starts on the later page. It is never a flow change, unless the designer says the page should leave the journey for good.
+- **An old Prototype Kit list page** (search, pick one or add a new one): `port-a-kit-page`, which follows `fake-a-service`'s worked example 1 for the page, its add page and its card on check your answers.
+- **A change, then "save it" or "open a pull request"**: make the change, then carry straight on with `share-my-change`.
+- **"Hand off", or a ticket or story, for a change that was never made**: make it first with its skill, save it, then `hand-off`.
+- **Any change to a research release after its sessions**: `research-session`, "After the sessions", step 3 picks the release it lands in, for every skill. Say where in one line, then carry on.
+
+## Workflows
+
+Workflows run several agents for one big job. Every workflow's skill also lists the same steps to run one after another, for hosts without a Workflow tool. How to launch them in Claude Code is in `CLAUDE.md`.
+
+| Workflow          | Started by         | Use it for                                                                                                                                             |
+| ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `wording-sweep`   | `change-the-words` | A wording change across more than 5 pages, or a pasted content document ("apply these content changes", "content sweep")                               |
+| `port-kit-page`   | `port-a-kit-page`  | Every Prototype Kit page port ("port this page from the old prototype")                                                                                |
+| `prepare-handoff` | `hand-off`         | A change the real team needs with its tests, on a `handoff/<slug>` branch ("prepare this for the real service with its tests")                         |
+| `design-session`  | this file (rule 6) | Any list of notes, however many ("here are my notes from the crit", "work through this feedback"), or four or more changes at once ("do all of these") |
+
+For `design-session`, pass `{ "set": "<release>", "requests": ["<one change>", "..."] }`. It starts the release from the real journey when it does not exist yet, splits each note into parts and routes each part with this file, checks each one, parks what fails with a plain reason, shows the whole session in one gallery and saves each landed part as its own commit. It never pushes. Without the Workflow tool, follow the manual steps in `.claude/workflows/README.md`.
+
+## Branches
+
+- `design/<set>-<slug>`: a designer's work, for example `design/plants-working-consignment-addresses`. Create it from `main` before the first change.
+- `handoff/<slug>`: work meant for the real service, made by `hand-off`. Never merged into this prototype's `main`.
+- `maintain/<slug>`: a maintainer's work on the prototype itself.
+
+One rule for every skill: **on `main`, make a `design/*` branch; on any other branch (`design/*`, `feat/*`, a trial branch, `maintain/*`), stay on it.** Starting a release, making the change and saving it all happen on that one branch, so nothing is split across two. Never start a release on a `handoff/*` branch.
+
+## How every change ends
+
+1. Check it: `npm run designer:check -- --set <id>` and its plain-English result. `--walk` includes `--full`: never run both.
+2. Show it: `npm run designer:show -- --set <id> --pages <the pages it is on> --before`, the gallery path, and links to click (`npm run designer:examples -- links <id>`; add `?page=<page>` to open another page of an example). Open the key pictures yourself before describing them. Never claim a visual result you have not looked at, and never hand the designer links to click instead of pictures you could take (`--url`, `--examples`, `--pages chooser`).
+3. The hand-off line, word for word: "If this should become part of the real service, say 'hand this to the real team' and I will prepare a brief and a patch for the plants-frontend team."
+
+## The designer commands
+
+All run as `npm run <name> -- <arguments>`:
+
+- `designer:where` whose file is it · `designer:check` check a release · `designer:preflight` is the computer ready (`--share` also checks GitHub sign-in and access) · `designer:fresh` runs the prototype like `npm run dev` but keeps no release data across a restart
+- `designer:show` pictures and gallery (`--pages`, `--before`, `--errors`, `--mobile`, `--each-example`, `--url`, `--examples`, `--reference`, `--compare`, `--video`)
+- `designer:release` list (with how far each release is behind the real journey), drift, orders, changes, freeze, carry, retire, remount · `designer:examples` list, check, links, init, fixtures
+- `designer:words` find words, page (every string one page shows), Welsh report · `designer:research` research mode on, off, status, sheet · `designer:handoff` brief and patch
+- `designer:service` new, list and retire prototype-owned services (`fake-a-service` runs it)
+- Page names: every tool takes a page's address (`consignors/select`, `arrival-details`, `notification-view`) and `task-list` for the task list. `designer:words` prints those names; `designer:show` also takes page ids and `hub`.
+- `designer:format` tidies every file like `npm run format`, printing only the files it changed. Use it in place of `npm run format`.
+- `designer:save -- -m "<first line>" [-m "<body>"]` saves what is staged as one commit. The pre-commit checks run as usual; their hundreds of lines go to `.cache/designer/commit.log`, and it prints one line when the save worked or the end of the log when it did not. Use it for every save in place of `git commit` (`--no-edit` finishes a merge). Stage each file by name with `git add` first; never put paths after the message.
+- Run every `npm run` and `git` command from the repo root (the folder holding `package.json`). If your shell is somewhere else, use `npm --prefix <repo root> run <name>` and `git -C <repo root> …`.
+- `new:set -- <id> --from high-risk-plants --title "<name>" --describe "<text>" --purpose working|frozen|research` starts a release (the `design-release` skill runs it)
+- `designer:kit` finds the old Prototype Kit prototype and copies a page from it (`port-a-kit-page`)
+
+## Extra rules for some files
+
+Before you change these files, read the matching rule file in `.claude/rules/` and follow it. (Claude Code loads them for you; other hosts read them by hand.)
+
+- copy files (`copy.en.js`, `copy.cy.js`): `.claude/rules/copy.md`
+- page templates in a set (`src/server/app/sets/**/*.njk`): `.claude/rules/templates.md`
+- anything in a set (`src/server/app/sets/`) or a set's gateway (`src/server/app/routes-<set>.js`): `.claude/rules/designer-sets.md`
+- example data (`src/server/prototype-seed/`, `src/server/prototype-data/`): `.claude/rules/prototype-seed.md`
+- the real journey, the shared platform, `src/server/app/services/`, `src/client/`, `fit/` and the build config: `.claude/rules/ownership.md`
+
+## Read more
+
+- `docs/designers/where-changes-go.md` explains ownership and the weekly update.
+- `docs/designers/checks-and-errors.md` explains every check failure.
+- `docs/designers/services-and-dashboards.md` explains prototype-owned services.

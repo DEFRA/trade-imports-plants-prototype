@@ -1,0 +1,158 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { withSetContext } from '../../shared/set-context.js'
+import { clearFakesFor } from '../../../prototype-support/registry.js'
+import * as service from './index.js'
+import { STARTER_ROWS } from './stub.js'
+
+const RELEASE = 'plants-__NAME__-test'
+const OTHER_RELEASE = 'plants-__NAME__-other'
+const ORG = 'org-__NAME__'
+const OTHER_ORG = 'org-elsewhere'
+const SERVICE_URL = '__DEFAULT_URL__'
+const COLLECTION_URL = __EXPECTED_COLLECTION__
+const NEW_NAME = 'Added in a test'
+const NEW_ID = 'added-in-a-test'
+
+const inRelease = (fn) => withSetContext(RELEASE, fn)
+
+const find = (orgId, id, setId = RELEASE) =>
+  withSetContext(setId, () => service.get__SINGULAR__(orgId, id))
+
+describe('the stub, in stub mode', () => {
+  beforeEach(() => {
+    clearFakesFor(RELEASE)
+    clearFakesFor(OTHER_RELEASE)
+  })
+
+  it('Should list the starter rows in a picker’s shape', async () => {
+    const found = await inRelease(() => service.list__PLURAL__(ORG))
+
+    expect(found).toMatchObject({
+      total: STARTER_ROWS.length,
+      page: 1,
+      pageSize: service.PAGE_SIZE
+    })
+    expect(found.results.map(({ id }) => id)).toEqual(
+      STARTER_ROWS.map(({ id }) => id)
+    )
+  })
+
+  it('Should add a record only its organisation, in this release, can find', async () => {
+    const added = await inRelease(() =>
+      service.create__SINGULAR__(ORG, { name: NEW_NAME })
+    )
+
+    expect(added).toMatchObject({ id: NEW_ID, name: NEW_NAME, deleted: false })
+    expect(await find(ORG, NEW_ID)).toMatchObject({ name: NEW_NAME })
+    expect(await find(OTHER_ORG, NEW_ID)).toBeUndefined()
+    expect(await find(ORG, NEW_ID, OTHER_RELEASE)).toBeUndefined()
+  })
+
+  it('Should refuse a record with no name, as a 400 problem a form can show', async () => {
+    const refusal = await inRelease(() =>
+      service.create__SINGULAR__(ORG, { name: ' ' }).catch((error) => error)
+    )
+
+    expect(service.isValidationFailure(refusal)).toBe(true)
+    expect(service.mapApiErrorsToFormErrors(refusal.body)).toEqual({
+      name: 'Enter a name'
+    })
+  })
+
+  it('Should delete a record until its release is reset', async () => {
+    const [starter] = STARTER_ROWS
+
+    expect(
+      await inRelease(() => service.delete__SINGULAR__(ORG, starter.id))
+    ).toBe(true)
+    expect(await find(ORG, starter.id)).toBeUndefined()
+
+    clearFakesFor(RELEASE)
+
+    expect(await find(ORG, starter.id)).toMatchObject({ id: starter.id })
+  })
+})
+
+describe('the proposed client', () => {
+  const originalMode = process.env.STUB_MODE
+
+  const realService = async (answer) => {
+    vi.resetModules()
+    process.env.STUB_MODE = 'false'
+    const fetched = vi.fn(answer)
+    vi.stubGlobal('fetch', fetched)
+    return { real: await import('./index.js'), fetched }
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    if (originalMode === undefined) {
+      delete process.env.STUB_MODE
+    } else {
+      process.env.STUB_MODE = originalMode
+    }
+  })
+
+  it('Should list with the organisation header and map the page', async () => {
+    const { real, fetched } = await realService(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [STARTER_ROWS[0]],
+        page: 1,
+        pageSize: 5,
+        totalItems: 1,
+        totalPages: 1
+      })
+    }))
+
+    const found = await real.list__PLURAL__(ORG, { search: 'example' })
+
+    const [url, options] = fetched.mock.calls[0]
+    const asked = new URL(url)
+    expect(`${asked.origin}${asked.pathname}`).toBe(COLLECTION_URL)
+    expect(asked.searchParams.get('q')).toBe('example')
+    expect(options.headers['Trade-Imports-Organisation-Id']).toBe(ORG)
+    expect(found).toEqual({
+      results: [STARTER_ROWS[0]],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+      pageSize: 5
+    })
+  })
+
+  it('Should raise a 400 as a validation failure, and answer nothing for a 404', async () => {
+    const problem = { errors: { name: ['Enter a name'] } }
+    const { real } = await realService(async (_url, options) =>
+      options.method === 'POST'
+        ? {
+            ok: false,
+            status: 400,
+            statusText: 'Bad Request',
+            json: async () => problem
+          }
+        : { ok: false, status: 404, statusText: 'Not Found' }
+    )
+
+    const refusal = await real
+      .create__SINGULAR__(ORG, { name: '' })
+      .catch((error) => error)
+
+    expect(real.isValidationFailure(refusal)).toBe(true)
+    expect(await real.get__SINGULAR__(ORG, 'nothing')).toBeUndefined()
+    expect(await real.delete__SINGULAR__(ORG, 'nothing')).toBe(false)
+  })
+})
+
+describe('what it says it needs', () => {
+  it('Should say what the real service must do, and give its contract', () => {
+    expect(service.NEEDS_A_REAL_SERVICE).toBeTruthy()
+    expect(service.CONTRACT).toMatchObject({
+      service: '__NAME__',
+      owner: '__OWNER__',
+      baseUrlEnv: '__ENV__'
+    })
+  })
+})

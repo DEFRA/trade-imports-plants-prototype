@@ -19,6 +19,13 @@ releases are sets. Keep them working with these rules.
    (`src/server/app/{engine,model,bridge,flow,shared,lib,services}`). The
    `set-isolation` check in `npm run lint` fails on an import from another
    set. To reuse something from `high-risk-plants`, copy it into the release.
+   A release may import a prototype-owned service, a folder under
+   `src/server/app/services/` that `overrides.json` lists on its own line in
+   `ours` (today `transporters`, `templates`, `ins-address-book` and
+   `notification-search`). On a `design/*` branch that folder may be made or
+   changed through `.claude/skills/fake-a-service/SKILL.md`. Every other
+   folder under `src/server/app/services/` belongs to the real service:
+   never edit it on a `design/*` branch.
 3. **Keep the generated names.** `SET_ID` and `SET_BASE` in `set.js`, and
    `TEMPLATES` in `journeys/linear/config.js`, were written by
    `npm run new:set`. Do not rename or hand-edit them. The server finds the

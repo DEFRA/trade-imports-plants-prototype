@@ -2,9 +2,11 @@ import { describe, expect, test } from 'vitest'
 
 import {
   allChecksPassed,
+  arrivedServices,
   buildSummary,
   NEEDS_PERSON_LABEL,
-  pullRequestDecision
+  pullRequestDecision,
+  serviceArrivedLine
 } from './summary.js'
 
 describe('buildSummary', () => {
@@ -50,6 +52,34 @@ describe('buildSummary', () => {
     expect(text).toContain('1 problem')
   })
 
+  test('tells the maintainer, once per service, to retire a prototype service the real one replaced', () => {
+    const text = buildSummary({
+      branch: 'sync/upstream-2026-09-24',
+      mergedCommits: [],
+      appliedRules: [
+        {
+          path: 'src/server/app/services/transporters/index.js',
+          rule: 'service-arrived',
+          service: 'transporters'
+        },
+        {
+          path: 'src/server/app/services/transporters/client.js',
+          rule: 'service-arrived',
+          service: 'transporters'
+        }
+      ],
+      conflictedPaths: [],
+      checks: [],
+      merged: false
+    })
+
+    expect(arrivedServices([{ rule: 'ours' }])).toEqual([])
+    expect(text).toContain('## Real services that arrived')
+    expect(
+      text.split('\n').filter((line) => line.startsWith('- `transporters`:'))
+    ).toEqual([`- ${serviceArrivedLine('transporters')}`])
+  })
+
   test('says so when nothing conflicted', () => {
     const text = buildSummary({
       branch: 'sync/upstream-2026-09-24',
@@ -87,6 +117,16 @@ describe('pullRequestDecision', () => {
       pullRequestDecision({
         conflictedPaths: ['src/server/router.js'],
         checks: [{ passed: true }]
+      })
+    ).toEqual({ draft: true, label: NEEDS_PERSON_LABEL })
+  })
+
+  test('is draft and needs the label when a real service arrived over a prototype-owned one', () => {
+    expect(
+      pullRequestDecision({
+        conflictedPaths: [],
+        checks: [{ passed: true }],
+        arrivedServices: ['transporters']
       })
     ).toEqual({ draft: true, label: NEEDS_PERSON_LABEL })
   })

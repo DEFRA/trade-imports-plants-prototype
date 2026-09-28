@@ -16,7 +16,19 @@ const readRepoFile = (repoPath) =>
 const overrides = JSON.parse(readRepoFile('overrides.json'))
 const packageJson = JSON.parse(readRepoFile('package.json'))
 const claudeMd = readRepoFile('CLAUDE.md')
+const agentsMd = readRepoFile('AGENTS.md')
 const prototypeMd = readRepoFile('PROTOTYPE.md')
+
+// The old home of the fake services, spelt in two halves so this file does
+// not name it either.
+const OLD_FAKES_FOLDER = ['prototype', 'services'].join('-')
+
+// A prototype-owned service is a folder under src/server/app/services/ that
+// has its own line in ours. Every other folder there is the real service's.
+const PROTOTYPE_SERVICE_ENTRY = /^src\/server\/app\/services\/([\w-]+)\/\*\*$/
+const prototypeServiceEntries = overrides.ours.filter((pattern) =>
+  PROTOTYPE_SERVICE_ENTRY.test(pattern)
+)
 
 // Tracked plus new-but-unstaged files, so the suite is checked before it is
 // committed, the same way scripts/sync-upstream/overrides.test.js does it.
@@ -37,7 +49,8 @@ const SUITE_PREFIXES = [
   'scripts/designer/',
   'src/server/prototype-checks/',
   'src/server/prototype-data/',
-  'src/server/prototype-services/',
+  'src/server/prototype-support/',
+  ...prototypeServiceEntries.map((pattern) => pattern.replace(/\*\*$/, '')),
   'handoffs/'
 ]
 const SUITE_FILES = ['CLAUDE.md', 'AGENTS.md', 'fit/designer-sets.fit.spec.js']
@@ -82,7 +95,7 @@ const frontmatterField = (frontmatter, field) => {
   return match ? match[1].trim().replace(/^'|'$/g, '') : ''
 }
 
-// The rows of the markdown table that follows a heading in CLAUDE.md.
+// The rows of the markdown table that follows a heading in a document.
 const tableRowsUnder = (text, heading) => {
   const start = text.indexOf(heading)
   if (start === -1) {
@@ -154,29 +167,131 @@ describe('the designer suite', () => {
       expect(description).toContain('NOT for')
     })
 
-    test('is in the CLAUDE.md routing table with at least 3 phrases', () => {
-      const row = tableRowsUnder(claudeMd, '## Routing').find((line) =>
-        line.includes(`\`${name}\``)
+    // Hosts that never load skills still reach a skill's steps, because the
+    // routing in AGENTS.md names each steps file by path.
+    test('is in the AGENTS.md phrase table by its steps file, with at least 3 phrases', () => {
+      const row = tableRowsUnder(agentsMd, '## Phrases').find((line) =>
+        line.includes(`\`.claude/skills/${name}/SKILL.md\``)
       )
-      expect(row, `no routing row for ${name}`).toBeDefined()
+      expect(row, `no AGENTS.md phrase row for ${name}`).toBeDefined()
       expect(quotedPhrasesIn(row).length).toBeGreaterThanOrEqual(3)
-    })
-
-    test('is in the Working with Claude Code table in PROTOTYPE.md', () => {
-      const row = tableRowsUnder(
-        prototypeMd,
-        '## Working with Claude Code'
-      ).find((line) => line.includes(`\`${name}\``))
-      expect(row, `no PROTOTYPE.md row for ${name}`).toBeDefined()
     })
   })
 
-  test('every workflow is in the CLAUDE.md routing table', () => {
-    const rows = tableRowsUnder(claudeMd, '## Workflows')
+  test('every workflow is in the AGENTS.md workflow table', () => {
+    const rows = tableRowsUnder(agentsMd, '## Workflows')
     const missing = workflowNames.filter(
       (name) => !rows.some((line) => line.includes(`\`${name}\``))
     )
     expect(missing).toEqual([])
+  })
+
+  describe('the front door', () => {
+    test('CLAUDE.md imports AGENTS.md, so every host reads the same rules and routing', () => {
+      expect(claudeMd.split('\n')[0]).toBe('@AGENTS.md')
+    })
+
+    test('CLAUDE.md holds no rules or routing of its own', () => {
+      for (const heading of [
+        '## Load-bearing rules',
+        '## Working out what they want',
+        '## Outcomes',
+        '## Phrases',
+        '## Routing'
+      ]) {
+        expect(claudeMd).not.toContain(heading)
+      }
+    })
+
+    test('AGENTS.md names every skill by its steps file', () => {
+      const unnamed = skillNames.filter(
+        (name) => !agentsMd.includes(`.claude/skills/${name}/SKILL.md`)
+      )
+      expect(unnamed).toEqual([])
+    })
+
+    test('AGENTS.md works out what they want before its tables', () => {
+      const intent = agentsMd.indexOf('## Working out what they want')
+      expect(intent).toBeGreaterThan(-1)
+      expect(intent).toBeLessThan(agentsMd.indexOf('## Outcomes'))
+      expect(agentsMd.indexOf('## Outcomes')).toBeLessThan(
+        agentsMd.indexOf('## Phrases')
+      )
+    })
+
+    test('AGENTS.md carries the design handle, and never stalls on "nothing fits"', () => {
+      expect(agentsMd).toContain(
+        'If the designer says "use the design skill" or "design", follow Working out what they want. This works with or without skills.'
+      )
+      expect(agentsMd).not.toMatch(/When nothing fits/i)
+    })
+
+    test('every outcome names a steps file or a command to run', () => {
+      const rows = tableRowsUnder(agentsMd, '## Outcomes').slice(2)
+      expect(rows.length).toBeGreaterThanOrEqual(8)
+      const vague = rows.filter(
+        (line) =>
+          !/\.claude\/skills\/[a-z-]+\/SKILL\.md|`design-session`/.test(line)
+      )
+      expect(vague).toEqual([])
+    })
+
+    test('the design skill is a handle with no routing table of its own', () => {
+      const skill = readRepoFile('.claude/skills/design/SKILL.md')
+      expect(skill).toContain('Working out what they want')
+      expect(skill.split('\n').some((line) => line.startsWith('|'))).toBe(false)
+    })
+  })
+
+  // Designers say what they want; they never need a skill name. A table
+  // with a Skill column teaches them that names matter.
+  test.each([
+    'PROTOTYPE.md',
+    'docs/designers/README.md',
+    'docs/designers/your-first-hour.md'
+  ])('%s shows no skill-name column', (repoPath) => {
+    const headers = readRepoFile(repoPath)
+      .split('\n')
+      .filter((line) => line.startsWith('|') && !/^\|[\s|:-]+\|$/.test(line))
+      .flatMap((line) => line.split('|').map((cell) => cell.trim()))
+    expect(headers).not.toContain('Skill')
+    expect(headers.filter((cell) => /^`[a-z]+(-[a-z]+)+`$/.test(cell))).toEqual(
+      []
+    )
+  })
+
+  test('PROTOTYPE.md stays a short guide that says how close it is to the real service', () => {
+    expect(prototypeMd.split('\n').length).toBeLessThanOrEqual(130)
+    expect(prototypeMd).toContain('## How close is this to the real service?')
+    expect(prototypeMd).toContain('use the design skill')
+  })
+
+  test('each prototype-owned service has its own line in ours, and no real service folder does', () => {
+    expect(overrides.ours).not.toContain('src/server/app/services/**')
+    const realServiceFolders = new Set(
+      overrides.patched
+        .map((entry) =>
+          /^src\/server\/app\/services\/([\w-]+)\//.exec(entry.path)
+        )
+        .filter(Boolean)
+        .map((match) => match[1])
+    )
+    const claimed = prototypeServiceEntries
+      .map((pattern) => PROTOTYPE_SERVICE_ENTRY.exec(pattern)[1])
+      .filter((name) => realServiceFolders.has(name))
+    expect(claimed).toEqual([])
+  })
+
+  test(`no file outside src/server/prototype-support names ${OLD_FAKES_FOLDER}`, () => {
+    const naming = repoFiles
+      .filter(
+        (repoPath) => !repoPath.startsWith('src/server/prototype-support/')
+      )
+      .filter(
+        (repoPath) => !/\.(png|jpe?g|gif|webp|ico|woff2?)$/.test(repoPath)
+      )
+      .filter((repoPath) => readRepoFile(repoPath).includes(OLD_FAKES_FOLDER))
+    expect(naming).toEqual([])
   })
 
   test('every designer:* script runs a file that exists', () => {
@@ -232,7 +347,7 @@ describe('the designer suite', () => {
     expect(missing).toEqual([])
   })
 
-  // A designer makes plants-working first (CLAUDE.md rule 9). The check below
+  // A designer makes plants-working first (AGENTS.md rule 9). The check below
   // must not start failing the moment that folder exists, or no save is
   // possible on the designer's branch.
   test.each([

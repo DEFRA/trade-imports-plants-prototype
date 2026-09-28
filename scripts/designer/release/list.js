@@ -3,13 +3,21 @@ import {
   longDate,
   releaseInfoFor
 } from '../../../src/server/prototype-sets/releases.js'
+import { releaseDrift } from './drift.js'
 import { setIdsIn, setsDirOf } from './sets.js'
+
+/** How many pages (and other parts, like the page order) of the real journey
+ * changed since the release was copied, or '-' when that does not apply. */
+const realJourneyChangedFor = (repoRoot, setId) => {
+  const drift = releaseDrift(setId, { repoRoot })
+  return drift.applies ? drift.count : '-'
+}
 
 /**
  * Every set in the checkout with what a designer needs to pick one: what
  * kind it is, what it was made from and when, whether it is frozen, whether
- * research mode is on and how many design gaps it has logged. In the
- * chooser's order.
+ * research mode is on, how many design gaps it has logged and how much of
+ * the real journey has changed since it was copied. In the chooser's order.
  */
 export const listReleases = (repoRoot) =>
   setIdsIn(repoRoot)
@@ -22,7 +30,8 @@ export const listReleases = (repoRoot) =>
       madeOn: info.createdAt ? longDate(info.createdAt) : '-',
       frozen: info.frozen ? 'yes' : 'no',
       researchMode: info.researchMode ? 'on' : 'off',
-      designGaps: info.designGaps
+      designGaps: info.designGaps,
+      realJourneyChanged: realJourneyChangedFor(repoRoot, info.setId)
     }))
 
 const COLUMNS = [
@@ -32,7 +41,8 @@ const COLUMNS = [
   ['madeOn', 'Made on'],
   ['frozen', 'Frozen'],
   ['researchMode', 'Research mode'],
-  ['designGaps', 'Design gaps']
+  ['designGaps', 'Design gaps'],
+  ['realJourneyChanged', 'Real journey changed since']
 ]
 
 /** The list as a plain text table. */

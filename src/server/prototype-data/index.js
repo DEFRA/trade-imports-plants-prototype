@@ -3,8 +3,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { currentSetId, hasSetContext } from '../app/shared/set-context.js'
+import { addressBookChanges } from '../prototype-support/address-book-changes.js'
 import { KINDS, overlayProblems } from './rows.js'
-import { liveList, liveLookup } from './live.js'
+import { combiner, liveList, liveLookup, liveView } from './live.js'
 
 /**
  * Extra parties, ports and countries a designer adds for the prototype, on top
@@ -118,14 +119,53 @@ const extraCountryLabels = () => {
   return cache.get(key)
 }
 
+/** The book with people's changes laid over it: a changed address in its
+ * place, an added one at the end, a deleted one gone. */
+const applyChanges = (book, { added, hiddenIds }) => {
+  const addedById = new Map(added.map((record) => [record.id, record]))
+  const bookIds = new Set(book.map(({ id }) => id))
+  return [
+    ...book.map((record) => addedById.get(record.id) ?? record),
+    ...added.filter((record) => !bookIds.has(record.id))
+  ].filter((record) => !hiddenIds.has(record.id))
+}
+
 /**
- * The stub address book with the active set's extra parties after it. Used by
- * `services/address-book/index.js`.
+ * The stub address book with the active set's extra parties after it, and
+ * the addresses people added, changed or deleted in the active set through
+ * the ins-address-book service (`src/server/app/services/ins-address-book/`)
+ * laid over it. Used by `services/address-book/index.js`, so the journey's
+ * pickers see an address book page's changes without that file changing.
+ *
+ * The pickers' view has no organisation to ask for, so it shows every
+ * organisation's changes in the set. Pages built on ins-address-book itself
+ * stay per organisation.
  *
  * @param {object[]} stubBook - the stub book's records.
  * @returns {object[]} a read-only view.
  */
-export const withExtraParties = (stubBook) => liveList(stubBook, extraParties)
+export const withExtraParties = (stubBook) => {
+  const withExtras = combiner(stubBook, extraParties)
+  const lastBySet = new Map()
+  return liveView(() => {
+    const book = withExtras()
+    const changes = addressBookChanges()
+    if (
+      !changes ||
+      (changes.added.length === 0 && changes.hiddenIds.size === 0)
+    ) {
+      return book
+    }
+    const key = activeFolders().join('+')
+    const last = lastBySet.get(key)
+    if (last?.version === changes.version && last.book === book) {
+      return last.rows
+    }
+    const rows = applyChanges(book, changes)
+    lastBySet.set(key, { version: changes.version, book, rows })
+    return rows
+  })
+}
 
 /**
  * The stub ports with the active set's extra ports after them. Used by

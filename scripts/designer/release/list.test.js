@@ -1,11 +1,14 @@
-import { writeFileSync } from 'node:fs'
+import { appendFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { scaffoldSet } from '../../new-set/index.js'
 import { formatList, listReleases } from './list.js'
-import { makeTestRepo, removeTestRepo } from './test-repo.js'
+import { commitAll, makeTestRepo, removeTestRepo } from './test-repo.js'
 
 let repoRoot
+
+const ARRIVAL_PAGE =
+  'src/server/app/sets/high-risk-plants/journeys/linear/features/arrival-details/page.js'
 
 beforeAll(() => {
   repoRoot = makeTestRepo()
@@ -42,7 +45,8 @@ describe('list', () => {
         madeOn: '-',
         frozen: 'no',
         researchMode: 'off',
-        designGaps: 0
+        designGaps: 0,
+        realJourneyChanged: '-'
       },
       {
         id: 'plants-research-oct',
@@ -51,7 +55,8 @@ describe('list', () => {
         madeOn: '1 September 2026',
         frozen: 'no',
         researchMode: 'on',
-        designGaps: 1
+        designGaps: 1,
+        realJourneyChanged: 0
       },
       {
         id: 'plants-dr1',
@@ -60,7 +65,8 @@ describe('list', () => {
         madeOn: '1 June 2026',
         frozen: 'yes',
         researchMode: 'off',
-        designGaps: 0
+        designGaps: 0,
+        realJourneyChanged: 0
       },
       {
         id: 'sample-journey',
@@ -69,7 +75,8 @@ describe('list', () => {
         madeOn: '-',
         frozen: 'no',
         researchMode: 'off',
-        designGaps: 0
+        designGaps: 0,
+        realJourneyChanged: '-'
       }
     ])
   })
@@ -77,7 +84,38 @@ describe('list', () => {
   it('Should print a table with a heading row', () => {
     const [heading, first] = formatList(listReleases(repoRoot)).split('\n')
 
-    expect(heading).toMatch(/^Release\s+Kind\s+Made from\s+Made on/)
+    expect(heading).toMatch(
+      /^Release\s+Kind\s+Made from\s+Made on.*Design gaps\s+Real journey changed since$/
+    )
     expect(first).toMatch(/^high-risk-plants\s+Real journey, updates weekly/)
+  })
+
+  describe('after the real team changes a page', () => {
+    beforeAll(() => {
+      commitAll(repoRoot, 'Start the releases')
+      appendFileSync(path.join(repoRoot, ARRIVAL_PAGE), '// changed\n')
+      commitAll(repoRoot, 'Weekly update: arrival details')
+    })
+
+    it('Should count the changed page for every release copied before it', () => {
+      const changed = Object.fromEntries(
+        listReleases(repoRoot).map((row) => [row.id, row.realJourneyChanged])
+      )
+
+      expect(changed).toEqual({
+        'high-risk-plants': '-',
+        'plants-research-oct': 1,
+        'plants-dr1': 1,
+        'sample-journey': '-'
+      })
+    })
+
+    it('Should show the count in the drift column', () => {
+      const dr1Line = formatList(listReleases(repoRoot))
+        .split('\n')
+        .find((line) => line.startsWith('plants-dr1 '))
+
+      expect(dr1Line).toMatch(/\s1$/)
+    })
   })
 })

@@ -1,153 +1,141 @@
 # Address book pages
 
 The designer says: "change the address book", "add an address manually",
-"let users delete an address", "add a manual address page to the address
-book", "address categories" or "sort addresses by what they are used for".
+"let users delete an address", "change an address", "add a manual address
+page to the address book", "address categories" or "sort addresses by what
+they are used for".
 
 **Whose it is.** The address book belongs to the Import Notification Service
 frontend (INS), not to plants. Plants-frontend only reads it
-(`src/server/app/services/address-book/index.js` says so), and the header's
-"Address book" link goes to INS, which this prototype does not run. So
-address book pages in a design release are a fake, flagged
-**"belongs to the Import Notification Service frontend"**, and a hand-off
-says the change is for the INS team, not plants-frontend. Say both to the
-designer in the opening line.
+(`src/server/app/services/address-book/index.js`: `search` and `party`, and
+it says so), and the header's "Address book" link goes to INS, which this
+prototype does not run. So address book pages in a design release are
+flagged **"belongs to the Import Notification Service frontend"**, and a
+hand-off says the change is for the INS team, not plants-frontend. Say both
+to the designer in the opening line.
 
 ## What is there already
 
-The fake `src/server/prototype-services/address-book/` answers exactly like
-the real address book seam, plus three things the real seam cannot do:
+The prototype-owned service `src/server/app/services/ins-address-book/` is a
+copy of the INS frontend's own address book service
+(DEFRA/trade-imports-ins-frontend, `src/server/app/services/address-book/`):
+the same five operations, the same wire shape, the same
+`TRADE_IMPORTS_ADDRESS_BOOK_URL`. Its stub refuses what the real address
+book API refuses, with the API's own messages.
 
-| Function                            | Answers                                                                                                                                                                    |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `search(orgId, { query, page })`    | One page of addresses, the same shape and order as the real `search`. Starts with the stub address book and the set's extra parties.                                       |
-| `party(orgId, id)`                  | One address, or `undefined` (also for one the organisation deleted).                                                                                                       |
-| `validateAddress(fields)`           | `{}` when the fields can be saved, else `{ field: 'missing' }` for each of `name`, `addressLine1`, `townOrCity`, `country`. The words for each code go in the page's copy. |
-| `addAddress(orgId, fields)`         | Saves and returns the new address, with an `id` made from its name. Any extra answer (a `usages` list, say) is kept on the record.                                         |
-| `removeAddress(orgId, id)`          | `true` when deleted (a starter address is hidden for that organisation until Reset).                                                                                       |
-| `ADDRESS_FIELDS`, `REQUIRED_FIELDS` | The fields a form asks for, in order.                                                                                                                                      |
+| Function                                         | Answers                                                                                                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listAddresses(orgId, { page, q, countryCode })` | `{ items, page, pageSize, totalItems, totalPages }`, 25 to a page, as the API pages. Starts with the stub address book and the release's extra parties. |
+| `getAddress(orgId, id)`                          | One address. Throws an error with `status: 404` when the organisation has none by that id.                                                              |
+| `createAddress(orgId, body)`                     | Saves and returns the address, with an `id` made from its name. Any extra field (a `usages` list, say) is kept.                                         |
+| `updateAddress(orgId, id, body)`                 | Lays the changes over the address and returns it.                                                                                                       |
+| `deleteAddress(orgId, id)`                       | Deletes it (a starter address is hidden for that organisation until Reset).                                                                             |
+| `isValidationFailure(error)`                     | True for the 400 a refused save throws.                                                                                                                 |
+| `mapApiErrorsToFormErrors(error.body)`           | `{ field: message }`, the first message for each refused field.                                                                                         |
 
-Added and deleted addresses are kept per release and per organisation, saved
-across restarts on the designer's computer, and Reset brings the starters
-back.
+An address is in the INS wire shape: `name`, `addressLine1`, `addressLine2`,
+`townOrCity`, `county`, `postcode`, `countryCode` (two letters, `GB` for the
+United Kingdom), `phone`, `email`, `deleted`. The API requires `name`,
+`addressLine1`, `townOrCity`, `postcode`, `countryCode`, `phone` and `email`,
+and checks the email's format.
 
-## Step 1: let the journey see the release's address book
+**The journey's pickers follow without any change.** Every address added,
+changed or deleted through `ins-address-book` shows in the release's
+consignor, consignee, place of destination and contact pickers, and on check
+your answers, straight away. They keep importing the real
+`services/address-book/index.js`: the prototype lays the release's changes
+over the stub book it serves (`withExtraParties` in
+`src/server/prototype-data/`). Never change a picker's import.
 
-Three files in the release read the real address book. Swap one import in
-each, and every picker (consignor, consignee, place of destination, contact)
-and check your answers read the fake instead. Nothing else changes, because
-the fake answers the same two functions.
+Added, changed and deleted addresses are kept per release, and per
+organisation on the address book pages. Reset brings the starters back for
+that release only.
 
-| File in the release                                      | Was                                                  | Becomes                                                           |
-| -------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------- |
-| `journeys/linear/features/address-book-picker/render.js` | `'../../../../../../services/address-book/index.js'` | `'../../../../../../../prototype-services/address-book/index.js'` |
-| `journeys/linear/features/check-answers/controller.js`   | `'../../../../../../services/address-book/index.js'` | `'../../../../../../../prototype-services/address-book/index.js'` |
-| `journeys/linear/parties/index.js`                       | `'../../../../../services/address-book/index.js'`    | `'../../../../../../prototype-services/address-book/index.js'`    |
+## Where the imports come from
 
-Keep the `import * as addressBook from` part as it is. Then
-`grep -rn "services/address-book/index.js" src/server/app/sets/<release>` must
-list only lines that also say `prototype-services`.
+From a file in `src/server/app/sets/<release>/journeys/linear/features/<feature>/`:
 
-Skip this step only when the designer wants the address book pages on their
-own, with the pickers unchanged; say that a new address will not show in the
-pickers then.
+| Import                  | Path                                                                                                             |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| The address book API    | `'../../../../../../services/ins-address-book/index.js'`                                                         |
+| Countries for a select  | `'../../../../../../services/countries/index.js'` (`originCountries()`)                                          |
+| Shared paths, kit, copy | `'../../../../../../shared/paths.js'`, `'../../../../../../shared/kit.js'`, `'../../../../../../shared/copy.js'` |
+| The organisation        | `'../../../../../../../common/helpers/organisation-id.js'`                                                       |
 
-## Step 2: the address book list
+## Step 1: the address book list
 
-A new feature `features/address-book/` in the release, with a
-`controller.js`, a `template.njk` and a `copy/` pair. Plain paths are mounted
-under the release's address, so the page is
-`http://localhost:3103/<release>/address-book`.
+The pattern to copy is the saved transporters list in the placeholder set,
+`src/server/app/sets/sample-journey/journeys/linear/features/saved-transporters/`
+(`controller.js`, `view-model.js` and `list.njk`): a search form, a results
+table with a "Delete" link per row, and pagination. Copy it into a new
+feature `features/address-book/` in the release, then change it to the
+address book:
 
 ```js
-import { dashboardPath } from '../../../../../../shared/paths.js'
-import * as kit from '../../../../../../shared/kit.js'
-import { copyFor } from '../../../../../../shared/copy.js'
-import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
-import {
-  party,
-  search
-} from '../../../../../../../prototype-services/address-book/index.js'
-import { TEMPLATES } from '../../config.js'
-import { copy as en } from './copy/copy.en.js'
-import { copy as cy } from './copy/copy.cy.js'
-
-const view = `${TEMPLATES}/features/address-book/template`
-const copy = copyFor({ en, cy })
-const DECIMAL = 10
-export const addressBookPath = () => `${dashboardPath()}/address-book`
+import * as addressBook from '../../../../../../services/ins-address-book/index.js'
 
 const list = async (request, h) => {
-  const orgId = organisationIdOf(request)
-  const query = request.query.q ?? ''
-  const page = Number.parseInt(request.query.page, DECIMAL) || 1
-  const found = await search(orgId, { query, page })
-  const added = request.query.added
-    ? await party(orgId, request.query.added)
-    : undefined
-  return h.view(view, {
-    ...kit.base(copy.title, { backLink: dashboardPath() }),
-    contentColumnClass: kit.surfaceClass('display'),
-    copy,
-    query,
-    found,
-    addedName: added?.name,
-    deleted: request.query.deleted === '1',
-    addHref: `${addressBookPath()}/add`,
-    rows: found.results.map((address) => ({
-      ...address,
-      deleteHref: `${addressBookPath()}/${address.id}/delete`
-    }))
+  const query = String(request.query.q ?? '').trim()
+  const found = await addressBook.listAddresses(organisationIdOf(request), {
+    page: pageNumber(request.query.page),
+    q: query
   })
+  // found.items, found.totalItems, found.page, found.totalPages
 }
-
-export const routes = [
-  {
-    method: 'GET',
-    path: '/address-book',
-    options: kit.routeOptions,
-    handler: list
-  }
-]
 ```
 
-The template: a success banner for `addedName` ("<name> has been added") or
-`deleted` (`success-banner.md`), the `h1`, a search form (`govukInput` named
-`q` and a secondary `govukButton`), a `govukButton` link "Add an address" to
-`addHref`, then one `govukSummaryList` card per row (name as the card title,
-the address lines as rows, a "Delete" action to `row.deleteHref`), and
-pagination from `found`, built the way the consignor page builds it
-(`features/consignor-select/view-model/pagination.js` and its template). With no
-rows, a paragraph from copy ("No addresses match your search").
+Mount it at `'/address-book'`, so the page is
+`http://localhost:3103/<release>/address-book`. Each row shows `name` and the
+address lines joined (`addressLine1`, `townOrCity`, `postcode`), with the
+country's name from `originLabel(countryCode)` in
+`services/countries/index.js` (`United Kingdom` for `GB`). Add a success
+banner for `?added=<id>` or `?deleted=1` (`success-banner.md`).
 
-Add `...addressBook.routes` to `allRoutes` in `features/index.js`, and a link
-to the page on the release's dashboard (`addressBookHref: addressBookPath()`
-in the dashboard controller's view model). The header's "Address book" link
-is shared layout and belongs to the real service: leave it.
+In `features/index.js`, add
+`import * as addressBookPage from './address-book/controller.js'` and
+`...addressBookPage.routes` to `allRoutes`, and put a link
+to the page on the release's dashboard (`addressBookHref:
+`${dashboardPath()}/address-book`` in the dashboard controller's view
+model). The header's "Address book" link is shared layout and belongs to
+the real service: leave it.
 
-## Step 3: add an address by hand
+## Step 2: add an address by hand
 
 `features/address-book-add/controller.js`, `GET` and `POST` on
-`/address-book/add`:
+`/address-book/add`. Copy `add.njk` and the add handlers from the saved
+transporters example, and ask for the INS fields with the INS labels: name,
+address line 1, address line 2 (optional), town or city, county (optional),
+postcode, country, telephone number and email address. The field names are
+the wire names above, so the form posts straight to `createAddress`.
 
-- `GET` renders a form: `govukInput` for the name and each of
-  `ADDRESS_FIELDS` (address line 1, address line 2, town or city, postcode,
-  country, telephone, email), with labels from copy.
-- `POST` runs `validateAddress(request.payload)`. With errors, render the form
-  again with `kit.errorSummary(...)` and each field's message from copy, and
-  answer `400`. Without, save and land on the list with a banner:
+- Country: a `govukSelect` named `countryCode`, with
+  `{ value: 'GB', text: 'United Kingdom' }` first, then
+  `await originCountries()`.
+- `POST`: call `createAddress`. When it throws and `isValidationFailure`
+  says so, render the form again with the values, `kit.errorSummary(errors)`
+  and each field's message, and answer `400`. The messages come from the API
+  (`mapApiErrorsToFormErrors`); to reword one, or to give the Welsh, put the
+  page's own words in its copy keyed by field and use them first, as the
+  saved transporters example does (`formErrorsFor` in its `view-model.js`).
+- Without an error, land on the list with a banner:
 
   ```js
-  const added = await addAddress(organisationIdOf(request), request.payload)
+  const added = await addressBook.createAddress(
+    organisationIdOf(request),
+    values
+  )
   return h.redirect(
-    `${addressBookPath()}?added=${encodeURIComponent(added.id)}`
+    `${dashboardPath()}/address-book?added=${encodeURIComponent(added.id)}`
   )
   ```
 
   To come back to a picker instead (the designer went off to add an address
   from the consignor page), carry the page in a `returnTo` query and follow
   `come-back-to-where-i-was.md`: the picker ticks the new address with
-  `?selected=<id>`.
+  `?selected=<id>`, and finds it, because the pickers see the change.
+
+**Change an address.** The same form on `/address-book/{addressId}/change`,
+filled from `getAddress`, saving with `updateAddress(orgId, id, values)`.
 
 **Find an address by postcode.** The old prototype had a lookup. There is no
 address lookup service here, so build the manual form, and log a design gap:
@@ -158,17 +146,18 @@ OS Places); the prototype asks for the address by hand".
 consignee, importer). The real address book has no types on purpose: the
 same address can be a consignor on one notification and a consignee on the
 next. To test the idea, add a `govukCheckboxes` named `usages` to the add
-form. `addAddress` keeps the list on the record, and the list page can show
-it as a row or filter by it. Log it as a design gap that says the real
-address book has no categories, so it needs a decision from the INS team, not
-only a build.
+form. `createAddress` keeps the list on the record, and the list page can
+show it or filter by it. Log it as a design gap that says the real address
+book has no categories, so it needs a decision from the INS team, not only a
+build. Add a line to `openQuestions` in `CONTRACT` in
+`services/ins-address-book/index.js` too.
 
-## Step 4: "are you sure?" before deleting
+## Step 3: "are you sure?" before deleting
 
-Follow `confirm-then-act.md`, worked example, with the fake in place of
-templates: `GET` and `POST` on `/address-book/{addressId}/delete`, `party`
-to find it (redirect to the list when it is gone), `removeAddress` to delete
-it, and land on the list with `?deleted=1`. Copy:
+Follow `confirm-then-act.md`. The saved transporters example has the page
+(`delete.njk` and `showDelete`/`remove` in its `controller.js`). Use
+`getAddress` to find it (redirect to the list when it throws a 404),
+`deleteAddress` to delete it, and land on the list with `?deleted=1`. Copy:
 
 ```js
 export const copy = {
@@ -192,13 +181,14 @@ export const copy = {
    starter's id, because a new address only exists once someone adds it.
 
 3. Adding and then finding the address in a picker is a form sent and a page
-   followed, which `designer:show` cannot drive. Read the add page's `POST`
-   handler, and say the round trip was not clicked through.
+   followed, which `designer:show` cannot drive. The service's own test
+   proves the pickers follow (`ins-address-book.test.js`). Say the round
+   trip was not clicked through.
 
 ## The design gaps rows
 
 ```text
-| address-book | Address book pages: list, add by hand, delete with a check page | Fake address book (`src/server/prototype-services/address-book`) | Belongs to the Import Notification Service frontend: it owns the address book and is its only writer; plants-frontend only reads it. The INS team needs the design, not the plants team. | <frame> |
+| address-book | Address book pages: list, add by hand, change, delete with a check page | Prototype-owned service `ins-address-book` (`src/server/app/services/ins-address-book`), a copy of the INS frontend's API | Belongs to the Import Notification Service frontend: it owns the address book and is its only writer; plants-frontend only reads it. The INS team needs the design, not the plants team. | <frame> |
 ```
 
 and, when built, one row each for the postcode lookup and address categories

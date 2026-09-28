@@ -1,0 +1,60 @@
+import { createFakeStore } from '../../../prototype-support/fake-store.js'
+import {
+  idFromName,
+  searchRecords
+} from '../../../prototype-support/search-page.js'
+import { toRecord, validationError } from './client.js'
+
+/**
+ * The stub: the starter rows below, which every organisation sees, plus the
+ * records people add, kept per design release and per organisation. Reset
+ * clears what people added in that release only.
+ */
+
+/** Starter rows, in the API's shape. Use made-up names, never a real
+ * company. Give a row `setId: '<release>'` to show it in one release only. */
+export const STARTER_ROWS = Object.freeze([
+  { id: 'example-one', name: 'Example one', deleted: false },
+  { id: 'example-two', name: 'Example two', deleted: false }
+])
+
+const store = createFakeStore({ name: '__NAME__', starters: STARTER_ROWS })
+
+const text = (value) => String(value ?? '').trim()
+
+const asRecord = ({ organisationId: _organisationId, ...row }) =>
+  toRecord(row)
+
+export const list__PLURAL__ = async (orgId, { search = '', page = 1 } = {}) => {
+  const found = searchRecords(store.visible(orgId), (row) => [row.name], {
+    query: search,
+    page
+  })
+  return { ...found, results: found.results.map(asRecord) }
+}
+
+export const get__SINGULAR__ = async (orgId, id) => {
+  const row = store.find(orgId, id)
+  return row ? asRecord(row) : undefined
+}
+
+export const create__SINGULAR__ = async (orgId, body = {}) => {
+  const { crumb: _crumb, ...fields } = body
+  const name = text(fields.name)
+  if (!name) {
+    throw validationError({
+      detail: 'Validation failed',
+      errors: { name: ['Enter a name'] }
+    })
+  }
+  return asRecord(
+    store.add(orgId, {
+      ...fields,
+      id: idFromName(name, store.takenIds(orgId)),
+      name,
+      deleted: false
+    })
+  )
+}
+
+export const delete__SINGULAR__ = async (orgId, id) => store.remove(orgId, id)

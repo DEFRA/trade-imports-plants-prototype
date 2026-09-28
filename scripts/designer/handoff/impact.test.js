@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   findPinnedStrings,
   findPrototypeImports,
+  findPrototypeServiceImports,
   findWelshMarkers,
   isTestFile,
   literalsIn,
+  ownedServicesFrom,
   parseDesignGaps,
   parseResearchRules,
   relativeImportsOf,
@@ -95,17 +97,16 @@ describe('isTestFile', () => {
 })
 
 describe('findPrototypeImports', () => {
-  it('Should find an import of a prototype-only service', () => {
+  it('Should find an import of the prototype’s stub plumbing', () => {
     const source =
-      "import { search } from '../../../../../../../prototype-services/transporters/index.js'\nconst x = 1"
+      "import { createFakeStore } from '../../../../../../../prototype-support/fake-store.js'\nconst x = 1"
 
     expect(findPrototypeImports('controller.js', source)).toEqual([
       {
         file: 'controller.js',
-        specifier:
-          '../../../../../../../prototype-services/transporters/index.js',
-        kind: 'prototype-services',
-        name: 'transporters'
+        specifier: '../../../../../../../prototype-support/fake-store.js',
+        kind: 'prototype-support',
+        name: 'fake-store'
       }
     ])
   })
@@ -118,10 +119,69 @@ describe('findPrototypeImports', () => {
     ])
   })
 
-  it('Should find nothing in a file that uses only real services', () => {
-    const source = "import { ports } from '../../services/ports/index.js'"
+  it('Should find nothing in a file that uses only services', () => {
+    const source = [
+      "import { ports } from '../../services/ports/index.js'",
+      "import * as transporters from '../../services/transporters/index.js'"
+    ].join('\n')
 
     expect(findPrototypeImports('a.js', source)).toEqual([])
+  })
+})
+
+describe('ownedServicesFrom', () => {
+  it('Should name only the services folders with their own ours line', () => {
+    const overrides = {
+      ours: [
+        'src/server/app/services/transporters/**',
+        'src/server/app/services/templates/**',
+        'src/server/prototype-support/**',
+        'src/server/app/services/**',
+        'src/server/app/services/countries/index.js'
+      ]
+    }
+
+    expect([...ownedServicesFrom(overrides)]).toEqual([
+      'transporters',
+      'templates'
+    ])
+  })
+
+  it('Should name none when overrides.json is missing', () => {
+    expect(ownedServicesFrom(null).size).toBe(0)
+  })
+})
+
+describe('findPrototypeServiceImports', () => {
+  const PAGE =
+    'src/server/app/sets/plants-working/journeys/linear/features/transporter/controller.js'
+
+  it('Should find an import of a prototype-owned service by where it resolves', () => {
+    const source = [
+      "import * as transporters from '../../../../../../services/transporters/index.js'",
+      "import { originLabel } from '../../../../../../services/countries/index.js'"
+    ].join('\n')
+
+    expect(
+      findPrototypeServiceImports(PAGE, source, new Set(['transporters']))
+    ).toEqual([
+      {
+        file: PAGE,
+        kind: 'prototype-service',
+        name: 'transporters',
+        dir: 'src/server/app/services/transporters',
+        imports: 'src/server/app/services/transporters/index.js'
+      }
+    ])
+  })
+
+  it('Should not count a real service, even one with the same folder depth', () => {
+    const source =
+      "import * as ports from '../../../../../../services/ports/index.js'"
+
+    expect(
+      findPrototypeServiceImports(PAGE, source, new Set(['transporters']))
+    ).toEqual([])
   })
 })
 

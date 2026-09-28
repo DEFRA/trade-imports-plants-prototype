@@ -36,6 +36,8 @@ import { AXE_TAGS } from '../scripts/designer/show/manifest.js'
  * It runs in the journeys project, so each pull request's Playwright report
  * carries a walkthrough video per release, and the weekly sync's boot check
  * covers releases as well as the real journey.
+ *
+ * It also proves a prototype-owned service works behind real pages (below).
  */
 
 const SETS_DIR = fileURLToPath(
@@ -68,6 +70,135 @@ const expectPageMovesOn = async (page, where) => {
   ).toEqual([])
   expect(sent.outcome, `${where} did not move on`).toBe('moved')
 }
+
+/**
+ * A prototype-owned service behind real GOV.UK pages: the saved-transporters
+ * example in the placeholder set, on `src/server/app/services/transporters/`.
+ * It searches, pages, refuses an incomplete transporter with the form's own
+ * errors, adds and deletes one, and the chooser's Reset for this set puts
+ * the starter transporters back. Only the placeholder set is reset: the real
+ * journey's data is shared by every other spec.
+ */
+test.describe('a prototype-owned service behind real pages', () => {
+  const TRANSPORTERS = '/sample-journey/transporters'
+  const ADDED = 'Fit Test Haulage'
+  const STARTER = 'Copperfield Couriers'
+  const SEARCH = 'Search saved transporters'
+
+  const cell = (page, text) =>
+    page.getByRole('cell', { name: text, exact: true })
+
+  const search = async (page, text) => {
+    await page.getByLabel(SEARCH).fill(text)
+    await page.getByRole('button', { name: 'Search' }).click()
+  }
+
+  const resetThisSet = async (page) => {
+    await page.goto('/')
+    await page
+      .locator('li[data-set-id="sample-journey"]')
+      .getByRole('button', { name: 'Reset this prototype’s data' })
+      .click()
+    await expect(page.getByText('has been reset')).toBeVisible()
+  }
+
+  const addTransporter = async (page, name) => {
+    await page.goto(TRANSPORTERS)
+    await page.getByRole('link', { name: 'Add a transporter' }).click()
+    await page.getByLabel('Name', { exact: true }).fill(name)
+    await page.getByLabel('Commercial').check()
+    await page.getByLabel('Address line 1').fill('1 Depot Road')
+    await page.getByLabel('Town or city').fill('Dover')
+    await page.getByLabel('Country').fill('United Kingdom')
+    await page.getByRole('button', { name: 'Save transporter' }).click()
+  }
+
+  test('searches, pages, adds with errors, deletes and resets for its own set', async ({
+    page
+  }) => {
+    const problems = {}
+    const checkAccessibility = async (label) => {
+      const found = await seriousProblems(page)
+      if (found.length > 0) {
+        problems[label] = found
+      }
+    }
+
+    await signIn(page, { organisationId: 'fit-saved-transporters' })
+    // A retry starts from the starters, not from the last attempt's data.
+    await resetThisSet(page)
+
+    await test.step('the list pages through the starter transporters', async () => {
+      await page.goto(TRANSPORTERS)
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Saved transporters' })
+      ).toBeVisible()
+      await expect(page.getByText('Showing 5 of 7 transporters')).toBeVisible()
+      await checkAccessibility('list')
+      await page.getByRole('link', { name: 'Next' }).click()
+      await expect(page.getByText('Showing 2 of 7 transporters')).toBeVisible()
+    })
+
+    await test.step('a search finds one transporter', async () => {
+      await search(page, 'rotterdam')
+      await expect(cell(page, 'North Sea Freight BV')).toBeVisible()
+      await expect(page.getByText('Showing 1 of 1 transporters')).toBeVisible()
+    })
+
+    await test.step('an empty form shows the service’s refusals as errors', async () => {
+      await page.goto(`${TRANSPORTERS}/add`)
+      await page.getByRole('button', { name: 'Save transporter' }).click()
+      const summary = page.getByRole('alert')
+      await expect(summary).toContainText('Enter the transporter’s name')
+      await expect(summary).toContainText('Select the type of transporter')
+      await expect(summary).toContainText('Enter address line 1')
+      await checkAccessibility('add with errors')
+    })
+
+    await test.step('a new transporter can be found straight away', async () => {
+      await addTransporter(page, ADDED)
+      await expect(cell(page, ADDED)).toBeVisible()
+    })
+
+    await test.step('deleting asks first, then removes it', async () => {
+      await page.getByRole('link', { name: `Delete ${ADDED}` }).click()
+      await expect(
+        page.getByRole('heading', {
+          level: 1,
+          name: `Are you sure you want to delete ${ADDED}?`
+        })
+      ).toBeVisible()
+      await checkAccessibility('delete')
+      await page.getByRole('button', { name: 'Yes, delete it' }).click()
+      await search(page, ADDED)
+      await expect(
+        page.getByText('No transporters match your search.')
+      ).toBeVisible()
+    })
+
+    await test.step('Reset of this set brings the starters back and empties what was added', async () => {
+      await addTransporter(page, ADDED)
+      await search(page, STARTER)
+      await page.getByRole('link', { name: `Delete ${STARTER}` }).click()
+      await page.getByRole('button', { name: 'Yes, delete it' }).click()
+
+      await resetThisSet(page)
+
+      await page.goto(TRANSPORTERS)
+      await search(page, STARTER)
+      await expect(cell(page, STARTER)).toBeVisible()
+      await search(page, ADDED)
+      await expect(
+        page.getByText('No transporters match your search.')
+      ).toBeVisible()
+    })
+
+    expect(
+      problems,
+      'Serious accessibility problems (axe, WCAG 2.2 AA)'
+    ).toEqual({})
+  })
+})
 
 for (const setId of releases) {
   const setBase = `/${setId}`

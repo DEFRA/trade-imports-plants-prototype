@@ -9,7 +9,7 @@ also lists the same steps to run by hand.
 | `wording-sweep.js`   | the `change-the-words` skill  | Changes words across many pages of one release, English and Welsh together                               |
 | `port-kit-page.js`   | the `port-a-kit-page` skill   | Re-creates one old Prototype Kit page in a release and grades how closely it matches                     |
 | `prepare-handoff.js` | the `hand-off` skill, route 2 | Applies a release's change to the real journey on a `handoff/<slug>` branch, with its tests              |
-| `design-session.js`  | `CLAUDE.md` routing           | Works through a list of requests in one release: build, check, park, one gallery, one commit per request |
+| `design-session.js`  | `AGENTS.md` rule 6            | Works through a list of requests in one release: split, build, check, park, one gallery, one commit each |
 
 ## Launching a workflow
 
@@ -101,10 +101,21 @@ workflow also describes the same steps run one after another, and
    says there is no such file), start it: `design-release` section B, saved
    as its own commit. Otherwise check it is yours and not frozen:
    `npm run designer:where -- src/server/app/sets/<release>/set.js`.
-3. For each request in turn:
-   1. Pick its skill from the routing table in `CLAUDE.md`, and follow that
-      skill's `SKILL.md` to make the change, skipping its check, show and save
-      steps.
+3. Split each request into parts with `AGENTS.md`, "Working out what they
+   want": name its outcome, split it, and map each part with the Outcomes
+   table, then the Phrases table. Never refuse a vague note: split it into
+   the concrete parts the designer most likely meant, and say which reading
+   you took. A part that needs `design-release`, `research-session`,
+   `share-my-change`, `hand-off`, `port-a-kit-page`, running, checking or
+   showing is not done in the session: note what to ask for afterwards.
+   Number the parts of a split request under it (2.1, 2.2).
+4. For each part in turn:
+   1. Follow its steps file (`.claude/skills/<skill>/SKILL.md`) to make the
+      change, skipping its check, show and save steps. Change only the
+      release, its gateway, its example data, `src/server/prototype-support/`
+      and the prototype-owned service folders (each listed on its own line
+      in `ours` as `src/server/app/services/<name>/**`); never any other
+      folder under `src/server/app/services/`.
    2. Run `npm run designer:check -- --set <release>` (`--full` for
       `change-the-journey` and `fake-a-service`). If it fails, repair once.
    3. **It passed: keep it aside.** Stage its files by name,
@@ -116,13 +127,13 @@ workflow also describes the same steps run one after another, and
       the stash in one go, so they can come back:
       `git stash push --include-untracked -m "design-session parked: request <n>" -- <new files>`.
       Every other file goes back to its staged (or saved) version:
-      `git restore --worktree -- <file>`. Note the request as parked, with
+      `git restore --worktree -- <file>`. Note the part as parked, with
       the check's plain reason.
-4. Run the show once, for the whole session:
+5. Run the show once, for the whole session:
    `npm run designer:show -- --set <release> --pages changed --before`
-   (with an example-data request: `--pages changed,dashboard --examples <new slugs>`).
-5. Run `npm run designer:check -- --set <release> --full`.
-6. Save each landed request as its own commit. Requests that changed the same
+   (with an example-data part: `--pages changed,dashboard --examples <new slugs>`).
+6. Run `npm run designer:check -- --set <release> --full`.
+7. Save each landed part as its own commit. Parts that changed the same
    file go in one commit together, because git cannot split one file's
    changes between two commits. For each group:
    1. `git restore --staged -- .` (takes everything off the staging area;
@@ -136,5 +147,6 @@ workflow also describes the same steps run one after another, and
       `.cache/designer/commit.log`, and refuses paths after the message (a
       commit with paths runs the pre-commit checks against a temporary
       staging area, which their own git tests trip over).
-7. Report each request as landed (with its commit), parked (with why) or not
-   done (with why), and the gallery path. Never push.
+8. Report each part as landed (with its commit), parked (with why) or not
+   done (with why, and what to ask for instead), which requests were split
+   and how, and the gallery path. Never push.

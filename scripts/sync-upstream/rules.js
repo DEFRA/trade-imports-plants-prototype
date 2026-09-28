@@ -57,6 +57,67 @@ export const classifyPath = (filePath, overrides) => {
   return 'patched'
 }
 
+const SERVICE_FOLDER = /^src\/server\/app\/services\/([^/]+)\//
+
+/**
+ * The prototype-owned service a path sits in, or null. Only a folder that
+ * `ours` lists on its own line, as `src/server/app/services/<name>/**`,
+ * counts: every other services folder belongs to the real service.
+ */
+export const prototypeServiceOf = (filePath, overrides) => {
+  const name = SERVICE_FOLDER.exec(filePath)?.[1]
+  return name && overrides.ours.includes(`src/server/app/services/${name}/**`)
+    ? name
+    : null
+}
+
+/** Status codes for a path our side does not have: added only upstream
+ * (`A ` staged cleanly, `UA` left unmerged), or deleted by us while upstream
+ * changed it (`DU`). */
+const NOT_ON_OUR_SIDE = new Set(['A ', 'UA', 'DU'])
+
+const UNMERGED = new Set(['UU', 'AA', 'DD', 'AU', 'UA', 'UD', 'DU'])
+
+const keepOurSide = (code) => {
+  if (NOT_ON_OUR_SIDE.has(code)) {
+    return 'remove'
+  }
+  return UNMERGED.has(code) ? 'checkout-ours' : 'checkout-head'
+}
+
+/**
+ * What the sync does to a path an `ours` glob covers, from its
+ * `git status --porcelain` code after the merge.
+ *
+ * - `checkout-head` puts back our committed file (a clean upstream change).
+ * - `checkout-ours` takes our side of a conflict (an add/add clash
+ *   included).
+ * - `remove` drops a path our side does not have (added only upstream, or
+ *   deleted by us), so `ours` stays in charge. `git checkout HEAD` would fail
+ *   on it: HEAD has no such file.
+ * - `leave` is a file git does not track (`??`), which the merge did not
+ *   touch.
+ * - `service-arrived` means upstream touched a path inside a prototype-owned
+ *   service folder: the real service now has a service of that name. Our
+ *   side is kept for now (`keep` is one of the three above) and a person
+ *   retires the prototype one. Every sync says so until they do.
+ *
+ * @param {string} code - the two-letter porcelain status.
+ * @param {string} filePath - the path.
+ * @param {object} overrides - `overrides.json`, parsed.
+ * @returns {{ action: string, keep?: string, service?: string }}
+ */
+export const oursAction = (code, filePath, overrides) => {
+  if (code === '??') {
+    return { action: 'leave' }
+  }
+  const keep = keepOurSide(code)
+  const service = prototypeServiceOf(filePath, overrides)
+  return service
+    ? { action: 'service-arrived', keep, service }
+    : { action: keep }
+}
+
 /**
  * Paths declared in more than one list, so a change to overrides.json can be
  * checked for internal consistency without needing a repository to compare

@@ -3,8 +3,10 @@
 This guide takes you from nothing to a changed page you can show someone. It
 takes about an hour the first time, most of it waiting for installs.
 
-You can do every step by asking Claude Code in plain words. Each step says
-what to ask, and the command it runs, so you can also do it yourself.
+You can do every step by asking Claude Code in plain words. You never need
+to know the names of Claude's skills or commands: just say what you want. If
+Claude seems lost, say "use the design skill". Each step says what to ask,
+and the command it runs, so you can also do it yourself.
 
 ## Before you start
 
@@ -39,9 +41,9 @@ Do these once. Ask someone who has done it before if a step is new to you.
      [claude.com/claude-code](https://claude.com/claude-code), sign in, and
      start it in the prototype's folder, or
    - **Cursor** (or another coding assistant): open the prototype's folder.
-     It reads `AGENTS.md`, which points it at the same skills, so the same
-     phrases work. See "Using Cursor or another assistant" in
-     [PROTOTYPE.md](../../PROTOTYPE.md).
+     It reads `AGENTS.md`, which holds the same instructions Claude Code
+     follows, so the same words work. See "Using Cursor or another
+     assistant" in [PROTOTYPE.md](../../PROTOTYPE.md).
 6. **The GitHub command line, for pull requests (optional).** Install `gh`
    from [cli.github.com](https://cli.github.com), then run `gh auth login`
    and follow its questions. Without it, Claude gives you a link to open each
@@ -64,8 +66,8 @@ variables. The prototype makes up its own data.
 
 ## 1. Check your computer
 
-Ask: **"Run the prototype"** (Claude uses the `run-the-prototype` skill and
-does steps 1 to 3 for you).
+Ask: **"I'm new, what can I do here?"** or **"Run the prototype"**. Claude
+does steps 1 to 3 for you, then shows you what you can ask for.
 
 Or run:
 
@@ -123,6 +125,10 @@ running somewhere else, in another terminal or your editor. Open the address
 anyway. To see what holds the port, run `npm run designer:preflight`: it names
 the program and never stops it.
 
+`npm start` runs the prototype the way it runs when deployed. Like the real
+service, it then needs a Defra ID sign-in service to sign you in, so use
+`npm run dev` on your own computer.
+
 ## 4. Sign in and look around
 
 On your own computer you are signed in straight away: there is no password.
@@ -161,8 +167,7 @@ after restarts and resets. See [Example data](example-data.md).
 You never change the real journey itself. You change your own copy of it,
 called a design release.
 
-Ask: **"Start a new design release called plants-working"** (the
-`design-release` skill).
+Ask: **"Start a new design release called plants-working"**.
 
 Or run, then tidy the new lines:
 
@@ -188,8 +193,7 @@ folder under `src/server/app/sets/<your-release>/journeys/linear/features/`,
 with `copy/copy.en.js` (English) and `copy/copy.cy.js` (Welsh).
 
 Ask, for example: **"In plants-working, change the hint under 'Expected time
-of arrival' to 'Use the 24-hour clock, like 09:15 or 17:45'"** (the
-`change-the-words` skill).
+of arrival' to 'Use the 24-hour clock, like 09:15 or 17:45'"**.
 
 Or do it yourself. Open
 `src/server/app/sets/plants-working/journeys/linear/features/arrival-details/copy/copy.en.js`,
@@ -209,7 +213,7 @@ Save. The prototype restarts; refresh the page to see it. See
 
 ## 8. Check it
 
-Ask: **"Check my changes"** (the `check-my-change` skill).
+Ask: **"Check my changes"**.
 
 Or run:
 
@@ -222,7 +226,7 @@ It says pass or fail, and explains every failure in plain words. See
 
 ## 9. Show it
 
-Ask: **"Show me, before and after"** (the `show-my-change` skill).
+Ask: **"Show me, before and after"**.
 
 Or run:
 
@@ -235,12 +239,15 @@ looked in your last saved version, and makes a gallery. Open the
 `index.html` it names in your browser. It does not disturb the prototype you
 have running. See [Seeing your change](seeing-your-change.md).
 
-Your release has no "before" until you have saved it once (step 10). The
-first time, leave out `--before`.
+`--before` compares with your release's last saved version. When Claude
+started your release (step 6), it saved it straight away, so `--before`
+works from your very first change. Only a release you started yourself with
+`npm run new:set` and have not saved yet has no "before": leave out
+`--before` until you save it (step 10).
 
 ## 10. Save and share it
 
-Ask: **"Save my work"** (the `share-my-change` skill). It puts your change on
+Ask: **"Save my work"**. Claude puts your change on
 a branch of its own, writes the commit message from what changed, checks it,
 commits it and, when you say so, opens a pull request with the gallery in it.
 
@@ -254,4 +261,6 @@ it merged".
 - [Where your changes go](where-changes-go.md): which files are yours.
 - [Glossary](glossary.md): every word used in these guides.
 - When a change is agreed and should be real, ask **"hand this to the real
-  team"**.
+  team"** or **"write this up as a story the developers can pick up"**.
+- Anything else: say what you want in your own words. The table in
+  [PROTOTYPE.md](../../PROTOTYPE.md) has more examples.

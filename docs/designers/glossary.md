@@ -20,8 +20,8 @@ why. Gaps travel with the hand-off so the real team can decide.
 ## Design release
 
 Your own copy of the journey, where you make design changes freely. It is a
-set, made from the real journey (or from another release) with the
-`design-release` skill or `npm run new:set`. It lives in
+set, made from the real journey (or from another release) when you say
+"start a new design release", or with `npm run new:set`. It lives in
 `src/server/app/sets/<release-id>/`, for example `plants-dr2`. Everything in
 it is yours. Its `release.json` says what it was made from, when, and what it
 is for.
@@ -39,6 +39,12 @@ A release has one of three purposes:
   release from it.
 - **research release**: a release set up for a round of user research. It
   may have research mode on (see below).
+
+## Design skill
+
+What to say if Claude seems lost: "use the design skill", or just
+"design". Claude then works out what you want from your own words, splits it
+into parts and does each one. You never need to know any other name.
 
 ## Example
 
@@ -64,16 +70,33 @@ It is saved under `.cache/designer/show/<set-id>/` and never committed.
 ## Hand-off
 
 Preparing a change for the real plants service team. Ask Claude to "hand
-this to the real team". It writes a folder under `handoffs/` with a brief in
-plain English, screenshots, a table of changed words and a patch the team can
-apply. Nothing is sent anywhere automatically: you or a developer share the
-brief with the team.
+this to the real team", or to "write this up as a story for the developers".
+It writes a folder under `handoffs/` with a brief in plain English (and a
+copy ready to paste into Jira), screenshots, a table of changed words and a
+patch the team can apply. Nothing is sent anywhere automatically: you or a
+developer share the brief with the team.
 
 ## Needs-person
 
 A label the weekly update puts on its pull request when it cannot finish
 alone: two changes clashed, or a check failed after the merge. A person must
 sort it out before it can merge. See [Where your changes go](where-changes-go.md).
+
+## Prototype-owned service
+
+Something the real service cannot do yet, such as saved transporters or
+dashboard filters, built in this prototype so your pages can use it. It
+lives beside the real services in `src/server/app/services/<name>/`, in the
+same shape, with made-up data. It is yours, and the hand-off tells the
+developers what real backend it needs. See
+[Where your changes go](where-changes-go.md).
+
+## Real journey changed since
+
+A column in the list of releases ("which releases are there"): how many of
+the real journey's pages the real team has changed since your release was
+made. Above 0 means your release is behind. Say "I want the latest" to
+catch up.
 
 ## Real service
 

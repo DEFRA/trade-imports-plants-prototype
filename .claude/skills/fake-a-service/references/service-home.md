@@ -32,7 +32,12 @@ at `/`: the root is always the chooser.
 2. The page is `src/server/app/sets/plants-home/journeys/linear/features/welcome/`.
    Its `controller.js` renders `template.njk` at the set's own address. Give it
    a `copy/` pair (`copy.en.js` and `copy.cy.js`) and move its words there:
-   the placeholder writes them straight into the controller.
+   the placeholder writes them straight into the controller. The copy also
+   carries the placeholder's saved transporters example
+   (`features/saved-transporters/`) and the welcome page's link to it. A home
+   page does not need them: delete that folder, take
+   `savedTransporters` out of `features/index.js`, and drop the `example`
+   link from the welcome controller and template.
 
 3. Build the page from the toolbox (see
    `.claude/skills/match-the-design/references/layout-patterns.md`):

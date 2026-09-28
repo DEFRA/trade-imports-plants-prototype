@@ -2,17 +2,20 @@
 
 The dashboard lists the notifications a user's browser knows. In the real
 service the backend does the listing, and it cannot filter by status, late or
-arrival date yet. In a design release, the records wrapper
-(`src/server/prototype-services/records/`) does it instead, so the dashboard
-can have:
+arrival date yet. In a design release, the prototype-owned service
+`src/server/app/services/notification-search/` does it instead, in the real
+services' shape: its `index.js` picks `stub.js` (which filters the release's
+own records, through the records wrapper its gateway wires) or `client.js`
+(the proposed plants backend query). So the dashboard can have:
 
 - **filters**: status, commodity, late only, arrival date from and to
 - **tabs**: one list per group of statuses, for example Drafts, Submitted,
   Amended
 - **counts**: how many in each status, each tab and late
 
-All of it is fake: "needs a real service". The real backend would need the
-same filters on its list endpoint.
+It is flagged "needs a real service": the plants backend needs the same
+filters on its list endpoint, and a count. `CONTRACT` in
+`services/notification-search/index.js` writes that down for the hand-off.
 
 All the changes are in the release's own dashboard feature,
 `src/server/app/sets/<release>/journeys/linear/features/dashboard/`: the
@@ -30,7 +33,7 @@ shows an empty Commodity and Arrival on every row.
 
 A design release does not have this gap: the records wrapper fills both
 columns from each notification's own answers
-(`src/server/prototype-services/records/derived-columns.js`), so the columns
+(`src/server/prototype-support/derived-columns.js`), so the columns
 show and the commodity and date filters match. The commodity shows as its
 type ("Potatoes", "Plants for planting", "Wood and cut trees"), not the
 species. Say so when the design wants the species, and add this design gap
@@ -56,17 +59,20 @@ design has no actions at all, keep them anyway and log it:
 ## Before you start
 
 The release's gateway, `src/server/app/routes-<release>.js`, must wrap its
-records:
+records, because the notification-search stub reads them through the
+wrapper:
 
 ```js
 import { records } from './services/persistence/records/index.js'
-import { designerRecords } from '../prototype-services/records/index.js'
+import { designerRecords } from '../prototype-support/records.js'
 // …
 configureRecords(SET_ID, designerRecords(SET_ID, records))
 ```
 
-`npm run new:set` writes this for a release copied from high-risk-plants. If
-the gateway says `configureRecords(SET_ID, records)`, change it to the above.
+`npm run new:set` writes this. If the gateway says
+`configureRecords(SET_ID, records)`, change it to the above. The gateway is
+the release's own file; `src/server/prototype-support/` is stub plumbing that
+only gateways and `stub.js` files import. A dashboard page never imports it.
 
 ## What the query string can say
 
@@ -83,7 +89,7 @@ sends them:
 
 It answers:
 
-- `filters`: pass these to `listKnownWithFilters` and `countKnown`
+- `filters`: pass these to `searchNotifications` and `countNotifications`
 - `values`: what the user typed, to put back in the form
 - `errors`: `{ dateFrom: 'invalid' }` for a date that is not real,
   `{ dateTo: 'beforeFrom' }` for a "to" date before the "from" date. The words
@@ -94,31 +100,34 @@ It answers:
 
 In the release's `features/dashboard/controller.js`:
 
-1. Import the helpers (seven `../` reach `src/server/`):
+1. Import the service (six `../` reach `src/server/app/`):
 
    ```js
    import {
-     countKnown,
+     countNotifications,
      filtersFromQuery,
-     listKnownWithFilters,
+     searchNotifications,
      STATUSES
-   } from '../../../../../../../prototype-services/records/index.js'
+   } from '../../../../../../services/notification-search/index.js'
    ```
 
    and remove `listKnownJourneys` from the `engine/journey.js` import (the
    linter refuses an unused import).
 
-2. In `renderDashboard`, read the filters and use the wrapper's list in place
-   of `listKnownJourneys`:
+2. In `renderDashboard`, read the filters and use the service's search in
+   place of `listKnownJourneys`:
 
    ```js
    const { filters, values, errors, active } = filtersFromQuery(request.query)
    const listFor = (page) =>
-     listKnownWithFilters(request, { page, sort, referenceNumber, ...filters })
-   const counts = await countKnown(request, { referenceNumber, ...filters })
+     searchNotifications(request, { page, sort, referenceNumber, ...filters })
+   const counts = await countNotifications(request, {
+     referenceNumber,
+     ...filters
+   })
    ```
 
-   `listKnownWithFilters` answers in exactly the shape `listKnownJourneys` did
+   `searchNotifications` answers in exactly the shape `listKnownJourneys` did
    (`{ rows, page, size, totalElements, totalPages }`), so the rest of
    `renderDashboard` is unchanged.
 
@@ -306,14 +315,15 @@ looks like GOV.UK tabs on a wide screen and like a list of links on a phone
 (as GOV.UK tabs do), with no script. A research link can open a tab directly.
 
 In the controller (import `DEFAULT_TABS` and `openTabFor` from the same
-`records/index.js`), work out the open tab from the counts, then list only
-that tab. This replaces step 1's `listFor` and `counts` lines:
+`services/notification-search/index.js`), work out the open tab from the
+counts, then list only that tab. This replaces step 1's `listFor` and
+`counts` lines:
 
 ```js
-const counts = await countKnown(request, { referenceNumber, ...filters })
+const counts = await countNotifications(request, { referenceNumber, ...filters })
 const openTab = openTabFor(values, counts)
 const listFor = (page) =>
-  listKnownWithFilters(request, {
+  searchNotifications(request, {
     page,
     sort,
     referenceNumber,
@@ -370,7 +380,7 @@ tabs: { all: 'All', drafts: 'Drafts', submitted: 'Submitted', amended: 'Amended'
 
 If the design only needs the groups one after another, **sections** are
 simpler: each tab as its own `h2` with its count and its own list. Call
-`listKnownWithFilters` once per tab (`{ tab: 'drafts' }` and so on).
+`searchNotifications` once per tab (`{ tab: 'drafts' }` and so on).
 
 Either way, add the design gap row (same words as `match-the-design` uses):
 
@@ -431,13 +441,13 @@ export const TABS = Object.freeze({
 ```
 
 and pass them to all four calls: `filtersFromQuery(request.query, { tabs: TABS })`,
-`listKnownWithFilters(request, { …, tabs: TABS })`,
-`countKnown(request, { …, tabs: TABS })` and `openTabFor(values, counts, TABS)`.
-An empty list means every status.
+`searchNotifications(request, { …, tabs: TABS })`,
+`countNotifications(request, { …, tabs: TABS })` and
+`openTabFor(values, counts, TABS)`. An empty list means every status.
 
 ## Counts at a glance
 
-`countKnown` answers:
+`countNotifications` answers:
 
 ```js
 {

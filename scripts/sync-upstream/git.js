@@ -4,6 +4,7 @@
  * what to do with that data live in sync.js and rules.js.
  */
 import { execFileSync } from 'node:child_process'
+import process from 'node:process'
 
 const UPSTREAM_URL =
   'https://github.com/DEFRA/trade-imports-plants-frontend.git'
@@ -18,10 +19,18 @@ export const setRepoRoot = (root) => {
   repoRoot = root
 }
 
+// Without the GIT_* variables a hook exports (GIT_INDEX_FILE and the like),
+// so a call always acts on the repo in `cwd`, even from a test run by a hook.
+const gitEnv = () =>
+  Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_'))
+  )
+
 const git = (args, options = {}) =>
   execFileSync('git', args, {
     encoding: 'utf8',
     cwd: repoRoot,
+    env: gitEnv(),
     ...options
   }).trim()
 
@@ -96,9 +105,32 @@ export const mergeUpstream = () => {
   }
 }
 
-export const removePath = (path) => git(['rm', '-f', '--ignore-unmatch', path])
+export const removePath = (path) =>
+  git(['rm', '-f', '-q', '--ignore-unmatch', '--', path])
 
+/** Whether our last commit has the path. */
+export const existsInHead = (path) => {
+  try {
+    git(['cat-file', '-e', `HEAD:${path}`], {
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Puts our side of a path back: our side of a conflict, or our committed
+ * file. A path our commit does not have (added only upstream) has no side of
+ * ours to put back, so it is removed instead: `git checkout HEAD` would fail
+ * on it and stop the sync.
+ */
 export const restoreOurs = (path, { conflicted }) => {
+  if (!conflicted && !existsInHead(path)) {
+    removePath(path)
+    return
+  }
   git(['checkout', conflicted ? '--ours' : 'HEAD', '--', path])
   git(['add', path])
 }

@@ -25,8 +25,20 @@ const ARGS = {
   slug: 'arrival-time-hint',
   scope: 'all',
   paths: null,
-  includeDesignGaps: true
+  includeDesignGaps: true,
+  story: null
 }
+
+const STORY = {
+  as: 'a trader notifying potatoes',
+  want: 'to know how to write the arrival time',
+  soThat: 'I get it right the first time',
+  why: 'Traders were unsure about the "time" format, in the designer’s words.',
+  criteria: '.cache/designer/handoff/arrival.criteria.txt',
+  links: ['https://github.com/DEFRA/trade-imports-plants-prototype/pull/12']
+}
+
+const SERVICE_DIR = 'src/server/app/services/transporters'
 
 const REAL_COPY =
   'src/server/app/sets/high-risk-plants/journeys/linear/features/arrival-details/copy/copy.en.js'
@@ -110,7 +122,7 @@ describe('prepare-handoff workflow: the args contract', () => {
 
   it('Should name every missing key when args are absent', async () => {
     await expect(runWorkflow(undefined, { agent })).rejects.toThrow(
-      'missing required keys set, slug, scope, paths, includeDesignGaps'
+      'missing required keys set, slug, scope, paths, includeDesignGaps, story'
     )
     expect(agent).not.toHaveBeenCalled()
   })
@@ -136,7 +148,10 @@ describe('prepare-handoff workflow: the args contract', () => {
     [{ scope: [] }, 'scope must be "all" or a list'],
     [{ scope: 'some' }, 'scope must be "all" or a list'],
     [{ paths: 'all' }, 'paths must be null'],
-    [{ includeDesignGaps: 'yes' }, 'includeDesignGaps must be true or false']
+    [{ includeDesignGaps: 'yes' }, 'includeDesignGaps must be true or false'],
+    [{ story: 'a trader' }, 'story must be null or'],
+    [{ story: { as: 1 } }, 'story must be null or'],
+    [{ story: { links: 'https://x' } }, 'story must be null or']
   ])('Should refuse %j before any agent', async (change, message) => {
     await expect(
       runWorkflow({ ...ARGS, ...change }, { agent })
@@ -216,6 +231,63 @@ describe('prepare-handoff workflow: the run', () => {
       `npm run designer:handoff -- --set high-risk-plants --base main --slug arrival-time-hint --title "Clearer arrival time hint" --why "Traders were unsure about the 'time' format." --gaps-from plants-working`
     )
     expect(write).toContain('design-gaps.md: dashboard chips')
+  })
+
+  it('Should pass the designer’s own story words to the hand-off, and prefer their why', async () => {
+    const agent = answers()
+    await runWorkflow({ ...ARGS, story: STORY }, { agent })
+    expect(promptFor(agent, 'write')).toContain(
+      `--why "Traders were unsure about the 'time' format, in the designer’s words." --as "a trader notifying potatoes" --want "to know how to write the arrival time" --so-that "I get it right the first time" --criteria ".cache/designer/handoff/arrival.criteria.txt" --link "https://github.com/DEFRA/trade-imports-plants-prototype/pull/12" --gaps-from plants-working`
+    )
+    expect(promptFor(agent, 'write')).toContain(
+      "Never fill in the story's placeholders yourself"
+    )
+  })
+
+  it('Should triage a page that uses a prototype-owned service as upstream-ready, and only prototype data as needing a real service', async () => {
+    const agent = answers()
+    await runWorkflow(ARGS, { agent })
+    const prompt = promptFor(agent, 'triage')
+    expect(prompt).toContain(
+      'A page that imports a prototype-owned service (a folder under src/server/app/services/<name>/ that report.json lists under "servicesToBuild") is upstream-ready too'
+    )
+    expect(prompt).toContain(
+      'needs-real-service: imports src/server/prototype-data/ or src/server/prototype-support/'
+    )
+  })
+
+  it('Should bring a prototype-owned service across to the handoff branch and allow its folder', async () => {
+    const agent = answers({
+      dryRun: {
+        ...DRY_RUN,
+        report: {
+          ...DRY_RUN.report,
+          servicesToBuild: [{ name: 'transporters', dir: SERVICE_DIR }]
+        }
+      }
+    })
+    await runWorkflow(ARGS, { agent })
+    const apply = promptFor(agent, 'apply')
+    expect(apply).toContain(
+      `run \`git checkout design/plants-working-arrival-hint -- <folder>\``
+    )
+    expect(apply).toContain(`prototype-owned services: ${SERVICE_DIR}.`)
+    expect(apply).toContain(
+      `Touch nothing outside src/server/app/sets/high-risk-plants/, fit/, ${SERVICE_DIR}/.`
+    )
+    expect(promptFor(agent, 'write')).toContain(
+      `each changed path under src/server/app/sets/high-risk-plants/, fit/, ${SERVICE_DIR}/ that`
+    )
+  })
+
+  it('Should allow only the real journey and fit when no service is used', async () => {
+    const agent = answers()
+    await runWorkflow(ARGS, { agent })
+    const apply = promptFor(agent, 'apply')
+    expect(apply).toContain(
+      'Touch nothing outside src/server/app/sets/high-risk-plants/, fit/.'
+    )
+    expect(apply).not.toContain('git checkout')
   })
 
   it('Should leave design gaps out when asked', async () => {

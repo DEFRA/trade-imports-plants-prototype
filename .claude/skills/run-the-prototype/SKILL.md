@@ -1,6 +1,6 @@
 ---
 name: run-the-prototype
-description: 'Get the prototype running on the designer''s computer and hand them the links to click: checks the computer first (designer:preflight: Node version, installed packages, the picture-taking browser, and whether port 3103 is free or who holds it), installs what is missing, starts npm run dev in the background, waits until it answers, then prints the prototypes page, the set''s address and its example links. Explains once why data seems to vanish (saving a file restarts the prototype), how Reset brings the examples back and how to sign in as another organisation. Never stops a program without asking. Use when a designer says "run the prototype", "start it", "start the prototype", "open the X page", "take me to the X page", "it won''t start", "port in use", "address already in use", "where did my data go", "my notifications disappeared" or "sign in as another organisation". NOT for checking a change (use check-my-change), for screenshots or a gallery (use show-my-change), for adding or fixing example notifications (use example-data) or for making design changes.'
+description: 'Get the prototype running on the designer''s computer and hand them the links to click: checks the computer first (designer:preflight: Node version, installed packages, the picture-taking browser, and whether port 3103 is free or who holds it), installs what is missing, starts npm run dev in the background, waits until it answers, then prints the prototypes page, the set''s address and its example links. Explains once why data seems to vanish (saving a file restarts the prototype), how Reset brings the examples back and how to sign in as another organisation. Welcomes a newcomer with a table of what they can ask for, in their words. Never stops a program without asking. Use when a designer says "I''m new", "what can I do here", "where do I start", "how does this work", "run the prototype", "start it", "start the prototype", "open the X page", "take me to the X page", "it won''t start", "port in use", "address already in use", "where did my data go", "my notifications disappeared" or "sign in as another organisation". NOT for checking a change (use check-my-change), for screenshots or a gallery (use show-my-change), for adding or fixing example notifications (use example-data) or for making design changes.'
 ---
 
 # Run the prototype
@@ -29,6 +29,48 @@ plugin" or "chooser".
   editing any file, that skill runs `npm run designer:where -- <path>` and
   checks `overrides.json`: anything not in its `ours` list belongs to the
   real service and is never edited on a `design/*` branch.
+
+## New here
+
+When the designer says they are new, or asks "what can I do here?", "where do
+I start?" or "how does this work?":
+
+1. Run steps 1 to 5 below: check the computer, fix what needs doing, start
+   the prototype and give the links. If it is already running, say so and go
+   on.
+2. Run:
+
+   ```bash
+   npm run designer:release -- list
+   ```
+
+   When any release's "Real journey changed since" column is above 0, say so
+   in one line, for example: "plants-dr2 is 4 pages behind the real journey.
+   Say 'I want the latest' to catch it up." Say nothing about it when every
+   figure is 0 or the column is not there.
+
+3. Print this table as it is. Never add skill names, file names or commands
+   to it: the designer only needs the words.
+
+   | You want to                                   | Say something like                                                |
+   | --------------------------------------------- | ----------------------------------------------------------------- |
+   | Have your own copy to change                  | "start a new design release"                                      |
+   | Change words, hints, labels or errors         | "change the hint on the arrival page to …"                        |
+   | Make a page look like your Figma              | "make this page match the Figma"                                  |
+   | Add a question or page, or change the order   | "add a question asking whether the plants were grown under glass" |
+   | Show a feature the real service does not have | "importers should be able to save a vehicle they use a lot"       |
+   | Fill the dashboard with examples              | "show a few late notifications on the dashboard"                  |
+   | Get ready for a demo                          | "we've got a stakeholder demo on Thursday, get it ready"          |
+   | Get ready for user research                   | "get ready for research next week"                                |
+   | Work through notes from a crit                | "here are my notes from the crit, do all of these"                |
+   | See your change                               | "show me, before and after"                                       |
+   | Save, share or undo                           | "save my work", "make a pull request", "undo my last change"      |
+   | Give the developers a story to build from     | "write this up as a story the developers can pick up"             |
+   | Catch up with the real service                | "has the real service changed since I made my copy?"              |
+
+4. Then say: "You can also just describe what you want in your own words. If
+   I seem lost, say 'use the design skill'." Point at
+   `docs/designers/your-first-hour.md` for a guided first hour.
 
 ## Step 1: Check the computer
 
@@ -234,9 +276,11 @@ take a picture with `show-my-change`.
 
 End with what they can do next:
 
-- "Make a change, then say 'check my changes' (`check-my-change`)."
-- "Say 'show me' for pictures of your pages (`show-my-change`)."
-- "Say 'save my work' when you are happy (`share-my-change`)."
+- "Make a change, then say 'check my changes'."
+- "Say 'show me' for pictures of your pages."
+- "Say 'save my work' when you are happy."
+
+For a newcomer, print the table from "New here" instead.
 
 Then the hand-off line, word for word:
 

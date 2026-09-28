@@ -4,8 +4,76 @@ import {
   classifyPath,
   declaredOverlaps,
   matchesGlob,
-  matchesAnyGlob
+  matchesAnyGlob,
+  oursAction,
+  prototypeServiceOf
 } from './rules.js'
+
+describe('oursAction', () => {
+  const overrides = {
+    deleted: [],
+    ours: [
+      'scripts/sync-upstream/**',
+      'src/server/app/services/transporters/**'
+    ],
+    patched: []
+  }
+  const SERVICE_FILE = 'src/server/app/services/transporters/index.js'
+  const OTHER_FILE = 'scripts/sync-upstream/new.js'
+
+  test('removes an ours path added only upstream, never checking out HEAD', () => {
+    expect(oursAction('A ', OTHER_FILE, overrides)).toEqual({
+      action: 'remove'
+    })
+    expect(oursAction('UA', OTHER_FILE, overrides)).toEqual({
+      action: 'remove'
+    })
+  })
+
+  test('takes our side of an add/add clash and any other conflict', () => {
+    expect(oursAction('AA', OTHER_FILE, overrides)).toEqual({
+      action: 'checkout-ours'
+    })
+    expect(oursAction('UU', OTHER_FILE, overrides)).toEqual({
+      action: 'checkout-ours'
+    })
+  })
+
+  test('puts back our committed file after a clean upstream change', () => {
+    expect(oursAction('M ', OTHER_FILE, overrides)).toEqual({
+      action: 'checkout-head'
+    })
+  })
+
+  test('reports a real service arriving over a prototype-owned one, keeping ours', () => {
+    expect(oursAction('AA', SERVICE_FILE, overrides)).toEqual({
+      action: 'service-arrived',
+      keep: 'checkout-ours',
+      service: 'transporters'
+    })
+    expect(oursAction('A ', SERVICE_FILE, overrides)).toEqual({
+      action: 'service-arrived',
+      keep: 'remove',
+      service: 'transporters'
+    })
+  })
+
+  test('leaves an untracked file alone', () => {
+    expect(oursAction('??', OTHER_FILE, overrides)).toEqual({
+      action: 'leave'
+    })
+  })
+
+  test('counts only a services folder with its own ours line as prototype-owned', () => {
+    expect(prototypeServiceOf(SERVICE_FILE, overrides)).toBe('transporters')
+    expect(
+      prototypeServiceOf(
+        'src/server/app/services/countries/index.js',
+        overrides
+      )
+    ).toBeNull()
+  })
+})
 
 describe('matchesGlob', () => {
   test('matches a literal path exactly', () => {

@@ -211,7 +211,7 @@ describe('new:set --from high-risk-plants', () => {
   it('Should wrap the release’s records store when the wrapper is present', () => {
     const wrapper = path.join(
       repoRoot,
-      'src/server/prototype-services/records/index.js'
+      'src/server/prototype-support/records.js'
     )
     mkdirSync(path.dirname(wrapper), { recursive: true })
     writeFileSync(
@@ -224,7 +224,7 @@ describe('new:set --from high-risk-plants', () => {
     expect(records).toBe('injected')
     const gateway = read('src/server/app/routes-plants-canary.js')
     expect(gateway).toContain(
-      "import { designerRecords } from '../prototype-services/records/index.js'"
+      "import { designerRecords } from '../prototype-support/records.js'"
     )
     expect(gateway).toContain(
       'configureRecords(SET_ID, designerRecords(SET_ID, records))'

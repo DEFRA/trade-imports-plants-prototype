@@ -6,7 +6,11 @@ before removing a transporter", or "a check page before cancelling".
 GOV.UK does not use pop-up dialogs. A destructive action gets its own page:
 a question as the `h1`, a sentence saying what will happen, a red (warning)
 button to do it, and a way back that does nothing. The real journey already
-has one: deleting a notification. Copy it, in the release.
+has one: deleting a notification. Copy it, in the release. The saved
+transporters example in the placeholder set has a small one on a
+prototype-owned service too:
+`src/server/app/sets/sample-journey/journeys/linear/features/saved-transporters/`
+(`delete.njk`, and `showDelete` and `remove` in `controller.js`).
 
 ## The pattern: delete-notification
 
@@ -51,8 +55,8 @@ import { copyFor } from '../../../../../../shared/copy.js'
 import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
 import {
   deleteTemplate,
-  template
-} from '../../../../../../../prototype-services/templates/index.js'
+  getTemplate
+} from '../../../../../../services/templates/index.js'
 import { TEMPLATES } from '../../config.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
@@ -63,7 +67,7 @@ const templatesPath = () => `${dashboardPath()}/templates`
 const deletePath = (id) => `${templatesPath()}/${id}/delete`
 
 const get = async (request, h) => {
-  const found = await template(
+  const found = await getTemplate(
     organisationIdOf(request),
     request.params.templateId
   )
@@ -115,14 +119,16 @@ export const copy = {
 }
 ```
 
-and the same keys in `copy.cy.js` with `[Welsh needed]`. Add
-`...deleteTemplate.routes` to `allRoutes`, link to it from each template on
-the list page with a "Delete" link to `deletePath(template.id)`, and show a
-banner on the list for `?deleted=1`.
+and the same keys in `copy.cy.js` with `[Welsh needed]`. In
+`features/index.js`, add
+`import * as deleteTemplatePage from './delete-template/controller.js'` and
+`...deleteTemplatePage.routes` to `allRoutes`. Link to it from each template
+on the list page with a "Delete" link to `deletePath(template.id)`, and show
+a banner on the list for `?deleted=1`.
 
-A fake's delete needs no `recoverableSave`: it cannot fail the way a real
-backend can. Say so in the design gap row, because the real one will need the
-"try again" handling the notification delete has.
+The stub's delete cannot fail the way a real backend can, so the page needs
+no `recoverableSave` today. Say so in the design gap row: the real one will
+need the "try again" handling the notification delete has.
 
 ## Wording (GOV.UK)
 
@@ -138,4 +144,5 @@ in the running prototype and read it:
 `http://localhost:3103/<release>/templates/<template-id>/delete`. Press the
 way back: nothing is deleted. Press the button: the list shows the banner and
 the template is gone. Press Reset on the chooser: every saved template is
-gone, and any starter template in `data.json` is back.
+gone, and any starter template (`STARTER_TEMPLATES` in
+`src/server/app/services/templates/stub.js`) is back.

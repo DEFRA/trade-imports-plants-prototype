@@ -81,22 +81,43 @@ const TEST_FILE = /(\.test\.js|\.fit\.spec\.js)$|(^|\/)fit\//
 export const isTestFile = (filePath) => TEST_FILE.test(filePath)
 
 const PROTOTYPE_IMPORT =
-  /(?:from\s+|import\s*\(\s*|import\s+)['"]([^'"]*\bprototype-(services|data)\/([^/'"]+)[^'"]*)['"]/g
+  /(?:from\s+|import\s*\(\s*|import\s+)['"]([^'"]*\bprototype-(data|support)\/([^/'"]+)[^'"]*)['"]/g
 
 /**
- * Imports of the prototype's fake services and extra data. The real service
- * has neither, so a file that imports them cannot ship as it is.
+ * Imports of the prototype's extra data (`src/server/prototype-data/`) and its
+ * stub plumbing (`src/server/prototype-support/`). The real service has
+ * neither, so a file that imports them cannot ship as it is.
  */
 export const findPrototypeImports = (filePath, content) =>
   [...content.matchAll(PROTOTYPE_IMPORT)].map((match) => ({
     file: filePath,
     specifier: match[1],
-    kind: match[2] === 'services' ? 'prototype-services' : 'prototype-data',
+    kind: `prototype-${match[2]}`,
     name: match[3].replace(/\.js$/, '')
   }))
 
 const RELATIVE_IMPORT =
   /(?:from\s+|import\s*\(\s*|import\s+)['"](\.{1,2}\/[^'"]+)['"]/g
+
+export const SERVICES_DIR = 'src/server/app/services'
+
+const OWNED_SERVICE_GLOB = /^src\/server\/app\/services\/([^/*]+)\/\*\*$/
+
+/**
+ * The prototype-owned services: each folder under `src/server/app/services/`
+ * that `overrides.json` lists on its own line in `ours`, as
+ * `src/server/app/services/<name>/**`. Every other services folder belongs to
+ * the real service.
+ *
+ * @param {{ ours?: string[] } | null} overrides - overrides.json as data.
+ * @returns {Set<string>} the service folder names.
+ */
+export const ownedServicesFrom = (overrides) =>
+  new Set(
+    (overrides?.ours ?? [])
+      .map((glob) => OWNED_SERVICE_GLOB.exec(glob)?.[1])
+      .filter(Boolean)
+  )
 
 /**
  * The repo-relative paths a file imports with a relative specifier
@@ -109,6 +130,31 @@ export const relativeImportsOf = (filePath, content) =>
       path.posix.join(path.posix.dirname(filePath), match[1])
     )
   )
+
+const SERVICE_PATH = /^src\/server\/app\/services\/([^/]+)\//
+
+/**
+ * Imports of a prototype-owned service (kind `prototype-service`): a relative
+ * import that resolves into `src/server/app/services/<name>/`, where `<name>`
+ * is in `owned`. Real services (countries, ports, address-book) are not
+ * listed. The page travels in the patch with the service's proposed files.
+ *
+ * @param {string} filePath - the importing file, repo-relative.
+ * @param {string} content - its source.
+ * @param {Set<string>} owned - from `ownedServicesFrom`.
+ * @returns {{ file: string, kind: 'prototype-service', name: string, dir: string, imports: string }[]}
+ */
+export const findPrototypeServiceImports = (filePath, content, owned) =>
+  relativeImportsOf(filePath, content)
+    .map((resolved) => ({ resolved, name: SERVICE_PATH.exec(resolved)?.[1] }))
+    .filter(({ name }) => name && owned.has(name))
+    .map(({ resolved, name }) => ({
+      file: filePath,
+      kind: 'prototype-service',
+      name,
+      dir: `${SERVICES_DIR}/${name}`,
+      imports: resolved
+    }))
 
 const WORDS_TO_PLACE = 20
 

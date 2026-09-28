@@ -12,8 +12,12 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
-import { classifyPath } from './rules.js'
-import { buildSummary, pullRequestDecision } from './summary.js'
+import { classifyPath, oursAction } from './rules.js'
+import {
+  arrivedServices,
+  buildSummary,
+  pullRequestDecision
+} from './summary.js'
 import { runAllChecks } from './checks.js'
 import {
   commit,
@@ -37,8 +41,6 @@ import {
 
 const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), '../../..')
 
-setRepoRoot(REPO_ROOT)
-
 const parseArgs = (argv) => {
   const push = argv.includes('--push')
   const summaryIndex = argv.indexOf('--summary')
@@ -54,18 +56,58 @@ const branchNameForToday = () => {
   return `sync/upstream-${isoDate}`
 }
 
-const applyOverrideRules = (overrides) => {
-  const touched = statusPorcelain()
-  return touched.map(({ code, path: touchedPath }) => {
+const DEFAULT_GIT = Object.freeze({
+  statusPorcelain,
+  removePath,
+  restoreOurs
+})
+
+/** Carries out what `oursAction` decided for one `ours` path. */
+const applyOurs = (touchedPath, decision, git) => {
+  const keep =
+    decision.action === 'service-arrived' ? decision.keep : decision.action
+  if (keep === 'remove') {
+    git.removePath(touchedPath)
+  } else if (keep === 'checkout-ours') {
+    git.restoreOurs(touchedPath, { conflicted: true })
+  } else if (keep === 'checkout-head') {
+    git.restoreOurs(touchedPath, { conflicted: false })
+  } else {
+    // `leave`: a file git does not track; the merge never touched it.
+  }
+}
+
+/**
+ * Applies overrides.json to every path the merge touched: deleted paths are
+ * removed, `ours` paths keep our side (see `oursAction`), everything else is
+ * left as the merge made it.
+ *
+ * @param {object} overrides - overrides.json, parsed.
+ * @param {object} [git] - the git calls, swappable in tests.
+ * @returns {Array<{ path: string, rule: string, service?: string }>} what
+ * happened to each path; `rule` is `service-arrived` when the real service
+ * added a path inside a prototype-owned service folder.
+ */
+export const applyOverrideRules = (overrides, git = DEFAULT_GIT) =>
+  git.statusPorcelain().map(({ code, path: touchedPath }) => {
     const rule = classifyPath(touchedPath, overrides)
     if (rule === 'deleted') {
-      removePath(touchedPath)
-    } else if (rule === 'ours') {
-      restoreOurs(touchedPath, { conflicted: isUnmerged(code) })
+      git.removePath(touchedPath)
+      return { path: touchedPath, rule }
     }
-    return { path: touchedPath, rule }
+    if (rule !== 'ours') {
+      return { path: touchedPath, rule }
+    }
+    const decision = oursAction(code, touchedPath, overrides)
+    applyOurs(touchedPath, decision, git)
+    return decision.action === 'service-arrived'
+      ? {
+          path: touchedPath,
+          rule: 'service-arrived',
+          service: decision.service
+        }
+      : { path: touchedPath, rule }
   })
-}
 
 const remainingConflicts = () =>
   statusPorcelain()
@@ -85,10 +127,15 @@ const openPullRequest = ({
   summaryPath,
   summaryText,
   conflictedPaths,
-  checks
+  checks,
+  appliedRules
 }) => {
   pushBranch(branch)
-  const { draft, label } = pullRequestDecision({ conflictedPaths, checks })
+  const { draft, label } = pullRequestDecision({
+    conflictedPaths,
+    checks,
+    arrivedServices: arrivedServices(appliedRules)
+  })
   if (label) {
     ensureLabel(label, {
       color: 'd73a4a',
@@ -111,6 +158,7 @@ const openPullRequest = ({
 }
 
 const main = () => {
+  setRepoRoot(REPO_ROOT)
   const { push, summaryPath } = parseArgs(process.argv.slice(2))
 
   ensureUpstreamRemote()
@@ -163,9 +211,12 @@ const main = () => {
       summaryPath,
       summaryText,
       conflictedPaths,
-      checks
+      checks,
+      appliedRules
     })
   }
 }
 
-main()
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main()
+}
