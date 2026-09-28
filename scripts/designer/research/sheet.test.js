@@ -72,7 +72,7 @@ describe('buildSheet', () => {
 
   it('Should explain signing in, Reset and the checklist', () => {
     const html = sheet()
-    expect(html).toContain('Defra ID stub')
+    expect(html).toContain('you are signed in straight away too')
     expect(html).toContain('Reset this prototype’s data')
     expect(html).toContain('Reset clears the data for everyone')
     expect(html).toContain('merged to main the day before')

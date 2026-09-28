@@ -83,8 +83,8 @@ else using the same release.
 ## Signing in
 
 - **On your computer** (`npm run dev`): you are signed in straight away.
-- **Deployed prototype**: sign in through the Defra ID stub and pick any of its
-  test users. Every test user sees the same examples.
+- **Deployed prototype**: signed in straight away too, the same stub sign-in
+  `npm run dev` uses. Everyone sees the same examples.
 
 ## After the sessions
 

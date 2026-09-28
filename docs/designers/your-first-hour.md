@@ -143,9 +143,9 @@ names the program and never stops it.
 Nothing here needs the workspace docker stack. It runs the same way
 whether or not the stack is running.
 
-`npm start` runs the prototype the way it runs when deployed. Like the real
-service, it then needs a Defra ID sign-in service to sign you in, so use
-`npm run dev` on your own computer.
+`npm start` runs the prototype the way it runs when deployed, stub sign-in
+included. Use `npm run dev` on your own computer instead — it does the same
+thing, with the auto-reload a working session needs.
 
 ## 4. Sign in and look around
 

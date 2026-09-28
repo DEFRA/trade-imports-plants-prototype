@@ -18,16 +18,18 @@ Run the set's unit suite from the repo root: `npm run test:high-risk-plants`.
 The prototype maintainer reviews and merges designers' pull requests and the
 weekly sync pull requests.
 
-- **Runtime.** The prototype runs on its own stubs everywhere: locally
-  with `npm run dev`, and in CDP dev from the production image its own
-  `Dockerfile` builds. It needs a real Defra ID stub to sign anyone in —
-  `STUB_MODE`'s bypass is refused in production, the same as
-  plants-frontend — so CDP dev needs the `DEFRA_ID_*` variables in
-  `src/config/config.js` pointed at a running
-  `defradigital/trade-imports-defra-id-stub`. The pull-request boot check
-  in `.github/workflows/check-pull-request.yml` proves this every time:
-  it boots the built image beside the stub image and drives a real
-  sign-in through to the chooser.
+- **Runtime.** The prototype runs on its own stubs everywhere, sign-in
+  included: locally with `npm run dev`, and in CDP dev from the production
+  image its own `Dockerfile` builds. `STUB_MODE`'s bypass is honoured in
+  production too, by design (Sam's decision) — the deployed prototype
+  signs in exactly the way a local `npm run dev` does, so it needs no
+  Defra ID stub and no `DEFRA_ID_*` variables in CDP dev. It is
+  temporarily unprotected until CDP puts auth in front, or a later change
+  sets `STUB_MODE=false` to restore plants-frontend's own Defra ID
+  sign-in. The pull-request boot check in
+  `.github/workflows/check-pull-request.yml` proves the deployed shape
+  every time: it boots the built image in production mode and drives a
+  stub sign-in through to the chooser.
 - **Env vars.** `src/config/config.js` is the one list, with each
   variable's `doc` saying what it is for and what it defaults to. The
   redirect URLs already default to this prototype's own port (3103), not
@@ -213,9 +215,13 @@ DEFRA_ID_POLICY=b2c_1a_cui_cpdev_signupsigninsfi
 
 Alternatively set `STUB_MODE=true`, which serves stub data and signs its own
 session instead of doing the Defra ID OIDC exchange. Auth is still enforced —
-only the external round-trip is bypassed — and the switch is refused in
-production. The Playwright suite sets it for its own web server, so
-`npm run test:fit` needs no other service running.
+only the external round-trip is bypassed. Unlike plants-frontend, this
+prototype honours the switch in production too, by design (Sam's decision):
+`prototype-defaults.js` turns it on unless it is already set, so the deployed
+prototype signs in exactly the way `npm run dev` does. Set `STUB_MODE=false`
+to restore plants-frontend's own Defra ID sign-in. The Playwright suite sets
+`STUB_MODE=true` for its own web server, so `npm run test:fit` needs no other
+service running.
 
 ## Docker
 

@@ -1,12 +1,21 @@
 /**
- * The deployed prototype runs in production with STUB_MODE set. Sign-in must
- * then be plants-frontend's own Defra ID sign-in, with no stub sign-in, while
- * every data service still serves stub data and the shared example data still
- * reaches a signed-in dashboard. This covers every kind of thing the prototype
- * serves — the real journey, the chooser, the placeholder set, a prototype-owned
- * service page, and a release scaffolded from the real journey the way
- * `new:set` makes one — because each is wired up slightly differently and a
- * production boot has broken one kind before without breaking the others.
+ * The deployed prototype runs in production with STUB_MODE set — the
+ * default: `prototype-defaults.js` turns it on unless it is already set.
+ * Sign-in follows STUB_MODE everywhere, including production, by design
+ * (Sam's decision): the deployed prototype signs in exactly like a local
+ * `npm run dev` does, with stub sign-in and no Defra ID stub deployed
+ * alongside it, temporarily unprotected until CDP puts its own auth in front
+ * or a later change sets STUB_MODE=false. Every data service still serves
+ * stub data, and the shared example data still reaches a signed-in
+ * dashboard. This covers every kind of thing the prototype serves — the real
+ * journey, the chooser, the placeholder set, a prototype-owned service page,
+ * and a release scaffolded from the real journey the way `new:set` makes one
+ * — because each is wired up slightly differently and a production boot has
+ * broken one kind before without breaking the others.
+ *
+ * A second, separate production run below proves the escape hatch still
+ * works: with STUB_MODE explicitly set to `false`, sign-in falls back to
+ * plants-frontend's own Defra ID sign-in, unchanged.
  *
  * The scaffolded-release fixture is made with the same `copySetFiles`/
  * `copyRoutesFile` primitives `new:set` uses, so it proves the real copier's
@@ -39,12 +48,14 @@ vi.mock('../../auth/get-oidc-config.js', () => ({
 }))
 
 const SET_ID = 'high-risk-plants'
+const HTTP_STATUS_NOT_FOUND = 404
+const NO_REAL_SERVICE_CALLED = 'no real service should be called'
 
-const DEFRA_ID_USER = Object.freeze({
+const SIGNED_IN_USER = Object.freeze({
   contactId: 2100010101,
-  name: 'Defra ID User',
-  organisationId: 'defra-id-organisation',
-  currentRelationshipId: 'defra-id-organisation'
+  name: 'Signed-in user',
+  organisationId: 'signed-in-organisation',
+  currentRelationshipId: 'signed-in-organisation'
 })
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url))
@@ -121,7 +132,7 @@ describe('a production run with stub mode set', () => {
     config.set('stubMode', true)
 
     fetchMock = vi.fn(async () => {
-      throw new Error('no real service should be called')
+      throw new Error(NO_REAL_SERVICE_CALLED)
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -137,22 +148,22 @@ describe('a production run with stub mode set', () => {
   })
 
   describe('sign-in', () => {
-    it('Should not honour stub mode for sign-in', () => {
-      expect(mode.isStubMode()).toBe(false)
+    it('Should honour stub mode for sign-in', () => {
+      expect(mode.isStubMode()).toBe(true)
     })
 
-    it('Should not register stub sign-in', async () => {
+    it('Should register stub sign-in', async () => {
       const response = await server.inject('/auth/stub-sign-in')
 
-      expect(response.statusCode).toBe(404)
+      expect(response.statusCode).not.toBe(HTTP_STATUS_NOT_FOUND)
     })
 
-    it('Should sign in through Defra ID', () => {
+    it('Should not use Defra ID for sign-in', () => {
       const signIn = server.match('GET', '/auth/sign-in')
-      const callback = server.match('GET', '/auth/sign-in-oidc')
+      const signInOidc = server.match('GET', '/auth/sign-in-oidc')
 
-      expect(signIn.settings.auth.strategies).toEqual(['defra-id'])
-      expect(callback.settings.auth.strategies).toEqual(['defra-id'])
+      expect(signIn.settings.auth).toBe(false)
+      expect(signInOidc).toBeNull()
     })
   })
 
@@ -181,12 +192,12 @@ describe('a production run with stub mode set', () => {
         name: 'Aberdeen Harbour'
       })
       expect(
-        (await addressBook.search(DEFRA_ID_USER.organisationId)).total
+        (await addressBook.search(SIGNED_IN_USER.organisationId)).total
       ).toBeGreaterThan(0)
       expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    it('Should show the shared example data to a user signed in through Defra ID', async () => {
+    it('Should show the shared example data to a signed-in user', async () => {
       const { seedHighRiskPlants } =
         await import('../prototype-seed/seed-high-risk-plants.js')
       const { recordSeeded } = await import('../prototype-seed/registry.js')
@@ -195,7 +206,7 @@ describe('a production run with stub mode set', () => {
       const journeyIds = await seedHighRiskPlants(server)
       recordSeeded(SET_ID, journeyIds)
 
-      const user = createSeedClient(server, { credentials: DEFRA_ID_USER })
+      const user = createSeedClient(server, { credentials: SIGNED_IN_USER })
       const dashboard = await user.get(`/${SET_ID}`)
 
       expect(dashboard.statusCode).toBe(200)
@@ -242,6 +253,56 @@ describe('a production run with stub mode set', () => {
   })
 })
 
+describe('a production run with STUB_MODE=false', () => {
+  let server
+  let fetchMock
+  let mode
+
+  beforeAll(async () => {
+    vi.resetModules()
+    const { config } = await import('../../config/config.js')
+    config.set('isProduction', true)
+    config.set('stubMode', false)
+
+    fetchMock = vi.fn(async () => {
+      throw new Error(NO_REAL_SERVICE_CALLED)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    mode = await import('../common/services/mode.js')
+    const { createServer } = await import('../server.js')
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    vi.unstubAllGlobals()
+    await server.stop({ timeout: 0 })
+  })
+
+  it('Should not honour stub mode for sign-in', () => {
+    expect(mode.isStubMode()).toBe(false)
+  })
+
+  it('Should not register stub sign-in', async () => {
+    const response = await server.inject('/auth/stub-sign-in')
+
+    expect(response.statusCode).toBe(HTTP_STATUS_NOT_FOUND)
+  })
+
+  it('Should sign in through Defra ID, the same as plants-frontend', () => {
+    const signIn = server.match('GET', '/auth/sign-in')
+    const callback = server.match('GET', '/auth/sign-in-oidc')
+
+    expect(signIn.settings.auth.strategies).toEqual(['defra-id'])
+    expect(callback.settings.auth.strategies).toEqual(['defra-id'])
+  })
+
+  it('Should still serve stub data', () => {
+    expect(mode.isStubDataMode()).toBe(true)
+  })
+})
+
 describe('a release scaffolded from the real journey, in a production run with stub mode set', () => {
   let copyRoot
   let server
@@ -263,7 +324,7 @@ describe('a release scaffolded from the real journey, in a production run with s
     config.set('root', REPO_ROOT)
 
     fetchMock = vi.fn(async () => {
-      throw new Error('no real service should be called')
+      throw new Error(NO_REAL_SERVICE_CALLED)
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -286,7 +347,7 @@ describe('a release scaffolded from the real journey, in a production run with s
     }
   })
 
-  it('Should require Defra ID sign-in, the same as the real journey', async () => {
+  it('Should require sign-in, the same as the real journey', async () => {
     const response = await server.inject({
       method: 'GET',
       url: FIXTURE_SET_BASE
@@ -295,11 +356,11 @@ describe('a release scaffolded from the real journey, in a production run with s
     expect(response.statusCode).not.toBe(200)
   })
 
-  it('Should render its dashboard with stub data for a user signed in through Defra ID', async () => {
+  it('Should render its dashboard with stub data for a signed-in user', async () => {
     const response = await server.inject({
       method: 'GET',
       url: FIXTURE_SET_BASE,
-      auth: signedIn(DEFRA_ID_USER)
+      auth: signedIn(SIGNED_IN_USER)
     })
 
     expect(response.statusCode).toBe(200)

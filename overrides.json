@@ -59,7 +59,7 @@
     },
     {
       "path": "src/server/common/services/mode.js",
-      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. isStubMode() is untouched, so sign-in (server.js, plugins/auth.js) follows plants-frontend exactly. Covered by src/server/prototype-sets/production-run.test.js"
+      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. Also changes isStubMode() itself to honour STUB_MODE in production, by design (Sam's decision): the deployed prototype signs in exactly like a local `npm run dev` — stub sign-in, temporarily unprotected — unless STUB_MODE=false restores plants-frontend's own Defra ID sign-in. Covered by src/server/prototype-sets/production-run.test.js"
     },
     {
       "path": "src/server/app/services/persistence/records/index.js",
@@ -99,7 +99,7 @@
     },
     {
       "path": "README.md",
-      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed"
+      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed; the AUTHENTICATION section notes that STUB_MODE is honoured in production too (Sam's decision), unlike plants-frontend"
     },
     {
       "path": "Dockerfile",

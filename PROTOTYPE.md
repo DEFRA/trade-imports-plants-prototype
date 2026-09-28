@@ -97,20 +97,20 @@ Very close, with these differences. All of them are known.
 
 ## Known gaps
 
-- **It is not deployed yet.** Its own `Dockerfile` builds and boots it in
-  CDP dev, alongside the Defra ID stub, and every pull request's checks
-  prove that boot works — but nobody has stood up the CDP environment
-  itself yet. Until it is deployed, run demos and research sessions from a
-  laptop with `npm run dev`. The research sheet prints a local link for
-  each task.
+- **It is not deployed yet.** Its own `Dockerfile` builds and boots it with
+  stub sign-in, same as `npm run dev`, and every pull request's checks prove
+  that boot works — but nobody has stood up the CDP environment itself yet.
+  Until it is deployed, run demos and research sessions from a laptop with
+  `npm run dev`. The research sheet prints a local link for each task.
 - **No custom styles or scripts yet**, as above: they are design gaps.
 
 ## Deploying and merging
 
 Once deployed, the maintainer puts its address here and in `deployedUrl`
-in `scripts/designer/prototype.json`. It signs you in through the Defra ID
-stub, the same test sign-in the real service uses: pick any test user, and
-sign out and in again to change user.
+in `scripts/designer/prototype.json`. It signs you in with stub sign-in,
+same as `npm run dev`: anyone who reaches the link is signed in
+automatically, deliberately and temporarily, until CDP puts its own auth in
+front or a later change restores real sign-in.
 
 The deployed prototype only changes when a pull request is merged into
 `main`. Your pull request is reviewed and merged by the prototype maintainer

@@ -212,8 +212,9 @@ http://localhost:3103/auth/stub-sign-in?organisationId=example-organisation-b
 ```
 
 To go back, sign out (`http://localhost:3103/auth/sign-out`) and sign in again.
-The deployed prototype signs in through the Defra ID stub: pick a test user in
-the organisation you want, and use that organisation's id in the example.
+The deployed prototype signs in the same way, with the same stub sign-in: use
+the same `?organisationId=` link against its own address instead of
+`localhost:3103`.
 
 ## Extra parties, ports and countries
 

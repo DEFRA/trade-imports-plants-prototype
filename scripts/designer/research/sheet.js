@@ -182,7 +182,7 @@ export const buildSheet = ({
   <h2>Signing in</h2>
   <ul>
     <li><strong>On your computer</strong> (<code>npm run dev</code>): you are signed in straight away. There is no name or password.</li>
-    <li><strong>Deployed prototype</strong>: sign in through the Defra ID stub and pick any of its test users. Every test user sees the same example notifications.</li>
+    <li><strong>Deployed prototype</strong>: you are signed in straight away too, the same way. Everyone sees the same example notifications.</li>
   </ul>
 
   <h2>Reset between participants</h2>

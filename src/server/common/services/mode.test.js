@@ -26,10 +26,10 @@ describe('#isStubMode', () => {
     expect(isStubMode()).toBe(true)
   })
 
-  test('Should be off in production even when the flag is set', () => {
+  test('Should be on in production when the flag is set', () => {
     withConfig({ stubMode: true, isProduction: true })
 
-    expect(isStubMode()).toBe(false)
+    expect(isStubMode()).toBe(true)
   })
 
   test('Should be off when the flag is not set', () => {
