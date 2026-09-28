@@ -32,7 +32,24 @@
     ".github/workflows/sync-upstream.yml",
     "src/server/prototype-seed/**",
     "scripts/new-set/**",
-    "PROTOTYPE.md"
+    "PROTOTYPE.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".claude/rules/**",
+    "docs/designers/**",
+    "scripts/designer/**",
+    "src/server/prototype-checks/**",
+    "src/server/prototype-data/**",
+    "src/server/prototype-support/**",
+    "src/server/app/services/transporters/**",
+    "src/server/app/services/templates/**",
+    "src/server/app/services/ins-address-book/**",
+    "src/server/app/services/notification-search/**",
+    "fit/designer-sets.fit.spec.js",
+    "fit/walkthroughs/**",
+    "scripts/reports/**",
+    ".github/workflows/prune-reports.yml",
+    "handoffs/**"
   ],
   "patched": [
     {
@@ -45,7 +62,7 @@
     },
     {
       "path": "src/server/common/services/mode.js",
-      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. isStubMode() is untouched, so sign-in (server.js, plugins/auth.js) follows plants-frontend exactly. Covered by src/server/prototype-sets/production-run.test.js"
+      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. Also changes isStubMode() itself to honour STUB_MODE in production, by design (Sam's decision): the deployed prototype signs in exactly like a local `npm run dev` — stub sign-in, temporarily unprotected — unless STUB_MODE=false restores plants-frontend's own Defra ID sign-in. Covered by src/server/prototype-sets/production-run.test.js"
     },
     {
       "path": "src/server/app/services/persistence/records/index.js",
@@ -53,23 +70,23 @@
     },
     {
       "path": "src/server/app/services/address-book/index.js",
-      "why": "picks the stub address book with isStubDataMode() in place of isStubMode(), so production keeps the stub book"
+      "why": "picks the stub address book with isStubDataMode() in place of isStubMode(), so production keeps the stub book; also wraps the stub rows with the src/server/prototype-data overlay (withExtraParties), one import and one declaration, so a set's extra parties come after the stub rows"
     },
     {
       "path": "src/server/app/services/countries/index.js",
-      "why": "serves the stub countries with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+      "why": "serves the stub countries with isStubDataMode() in place of isStubMode(), so production never calls reference data; also wraps the stub labels with the src/server/prototype-data overlay (withExtraCountries), one import and one declaration, so a set's extra countries come after the stub rows"
     },
     {
       "path": "src/server/app/services/ports/index.js",
-      "why": "serves the stub ports with isStubDataMode() in place of isStubMode(), so production never calls reference data"
+      "why": "serves the stub ports with isStubDataMode() in place of isStubMode(), so production never calls reference data; also wraps the stub ports with the src/server/prototype-data overlay (withExtraPorts), one import and one declaration, so a set's extra ports come after the stub rows"
     },
     {
       "path": "src/config/config.js",
-      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: the Defra ID service id default and the development auth cookie name"
+      "why": "default port is 3103 (the real twin's plus 100); the Defra ID redirect and sign-out redirect URLs default to this port too, not plants-frontend's 3003, so a local prototype signs back in to itself; plus the identity lines: the Defra ID service id default and the development auth cookie name; and tradeImportsInsFrontend.baseUrl has no env binding and defaults to the dead https://address-book.invalid, so the header's address book link can never resolve to a real Import Notification Service, in CDP or against the local dev stack"
     },
     {
       "path": "src/config/config.test.js",
-      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in"
+      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in; one describe block pinning the Defra ID redirect and sign-out redirect defaults to port 3103; and a test proving TRADE_IMPORTS_INS_FRONTEND_URL is ignored, so the address book link's dead default cannot be overridden"
     },
     {
       "path": "src/server/router.js",
@@ -81,11 +98,11 @@
     },
     {
       "path": "src/server/app/co-residency.test.js",
-      "why": "sample-journey routes are excluded from the root-surface list, the chooser's /reset/{setId} joins it, and / lists the sets rather than redirecting"
+      "why": "sample-journey and every scaffolded design release are left out of the root-surface list by their mounted prefix; the chooser's /reset/{setId} and /examples/{setId}/{example} join it; / lists the sets rather than redirecting"
     },
     {
       "path": "README.md",
-      "why": "prototype identity and port 3103; Lighthouse, SonarCloud and workspace-stack sections trimmed"
+      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed; the AUTHENTICATION section notes that STUB_MODE is honoured in production too (Sam's decision), unlike plants-frontend"
     },
     {
       "path": "Dockerfile",
@@ -93,7 +110,7 @@
     },
     {
       "path": "package.json",
-      "why": "name is prototype identity, plus the sync:upstream and new:set scripts; scripts and dependencies otherwise follow upstream"
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge, which CI uses to merge the FIT and walkthrough reports into the one published to GitHub Pages; scripts and dependencies otherwise follow upstream"
     },
     {
       "path": "package-lock.json",
@@ -105,15 +122,19 @@
     },
     {
       "path": ".gitignore",
-      "why": "lighthouse ignore entries were trimmed; everything else keeps tracking upstream"
+      "why": "lighthouse ignore entries were trimmed, and walkthrough-results/ and merged/ (the walkthrough and merged Playwright report output) are added; everything else keeps tracking upstream"
     },
     {
       "path": "scripts/npm-version.js",
       "why": "its doc comment names the prototype workflows that still pin npm with it (plants-frontend's no longer do)"
     },
     {
+      "path": "eslint.config.js",
+      "why": "one import of scripts/designer/eslint-rules and three blocks appended at the end of the array: route-params-validated over src/server/app/sets/**, post-handler-validates over design-release add/edit/controller files (never high-risk-plants), and service-barrel-imports over services/*/index.js and client.js. The house conventions a designer's change must meet, checked by lint"
+    },
+    {
       "path": "playwright.config.js",
-      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty"
+      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty; plus an opt-in 'walkthroughs' project (PROTOTYPE_WALKTHROUGHS=true) for fit/walkthroughs, and PLAYWRIGHT_RECORD_EVERYTHING=true turning video, trace and screenshots on for every project, for the published report"
     }
   ]
 }

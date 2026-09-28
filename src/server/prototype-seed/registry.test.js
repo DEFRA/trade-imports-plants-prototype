@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   clearSeeded,
   hasBeenSeeded,
+  organisationIdsFor,
+  recordExamples,
   recordSeeded,
+  seededExamplesFor,
   seededIdsFor
 } from './registry.js'
 
@@ -58,5 +61,37 @@ describe('the seed registry', () => {
     clearSeeded(SET_A)
 
     expect(hasBeenSeeded(SET_A)).toBe(false)
+  })
+
+  describe('examples made for one organisation', () => {
+    const example = (journeyId, organisationId, status = 'submitted') => ({
+      slug: journeyId,
+      journeyId,
+      organisationId,
+      status
+    })
+
+    beforeEach(() => {
+      recordExamples(SET_A, [
+        example('shared', null),
+        example('theirs', 'org-b'),
+        example('theirs-deleted', 'org-b', 'deleted'),
+        example('someone-else', 'org-c')
+      ])
+    })
+
+    it('Should give an organisation only its own examples that are still listed', () => {
+      expect(organisationIdsFor(SET_A, 'org-b')).toEqual(['theirs'])
+      expect(organisationIdsFor(SET_A, 'org-z')).toEqual([])
+      expect(organisationIdsFor(SET_A, undefined)).toEqual([])
+    })
+
+    it('Should keep every example as made, and forget them when the set is cleared', () => {
+      expect(seededExamplesFor(SET_A)).toHaveLength(4)
+
+      clearSeeded(SET_A)
+
+      expect(seededExamplesFor(SET_A)).toEqual([])
+    })
   })
 })

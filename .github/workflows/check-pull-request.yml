@@ -1,5 +1,9 @@
 name: Check Pull Request
 
+# Besides checking a pull request, this publishes one merged Playwright report
+# (FIT tests and walkthroughs, with video, pictures and trace) to gh-pages:
+# reports/pr-<n>/ for a pull request, reports/main/ for main (a push, the
+# Monday run, or a manual run on main). prune-reports.yml cleans them up.
 on:
   schedule:
     - cron: '0 7 * * 1'
@@ -11,6 +15,19 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer run for the same pull request replaces an older one, so an older
+# report never lands on top of a newer one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pr-validator:
@@ -50,6 +67,181 @@ jobs:
           set +e
           docker build --no-cache --tag trade-imports-plants-prototype .
           exit $?
+
+  # Proves the built image is the thing that reaches CDP dev, not just that it
+  # builds: boots it in NODE_ENV=production and drives a full stub sign-in,
+  # the same route a trader takes on the deployed prototype. Production
+  # deliberately honours STUB_MODE (Sam's decision — see mode.js and
+  # production-run.test.js), so no Defra ID stub is needed here. Runs after
+  # pr-validator so it never boots an image that failed unit tests or the
+  # plain `docker build`.
+  boot-check:
+    name: Production boot check
+    runs-on: ubuntu-latest
+    needs: pr-validator
+    timeout-minutes: 15
+    env:
+      APP_PORT: 3103
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build the image under test
+        run: docker build --tag trade-imports-plants-prototype .
+
+      - name: Start the prototype
+        run: |
+          docker run -d --name plants-prototype \
+            -p "${APP_PORT}:${APP_PORT}" \
+            -e NODE_ENV=production \
+            -e "PORT=${APP_PORT}" \
+            -e STUB_MODE=true \
+            -e SESSION_COOKIE_SECURE=false \
+            trade-imports-plants-prototype
+
+      - name: Wait for the prototype to report healthy
+        run: |
+          for _ in $(seq 1 30); do
+            curl --fail --silent "http://localhost:${APP_PORT}/health" && exit 0
+            sleep 2
+          done
+          echo "The prototype never became healthy" >&2
+          docker logs plants-prototype
+          exit 1
+
+      - name: Assert the chooser and a real page's sign-in are wired up
+        run: |
+          chooser_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://localhost:${APP_PORT}/")
+          if [ "$chooser_status" != "200" ]; then
+            echo "Expected the chooser at / to be 200 signed out, got $chooser_status" >&2
+            exit 1
+          fi
+
+          # The prototype's own `/` is the chooser, not a redirect (it stands
+          # in for plants-frontend's redirect to its default set — see
+          # src/server/prototype-sets/index.js) — a real set behind it is
+          # where sign-in is enforced, the same as plants-frontend's `/`.
+          # Only the path is checked: the query (today
+          # ?redirect=%2Fhigh-risk-plants, to come back after sign-in) is the
+          # app's own business and allowed on purpose.
+          real_set_redirect=$(curl --silent --output /dev/null --write-out '%{redirect_url}' "http://localhost:${APP_PORT}/high-risk-plants")
+          redirect_path="${real_set_redirect%%\?*}"
+          case "$redirect_path" in
+            http://*|https://*) redirect_path="/${redirect_path#*://*/}" ;;
+          esac
+          if [ "$redirect_path" != "/auth/sign-in" ]; then
+            echo "Expected /high-risk-plants to redirect to /auth/sign-in signed out, got: $real_set_redirect" >&2
+            exit 1
+          fi
+
+      - name: Sign in with stub sign-in and reach the chooser
+        run: |
+          jar="$RUNNER_TEMP/boot-check-cookies.txt"
+
+          chooser_page=$(curl --silent --cookie-jar "$jar" --cookie "$jar" --location "http://localhost:${APP_PORT}/auth/sign-in")
+          if ! echo "$chooser_page" | grep -q 'href="/high-risk-plants"'; then
+            echo "Did not land back on the chooser after sign-in" >&2
+            exit 1
+          fi
+
+          echo "BOOT_CHECK_COOKIE_JAR=$jar" >> "$GITHUB_ENV"
+
+      - name: Open a release page
+        run: |
+          status=$(curl --silent --cookie "$BOOT_CHECK_COOKIE_JAR" --output /dev/null --write-out '%{http_code}' "http://localhost:${APP_PORT}/high-risk-plants")
+          if [ "$status" != "200" ]; then
+            echo "Expected the high-risk-plants dashboard to be 200 signed in, got $status" >&2
+            exit 1
+          fi
+
+      - name: Open an example link
+        run: |
+          status=$(curl --silent --cookie "$BOOT_CHECK_COOKIE_JAR" --location --output /dev/null --write-out '%{http_code}' "http://localhost:${APP_PORT}/examples/high-risk-plants/submitted")
+          if [ "$status" != "200" ]; then
+            echo "Expected the submitted example link to be 200 signed in, got $status" >&2
+            exit 1
+          fi
+
+      - name: Show container logs
+        if: failure()
+        run: docker logs plants-prototype || true
+
+      - name: Tear down
+        if: always()
+        run: docker rm --force plants-prototype || true
+
+  # Proves on every pull request — and every Monday, after the weekly update
+  # from plants-frontend — that a designer can still make a design release
+  # from the real journey: the copy boots, lints, passes the unit suite and
+  # shows on the chooser. Runs after the unit tests. The release it makes is
+  # thrown away at the end and never committed.
+  release-canary:
+    name: Design release canary
+    runs-on: ubuntu-latest
+    needs: pr-validator
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Align npm with the version pinned in package.json
+        run: npm install --global "$(node scripts/npm-version.js)"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # plants-working is the id every designer's first release gets
+      # (CLAUDE.md rule 9), and designer docs name example paths inside it, so
+      # the canary proves that exact release can be saved.
+      - name: Make a throwaway design release from the real journey
+        run: npm run new:set -- plants-working --from high-risk-plants --title "Working release" --describe "A throwaway copy of the real journey, made by CI"
+
+      # designer:check --full is what a designer runs before saving: the
+      # quick checks (copy usage, templates, the prototype checks), then the
+      # pre-commit hook's own format check, lint and unit tests. Running it
+      # here catches a weekly update that changes the real journey's shape in
+      # a way the checks do not yet understand, before a designer meets it.
+      - name: Tidy the release's new lines, as new:set asks
+        run: npm run designer:format
+
+      - name: Full designer check with the release mounted
+        run: npm run designer:check -- --set plants-working --full
+
+      - name: Install the Playwright browser
+        run: npm run playwright:install
+
+      - name: Chooser boot check with the release mounted
+        run: npm run test:fit -- --project=journeys fit/sets-chooser.fit.spec.js
+
+      # Proves a brand-new release gets its walkthrough with no designer
+      # effort: made from its examples at run time, nothing written for it.
+      - name: Walk the throwaway release through
+        run: npm run designer:walkthrough -- --ci --set plants-working
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-canary-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+            walkthrough-results/
+            .cache/designer/walkthrough/
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Throw the canary release away
+        if: always()
+        run: |
+          git restore .
+          git clean -fdq -- src/server
 
   # Deliberately a separate job from pr-validator. `npm audit` scans the whole
   # installed tree against a live advisory feed, so a newly published advisory
@@ -110,8 +302,13 @@ jobs:
       - name: Install the Playwright browser
         run: npm run playwright:install
 
+      # Video, pictures and trace for every test, for the published report.
+      # The last --reporter wins, so this adds a blob report (merged below)
+      # to test:fit:ci's own reporters.
       - name: Run the frontend-owned Playwright suites
-        run: npm run test:fit:ci
+        env:
+          PLAYWRIGHT_RECORD_EVERYTHING: 'true'
+        run: npm run test:fit:ci -- --reporter=list,github,html,blob
 
       - name: Upload Playwright report
         if: always()
@@ -122,3 +319,245 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 14
+
+      - name: Upload the blob report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-fit
+          path: blob-report/
+          retention-days: 3
+
+  # Documentation, not a gate: every set's examples walked through page by
+  # page, made at run time from fit/walkthroughs/. A story that stops part way
+  # is a warning; this job fails only when the walkthroughs could not run at
+  # all. Never make it a required check.
+  walkthroughs:
+    name: Walkthroughs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Align npm with the version pinned in package.json
+        run: npm install --global "$(node scripts/npm-version.js)"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the Playwright browser
+        run: npm run playwright:install
+
+      - name: Walk every set through
+        run: npm run designer:walkthrough -- --ci
+
+      - name: Upload the blob report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-walkthroughs
+          path: blob-report/
+          retention-days: 3
+
+      - name: Upload the walkthrough results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: walkthrough-results
+          path: |
+            walkthrough-results/
+            test-results/
+          retention-days: 14
+
+  # One report holding the FIT tests and the walkthroughs. Playwright names a
+  # blob report after the command that made it (report.zip, or
+  # report-<project>-<hash>.zip), so each is copied under its job's name to
+  # be sure two never collide.
+  merge-report:
+    name: Merge the Playwright report
+    runs-on: ubuntu-latest
+    needs: [playwright, walkthroughs]
+    if: always() && (needs.playwright.result != 'skipped' || needs.walkthroughs.result != 'skipped')
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Align npm with the version pinned in package.json
+        run: npm install --global "$(node scripts/npm-version.js)"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download the blob reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: blob-*
+          path: all-blobs
+
+      - name: Put the blob reports side by side
+        run: |
+          mkdir -p merged-blobs
+          for part in fit walkthroughs; do
+            found=false
+            for zip in all-blobs/blob-${part}/*.zip; do
+              [ -f "$zip" ] || continue
+              cp "$zip" "merged-blobs/${part}-$(basename "$zip")"
+              found=true
+            done
+            if [ "$found" = false ]; then
+              echo "No ${part} report to merge."
+            fi
+          done
+          ls merged-blobs
+
+      - name: Merge them into one report
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            export REPORT_TITLE="Plants prototype, PR #${PR_NUMBER}: ${HEAD_REF}"
+          else
+            export REPORT_TITLE="Plants prototype, ${REF_NAME} at ${SHA:0:7}"
+          fi
+          npm run reports:merge -- merged-blobs
+
+      - name: Upload the merged report
+        uses: actions/upload-artifact@v7
+        with:
+          name: prototype-playwright-report
+          path: |
+            playwright-report/
+            merged/report.json
+          retention-days: 14
+
+  # Publishes the merged report to gh-pages, then comments its link on the
+  # pull request. When GitHub Pages is not turned on, the comment points at
+  # the prototype-playwright-report download instead, and nothing fails.
+  # Skipped for a pull request from a fork or one Dependabot pushed to: both
+  # get a read-only token, so the push and the comment could only fail. Their
+  # report is still in the prototype-playwright-report download.
+  publish-report:
+    name: Publish the Playwright report
+    runs-on: ubuntu-latest
+    needs: merge-report
+    if: >
+      always() &&
+      needs.merge-report.result == 'success' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pages: read
+      pull-requests: write
+      issues: write
+    concurrency:
+      group: pages-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download the merged report
+        uses: actions/download-artifact@v8
+        with:
+          name: prototype-playwright-report
+          path: .
+
+      - name: Work out where the report goes
+        id: destination
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            echo "folder=pr-${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          else
+            echo "folder=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Replaces only this folder, so the last run's videos go with it. The
+      # first run creates gh-pages.
+      - name: Publish to gh-pages
+        id: deploy
+        continue-on-error: true
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
+          destination_dir: reports/${{ steps.destination.outputs.folder }}
+          keep_files: false
+
+      - name: Find the report's web address
+        id: address
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DEPLOYED: ${{ steps.deploy.outcome }}
+          FOLDER: ${{ steps.destination.outputs.folder }}
+        run: |
+          # gh api prints the error body to stdout on a 404, so keep the
+          # address only when the call succeeded and it is a real https URL.
+          site=""
+          if found=$(gh api "repos/${REPO}/pages" --jq .html_url 2>/dev/null); then
+            case "$found" in
+              https://*) site="$found" ;;
+            esac
+          fi
+          if [ "$DEPLOYED" = "success" ] && [ -n "$site" ]; then
+            case "$site" in
+              */) ;;
+              *) site="${site}/" ;;
+            esac
+            echo "url=${site}reports/${FOLDER}/" >> "$GITHUB_OUTPUT"
+          else
+            echo "GitHub Pages is not on (or publishing failed), so there is no web link. The report is in the prototype-playwright-report download."
+            echo "url=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write the report comment
+        env:
+          REPORT_URL: ${{ steps.address.outputs.url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/reports/pr-comment.js merged/report.json > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          ids=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- prototype-playwright-report -->")) | .id')
+          existing="${ids%%$'\n'*}"
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/${REPO}/issues/comments/${existing}" -F body=@comment.md
+          else
+            gh api --method POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@comment.md
+          fi

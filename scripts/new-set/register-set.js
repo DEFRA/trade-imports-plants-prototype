@@ -37,3 +37,56 @@ export const registerSet = (prototypeSetsIndexPath, { setId }) => {
   )
   writeFileSync(prototypeSetsIndexPath, withRegister)
 }
+
+/**
+ * The three things `registerSet` adds, as patterns that also match them after
+ * `npm run format` has re-wrapped them.
+ */
+const mountPatterns = (setId) => {
+  const pluginName = camelCase(setId)
+  const baseConst = `${screamingSnakeCase(setId)}_BASE`
+  return [
+    new RegExp(
+      String.raw`import\s*\{\s*${pluginName}\s*\}\s*from\s*'\.\./app/routes-${setId}\.js'\n`
+    ),
+    new RegExp(
+      String.raw`import\s*\{\s*SET_BASE as ${baseConst}\s*\}\s*from\s*'\.\./app/sets/${setId}/set\.js'\n`
+    ),
+    new RegExp(
+      String.raw`[ \t]*await server\.register\(\s*${pluginName},\s*\{\s*routes:\s*\{\s*prefix:\s*${baseConst}\s*\}\s*\}\s*\)\n`
+    )
+  ]
+}
+
+/** Whether `prototype-sets/index.js` already mounts the set. */
+export const isRegistered = (prototypeSetsIndexPath, { setId }) => {
+  const content = readFileSync(prototypeSetsIndexPath, 'utf8')
+  return mountPatterns(setId).every((pattern) => pattern.test(content))
+}
+
+/** The set ids `prototype-sets/index.js` imports a gateway for. */
+export const registeredSetIds = (prototypeSetsIndexPath) =>
+  [
+    ...readFileSync(prototypeSetsIndexPath, 'utf8').matchAll(
+      /from\s*'\.\.\/app\/routes-([a-z0-9-]+)\.js'/g
+    )
+  ].map((match) => match[1])
+
+/**
+ * Takes a set's mount back out of `prototype-sets/index.js` — the reverse of
+ * `registerSet`, for retiring a design release.
+ *
+ * @returns {boolean} whether all three mount lines were found and removed.
+ */
+export const unregisterSet = (prototypeSetsIndexPath, { setId }) => {
+  const content = readFileSync(prototypeSetsIndexPath, 'utf8')
+  const patterns = mountPatterns(setId)
+  if (!patterns.every((pattern) => pattern.test(content))) {
+    return false
+  }
+  writeFileSync(
+    prototypeSetsIndexPath,
+    patterns.reduce((text, pattern) => text.replace(pattern, ''), content)
+  )
+  return true
+}

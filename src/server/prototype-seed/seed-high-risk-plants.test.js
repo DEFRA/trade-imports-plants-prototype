@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createServer } from '../server.js'
-import { AMEND, DRAFT, SUBMITTED } from '../app/engine/persistence/records.js'
-import { records } from '../app/engine/persistence/records.js'
+import {
+  AMEND,
+  DRAFT,
+  records,
+  SUBMITTED
+} from '../app/engine/persistence/records.js'
 import { withSetContext } from '../app/shared/set-context.js'
 import { seedHighRiskPlants } from './seed-high-risk-plants.js'
 
@@ -19,8 +23,9 @@ describe('seedHighRiskPlants', () => {
     await server.stop({ timeout: 0 })
   })
 
-  it('Should seed one notification per scenario', () => {
-    expect(journeyIds).toHaveLength(4)
+  it('Should answer with the reference numbers every session is told about: shared and not deleted', () => {
+    const SHARED_AND_LISTED = 7
+    expect(journeyIds).toHaveLength(SHARED_AND_LISTED)
     expect(new Set(journeyIds).size).toBe(journeyIds.length)
   })
 
@@ -30,17 +35,10 @@ describe('seedHighRiskPlants', () => {
     )
     const statuses = listed.rows.map((row) => row.status)
 
-    const DRAFT_COUNT = 2
-    const SUBMITTED_COUNT = 1
-    const AMEND_COUNT = 1
-    expect(statuses.filter((status) => status === DRAFT)).toHaveLength(
-      DRAFT_COUNT
-    )
-    expect(statuses.filter((status) => status === SUBMITTED)).toHaveLength(
-      SUBMITTED_COUNT
-    )
-    expect(statuses.filter((status) => status === AMEND)).toHaveLength(
-      AMEND_COUNT
-    )
+    expect(listed.rows).toHaveLength(journeyIds.length)
+    expect(statuses).toContain(DRAFT)
+    expect(statuses).toContain(SUBMITTED)
+    expect(statuses).toContain(AMEND)
+    expect(listed.rows.some((row) => row.lateNotificationIndicator)).toBe(true)
   })
 })

@@ -1,4 +1,7 @@
-import { dashboardRoutePath } from '../../../../../../shared/paths.js'
+import {
+  dashboardPath,
+  dashboardRoutePath
+} from '../../../../../../shared/paths.js'
 import * as kit from '../../../../../../shared/kit.js'
 import { TEMPLATES } from '../../config.js'
 
@@ -15,7 +18,11 @@ const get = (_request, h) =>
     heading: 'Sample journey',
     body:
       'A placeholder set, here to prove this service can host more than one ' +
-      'prototype at a time. Each set is served under its own path.'
+      'prototype at a time. Each set is served under its own path.',
+    example: {
+      text: 'See a prototype-owned service working: saved transporters',
+      href: `${dashboardPath()}/transporters`
+    }
   })
 
 export const routes = [

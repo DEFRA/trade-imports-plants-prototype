@@ -222,15 +222,15 @@ export const config = convict({
       env: 'DEFRA_ID_POLICY'
     },
     redirectUrl: {
-      doc: 'Redirect URL after Defra ID sign-in (OIDC callback)',
+      doc: "Redirect URL after Defra ID sign-in (OIDC callback). Defaults to this prototype's own port (3103), not plants-frontend's 3003, so a local prototype signs back in to itself.",
       format: String,
-      default: 'http://localhost:3003/auth/sign-in-oidc',
+      default: 'http://localhost:3103/auth/sign-in-oidc',
       env: 'DEFRA_ID_REDIRECT_URL'
     },
     signOutRedirectUrl: {
-      doc: 'Redirect URL after Defra ID sign-out',
+      doc: "Redirect URL after Defra ID sign-out. Defaults to this prototype's own port (3103), not plants-frontend's 3003, so a local prototype signs back in to itself.",
       format: String,
-      default: 'http://localhost:3003/auth/sign-out-oidc',
+      default: 'http://localhost:3103/auth/sign-out-oidc',
       env: 'DEFRA_ID_SIGN_OUT_REDIRECT_URL'
     },
     signOutHostnameRewrite: {
@@ -372,10 +372,9 @@ export const config = convict({
   },
   tradeImportsInsFrontend: {
     baseUrl: {
-      doc: "Trade Imports INS Frontend base URL. Browser-visible — used to build deep links the trader's own browser navigates to, so it must resolve outside the Docker network (unlike the server-side API base URLs above).",
+      doc: 'Trade Imports INS Frontend base URL. The address book belongs to the Import Notification Service, which this prototype does not include, so the header link must never resolve to a real one — not in CDP, not against the local dev stack. No env binding: the default is the only value, an .invalid address that can never resolve, so the link stays dead everywhere.',
       format: 'url',
-      default: 'http://localhost:3002',
-      env: 'TRADE_IMPORTS_INS_FRONTEND_URL'
+      default: 'https://address-book.invalid'
     }
   }
 })

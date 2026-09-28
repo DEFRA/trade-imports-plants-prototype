@@ -50,6 +50,39 @@ describe('transformContent', () => {
     )
   })
 
+  it('Should not rewrite a short id inside a longer word', () => {
+    const source =
+      "heading: 'Plants and plant products', cookie: 'plantsAnd', path: 'plants-ab'"
+
+    expect(
+      transformContent(source, { fromId: 'plants-a', newId: 'plants-b' })
+    ).toBe(source)
+  })
+
+  it('Should report each UUID it replaced when handed a map', () => {
+    const uuidMap = new Map()
+    const source = "id: '9c1f5d3a-7b24-4e18-9a6d-0f3b8c2e5a71'"
+
+    const rewritten = transformContent(source, { ...ARGS, uuidMap })
+
+    const newId = uuidMap.get('9c1f5d3a-7b24-4e18-9a6d-0f3b8c2e5a71')
+    expect(newId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    )
+    expect(rewritten).toBe(`id: '${newId}'`)
+  })
+
+  it('Should give the same old UUID the same new one in every file sharing a map', () => {
+    const uuidMap = new Map()
+    const source = "ref: '9c1f5d3a-7b24-4e18-9a6d-0f3b8c2e5a71'"
+
+    const first = transformContent(source, { ...ARGS, uuidMap })
+    const second = transformContent(source, { ...ARGS, uuidMap })
+
+    expect(first).toBe(second)
+    expect(uuidMap.size).toBe(1)
+  })
+
   it('Should leave content with none of the template id in it untouched', () => {
     const source =
       "export const welcomePage = { id: 'welcome', slug: 'welcome' }"

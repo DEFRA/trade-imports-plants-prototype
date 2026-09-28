@@ -1,0 +1,61 @@
+{
+  "service": "__NAME__",
+  "owner": "__OWNER__",
+  "baseUrlEnv": "__ENV__",
+  "needsARealService": __NEEDS__,
+  "operations": [
+    {
+      "name": "list__PLURAL__",
+      "method": "GET",
+      "path": "__CONTRACT_PATH__",
+      "params": {
+        "q": "text to find in the name",
+        "page": "number, from 1",
+        "pageSize": "number"
+      },
+      "returns": "{ items: [record], page, pageSize, totalItems, totalPages }",
+      "errors": []
+    },
+    {
+      "name": "get__SINGULAR__",
+      "method": "GET",
+      "path": "__CONTRACT_PATH__/{id}",
+      "params": {},
+      "returns": "record",
+      "errors": ["404 when the organisation has no such record"]
+    },
+    {
+      "name": "create__SINGULAR__",
+      "method": "POST",
+      "path": "__CONTRACT_PATH__",
+      "params": { "body": "name" },
+      "returns": "the saved record, with its new id",
+      "errors": [
+        "400 with a problem body, { errors: { field: [message] } }, for each field it refuses"
+      ]
+    },
+    {
+      "name": "delete__SINGULAR__",
+      "method": "DELETE",
+      "path": "__CONTRACT_PATH__/{id}",
+      "params": {},
+      "returns": "204 with no body",
+      "errors": ["404 when the organisation has no such record"]
+    }
+  ],
+  "record": {
+    "fields": [
+      { "name": "id", "type": "string", "required": true },
+      { "name": "name", "type": "string", "required": true },
+      { "name": "deleted", "type": "boolean", "required": true }
+    ]
+  },
+  "examples": [],
+  "openQuestions": [
+    "Which service should own this data?",
+    "Which fields does a record need, and which are required?"
+  ],
+  "notes": [
+    "CDP dev has no backend for this service, so index.js keeps isStubDataMode() to choose stub.js until a real service exists."
+  ]
+}

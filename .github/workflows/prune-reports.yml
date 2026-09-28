@@ -1,0 +1,107 @@
+name: Prune Playwright reports
+
+# The cleanup for the Playwright reports check-pull-request.yml publishes to
+# gh-pages under reports/pr-<n>/ and reports/main/. Copied from the
+# workspace's cleanup-e2e-reports.yml, with its own name because that name is
+# in overrides.json `deleted`. Keeps `main` and every open pull request
+# updated in the last 21 days, removes the rest, then orphan-resets gh-pages
+# so the videos of pruned reports do not stay in its history.
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prune-and-truncate:
+    name: Prune and truncate gh-pages
+    runs-on: ubuntu-latest
+    # A pull request from a fork, or one Dependabot closed, runs with a
+    # read-only token, so the force-push could only fail. The nightly run
+    # prunes its report instead.
+    if: >
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    concurrency:
+      group: pages-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      # Nothing has been published yet until the first report run creates
+      # gh-pages: stop cleanly rather than fail.
+      - name: Check for a gh-pages branch
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh api "repos/${REPO}/branches/gh-pages" --silent 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No gh-pages branch yet, so there is nothing to prune."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout gh-pages
+        if: steps.pages.outputs.exists == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Prune reports that are not for main or an active pull request
+        if: steps.pages.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CLOSED_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
+        run: |
+          cutoff=$(date -u -d '21 days ago' +"%Y-%m-%dT%H:%M:%SZ")
+          keep_list=$(mktemp)
+          echo "main" > "$keep_list"
+          gh api "repos/${REPO}/pulls?state=open&per_page=100" --paginate \
+            --jq ".[] | select(.updated_at >= \"$cutoff\") | \"pr-\(.number)\"" \
+            >> "$keep_list"
+
+          # The pull request that just closed may still read as open.
+          if [ -n "$CLOSED_PR" ]; then
+            grep -vx "pr-${CLOSED_PR}" "$keep_list" > "${keep_list}.tmp" || true
+            mv "${keep_list}.tmp" "$keep_list"
+          fi
+
+          echo "Keep-list:"
+          sort -u "$keep_list"
+
+          changed=false
+          if [ -d reports ]; then
+            for dir in reports/*/; do
+              [ -d "$dir" ] || continue
+              name=$(basename "$dir")
+              if ! grep -qx "$name" "$keep_list"; then
+                echo "Pruning $dir"
+                rm -rf "$dir"
+                changed=true
+              fi
+            done
+          fi
+
+          if [ "$changed" = false ]; then
+            echo "No reports to prune"
+          fi
+
+      - name: Orphan-reset gh-pages
+        if: steps.pages.outputs.exists == 'true'
+        run: |
+          git checkout --orphan _orphan
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: prune + orphan-reset gh-pages" --allow-empty
+          git branch -D gh-pages
+          git branch -m gh-pages
+          git push -f origin gh-pages

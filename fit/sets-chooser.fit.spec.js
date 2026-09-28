@@ -1,7 +1,15 @@
 import { expect, test } from '@playwright/test'
 
+/**
+ * One entry per set: the link in each set's own heading. A row also carries
+ * example links, which open a page inside the set rather than the set itself.
+ */
 const chooserRows = async (page) => {
-  const links = await page.getByRole('main').getByRole('link').all()
+  const links = await page
+    .getByRole('main')
+    .getByRole('heading', { level: 2 })
+    .getByRole('link')
+    .all()
   return Promise.all(
     links.map(async (link) => ({
       href: await link.getAttribute('href'),
@@ -104,6 +112,27 @@ test.describe('sets chooser', () => {
         await assertGovukStylesApplied(page)
         health.reset()
       })
+    }
+  })
+
+  test('every set says what kind of prototype it is', async ({ page }) => {
+    await page.goto('/')
+
+    const realJourney = page.getByRole('listitem').filter({
+      has: page.getByRole('heading', { level: 2, name: 'High risk plants' })
+    })
+    await expect(realJourney.locator('.govuk-tag').first()).toHaveText(
+      'Real journey, updates weekly'
+    )
+
+    const sets = await chooserRows(page)
+    for (const { text } of sets) {
+      const row = page.getByRole('listitem').filter({
+        has: page.getByRole('heading', { level: 2, name: text, exact: true })
+      })
+      await expect(row.locator('.govuk-tag').first()).toHaveText(
+        /^\s*(Real journey, updates weekly|Working release|Research|Frozen|Placeholder)\s*$/
+      )
     }
   })
 

@@ -1,7 +1,9 @@
 import { isStubDataMode } from '../../../common/services/mode.js'
 import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
 import * as client from './client.js'
-import { STUB_BOOK } from './stub/index.js'
+import { STUB_BOOK as STUB_ROWS } from './stub/index.js'
+import { withExtraParties } from '../../../prototype-data/index.js'
+const STUB_BOOK = withExtraParties(STUB_ROWS)
 
 /** Rows per page of the picker's results table (design 05-03..06). Owned here,
  * not by the pages — the address book owns its own search and pagination, and

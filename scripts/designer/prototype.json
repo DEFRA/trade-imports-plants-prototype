@@ -1,0 +1,18 @@
+{
+  "repository": "DEFRA/trade-imports-plants-prototype",
+  "cloneUrl": "https://github.com/DEFRA/trade-imports-plants-prototype.git",
+  "deployedUrl": null,
+  "reportsUrl": "https://defra.github.io/trade-imports-plants-prototype/reports/",
+  "realService": {
+    "name": "plants-frontend",
+    "repository": "DEFRA/trade-imports-plants-frontend",
+    "cloneUrl": "https://github.com/DEFRA/trade-imports-plants-frontend.git"
+  },
+  "handOff": {
+    "jiraProject": "EUDPA",
+    "parentEpic": null,
+    "labels": ["UCD"],
+    "raiseWith": "the plants-frontend team's delivery lead or product owner, who triages design hand-offs into the EUDPA Jira project"
+  },
+  "maintainer": "the prototype maintainer: whoever reviews the weekly sync pull requests (see \"For maintainers\" in README.md)"
+}

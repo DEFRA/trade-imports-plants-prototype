@@ -1,0 +1,65 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{% from "govuk/components/table/macro.njk" import govukTable %}
+
+{% block journeyContent %}
+  <h1 class="govuk-heading-l">{{ copy.list.title }}</h1>
+
+  {{ govukInsetText({ text: copy.list.prototypeNote }) }}
+
+  <form method="get" action="" novalidate>
+    {{ govukInput({
+      id: "q",
+      name: "q",
+      classes: "govuk-!-width-two-thirds",
+      label: { text: copy.list.search.label, classes: "govuk-label--s" },
+      hint: { text: copy.list.search.hint },
+      value: query
+    }) }}
+
+    {{ govukButton({
+      text: copy.list.search.button,
+      classes: "govuk-button--secondary"
+    }) }}
+  </form>
+
+  <p class="govuk-body">
+    <a class="govuk-link" href="{{ addHref }}">{{ copy.list.add }}</a>
+  </p>
+
+  {% if rows.length %}
+    {% set tableRows = [] %}
+    {% for row in rows %}
+      {% set deleteCell %}
+        <a class="govuk-link" href="{{ row.deleteHref }}">{{ copy.list.delete }}<span class="govuk-visually-hidden"> {{ row.name }}</span></a>
+      {% endset %}
+      {% set ignored = tableRows.push([
+        { text: row.name },
+        { text: row.addressText },
+        { text: row.approvalNumber },
+        { html: deleteCell }
+      ]) %}
+    {% endfor %}
+
+    {{ govukTable({
+      caption: resultsCaption,
+      captionClasses: "govuk-table__caption--s",
+      head: [
+        { text: copy.list.table.name },
+        { text: copy.list.table.address },
+        { text: copy.list.table.approvalNumber },
+        { html: '<span class="govuk-visually-hidden">' + copy.list.table.actionsHidden + '</span>' }
+      ],
+      rows: tableRows
+    }) }}
+
+    {% if pagination %}
+      {{ govukPagination(pagination) }}
+    {% endif %}
+  {% else %}
+    <p class="govuk-body">{{ copy.list.noMatches }}</p>
+  {% endif %}
+{% endblock %}

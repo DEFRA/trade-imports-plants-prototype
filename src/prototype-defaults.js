@@ -5,10 +5,12 @@ import process from 'node:process'
  * `process.env`. Every way of starting this app - `npm start`, `npm run dev`,
  * the Docker `CMD` and the FIT web server - imports this first.
  *
- * - `STUB_MODE`: a local development run (`npm run dev`) signs in with
- *   plants-frontend's stub sign-in and needs nothing else running. Production
- *   ignores it for sign-in, as plants-frontend does; the data services serve
- *   stub data in production regardless (see `isStubDataMode` in mode.js).
+ * - `STUB_MODE`: every run — `npm run dev`, `npm start`, and so the deployed
+ *   prototype's own boot too — signs in with plants-frontend's stub sign-in
+ *   and needs nothing else running, unless it is explicitly set to `false`,
+ *   which restores plants-frontend's own Defra ID sign-in. The data services
+ *   serve stub data in production regardless (see `isStubDataMode` in
+ *   mode.js).
  * - `SESSION_CACHE_ENGINE`: the prototype runs as one instance with no Redis,
  *   and plants-frontend's production default is Redis.
  *

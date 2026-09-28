@@ -1,166 +1,129 @@
 # A guide for designers
 
 This is a working prototype of the high-risk plants import notification
-service. It looks and behaves like the real thing, but nothing you do here
-is real: there is no real backend and no real data. It is safe to click
-anything.
+service. It is a copy of the real service's own code: the same GOV.UK
+components, the same pages and the same rules for which page comes next.
+Work on one page and the next page is already there, because it is the real
+one. Nothing you do here is real, so it is safe to click anything.
 
-## Running it on your computer
+New here? Start with [Your first hour](docs/designers/your-first-hour.md).
+Every designer document is listed in
+[docs/designers/README.md](docs/designers/README.md).
 
-You need Node.js installed. Nothing else — no database, no other services
-running, no environment variables to set.
+## Just say what you want
 
-```
-npx --yes npm@11.6.2 ci
-npm run dev
-```
+Open Claude Code at the workspace root (see "Getting started" below) and
+say what you want in your own words. You do not need to learn the code, the
+commands or the names of anything. Claude works out what you mean, makes the
+change in your design release, checks it, shows you pictures of it and
+tells you what to click. `npm run dev` needs no docker stack, no backend and
+no Jira access.
 
-Then open [http://localhost:3103](http://localhost:3103). You sign in with
-the real service's own development sign-in, which signs you straight in
-without asking for a name or password.
+| You want to                                   | Say something like                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------- |
+| Get started                                   | "I'm new, what can I do here?", "run the prototype"                          |
+| Have your own copy to change                  | "start a new design release", "freeze this as design release 2"              |
+| Change words, hints, labels or errors         | "rename 'Consignment parties' to 'Consignment addresses' everywhere"         |
+| Make a page look like your Figma              | "make this page match the Figma", "add a tag"                                |
+| Add a question or page, or change the order   | "add a question", "move this page", "only show this page when"               |
+| Show a feature the real service does not have | "importers should be able to save a vehicle they use a lot"                  |
+| Fill the dashboard                            | "show a few overdue notifications on the dashboard"                          |
+| Bring over a page from the old prototype      | "re-create the transporter page from the old prototype"                      |
+| Get ready for a demo or for research          | "we've got a stakeholder demo on Thursday", "get ready for research"         |
+| Work through notes from a crit                | "here are my notes from the crit, do all of these"                           |
+| Check, see, save or undo                      | "check my changes", "show me, before and after", "save my work", "undo that" |
+| Give the developers something to build from   | "write this up as a story the developers can pick up"                        |
+| Catch up with the real service                | "has the real service changed since I made my copy?"                         |
 
-(`npx --yes npm@11.6.2` runs the exact npm version this project expects.
-Your own npm may be newer, and a newer npm can refuse to install against this
-project's lockfile.)
+Every change ends the same way: Claude checks it, shows it, and offers to
+hand it to the real team.
 
-`npm start` runs the prototype the way it runs when deployed. Like the real
-service, it then needs a Defra ID sign-in service to sign you in, so use
-`npm run dev` on your own computer.
+**If Claude seems lost, say "use the design skill".** It then works out what
+you want from your words and splits it into parts.
 
-## The deployed prototype
+## Getting started
 
-The deployed prototype signs you in through the Defra ID stub, the same test
-sign-in service the real service uses when deployed. Pick any of its test
-users. To see the prototype as a different user, sign out and sign in as a
-different test user.
+1. Clone the workspace:
+   `git clone https://github.com/DEFRA/trade-imports-workspace.git`.
+2. Run its setup once you have Node.js and Claude Code:
+   `npm --prefix ~/git/defra/trade-imports-workspace/tim link`, then
+   `tim prototype setup`. It installs this repo's packages, checks your
+   GitHub and Jira sign-in, and tells you what is left before you can
+   share your work.
+3. Open Claude Code at the workspace root
+   (`~/git/defra/trade-imports-workspace`), not in this repo's own folder.
+   Say what you want, exactly as above: the workspace root is where the
+   `prototype` skill lives, and it is what makes Claude read the real
+   service while it builds for you, so your prototype stays close to it.
 
-## Example data
+See [Your first hour](docs/designers/your-first-hour.md) for the full
+walk-through, from nothing to a shared change.
 
-A prototype with example data (today, high-risk-plants) creates a handful of
-example notifications the first time someone opens it after it starts, in a
-mix of states: draft, in progress, submitted, and submitted then amended.
-They are made by going through the journey itself, so they look exactly like
-notifications a trader made. Everyone who signs in sees the same examples,
-whichever user they sign in as.
+## How close is this to the real service?
 
-The data is shared. Anyone using the prototype can change or delete what
-anyone else has made, and reset it for everyone.
+Very close, with these differences. All of them are known.
 
-## What a "set" is
-
-This prototype can hold more than one prototype at once. Each one is called
-a set. Today there are two:
-
-- **high-risk-plants** — the real high-risk plants and plant products
-  notification journey.
-- **sample-journey** — a bare-bones placeholder, kept only to prove the
-  prototype can host more than one set. It is not a real journey.
-
-Each set lives at its own web address, for example
-`http://localhost:3103/high-risk-plants`. A page never appears at more than
-one address, and the root address (`/`) is never a set itself — it is
-always the chooser.
-
-## The chooser
-
-`http://localhost:3103/` lists every set. From there you can:
-
-- **Open a set** — click its name.
-- **Reset a set's data** — once signed in, click "Reset this prototype's
-  data" under it. This clears everything anyone has done in that set, for
-  everyone, and puts the example notifications back. Use it whenever a demo,
-  or a colleague's testing, has left the data in a state you don't want.
-
-The chooser and every set sit behind sign-in, just as the real service's
-pages do. Sign-in is on unless someone sets `AUTH_ENABLED=false`; with it
-off, `/` and every set disappear. Leave it unset.
+- **Your design release is a snapshot.** It copies the real journey on the
+  day you make it and does not pick up the real team's later changes. The
+  release list ("which releases are there") has a "Real journey changed
+  since" column that says how far each release is behind. Say "I want the
+  latest" to catch up. See [Design releases](docs/designers/design-releases.md).
+- **Prototype-owned services.** Things the real service cannot do yet, such
+  as saved transporters, templates and dashboard filters, are built here with
+  made-up data, flagged "needs a real service". See
+  [Where your changes go](docs/designers/where-changes-go.md).
+- **Design gaps.** Only GOV.UK Frontend components and classes are
+  available. What they cannot do is logged in your release's
+  `design-gaps.md` and travels with the hand-off.
+- **The "Address book" link in the header is deliberately dead.** The
+  address book belongs to the Import Notification Service, which this
+  prototype does not include, so the link never resolves — not on your own
+  computer, not on the deployed prototype. There is no setting that points
+  it at a real one. It is never needed to see a change you make here.
+- **Commodity and Arrival are blank on the real journey's dashboard.** This
+  is a bug in the real service, not in your release: your release shows them.
+- **Welsh is never shown.** The prototype only shows English. New words get
+  `[Welsh needed]` until a translator provides the Welsh. Say "show me the
+  Welsh" to see both side by side.
+- **The data is shared.** Everyone who signs in sees the same examples, and
+  anyone can change, delete or reset what anyone else has made. Saving a file
+  restarts the prototype, and "Reset this prototype’s data" on the chooser
+  puts the examples back.
 
 ## Known gaps
 
-- **The "Address book" link in the header goes nowhere.** The real service
-  sends it to a separate service (the Import Notification Service
-  frontend), which this prototype doesn't run. Locally it points at
-  `http://localhost:3002`, and a deployed prototype will point there too
-  unless its environment sets `TRADE_IMPORTS_INS_FRONTEND_URL`.
+- **It is not deployed yet.** Every pull request proves its `Dockerfile`
+  boots, but the CDP environment is not stood up. Until it is, run demos
+  and research from a laptop with `npm run dev`.
+- **No custom styles or scripts yet**, as above: they are design gaps.
 
-## Adding a set
+## Walkthroughs: the prototype documents itself
 
-Run:
+Every set gets a **walkthrough**: each of its examples, page by page, with
+pictures, a video and a trace, made from the words the release already has.
+It is documentation, not a test: a red story never stops a pull request.
+Every pull request gets a comment linking to it; once merged, the lasting
+link is
+`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`
+(once the maintainer turns GitHub Pages on; until then the comment points
+at a download). Say "record a walkthrough" to make one yourself. See
+[Seeing your change](docs/designers/seeing-your-change.md#the-walkthrough-on-every-pull-request).
 
-```
-npm run new:set -- <your-set-id>
-```
+## Deploying and merging
 
-for example `npm run new:set -- citrus-fruit`. This copies the
-`sample-journey` placeholder, renames everything inside it to your new set's
-id, and mounts it — it appears on the chooser automatically, with no further
-wiring. The command prints what to do next: replace the placeholder page
-with the real journey, and add a description for it.
+Once deployed, the maintainer puts its address here and in `deployedUrl`
+in `scripts/designer/prototype.json`. Like `npm run dev`, it uses stub
+sign-in: anyone who reaches the link is signed in automatically, on purpose,
+until CDP puts its own auth in front.
 
-Copying a different set instead of `sample-journey` (for example, to start
-close to the real high-risk-plants journey) is possible with
-`npm run new:set -- <your-set-id> --from high-risk-plants`, but that journey
-is far larger, so expect more to rename by hand afterwards.
+The deployed prototype only changes when a pull request is merged into
+`main`, by the prototype maintainer. Say "make a pull request", send them
+the link, and leave a working day before a demo or research session. "Is my
+pull request merged yet?" explains any red check.
 
-A set id must be lower-case words separated by hyphens, like
-`high-risk-plants` — never spaces, capitals or underscores.
+## If you're not sure
 
-## Where to edit pages
-
-Everything a set shows lives under `src/server/app/sets/<set-id>/`:
-
-- **Templates** — the `.njk` files, one per page. These are the HTML and the
-  GOV.UK Design System components a page is built from.
-- **Copy** — each feature's `copy/copy.en.js` (and `copy.cy.js` for Welsh)
-  file. Wording changes almost always belong here, not in the template.
-
-Changing a page's logic — which pages come next, what counts as a valid
-answer — is more involved, and belongs in the same feature's `controller.js`
-or in the set's `flow/flow.js`. Ask if you're not sure.
-
-## How the weekly sync works
-
-The real service this prototype mirrors — `trade-imports-plants-frontend` —
-keeps changing. Every Monday (and any time by hand), a robot:
-
-1. Fetches the real service's latest changes.
-2. Merges them into this prototype.
-3. Checks everything still works — the code builds, the tests pass, and
-   every set on the chooser still opens.
-4. Opens a pull request with the result.
-
-Most weeks, that pull request merges itself with nothing for a person to
-do. When it can't — because the merge hit a conflict, or something the
-robot changed no longer works — the pull request is left open and labelled
-**`needs-person`**. That label means: a person needs to look at this pull
-request and sort it out before it can merge. If you see one, or a set
-you're using has started behaving oddly after a Monday, that's the place to
-look.
-
-## How a change reaches the real service
-
-This prototype never sends anything back the other way. If a change you
-make here should also happen in the real service, it needs making there
-separately: raise it as a normal pull request against
-`trade-imports-plants-frontend`. Once that pull request merges into the
-real service, the next weekly sync brings it into this prototype
-automatically — you don't need to redo it here.
-
-## What never to edit
-
-Some files in this prototype are not really this prototype's own — they
-belong to the real service, and the weekly sync will overwrite anything you
-change in them. `overrides.json` at the repo root keeps the definitive list,
-under two headings:
-
-- **`patched`** — files the prototype has made one small, deliberate change
-  to (for example, so it serves example data rather than calling the real
-  service's backend). A change
-  here needs the same care as a change to the real service itself.
-- everything not listed in `overrides.json`'s `ours` list belongs to the
-  real service. Only ever edit it if you mean to send that change back to
-  `trade-imports-plants-frontend` (see above) — never to fix something only
-  for this prototype.
-
-If you're ever unsure whether a file is safe to change, check
-`overrides.json` first.
+- Ask "whose file is this?" or "can I change this?".
+- [Where your changes go](docs/designers/where-changes-go.md) explains the
+  weekly update, who owns what, and how a change reaches the real service.
+- The [glossary](docs/designers/glossary.md) explains every term used here.

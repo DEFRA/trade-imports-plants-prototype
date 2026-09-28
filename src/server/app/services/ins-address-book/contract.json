@@ -1,0 +1,106 @@
+{
+  "service": "ins-address-book",
+  "owner": "ins",
+  "baseUrlEnv": "TRADE_IMPORTS_ADDRESS_BOOK_URL",
+  "needsARealService": "Changing the address book belongs to the Import Notification Service frontend: it already has this API (list, add, read, change and delete an address) and is the address book’s only writer. Plants-frontend only reads it. These pages need to move there, or plants-frontend needs agreement to write to the address book.",
+  "operations": [
+    {
+      "name": "listAddresses",
+      "method": "GET",
+      "path": "/organisation/{organisationId}/addresses",
+      "params": {
+        "page": "number, from 1",
+        "q": "text to find in the name or address",
+        "countryCode": "ISO 3166-1 alpha-2"
+      },
+      "returns": "{ items: [address], page, pageSize: 25, totalItems, totalPages }",
+      "errors": ["400 when the page is out of range"]
+    },
+    {
+      "name": "createAddress",
+      "method": "POST",
+      "path": "/organisation/{organisationId}/addresses",
+      "params": { "body": "address, without id" },
+      "returns": "the saved address, with its new id",
+      "errors": [
+        "400 with a problem body, { errors: { field: [message] } }, for each field it refuses"
+      ]
+    },
+    {
+      "name": "getAddress",
+      "method": "GET",
+      "path": "/organisation/{organisationId}/addresses/{id}",
+      "params": {},
+      "returns": "address; a deleted one comes back with deleted: true",
+      "errors": ["404 when the organisation has no such address"]
+    },
+    {
+      "name": "updateAddress",
+      "method": "PUT",
+      "path": "/organisation/{organisationId}/addresses/{id}",
+      "params": { "body": "address" },
+      "returns": "the changed address",
+      "errors": ["400 with a problem body", "404 when there is no such address"]
+    },
+    {
+      "name": "deleteAddress",
+      "method": "DELETE",
+      "path": "/organisation/{organisationId}/addresses/{id}",
+      "params": {},
+      "returns": "204 with no body",
+      "errors": []
+    }
+  ],
+  "record": {
+    "fields": [
+      { "name": "id", "type": "string", "required": true },
+      { "name": "name", "type": "string", "required": true },
+      { "name": "addressLine1", "type": "string", "required": true },
+      { "name": "addressLine2", "type": "string", "required": false },
+      { "name": "townOrCity", "type": "string", "required": true },
+      { "name": "county", "type": "string", "required": false },
+      { "name": "postcode", "type": "string", "required": true },
+      {
+        "name": "countryCode",
+        "type": "string (ISO 3166-1 alpha-2)",
+        "required": true
+      },
+      { "name": "phone", "type": "string", "required": true },
+      { "name": "email", "type": "string", "required": true },
+      { "name": "deleted", "type": "boolean", "required": true }
+    ]
+  },
+  "examples": [
+    {
+      "request": "POST /organisation/5900001/addresses",
+      "body": {
+        "name": "Greenhouse Imports Ltd",
+        "addressLine1": "4 Nursery Lane",
+        "townOrCity": "Spalding",
+        "postcode": "PE11 1AA",
+        "countryCode": "GB",
+        "phone": "01632 960001",
+        "email": "orders@greenhouse.example.com"
+      },
+      "response": {
+        "id": "665f1c2ab3e4d51a2c9d0e77",
+        "name": "Greenhouse Imports Ltd",
+        "addressLine1": "4 Nursery Lane",
+        "townOrCity": "Spalding",
+        "postcode": "PE11 1AA",
+        "countryCode": "GB",
+        "phone": "01632 960001",
+        "email": "orders@greenhouse.example.com",
+        "deleted": false
+      }
+    }
+  ],
+  "openQuestions": [
+    "Should these pages live in the Import Notification Service frontend, which owns the address book?",
+    "Does the address book need anything a design adds, such as categories or usages?"
+  ],
+  "notes": [
+    "CDP dev has no backend for this service, so index.js keeps isStubDataMode() to choose stub.js until plants-frontend writes to the real address book.",
+    "client.js follows the same request shape as trade-imports-ins-frontend's own address book client (src/server/app/services/address-book/client.js): same paths, same headers, same problem-body shape. It is a sibling implementation kept in step by a shape-drift test, not a copy that is claimed to be byte-identical."
+  ]
+}

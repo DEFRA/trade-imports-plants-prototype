@@ -2,8 +2,9 @@ import Boom from '@hapi/boom'
 import { COUNTRY_LABELS } from './stub.js'
 import { fetchCountries } from './client.js'
 import { isStubDataMode } from '../../../common/services/mode.js'
+import { withExtraCountries } from '../../../prototype-data/index.js'
 
-let labels = { ...COUNTRY_LABELS }
+let labels = withExtraCountries({ ...COUNTRY_LABELS })
 let loaded = false
 
 /** Load the country list from the reference-data service, once. Called

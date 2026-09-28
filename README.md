@@ -13,6 +13,69 @@ journey from commodity selection through declaration and confirmation.
 
 Run the set's unit suite from the repo root: `npm run test:high-risk-plants`.
 
+## For maintainers
+
+The prototype maintainer reviews and merges designers' pull requests and the
+weekly sync pull requests.
+
+- **Runtime.** The prototype runs on its own stubs everywhere, sign-in
+  included: locally with `npm run dev`, and in CDP dev from the production
+  image its own `Dockerfile` builds. `STUB_MODE`'s bypass is honoured in
+  production too, by design (Sam's decision) — the deployed prototype
+  signs in exactly the way a local `npm run dev` does, so it needs no
+  Defra ID stub and no `DEFRA_ID_*` variables in CDP dev. It is
+  temporarily unprotected until CDP puts auth in front, or a later change
+  sets `STUB_MODE=false` to restore plants-frontend's own Defra ID
+  sign-in. The pull-request boot check in
+  `.github/workflows/check-pull-request.yml` proves the deployed shape
+  every time: it boots the built image in production mode and drives a
+  stub sign-in through to the chooser.
+- **Env vars.** `src/config/config.js` is the one list, with each
+  variable's `doc` saying what it is for and what it defaults to. The
+  redirect URLs already default to this prototype's own port (3103), not
+  plants-frontend's 3003. The header's "Address book" link is deliberately
+  dead — no env var sets it — because the address book belongs to the
+  Import Notification Service, which this prototype does not include.
+- **One instance.** Run a single instance in CDP dev. Data lives in
+  memory (`SESSION_CACHE_ENGINE=memory`, the stub stores), so a second
+  instance would show a different set of examples to different visitors
+  depending on which one served them.
+- **Data resets.** Every merge to `main` redeploys the prototype, which
+  restarts the process and empties every set back to its seeded examples
+  — the same thing "Reset this prototype's data" does for one set on
+  request. Nothing else clears it.
+- **Freeze merges during research.** A merge mid-session would reset
+  every participant's data. Ask the team not to merge anything from
+  "before a demo or a research session" (PROTOTYPE.md, "Deploying and
+  merging") until the session ends.
+- **Playwright reports.** Every pull request, and every push to `main`,
+  publishes a merged Playwright report — FIT tests plus the walkthroughs —
+  to the `gh-pages` branch: `reports/pr-<n>/` for a pull request,
+  `reports/main/` for `main`. The pull request gets a comment with its link.
+  A nightly job (`.github/workflows/prune-reports.yml`) removes closed pull
+  requests' reports and keeps `main`'s pruned to the same folder each time,
+  so `gh-pages` stays small. Each run is also uploaded as the
+  `prototype-playwright-report` Actions artifact, so the checks are useful
+  even before Pages is turned on.
+
+Two things are still pending:
+
+- `.claude/settings.json` is still plants-frontend's copy, so it wires up
+  three Sonar hook scripts `overrides.json` deletes rather than the
+  designer edit guard (`scripts/designer/hooks/guard-edit.js`). Replacing
+  it, and adding it to `overrides.json` `ours` in the same commit on a
+  `chore/<slug>` branch, so the weekly sync stops restoring the Sonar
+  hooks, is Sam's call: raise it with him before making the change.
+- Once the prototype is deployed, put its address in `deployedUrl` in
+  [`scripts/designer/prototype.json`](scripts/designer/prototype.json) (the
+  research sheet reads it from there) and in PROTOTYPE.md, "Deploying and
+  merging".
+- **Turn on GitHub Pages** for this repository: Settings, Pages, "Deploy
+  from a branch", `gh-pages`, `/ (root)`. The branch appears after the first
+  pull request or merge publishes a report. Until Pages is on, the report
+  links above resolve to nothing and the pull request comment says so, but
+  nothing fails: the Actions artifact is still there.
+
 ## Current state
 
 The high-risk-plants journey is implemented, with a notification dashboard,
@@ -151,13 +214,11 @@ test exemptions.
 
 ## AUTHENTICATION (trade-imports-defra-id-stub)
 
-For local cross-service development the recommended path is the workspace docker
-stack at <https://github.com/DEFRA/trade-imports-workspace> — it stands the stub
-up alongside the frontend with the right env wiring; no `/etc/hosts` edits
-required.
+This prototype is never part of the workspace docker stack (see "Local
+stack" below): it runs against the Defra ID stub standalone, or with
+`STUB_MODE=true` bypassing the OIDC round trip entirely (see below).
 
-If running this service standalone against the stub on `localhost:3007`, create
-an env file:
+To run against a real stub on `localhost:3007`, create an env file:
 
 ```
 DEFRA_ID_OIDC_CONFIGURATION_URL=http://localhost:3007/idphub/b2c/b2c_1a_cui_cpdev_signupsigninsfi/.well-known/openid-configuration
@@ -169,9 +230,13 @@ DEFRA_ID_POLICY=b2c_1a_cui_cpdev_signupsigninsfi
 
 Alternatively set `STUB_MODE=true`, which serves stub data and signs its own
 session instead of doing the Defra ID OIDC exchange. Auth is still enforced —
-only the external round-trip is bypassed — and the switch is refused in
-production. The Playwright suite sets it for its own web server, so
-`npm run test:fit` needs no other service running.
+only the external round-trip is bypassed. Unlike plants-frontend, this
+prototype honours the switch in production too, by design (Sam's decision):
+`prototype-defaults.js` turns it on unless it is already set, so the deployed
+prototype signs in exactly the way `npm run dev` does. Set `STUB_MODE=false`
+to restore plants-frontend's own Defra ID sign-in. The Playwright suite sets
+`STUB_MODE=true` for its own web server, so `npm run test:fit` needs no other
+service running.
 
 ## Docker
 
@@ -210,22 +275,18 @@ docker run -p 3103:3103 trade-imports-plants-prototype
 
 ### Local stack
 
-This repository carries no compose file of its own. The full local environment
-(MongoDB, Floci, Redis, the stubs, and every trade-imports service including
-this one) is the workspace stack in
-[DEFRA/trade-imports-workspace](https://github.com/DEFRA/trade-imports-workspace):
+This repository carries no compose file of its own, and **the workspace
+stack does not run this prototype**: `./scripts/stack/run-stack.sh` in
+[DEFRA/trade-imports-workspace](https://github.com/DEFRA/trade-imports-workspace)
+stands up MongoDB, Floci, Redis, the stubs and the real trade-imports
+services, but never this one. This prototype always runs on its own
+stubs, with `npm run dev`, whether or not the stack is running.
 
-```bash
-# from the workspace root
-./scripts/stack/run-stack.sh              # full stack from published images
-./scripts/stack/run-stack.sh -d           # built from local source under repos/
-./scripts/stack/run-stack.sh -e plants-frontend  # everything except this service (run it via npm run dev)
-```
-
-A cross-repo change must use the **same branch name** in every repository it
-touches: the stack probes each repository for a branch-tagged image and falls
-back to `:latest` per service, so a mismatched name silently picks up someone
-else's image.
+The header's "Address book" link is deliberately dead, stack running or
+not: the address book belongs to the Import Notification Service, which
+this prototype does not include, and there is no setting that points the
+link at a real one, local or deployed. It is never needed to see a change
+made here.
 
 ## Licence
 

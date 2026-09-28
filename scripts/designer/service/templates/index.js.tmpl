@@ -1,0 +1,38 @@
+import { isStubDataMode } from '../../../common/services/mode.js'
+import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
+import * as client from './client.js'
+import * as stub from './stub.js'
+
+export { PAGE_SIZE } from './client.js'
+
+const impl = () => (isStubDataMode() ? stub : client)
+
+/** One page of the organisation's records, in a picker's shape. Fill in
+ * `contract.json` as the design settles: the fields a record needs, an
+ * example, and the questions the real team must answer. */
+export const list__PLURAL__ = (orgId, options) =>
+  impl().list__PLURAL__(orgId, options)
+
+/** One record, or undefined when the organisation has none by that id. */
+export const get__SINGULAR__ = (orgId, id) => impl().get__SINGULAR__(orgId, id)
+
+/** Saves a new record. Throws a 400 problem when a field is refused. */
+export const create__SINGULAR__ = (orgId, body) =>
+  impl().create__SINGULAR__(orgId, body)
+
+/** Deletes a record. False when the organisation had none by that id. */
+export const delete__SINGULAR__ = (orgId, id) =>
+  impl().delete__SINGULAR__(orgId, id)
+
+/** The first message for each field a 400 problem names, for a form. */
+export const mapApiErrorsToFormErrors = (problemBody) =>
+  Object.fromEntries(
+    Object.entries(problemBody?.errors ?? {}).map(([field, messages]) => [
+      field,
+      messages[0]
+    ])
+  )
+
+/** Whether an error is a refused save with field errors. */
+export const isValidationFailure = (err) =>
+  err?.status === HTTP_STATUS_BAD_REQUEST && Boolean(err.body?.errors)
