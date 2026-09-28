@@ -128,6 +128,21 @@ const knownPathsOf = async (englishFile, cache) => {
   }
 }
 
+/**
+ * The copy bundle a page in a shared copy folder's subfolder reads, as a
+ * dotted path: `commodities/list/list.njk` under `commodities/copy/` reads
+ * the `list` branch, because its controller passes `copyFor(...).list` as
+ * `copy`. Null for a template beside its own copy folder.
+ *
+ * @param {string} file - the template's absolute path.
+ * @param {string} copyFolder - the absolute `copy/` folder that owns it.
+ * @returns {string|null} the bundle path, or null.
+ */
+const sharedCopyBundleOf = (file, copyFolder) => {
+  const fromOwner = path.relative(path.dirname(copyFolder), path.dirname(file))
+  return fromOwner === '' ? null : fromOwner.split(path.sep).join('.')
+}
+
 /** The unresolved `copy.<path>` references in one template, or `[]` when it
  * reads no copy, has no copy folder above it (already reported by
  * `templatesWithoutOwnCopy`), or that folder cannot be read. */
@@ -145,8 +160,13 @@ const unresolvedInTemplate = async (file, setFolder, cache) => {
     return []
   }
   const template = toForwardSlashes(path.relative(setFolder, file))
+  const bundle = sharedCopyBundleOf(file, copyFolder)
   return references
-    .filter((referenced) => !known.has(referenced))
+    .filter(
+      (referenced) =>
+        !known.has(referenced) &&
+        !(bundle && known.has(`${bundle}.${referenced}`))
+    )
     .map((referenced) => ({ template, path: referenced }))
 }
 

@@ -6,7 +6,7 @@ import {
   ownedPathsOf,
   removeOwnedPaths
 } from '../../new-set/update-overrides.js'
-import { git, isTracked, uncommittedChanges } from './git.js'
+import { git, isCommitted, isTracked, uncommittedChanges } from './git.js'
 import {
   ReleaseRefused,
   existingSet,
@@ -22,16 +22,33 @@ const extrasOf = (setId) => [
   `src/server/prototype-data/${setId}`
 ]
 
+/** The files every release adds a line to, kept by the prototype. */
+const SHARED_FILES = [
+  'overrides.json',
+  'src/server/prototype-sets/index.js',
+  'src/server/prototype-sets/descriptions.js'
+]
+
 /** Kept data, never committed (`.cache` is ignored). */
 const cacheOf = (setId) => [`.cache/designer/data/${setId}.json`]
 
-const removePaths = (repoRoot, paths) => {
+/** Removes each path that exists, from git too when it is tracked. With
+ * `unstage`, a path only staged (after a failed save of a never-saved
+ * release) is taken out of the index first, which `git rm` alone refuses. */
+const removePaths = (repoRoot, paths, { unstage = false } = {}) => {
   const present = paths.filter((relativePath) =>
     existsSync(path.join(repoRoot, relativePath))
   )
   for (const relativePath of present) {
     if (isTracked(repoRoot, [relativePath])) {
-      git(repoRoot, ['rm', '-r', '-q', '--', relativePath])
+      git(repoRoot, [
+        'rm',
+        '-r',
+        '-q',
+        ...(unstage ? ['--cached', '-f'] : []),
+        '--',
+        relativePath
+      ])
     }
     rmSync(path.join(repoRoot, relativePath), { recursive: true, force: true })
   }
@@ -58,7 +75,7 @@ export const retireRelease = (setId, { repoRoot, discard = false }) => {
 
   const own = relativePathsOf(setId)
   const extras = extrasOf(setId)
-  const neverSaved = !isTracked(repoRoot, own)
+  const neverSaved = !isCommitted(repoRoot, own)
   if (neverSaved && !discard) {
     throw new ReleaseRefused(
       `"${setId}" was never saved, so it is not in git history: retiring it throws it and every change in it away for good.\nTo keep it, save it first (say "save my work").\nTo throw it away, run: npm run designer:release -- retire ${setId} --discard`
@@ -71,7 +88,9 @@ export const retireRelease = (setId, { repoRoot, discard = false }) => {
     )
   }
 
-  const removed = removePaths(repoRoot, [...own, ...extras])
+  const removed = removePaths(repoRoot, [...own, ...extras], {
+    unstage: neverSaved
+  })
   removePaths(repoRoot, cacheOf(setId))
 
   if (
@@ -96,6 +115,12 @@ export const retireRelease = (setId, { repoRoot, discard = false }) => {
     ownedPathsOf(setId)
   )) {
     removed.push(`"${glob}" from overrides.json`)
+  }
+  if (neverSaved) {
+    // A failed save may have staged the release's lines in these shared
+    // files. Resetting their index entries to the last commit keeps the
+    // working files as they now are and loses nothing that was saved.
+    git(repoRoot, ['reset', '-q', '--', ...SHARED_FILES])
   }
   return { removed, neverSaved }
 }

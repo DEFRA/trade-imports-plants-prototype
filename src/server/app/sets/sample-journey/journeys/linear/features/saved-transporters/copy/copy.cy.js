@@ -56,6 +56,14 @@ export const copy = {
     transporterType: '[Welsh needed] Select the type of transporter',
     addressLine1: '[Welsh needed] Enter address line 1',
     townOrCity: '[Welsh needed] Enter the town or city',
-    country: '[Welsh needed] Enter the country'
+    country: '[Welsh needed] Select the country',
+    tooLong: {
+      approvalNumber:
+        '[Welsh needed] Approval number must be 100 characters or less',
+      addressLine2:
+        '[Welsh needed] Address line 2 must be 100 characters or less',
+      county: '[Welsh needed] County must be 100 characters or less',
+      postcode: '[Welsh needed] Postcode must be 12 characters or less'
+    }
   }
 }

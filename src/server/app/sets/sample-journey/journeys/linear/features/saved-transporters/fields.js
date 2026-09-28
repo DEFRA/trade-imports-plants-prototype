@@ -83,12 +83,20 @@ export const transporterRules = (countryCodes) =>
       TRANSPORTER_TYPES,
       copy.errors.transporterType
     ),
-    maxText('approvalNumber', APPROVAL_NUMBER_MAX_LENGTH),
+    maxText(
+      'approvalNumber',
+      APPROVAL_NUMBER_MAX_LENGTH,
+      copy.errors.tooLong.approvalNumber
+    ),
     requiredText('addressLine1', copy.errors.addressLine1),
-    maxText('addressLine2', ADDRESS_LINE_2_MAX_LENGTH),
+    maxText(
+      'addressLine2',
+      ADDRESS_LINE_2_MAX_LENGTH,
+      copy.errors.tooLong.addressLine2
+    ),
     requiredText('townOrCity', copy.errors.townOrCity),
-    maxText('county', COUNTY_MAX_LENGTH),
-    maxText('postcode', POSTCODE_MAX_LENGTH),
+    maxText('county', COUNTY_MAX_LENGTH, copy.errors.tooLong.county),
+    maxText('postcode', POSTCODE_MAX_LENGTH, copy.errors.tooLong.postcode),
     requiredOneOf('country', countryCodes, copy.errors.country)
   )
 

@@ -293,7 +293,12 @@ const namedMessages = (argumentText) =>
 export const validationCallsIn = (sources) => {
   const constants = stringConstantsIn(sources)
   const calls = []
-  const pattern = new RegExp(`\\b(${VALIDATORS.join('|')})\\s*\\(`, 'g')
+  // Not after a dot: `Joi.string().pattern(ID_PATTERN)` in a route's params
+  // is a Joi method, not the `lib/validate` factory of the same name.
+  const pattern = new RegExp(
+    `(?<![.\\w$])(${VALIDATORS.join('|')})\\s*\\(`,
+    'g'
+  )
   for (const source of sources) {
     for (const match of source.matchAll(pattern)) {
       const argumentText = callArguments(

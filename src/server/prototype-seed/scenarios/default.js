@@ -1,13 +1,15 @@
 import { HAPPY_PATH } from '../fixtures.js'
 
 /**
- * The four examples every set with a happy-path fixture gets when it has no
+ * The examples every set with a happy-path fixture gets when it has no
  * `scenarios/<set-id>.js` of its own: a draft just started, a draft part way
  * through, a submitted notification and a submitted then amended one — the
- * statuses a dashboard needs to show.
+ * statuses a dashboard needs to show — and, when its happy path has a
+ * fixture marked `"late": true`, one submitted late, so the dashboard's Late
+ * tag shows too.
  *
  * A design release copied from high-risk-plants has the same fixture names, so
- * it gets exactly high-risk-plants' first four examples. Any other set gets the
+ * it gets exactly high-risk-plants' first five examples. Any other set gets the
  * same four kinds, built from whichever fixtures its happy path has.
  */
 const PREFERRED = Object.freeze([
@@ -78,12 +80,25 @@ const withFixture = (plan, name, fixture) => {
     : { ...example, fixture: { file: HAPPY_PATH, name } }
 }
 
+const LATE = Object.freeze({
+  label: 'Submitted late',
+  slug: 'submitted-late',
+  submit: true
+})
+
+/** The late example, from the first fixture the happy path marks late, or
+ * none: a fixture that is not late would show no Late tag. */
+const lateExample = (happyPath, names) => {
+  const name = names.find((candidate) => happyPath[candidate].late === true)
+  return name ? [{ ...LATE, fixture: { file: HAPPY_PATH, name } }] : []
+}
+
 /**
  * The default examples for a set.
  *
  * @param {Record<string, Record<string, object>>} pool - the set's fixtures.
- * @returns {object[]} four examples in the scenario grammar, or none when the
- * set has no happy path.
+ * @returns {object[]} four examples in the scenario grammar (five with a late
+ * fixture), or none when the set has no happy path.
  */
 export const defaultExamples = (pool) => {
   const happyPath = pool[HAPPY_PATH] ?? {}
@@ -93,10 +108,13 @@ export const defaultExamples = (pool) => {
   if (names.length === 0) {
     return []
   }
-  return PREFERRED.map((plan, index) => {
-    const name = names.includes(plan.fixture)
-      ? plan.fixture
-      : names[index % names.length]
-    return withFixture(plan, name, happyPath[name])
-  })
+  return [
+    ...PREFERRED.map((plan, index) => {
+      const name = names.includes(plan.fixture)
+        ? plan.fixture
+        : names[index % names.length]
+      return withFixture(plan, name, happyPath[name])
+    }),
+    ...lateExample(happyPath, names)
+  ]
 }

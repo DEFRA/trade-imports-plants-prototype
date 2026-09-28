@@ -68,7 +68,7 @@ describe('which examples a set has', () => {
       folders = scaffold()
     })
 
-    it('Should fall back to the four default examples', () => {
+    it('Should fall back to the default examples, with a late one from the late fixture', () => {
       expect(exampleSourceFor(RELEASE, folders)).toBe('default')
 
       const examples = loadExamples(RELEASE, folders)
@@ -87,7 +87,8 @@ describe('which examples a set has', () => {
           through: 'destinations/select'
         },
         { slug: 'submitted', status: 'submitted', through: null },
-        { slug: 'amended', status: 'amended', through: null }
+        { slug: 'amended', status: 'amended', through: null },
+        { slug: 'submitted-late', status: 'submitted', through: null }
       ])
     })
 

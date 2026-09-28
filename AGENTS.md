@@ -52,9 +52,12 @@ in a Claude Code session opened at the workspace root
    exception is a **prototype-owned service folder**: a folder under
    `src/server/app/services/` that `overrides.json` lists on its own line
    in `ours` (today `transporters`, `templates`, `ins-address-book` and
-   `notification-search`). It may be made or changed only through the
-   service scaffold (`npm run designer:service -- new <name>`), which
-   refuses a name the real service already uses. Every other folder under
+   `notification-search`). A new one is made only through the service
+   scaffold (`npm run designer:service -- new <name>`), which refuses a name
+   the real service already uses. An existing one is changed in place,
+   keeping its `index.js`/`client.js`/`stub.js` shape, `contract.json` and
+   test in step, through the workspace `prototype` skill's fake-a-service
+   reference; the scaffold has no change verb. Every other folder under
    `src/server/app/services/` (such as `address-book`, `countries`,
    `ports`, `persistence` and `set-context`) belongs to the real service
    and stays forbidden on a `design/*` branch.
@@ -81,15 +84,21 @@ in a Claude Code session opened at the workspace root
 - `chore/NO_JIRA-<slug>` or `chore/EUDPA-N-<slug>`: a maintainer's own
   change to this repo (its scripts, rules, docs or contract), following
   the workspace's own branch-naming rule.
-- No branch here is named after a hand-off. Work meant for the real service
-  is made in the real repository, `trade-imports-plants-frontend`, on
-  `feat/EUDPA-N-<slug>` (or `feat/NO_JIRA-<slug>` without a ticket yet) —
-  never here. A hand-off folder under `handoffs/` still lands on the
-  designer's own `design/*` branch.
+- `handoff/<slug>`: the upstream-bound route only. The real journey's own
+  files (`high-risk-plants`, or shared chrome) are changed here so
+  `designer:handoff` can make a checked `upstream.patch` for plants-frontend.
+  Never merged into this repo's `main`. The real build still happens in the
+  real repository, `trade-imports-plants-frontend`, on
+  `feat/EUDPA-N-<slug>` (or `feat/NO_JIRA-<slug>` without a ticket yet),
+  with the same name in every other repo it reaches. A hand-off folder for a
+  design release (under `handoffs/`) lands on the designer's own `design/*`
+  branch, not here.
 
-One rule for every change: **on `main`, make a `design/*` branch; on any
-other branch, stay on it.** Starting a release, making the change and
-saving it all happen on that one branch, so nothing is split across two.
+One rule for every change: **stay only on a `design/*` branch (or a
+`handoff/*` branch for the upstream-bound route). From any other branch —
+`main`, or someone's `feat/*` or `chore/*` — make `design/<set>-<slug>`
+first.** Starting a release, making the change and saving it all happen on
+that one branch, so nothing is split across two or lands on someone else's.
 
 ## Commands
 

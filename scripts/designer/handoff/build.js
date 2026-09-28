@@ -561,6 +561,50 @@ const specFilesOnDisk = (root, openspecDir) => ({
 const specImpactOf = (root, changes, openspecDir) =>
   findPinnedStrings(oldStringsOf(changes), specFilesOnDisk(root, openspecDir))
 
+const RULINGS_FILE = /(^|\/)rulings\.json$/
+
+const rulingsIn = (text) => {
+  try {
+    const parsed = JSON.parse(text)
+    return Array.isArray(parsed.rulings) ? parsed.rulings : []
+  } catch {
+    return []
+  }
+}
+
+const firstSentence = (text) =>
+  /^.*?[.!?](?=\s|$)/.exec(text ?? '')?.[0] ?? text ?? ''
+
+/**
+ * The standing rulings whose `specChanges` quote words this change replaces,
+ * from the `rulings.json` hits in `specImpact`. Not a conflict that stops the
+ * change (a new service's clash is `rulingConflicts`): the product owner's
+ * panel chose those words on purpose, so the brief names the ruling and why.
+ *
+ * @param {string} root
+ * @param {{file: string, text: string}[]} specImpact
+ * @returns {{id: string, target: string, quoted: string, reason: string, source: string}[]}
+ */
+export const rulingNotesFor = (root, specImpact) => {
+  const notes = new Map()
+  for (const hit of specImpact.filter((item) => RULINGS_FILE.test(item.file))) {
+    for (const ruling of rulingsIn(readIfExists(root, hit.file) ?? '')) {
+      for (const specChange of ruling.specChanges ?? []) {
+        if (String(specChange.change ?? '').includes(hit.text)) {
+          notes.set(`${ruling.id}:${hit.text}`, {
+            id: ruling.id,
+            target: specChange.target,
+            quoted: hit.text,
+            reason: firstSentence(ruling.resolution),
+            source: hit.file
+          })
+        }
+      }
+    }
+  }
+  return [...notes.values()]
+}
+
 /**
  * Takes out of `shippable` every file that imports a left-out file, and every
  * file that imports one of those, and so on: shipped alone they would point
@@ -924,6 +968,7 @@ export const buildHandoff = (options) => {
   const patchPaths = new Set(patchChanges.map((change) => change.path))
   const pages = groupPages(root, set, shippable)
   const openspecDir = workspaceSpecDir(root, options.openspecDir)
+  const specImpact = specImpactOf(root, shippable, openspecDir)
 
   return {
     set,
@@ -987,6 +1032,7 @@ export const buildHandoff = (options) => {
       options.plantsFrontendDir
     ),
     rulingConflicts: rulingConflictsFor(root, set, services),
+    rulingNotes: rulingNotesFor(root, specImpact),
     wordsOnly:
       !placeholder &&
       shippable.length > 0 &&
@@ -996,7 +1042,7 @@ export const buildHandoff = (options) => {
         ? { ref: null, overlapping: [], elsewhere: [] }
         : driftOf(root, hops, patchPaths, baseRef),
     testImpact: testImpactOf(root, shippable),
-    specImpact: specImpactOf(root, shippable, openspecDir),
+    specImpact,
     cannotShip: {
       services: prototypeOnly,
       welshNeeded: shippable

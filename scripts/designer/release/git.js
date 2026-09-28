@@ -39,6 +39,25 @@ export const git = (repoRoot, args, options) => {
 export const isTracked = (repoRoot, paths) =>
   git(repoRoot, ['ls-files', '--', ...paths]).trim() !== ''
 
+/** True when any of the paths is in the last commit: staged alone is not
+ * saved. False in a repo with no commit yet. */
+export const isCommitted = (repoRoot, paths) => {
+  try {
+    return (
+      git(repoRoot, [
+        'ls-tree',
+        '-r',
+        '--name-only',
+        'HEAD',
+        '--',
+        ...paths
+      ]).trim() !== ''
+    )
+  } catch {
+    return false
+  }
+}
+
 /** `git status --porcelain` lines for the paths: uncommitted changes. */
 export const uncommittedChanges = (repoRoot, paths) =>
   git(repoRoot, ['status', '--porcelain', '--', ...paths])

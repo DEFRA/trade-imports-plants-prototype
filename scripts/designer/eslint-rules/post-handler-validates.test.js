@@ -42,6 +42,14 @@ ruleTester.run('post-handler-validates', postHandlerValidates, {
         validate(rules, request.payload)
       }
       export const routes = [{ method: ['GET', 'POST'], path: '/x', handler: add }]`
+    },
+    // A confirmation that reads no payload has no answer to validate.
+    {
+      code: `const remove = async (request, h) => {
+        await service.remove(request.params.id)
+        return h.redirect('/x')
+      }
+      export const routes = [{ method: 'POST', path: '/x/delete', handler: remove }]`
     }
   ],
   invalid: [
@@ -54,12 +62,15 @@ ruleTester.run('post-handler-validates', postHandlerValidates, {
       export const routes = [{ method: 'POST', path: '/x/add', handler: add }]`,
       errors: [{ messageId: 'missingValidate' }]
     },
-    // An inline arrow handler with no validate() call.
+    // An inline arrow handler that saves the payload with no validate() call.
     {
       code: `export const routes = [{
         method: 'POST',
         path: '/x/add',
-        handler: async (request, h) => h.redirect('/x')
+        handler: async (request, h) => {
+          await service.create(request.payload)
+          return h.redirect('/x')
+        }
       }]`,
       errors: [{ messageId: 'missingValidate' }]
     }

@@ -194,7 +194,34 @@ describe('the story block', () => {
       '* Recipe: {{src/server/app/sets/high-risk-plants/docs/add-a-field.md}} (plants-frontend, named)'
     )
     expect(panel).toContain(
-      '* Branch: {{feat/EUDPA-456-arrival-hint}} in trade-imports-plants-frontend.'
+      '* Branch: {{feat/EUDPA-456-arrival-hint}} in trade-imports-plants-frontend and the trade-imports workspace (its openspec change), the same name in each.'
+    )
+    expect(panel).not.toContain('Backend house conventions')
+  })
+
+  it('Should add the backend and platform conventions, and the owner repo to the branch, when a service needs a backend', () => {
+    const jira = jiraOf({ ...REPORT, servicesToBuild: [TRANSPORTERS] })
+
+    expect(jira).toContain(
+      '* Backend house conventions: {{~/git/defra/trade-imports-workspace/docs/best-practices/java/}}'
+    )
+    expect(jira).toContain('integration tests that run under {{mvn verify}}')
+    expect(jira).toContain('* Platform: the backend address')
+    expect(jira).toContain(
+      '* Branch: {{feat/EUDPA-456-arrival-hint}} in trade-imports-plants-frontend, the backend repo once its owner is agreed and the trade-imports workspace'
+    )
+    expect(
+      jiraOf({
+        ...REPORT,
+        servicesToBuild: [
+          {
+            ...TRANSPORTERS,
+            contract: { ...TRANSPORTERS.contract, owner: 'plants-backend' }
+          }
+        ]
+      })
+    ).toContain(
+      '* Branch: {{feat/EUDPA-456-arrival-hint}} in trade-imports-plants-frontend, trade-imports-plants-backend and the trade-imports workspace'
     )
   })
 

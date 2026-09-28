@@ -19,11 +19,17 @@ const VALID_INVALID = /\b(?:valid|invalid)\b/i
 const ERROR_VERB_MISSING =
   /\b(?:is required|must be provided|was not provided)\b/i
 
+/** Names that keep their capitals in sentence case, so they never count
+ * towards Title Case. */
+const PROPER_NOUNS =
+  /\b(?:Great Britain|Northern Ireland|United Kingdom|European Union|England|Scotland|Wales|Welsh|English|Defra|GOV\.UK|(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day|January|February|March|April|May|June|July|August|September|October|November|December)\b/g
+
 /** A heading reads Title Case when more than one word starts with a capital
  * and it is not one all-capitals acronym or a name. A crude, deliberately
- * generous test: it only flags at least two separately-capitalised words. */
+ * generous test: it only flags at least two separately-capitalised words,
+ * once proper nouns are set aside. */
 const looksTitleCase = (text) => {
-  const words = text.trim().split(/\s+/)
+  const words = text.replace(PROPER_NOUNS, '').trim().split(/\s+/)
   const capitalised = words.filter((word) => /^[A-Z][a-z]/.test(word))
   return words.length > 1 && capitalised.length > 1
 }

@@ -251,10 +251,16 @@ jobs:
       - name: Make a throwaway design release from the real journey
         run: npm run new:set -- plants-working --from high-risk-plants --title "Working release" --describe "A throwaway copy of the real journey, made by CI"
 
-      - name: Lint and unit tests with the release mounted
-        run: |
-          npm run lint
-          npm test
+      # designer:check --full is what a designer runs before saving: the
+      # quick checks (copy usage, templates, the prototype checks), then the
+      # pre-commit hook's own format check, lint and unit tests. Running it
+      # here catches a weekly update that changes the real journey's shape in
+      # a way the checks do not yet understand, before a designer meets it.
+      - name: Tidy the release's new lines, as new:set asks
+        run: npm run designer:format
+
+      - name: Full designer check with the release mounted
+        run: npm run designer:check -- --set plants-working --full
 
       - name: Install the Playwright browser
         run: npm run playwright:install

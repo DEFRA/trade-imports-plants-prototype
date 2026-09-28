@@ -73,9 +73,11 @@ Use these to suggest, not to override.
 - **No "please"** in instructions, hints or errors. It makes an instruction
   sound optional.
 - **Dates** in the form 27 September 2026. No ordinal endings ("27th"), no
-  leading zero. Example dates in hints follow the page's input: for a date
-  input, "For example, 27 3 2026" is the GOV.UK pattern; keep the page's
-  existing example if the designer did not ask to change it.
+  leading zero. Example dates in hints follow the page's input: for the
+  GOV.UK date input (three boxes: day, month, year), "For example, 27 3 2026";
+  for a single text box or the date picker, the format that box accepts, for
+  example "For example, 27/3/2026". Keep the page's existing example if the
+  designer did not ask to change it.
 - **Times**: follow what the page already uses (this service asks for the
   24-hour clock, "14:30").
 - **Numbers**: write them as numerals ("3 days", not "three days"), except in

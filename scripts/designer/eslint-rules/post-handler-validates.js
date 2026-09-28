@@ -11,6 +11,10 @@
  * than a full call-graph analysis. A handler that only ever delegates
  * validation to a helper it calls should call that helper `validate(...)`,
  * or name the check inline.
+ *
+ * A handler that never reads `request.payload` posts no answer to validate
+ * (a delete or cancel confirmation, a "start a new notification" button), so
+ * it is not checked.
  */
 const POST = 'POST'
 
@@ -66,6 +70,9 @@ const collectNamedFunctions = (program) => {
 const callsValidate = (functionNode, sourceCode) =>
   /\bvalidate\s*\(/.test(sourceCode.getText(functionNode))
 
+const readsPayload = (functionNode, sourceCode) =>
+  /\bpayload\b/.test(sourceCode.getText(functionNode))
+
 export const postHandlerValidates = {
   meta: {
     type: 'problem',
@@ -107,7 +114,10 @@ export const postHandlerValidates = {
           // expression from another module): nothing to check here.
           return
         }
-        if (!callsValidate(handlerFunction, sourceCode)) {
+        if (
+          readsPayload(handlerFunction, sourceCode) &&
+          !callsValidate(handlerFunction, sourceCode)
+        ) {
           context.report({
             node: handlerProperty,
             messageId: 'missingValidate'

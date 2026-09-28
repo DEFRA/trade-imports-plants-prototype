@@ -226,6 +226,21 @@ describe('findWelshMarkers', () => {
       ['hint', 7, 'A long hint the formatter put on its own line']
     ])
   })
+
+  it('Should give two leaves with the same words a line each', () => {
+    const source = [
+      'export const copy = {',
+      '  dateHints: {',
+      "    'not-yet-arrived': '[Welsh needed] For example, 27/3/2026',",
+      "    'already-arrived': '[Welsh needed] For example, 27/3/2026'",
+      '  }',
+      '}'
+    ].join('\n')
+
+    expect(
+      findWelshMarkers('copy.cy.js', source).map((marker) => marker.line)
+    ).toEqual([3, 4])
+  })
 })
 
 describe('relativeImportsOf', () => {

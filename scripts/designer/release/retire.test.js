@@ -114,6 +114,22 @@ describe('retire', () => {
     expect(statusOf(repoRoot)).toEqual([])
   })
 
+  it('Should throw away a never-saved release whose files a failed save left staged', () => {
+    scaffoldSet(
+      { setId: 'plants-unsaved', from: 'high-risk-plants', purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+    git(repoRoot, ['add', '-A'])
+
+    const { neverSaved } = retireRelease('plants-unsaved', {
+      repoRoot,
+      discard: true
+    })
+
+    expect(neverSaved).toBe(true)
+    expect(statusOf(repoRoot)).toEqual([])
+  })
+
   it.each([
     [
       'a saved release',

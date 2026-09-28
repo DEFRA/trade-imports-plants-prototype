@@ -45,10 +45,12 @@ visit.
 
 Everything in these folders is yours: the weekly update never changes it.
 
-A design release copied from `high-risk-plants` gets four examples without a
-scenario file: a draft just started, a draft part way through, a submitted one
-and a submitted then amended one. To add your own, start its scenario file
-first:
+A design release copied from `high-risk-plants` gets five examples without a
+scenario file: a draft just started, a draft part way through, a submitted one,
+a submitted then amended one, and one submitted late (so the dashboard shows
+its Late tag). The other four of the real journey's nine (a cancelled
+amendment, a copy, a deleted one, another organisation's) need a scenario
+file. To add your own, start its scenario file first:
 
 ```
 npm run designer:examples -- init <set-id>

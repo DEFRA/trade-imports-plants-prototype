@@ -188,6 +188,15 @@ const CY = EN.replace(
 )
 
 describe('validationCallsIn', () => {
+  it('Should not read a Joi method as a validate factory of the same name', () => {
+    const params = [
+      'const TEMPLATE_ID_PATTERN = /^[a-z0-9-]+$/',
+      'export const params = Joi.object({ templateId: Joi.string().pattern(TEMPLATE_ID_PATTERN) })'
+    ].join('\n')
+
+    expect(validationCallsIn([params])).toEqual([])
+  })
+
   it('Should read each rule with its field and message key', () => {
     expect(validationCallsIn([FIELDS, CONTROLLER])).toEqual([
       {

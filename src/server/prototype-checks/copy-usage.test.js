@@ -22,6 +22,8 @@ const TITLE_X_COPY = "export const copy = { title: 'X' }"
 const WELCOME_TEMPLATE = 'features/welcome/template.njk'
 const LIST_TEMPLATE = 'features/list/template.njk'
 const COPY_TITLE_REFERENCE = '{{ copy.title }}'
+const SHARED_ENGLISH_FILE = 'features/commodities/copy/copy.en.js'
+const SHARED_LIST_TEMPLATE = 'features/commodities/list/list.njk'
 
 let root
 
@@ -78,8 +80,8 @@ describe('templatesWithoutOwnCopy', () => {
   })
 
   it('Should say nothing when a copy folder one level up covers several pages', () => {
-    write('features/commodities/copy/copy.en.js', TITLE_X_COPY)
-    write('features/commodities/list/list.njk', COPY_TITLE_REFERENCE)
+    write(SHARED_ENGLISH_FILE, TITLE_X_COPY)
+    write(SHARED_LIST_TEMPLATE, COPY_TITLE_REFERENCE)
     write('features/commodities/details/details.njk', COPY_TITLE_REFERENCE)
 
     expect(templatesWithoutOwnCopy(root)).toEqual([])
@@ -110,6 +112,18 @@ describe('unresolvedCopyReferences', () => {
     )
 
     expect(await unresolvedCopyReferences(root)).toEqual([])
+  })
+
+  it('Should resolve a page in a shared copy folder against its own branch of that copy', async () => {
+    write(
+      SHARED_ENGLISH_FILE,
+      "export const copy = { list: { heading: 'Commodities' } }"
+    )
+    write(SHARED_LIST_TEMPLATE, '{{ copy.heading }} {{ copy.missing }}')
+
+    expect(await unresolvedCopyReferences(root)).toEqual([
+      { template: SHARED_LIST_TEMPLATE, path: 'missing' }
+    ])
   })
 
   it('Should say nothing for a template with no copy.en.js: templatesWithoutOwnCopy already reported it', async () => {

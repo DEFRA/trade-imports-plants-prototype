@@ -284,12 +284,43 @@ const OWNER_REPOS = {
   'new-api': 'a new API, owner to be agreed'
 }
 
-const reposNote = (report) => {
-  const owners = services(report)
-    .map((service) => service.contract?.owner)
-    .filter(Boolean)
-    .map((owner) => OWNER_REPOS[owner] ?? owner)
-  return [PLANTS_FRONTEND, ...new Set(owners)].join('; ')
+const ownerReposOf = (report) => [
+  ...new Set(
+    services(report)
+      .map((service) => service.contract?.owner)
+      .filter(Boolean)
+      .map((owner) => OWNER_REPOS[owner] ?? owner)
+  )
+]
+
+const reposNote = (report) =>
+  [PLANTS_FRONTEND, ...ownerReposOf(report)].join('; ')
+
+const BEST_PRACTICES = `${WORKSPACE_ROOT}/docs/best-practices`
+
+/** The backend and platform house conventions, only when a service here
+ * needs a backend the real team has to build or extend. */
+const backendNotes = (report) => {
+  if (ownerReposOf(report).length === 0) {
+    return []
+  }
+  return [
+    `Backend house conventions: {{${BEST_PRACTICES}/java/}} and {{${BEST_PRACTICES}/rest-api/rest-api.md}}. A REST noun endpoint (never an action path), Java records with null guards, integration tests that run under {{mvn verify}} (Failsafe; {{mvn test}} skips them). The exemplar is trade-imports-plants-backend's {{notification}} package.`,
+    'Platform: the backend address the new client reads needs a cdp-app-config entry for each environment. Draft it locally for the product owner to commit; no agent writes to cdp-app-config.'
+  ]
+}
+
+/** The branch line: the same name in every repo the story touches, and in
+ * the trade-imports workspace for the openspec change (workspace rule 2). */
+const branchNote = (report, meta) => {
+  const owners = ownerReposOf(report)
+  const named = owners.filter((repo) => /^trade-imports-[a-z-]+$/.test(repo))
+  const unnamed =
+    owners.length > named.length
+      ? ', the backend repo once its owner is agreed'
+      : ''
+  const repos = [PLANTS_FRONTEND, ...named].join(', ')
+  return `Branch: {{${meta.branch}}} in ${repos}${unnamed} and the trade-imports workspace (its openspec change), the same name in each.`
 }
 
 const recipePaths = (report) => {
@@ -357,7 +388,8 @@ const addStory = (add, report, meta, story) => {
             `Welsh: ${report.cannotShip.welshNeeded.length} string(s) still need translating.`
           ]
         : []),
-      `Branch: {{${meta.branch}}} in ${PLANTS_FRONTEND}.`,
+      ...backendNotes(report),
+      branchNote(report, meta),
       'Parent epic: chosen when the story is raised.'
     ]
   })
@@ -941,6 +973,10 @@ const addCannotShip = (add, report) => {
     ...(report.rulingConflicts ?? []).map(
       (conflict) =>
         `Ruling conflict: ${conflict.service} matches "${conflict.matchedTerm}", a service removed from the real journey on purpose (recorded in {{${conflict.source}}}). Check with the product owner before building it again.`
+    ),
+    ...(report.rulingNotes ?? []).map(
+      (note) =>
+        `Standing ruling ${note.id} chose the words this change replaces ("${note.quoted}", on ${note.target}): ${note.reason} Recorded in {{${note.source}}}. Check with the product owner that the new words still meet it.`
     )
   ]
   add(

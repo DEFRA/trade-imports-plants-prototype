@@ -54,6 +54,12 @@ export const copy = {
     transporterType: 'Select the type of transporter',
     addressLine1: 'Enter address line 1',
     townOrCity: 'Enter the town or city',
-    country: 'Enter the country'
+    country: 'Select the country',
+    tooLong: {
+      approvalNumber: 'Approval number must be 100 characters or less',
+      addressLine2: 'Address line 2 must be 100 characters or less',
+      county: 'County must be 100 characters or less',
+      postcode: 'Postcode must be 12 characters or less'
+    }
   }
 }

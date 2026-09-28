@@ -9,6 +9,7 @@ import {
   plantsFrontendApplyCheck,
   REAL_JOURNEY,
   rulingConflictsFor,
+  rulingNotesFor,
   setDirOf,
   workspaceSpecDir
 } from './build.js'
@@ -123,6 +124,59 @@ describe('rulingConflictsFor', () => {
   it('Should name no conflict for a service the real journey never removed', () => {
     expect(
       rulingConflictsFor(root, REAL_JOURNEY, [{ name: 'countries' }])
+    ).toEqual([])
+  })
+})
+
+describe('rulingNotesFor', () => {
+  const RULINGS = 'spec/panel/rulings.json'
+  const HINT = 'For example, 27/3/2026. If the potatoes have already arrived.'
+  let root
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'handoff-rulings-'))
+    writeFiles(root, {
+      [RULINGS]: JSON.stringify({
+        rulings: [
+          {
+            id: 'c-002',
+            resolution: 'Keep the potato label. Accept a past date.',
+            specChanges: [
+              {
+                target: 'arrivalDate',
+                change: `input.hintByState = { potatoes: '${HINT}' }`
+              }
+            ]
+          },
+          { id: 'c-003', resolution: 'Something else.', specChanges: [] }
+        ]
+      })
+    })
+  })
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('Should name the ruling whose spec changes quote the replaced words', () => {
+    expect(
+      rulingNotesFor(root, [{ file: RULINGS, line: 3, text: HINT }])
+    ).toEqual([
+      {
+        id: 'c-002',
+        target: 'arrivalDate',
+        quoted: HINT,
+        reason: 'Keep the potato label.',
+        source: RULINGS
+      }
+    ])
+  })
+
+  it('Should name no ruling for a hit outside rulings.json', () => {
+    expect(
+      rulingNotesFor(root, [
+        { file: 'spec/journey-spec.json', line: 1, text: HINT }
+      ])
     ).toEqual([])
   })
 })

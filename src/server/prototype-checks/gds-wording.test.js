@@ -54,6 +54,18 @@ describe('advisoryLinesFor', () => {
     expect(advisoryLinesFor(ADD_TITLE_KEY, 'Add a transporter')).toEqual([])
   })
 
+  it('Should not count a proper noun as Title Case', () => {
+    expect(
+      advisoryLinesFor(
+        ADD_TITLE_KEY,
+        'Has the consignment arrived in Great Britain?'
+      )
+    ).toEqual([])
+    expect(
+      advisoryLinesFor(ADD_TITLE_KEY, 'Import Plants To Northern Ireland')[0]
+    ).toMatch(/Title Case/)
+  })
+
   it('Should not flag a non-heading key for Title Case', () => {
     expect(advisoryLinesFor('table.name', 'Full Name Given')).toEqual([])
   })

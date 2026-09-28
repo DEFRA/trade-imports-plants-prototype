@@ -158,8 +158,12 @@ export const findPrototypeServiceImports = (filePath, content, owned) =>
 
 const WORDS_TO_PLACE = 20
 
-const lineOfText = (lines, text) => {
-  const at = lines.findIndex((line) => line.includes(text))
+/** The first line holding `text` that no earlier leaf has claimed, so two
+ * leaves with the same words get their own lines. 0 when there is none. */
+const lineOfText = (lines, text, claimed = new Set()) => {
+  const at = lines.findIndex(
+    (line, index) => !claimed.has(index + 1) && line.includes(text)
+  )
   return at === -1 ? 0 : at + 1
 }
 
@@ -190,6 +194,7 @@ export const findWelshMarkers = (filePath, content) => {
     return markersByLine(filePath, content)
   }
   const lines = content.split('\n')
+  const claimed = new Set()
   return Object.entries(leaves)
     .filter(
       ([, value]) => typeof value === 'string' && value.includes(WELSH_MARKER)
@@ -206,8 +211,10 @@ export const findWelshMarkers = (filePath, content) => {
       const line =
         lineOfText(
           lines,
-          `${WELSH_MARKER} ${english.slice(0, WORDS_TO_PLACE)}`
-        ) || lineOfText(lines, lastKey)
+          `${WELSH_MARKER} ${english.slice(0, WORDS_TO_PLACE)}`,
+          claimed
+        ) || lineOfText(lines, lastKey, claimed)
+      claimed.add(line)
       return { file: filePath, key, line, english }
     })
 }
