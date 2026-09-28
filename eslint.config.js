@@ -22,11 +22,6 @@ export default [
     }
   },
   {
-    // Workflow tool scripts are async function bodies whose top-level return
-    // is the result, which no module parser accepts; their tests lint instead
-    ignores: ['.claude/workflows/*.js', '!.claude/workflows/*.test.js']
-  },
-  {
     // mirrors the SonarCloud quality-gate rules that have local equivalents
     files: ['src/server/**/*.js'],
     plugins: { sonarjs },

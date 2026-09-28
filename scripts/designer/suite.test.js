@@ -78,7 +78,7 @@ const WORKSPACE_SKILL = `${WORKSPACE}.claude/skills/prototype/SKILL.md`
 const AGENT_LAYER_FOLDERS = ['.claude/skills/', '.claude/workflows/']
 
 // The workspace is on disk when this repo is its repos/ checkout. CI and a
-// designer with only this repo have no workspace, so existence is skipped.
+// A CI checkout of this repo alone has no workspace, so existence is skipped.
 const insideWorkspace = existsSync(path.resolve(REPO_ROOT, '../../tim'))
 const resolveTildePath = (tildePath) =>
   path.join(os.homedir(), tildePath.slice('~/'.length))

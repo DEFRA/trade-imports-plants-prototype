@@ -59,7 +59,7 @@ describe('guard-edit hook', () => {
     expect(result.stderr).toContain(UPSTREAM)
     expect(result.stderr).toContain('Owner: the real plants service.')
     expect(result.stderr).toContain('your design release')
-    expect(result.stderr).toContain('hand-off skill')
+    expect(result.stderr).toContain('as a hand-off')
     expect(result.stderr).toContain(`npm run designer:where -- ${UPSTREAM}`)
   })
 

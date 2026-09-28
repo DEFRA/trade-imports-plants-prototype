@@ -83,7 +83,7 @@
     },
     {
       "path": "src/config/config.test.js",
-      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in"
+      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in; and one describe block pinning the Defra ID redirect and sign-out redirect defaults to port 3103"
     },
     {
       "path": "src/server/router.js",
@@ -127,7 +127,7 @@
     },
     {
       "path": "eslint.config.js",
-      "why": "one extra block ignoring .claude/workflows/*.js (not their *.test.js): Workflow tool scripts are async function bodies whose top-level return is the result, which ESLint's module parser rejects; the tests beside them lint and run them"
+      "why": "one import of scripts/designer/eslint-rules and three blocks appended at the end of the array: route-params-validated over src/server/app/sets/**, post-handler-validates over design-release add/edit/controller files (never high-risk-plants), and service-barrel-imports over services/*/index.js and client.js. The house conventions a designer's change must meet, checked by lint"
     },
     {
       "path": "playwright.config.js",

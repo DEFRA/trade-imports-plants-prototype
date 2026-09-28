@@ -38,7 +38,7 @@ const safeRoutes = (repoPath) =>
   [
     'Two safe routes:',
     '1. Make the change in your design release (a folder under src/server/app/sets/ that you own).',
-    '2. Prepare it for the real team with the hand-off skill, on a handoff/<name> branch.',
+    '2. Prepare it for the real team as a hand-off (the workspace prototype skill), on a handoff/<name> branch.',
     `Run "npm run designer:where -- ${repoPath}" to see whose file it is.`
   ].join('\n')
 
