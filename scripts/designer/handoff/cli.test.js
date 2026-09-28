@@ -1,9 +1,24 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { HandoffError } from './build.js'
-import { outputDir, parseArgs, readCriteria, resolveOptions } from './cli.js'
+import {
+  outputDir,
+  parseArgs,
+  parseStatusArgs,
+  readCriteria,
+  recordHandoffStatus,
+  resolveOptions,
+  runStatus,
+  setStatusLines
+} from './cli.js'
 
 describe('parseArgs', () => {
   it('Should read the release, features and slug', () => {
@@ -182,6 +197,207 @@ describe('outputDir', () => {
   it('Should write to the ignored cache for a dry run', () => {
     expect(outputDir('/repo', { ...resolved, dryRun: true })).toBe(
       path.join('/repo', '.cache/designer/handoff', '2026-09-27-plants-working')
+    )
+  })
+})
+
+describe('setStatusLines', () => {
+  const brief = ['# Clearer arrival time hint', '', '**As** a trader,'].join(
+    '\n'
+  )
+
+  it('Should insert a new status block directly under the title', () => {
+    expect(setStatusLines(brief, { Status: 'sent', Ticket: 'EUDPA-123' })).toBe(
+      [
+        '# Clearer arrival time hint',
+        '',
+        'Status: sent',
+        'Ticket: EUDPA-123',
+        '',
+        '**As** a trader,'
+      ].join('\n')
+    )
+  })
+
+  it('Should merge into an existing block, field by field, never duplicating it', () => {
+    const withStatus = setStatusLines(brief, {
+      Status: 'sent',
+      Ticket: 'EUDPA-123'
+    })
+
+    expect(
+      setStatusLines(withStatus, {
+        Branch: 'feat/EUDPA-123-arrival-hint'
+      })
+    ).toBe(
+      [
+        '# Clearer arrival time hint',
+        '',
+        'Status: sent',
+        'Ticket: EUDPA-123',
+        'Branch: feat/EUDPA-123-arrival-hint',
+        '',
+        '**As** a trader,'
+      ].join('\n')
+    )
+  })
+
+  it('Should give the markdown back unchanged when there is no title line', () => {
+    expect(setStatusLines('no title here', { Status: 'sent' })).toBe(
+      'no title here'
+    )
+  })
+})
+
+describe('recordHandoffStatus', () => {
+  const readme = '# Hand-offs\n\nEach folder here is a hand-off.\n'
+
+  it('Should add the "Keeping track" table on its first use', () => {
+    expect(
+      recordHandoffStatus(readme, {
+        folderName: '2026-09-27-arrival-time-hint',
+        ticket: 'EUDPA-123',
+        branch: 'feat/EUDPA-123-arrival-time-hint'
+      })
+    ).toBe(
+      [
+        readme,
+        '| Hand-off | Ticket | Branch |',
+        '| --- | --- | --- |',
+        '| 2026-09-27-arrival-time-hint | EUDPA-123 | feat/EUDPA-123-arrival-time-hint |',
+        ''
+      ].join('\n')
+    )
+  })
+
+  it('Should add a new row under the table when one already exists', () => {
+    const withTable = recordHandoffStatus(readme, {
+      folderName: '2026-09-27-arrival-time-hint',
+      ticket: 'EUDPA-123',
+      branch: 'feat/EUDPA-123-arrival-time-hint'
+    })
+
+    expect(
+      recordHandoffStatus(withTable, {
+        folderName: '2026-09-28-other-change',
+        ticket: 'EUDPA-456',
+        branch: 'feat/EUDPA-456-other-change'
+      })
+    ).toContain(
+      '| 2026-09-28-other-change | EUDPA-456 | feat/EUDPA-456-other-change |'
+    )
+  })
+
+  it('Should update a hand-off already in the table, never duplicating its row', () => {
+    const withTable = recordHandoffStatus(readme, {
+      folderName: '2026-09-27-arrival-time-hint',
+      ticket: 'EUDPA-123',
+      branch: 'feat/EUDPA-123-arrival-time-hint'
+    })
+
+    const updated = recordHandoffStatus(withTable, {
+      folderName: '2026-09-27-arrival-time-hint',
+      ticket: 'EUDPA-123',
+      branch: 'feat/EUDPA-123-arrival-time-hint-v2'
+    })
+
+    expect(
+      updated.split('\n').filter((line) => line.includes('2026-09-27'))
+    ).toEqual([
+      '| 2026-09-27-arrival-time-hint | EUDPA-123 | feat/EUDPA-123-arrival-time-hint-v2 |'
+    ])
+  })
+})
+
+describe('parseStatusArgs', () => {
+  it('Should read --dir', () => {
+    expect(parseStatusArgs(['--dir', 'handoffs/2026-09-27-x'])).toEqual({
+      dir: 'handoffs/2026-09-27-x'
+    })
+  })
+
+  it('Should read --json alongside --dir', () => {
+    expect(
+      parseStatusArgs(['--dir', 'handoffs/2026-09-27-x', '--json'])
+    ).toEqual({ dir: 'handoffs/2026-09-27-x', json: true })
+  })
+
+  it('Should ask for --dir when it is missing', () => {
+    expect(() => parseStatusArgs([])).toThrow(
+      'Say which hand-off folder: status --dir handoffs/<folder>.'
+    )
+  })
+
+  it('Should refuse an option it does not know', () => {
+    expect(() => parseStatusArgs(['--push'])).toThrow(HandoffError)
+  })
+})
+
+describe('runStatus', () => {
+  let root
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), 'handoff-status-'))
+    mkdirSync(path.join(root, 'handoffs/2026-09-27-arrival-time-hint'), {
+      recursive: true
+    })
+    writeFileSync(
+      path.join(root, 'handoffs/README.md'),
+      '# Hand-offs\n\nEach folder here is a hand-off.\n'
+    )
+    writeFileSync(
+      path.join(root, 'handoffs/2026-09-27-arrival-time-hint/brief.md'),
+      '# Clearer arrival time hint\n\n**As** a trader,\n'
+    )
+  })
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('Should refuse a folder name that is not <yyyy-mm-dd>-<slug>', () => {
+    mkdirSync(path.join(root, 'handoffs/not-a-date'), { recursive: true })
+
+    expect(() => runStatus(root, { dir: 'handoffs/not-a-date' })).toThrow(
+      /does not look like a hand-off folder/
+    )
+  })
+
+  it('Should say plainly when ticket.created.json has not been written yet', () => {
+    expect(() =>
+      runStatus(root, { dir: 'handoffs/2026-09-27-arrival-time-hint' })
+    ).toThrow(/There is no ticket\.created\.json/)
+  })
+
+  it('Should record the ticket and the real branch in the brief and in handoffs/README.md', () => {
+    writeFileSync(
+      path.join(
+        root,
+        'handoffs/2026-09-27-arrival-time-hint/ticket.created.json'
+      ),
+      JSON.stringify({
+        key: 'EUDPA-123',
+        url: 'https://example.atlassian.net/browse/EUDPA-123'
+      })
+    )
+
+    const result = runStatus(root, {
+      dir: 'handoffs/2026-09-27-arrival-time-hint'
+    })
+
+    expect(result).toMatchObject({
+      ticket: 'EUDPA-123',
+      branch: 'feat/EUDPA-123-arrival-time-hint'
+    })
+    const brief = readFileSync(
+      path.join(root, 'handoffs/2026-09-27-arrival-time-hint/brief.md'),
+      'utf8'
+    )
+    expect(brief).toContain('Ticket: EUDPA-123')
+    expect(brief).toContain('Branch: feat/EUDPA-123-arrival-time-hint')
+    const readme = readFileSync(path.join(root, 'handoffs/README.md'), 'utf8')
+    expect(readme).toContain(
+      '| 2026-09-27-arrival-time-hint | EUDPA-123 | feat/EUDPA-123-arrival-time-hint |'
     )
   })
 })

@@ -1,0 +1,112 @@
+{
+  "service": "transporters",
+  "owner": "new-api",
+  "baseUrlEnv": "TRADE_IMPORTS_TRANSPORTERS_URL",
+  "needsARealService": "A transporter register: search an organisation’s saved transporters, read one, add one and delete one. Plants-frontend has none: its team removed the transporter pages on purpose.",
+  "operations": [
+    {
+      "name": "listTransporters",
+      "method": "GET",
+      "path": "/organisation/{organisationId}/transporters",
+      "params": {
+        "q": "text to find in the name, address or approval number",
+        "page": "number, from 1",
+        "pageSize": "number, 5 for a picker"
+      },
+      "returns": "{ items: [transporter], page, pageSize, totalItems, totalPages }",
+      "errors": ["400 when the page is out of range"]
+    },
+    {
+      "name": "getTransporter",
+      "method": "GET",
+      "path": "/organisation/{organisationId}/transporters/{id}",
+      "params": {},
+      "returns": "transporter",
+      "errors": ["404 when the organisation has no such transporter"]
+    },
+    {
+      "name": "createTransporter",
+      "method": "POST",
+      "path": "/organisation/{organisationId}/transporters",
+      "params": {
+        "body": "name, transporterType, approvalNumber, addressLine1, addressLine2, townOrCity, county, postcode, country"
+      },
+      "returns": "the saved transporter, with its new id and approvalStatus \"new\"",
+      "errors": [
+        "400 with a problem body, { errors: { field: [message] } }, for each field it refuses"
+      ]
+    },
+    {
+      "name": "deleteTransporter",
+      "method": "DELETE",
+      "path": "/organisation/{organisationId}/transporters/{id}",
+      "params": {},
+      "returns": "204 with no body",
+      "errors": ["404 when the organisation has no such transporter"]
+    }
+  ],
+  "record": {
+    "fields": [
+      { "name": "id", "type": "string", "required": true },
+      { "name": "name", "type": "string", "required": true },
+      {
+        "name": "transporterType",
+        "type": "string",
+        "required": true,
+        "enum": ["commercial", "private"]
+      },
+      { "name": "approvalNumber", "type": "string", "required": false },
+      {
+        "name": "approvalStatus",
+        "type": "string",
+        "required": true,
+        "enum": ["approved", "new"]
+      },
+      { "name": "addressLine1", "type": "string", "required": true },
+      { "name": "addressLine2", "type": "string", "required": false },
+      { "name": "townOrCity", "type": "string", "required": true },
+      { "name": "county", "type": "string", "required": false },
+      { "name": "postcode", "type": "string", "required": false },
+      {
+        "name": "country",
+        "type": "string (ISO 3166-1 alpha-2)",
+        "required": true
+      },
+      { "name": "deleted", "type": "boolean", "required": true }
+    ]
+  },
+  "examples": [
+    {
+      "request": "GET /organisation/5900001/transporters?page=1&pageSize=5&q=felixstowe",
+      "response": {
+        "items": [
+          {
+            "id": "harbourline-haulage-ltd",
+            "name": "Harbourline Haulage Ltd",
+            "transporterType": "commercial",
+            "approvalNumber": "UK/SUFFOLK/T1/00092001",
+            "approvalStatus": "approved",
+            "addressLine1": "4 Quayside Park",
+            "townOrCity": "Felixstowe",
+            "postcode": "IP11 3QT",
+            "country": "GB",
+            "deleted": false
+          }
+        ],
+        "page": 1,
+        "pageSize": 5,
+        "totalItems": 1,
+        "totalPages": 1
+      }
+    }
+  ],
+  "openQuestions": [
+    "Which service owns transporters: a new API, the address book, or the plants backend?",
+    "Is the approval number checked against a register, and who sets approvalStatus?",
+    "Should country stay an ISO code end to end, or does the real service want the display name too?"
+  ],
+  "notes": [
+    "CDP dev has no backend for this service, so index.js keeps isStubDataMode() to choose stub.js until a real service exists.",
+    "The labels for transporterType (\"Commercial\", \"Private\") are journey vocabulary, not part of the contract: they live with the saved-transporters feature that shows them, in sets/sample-journey."
+  ]
+}

@@ -51,8 +51,9 @@ it and make your change there.
    release yet, ask Claude to "start a new design release".
 2. **Prepare it for the real team.** If the change should become part of the
    real service, ask Claude to "hand this to the real team". It prepares a
-   brief and a patch for the plants-frontend team on a `handoff/<name>` branch.
-   Once the real team merges it, the weekly update brings it back here.
+   brief and a patch for the plants-frontend team, and can make the change
+   for real in a checkout of `trade-imports-plants-frontend`. Once the real
+   team merges it, the weekly update brings it back here.
 
 ## Who owns what
 
@@ -70,7 +71,7 @@ it, so trust `designer:where` over this picture.
 ├── webpack.config.js, vitest.config.js     [real service]
 ├── .claude/
 │   ├── settings.json                       [real service, for now]
-│   └── rules/, skills/, workflows/         [yours]
+│   └── rules/                              [yours]
 ├── docs/designers/                         [yours]  guides like this one
 ├── handoffs/                               [yours]  briefs for the real team
 ├── scripts/
@@ -130,11 +131,13 @@ service and is shared by every set. A change to the header or navigation is a
 design gap: write it down in your release's `design-gaps.md` so it travels
 with the hand-off.
 
-The header's "Address book" link goes nowhere in the prototype. The real
-service sends it to a separate service (the Import Notification Service
-frontend), which this prototype does not run. Locally it points at
-`http://localhost:3002`, and a deployed prototype will point there too
-unless its environment sets `TRADE_IMPORTS_INS_FRONTEND_URL`.
+The header's "Address book" link goes to the Import Notification Service
+frontend, a separate service, the same as the real service. This prototype
+does not run it itself, so the link only goes somewhere when that service
+is: the workspace docker stack, or `trade-imports-ins-frontend` run
+natively, both work locally. On a deployed prototype,
+`TRADE_IMPORTS_INS_FRONTEND_URL` sets where it points. None of this is
+ever needed to see a change you make here.
 
 ## What the weekly update really does
 

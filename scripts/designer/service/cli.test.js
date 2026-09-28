@@ -12,9 +12,11 @@ import {
   importersOf,
   parseArgs,
   run,
+  serviceFolderFor,
   upstreamHasService,
   USAGE
 } from './cli.js'
+import { OWNER_IDS } from './templates.js'
 
 const FOO_FOLDER = 'src/server/app/services/foo'
 const FOO_GLOB = `${FOO_FOLDER}/**`
@@ -27,16 +29,43 @@ const oursOf = (root) =>
 
 describe('parseArgs', () => {
   it('Should read the command, the name and each flag, whatever the order', () => {
+    expect(OWNER_IDS).toContain('address-book')
     expect(
-      parseArgs(['--owner', 'ins', 'new', '--describe', 'A thing.', 'things'])
+      parseArgs([
+        '--owner',
+        'address-book',
+        'new',
+        '--describe',
+        'A thing.',
+        'things'
+      ])
     ).toEqual({
       command: 'new',
       name: 'things',
-      owner: 'ins',
+      owner: 'address-book',
       describe: 'A thing.',
+      scope: 'platform',
+      set: undefined,
       force: false,
       help: false
     })
+  })
+
+  it('Should read --scope and --set, for a set-owned service', () => {
+    expect(
+      parseArgs([
+        'new',
+        'things',
+        '--owner',
+        'new-api',
+        '--describe',
+        'A thing.',
+        '--scope',
+        'set',
+        '--set',
+        'plants-working'
+      ])
+    ).toMatchObject({ scope: 'set', set: 'plants-working' })
   })
 })
 
@@ -64,14 +93,20 @@ describe('designer:service', () => {
   })
 
   describe('new', () => {
-    it('Should write the four files, tidy them, and add one ours line', async () => {
+    it('Should write the five files, tidy them, and add one ours line', async () => {
       const result = await run(newFoo, options())
 
       expect(result.status).toBe(0)
-      for (const file of ['index.js', 'client.js', 'stub.js', 'foo.test.js']) {
+      for (const file of [
+        'index.js',
+        'client.js',
+        'stub.js',
+        'contract.json',
+        'foo.test.js'
+      ]) {
         expect(existsSync(path.join(fixture.root, FOO_FOLDER, file))).toBe(true)
       }
-      expect(tidied).toHaveLength(4)
+      expect(tidied).toHaveLength(5)
       expect(oursOf(fixture.root).filter((line) => line === FOO_GLOB)).toEqual([
         FOO_GLOB
       ])
@@ -80,7 +115,7 @@ describe('designer:service', () => {
       )
     })
 
-    it('Should build index.js on the real pattern, with the sentence and contract, and no prototype plumbing', async () => {
+    it('Should build index.js and contract.json on the real pattern, with no prototype plumbing and no CONTRACT export', async () => {
       await run(
         [
           'new',
@@ -99,19 +134,169 @@ describe('designer:service', () => {
       const index = readFileSync(path.join(folder, 'index.js'), 'utf8')
       const client = readFileSync(path.join(folder, 'client.js'), 'utf8')
       const stub = readFileSync(path.join(folder, 'stub.js'), 'utf8')
+      const contract = JSON.parse(
+        readFileSync(path.join(folder, 'contract.json'), 'utf8')
+      )
 
       expect(index).toContain(
         'const impl = () => (isStubDataMode() ? stub : client)'
       )
       expect(index).toContain('export const listSavedVehicles')
       expect(index).toContain('export const getSavedVehicle')
-      expect(index).toContain(
-        'export const NEEDS_A_REAL_SERVICE = "Saved vehicles."'
-      )
-      expect(index).toContain("baseUrlEnv: 'TRADE_IMPORTS_PLANTS_BACKEND_URL'")
-      expect(index).toContain("const COLLECTION = '/saved-vehicles'")
+      expect(index).not.toContain('NEEDS_A_REAL_SERVICE')
+      expect(index).not.toMatch(/^export const CONTRACT/m)
+      expect(contract).toMatchObject({
+        service: 'saved-vehicles',
+        owner: 'plants-backend',
+        baseUrlEnv: 'TRADE_IMPORTS_PLANTS_BACKEND_URL',
+        needsARealService: 'Saved vehicles.'
+      })
+      expect(contract.operations.length).toBeGreaterThan(0)
       expect(`${index}${client}`).not.toContain('prototype-support')
       expect(stub).toContain('prototype-support/fake-store.js')
+    })
+
+    it('Should give an address-book or new-api owner the organisation-scoped path, and plants-backend the flat one', async () => {
+      await run(
+        [
+          'new',
+          'saved-addresses',
+          '--owner',
+          'address-book',
+          '--describe',
+          'x'
+        ],
+        options()
+      )
+      const contract = JSON.parse(
+        readFileSync(
+          path.join(
+            fixture.root,
+            'src/server/app/services/saved-addresses/contract.json'
+          ),
+          'utf8'
+        )
+      )
+
+      expect(contract.baseUrlEnv).toBe('TRADE_IMPORTS_ADDRESS_BOOK_URL')
+      expect(contract.operations[0].path).toBe(
+        '/organisation/{organisationId}/saved-addresses'
+      )
+    })
+
+    it('Should make a set-owned service under the release, with no overrides.json line', async () => {
+      fixture.write(
+        'src/server/app/sets/plants-working/set.js',
+        "export const SET_ID = 'plants-working'\n"
+      )
+      const before = oursOf(fixture.root)
+
+      const result = await run(
+        [
+          'new',
+          'foo',
+          '--owner',
+          'new-api',
+          '--describe',
+          DESCRIBE,
+          '--scope',
+          'set',
+          '--set',
+          'plants-working'
+        ],
+        options()
+      )
+
+      const folder = serviceFolderFor({
+        name: 'foo',
+        scope: 'set',
+        set: 'plants-working'
+      })
+      expect(folder).toBe('src/server/app/sets/plants-working/services/foo')
+      expect(result.status).toBe(0)
+      expect(existsSync(path.join(fixture.root, folder, 'contract.json'))).toBe(
+        true
+      )
+      expect(oursOf(fixture.root)).toEqual(before)
+      expect(result.lines.join('\n')).toContain(
+        'Owned by plants-working alone: no overrides.json line needed.'
+      )
+    })
+
+    it('Should build client.js on the same request shape as the synced services/address-book/client.js', async () => {
+      await run(
+        [
+          'new',
+          'saved-vehicles',
+          '--owner',
+          'plants-backend',
+          '--describe',
+          'x'
+        ],
+        options()
+      )
+      const generated = readFileSync(
+        path.join(
+          fixture.root,
+          'src/server/app/services/saved-vehicles/client.js'
+        ),
+        'utf8'
+      )
+      const synced = readFileSync(
+        path.join(REPO_ROOT, 'src/server/app/services/address-book/client.js'),
+        'utf8'
+      )
+
+      // The load-bearing shape every service client shares with the synced
+      // real one: the organisation header name, the trace header fallback,
+      // and the headers() object's three keys, in the same order.
+      const ORG_HEADER = "'Trade-Imports-Organisation-Id'"
+      const TRACE_FALLBACK = "process.env.TRACING_HEADER ?? 'x-cdp-request-id'"
+      const HEADERS_SHAPE =
+        /headers = \(orgId\) => \(\{\s*'Content-Type': 'application\/json',\s*\[[A-Z_]+\]: orgId,\s*\[tracingHeader\]: getTraceId\(\) \?\? ''/
+
+      for (const shared of [ORG_HEADER, TRACE_FALLBACK]) {
+        expect(synced).toContain(shared)
+        expect(generated).toContain(shared)
+      }
+      expect(generated).toMatch(HEADERS_SHAPE)
+      expect(generated).not.toContain(' || ')
+    })
+
+    it('Should refuse a set scope with no --set, or a release that does not exist', async () => {
+      const noSet = await run(
+        [
+          'new',
+          'foo',
+          '--owner',
+          'new-api',
+          '--describe',
+          DESCRIBE,
+          '--scope',
+          'set'
+        ],
+        options()
+      )
+      const missingRelease = await run(
+        [
+          'new',
+          'foo',
+          '--owner',
+          'new-api',
+          '--describe',
+          DESCRIBE,
+          '--scope',
+          'set',
+          '--set',
+          'no-such-release'
+        ],
+        options()
+      )
+
+      expect(noSet.status).toBe(1)
+      expect(noSet.lines[0]).toContain('--set <release>')
+      expect(missingRelease.status).toBe(1)
+      expect(missingRelease.lines[0]).toContain('no-such-release')
     })
 
     it('Should refuse a name the real service already has, and change nothing', async () => {
@@ -151,9 +336,12 @@ describe('designer:service', () => {
 
       const refusals = await Promise.all([
         run(newFoo, options()),
-        run(['new', 'Foo Bar', '--owner', 'ins', '--describe', 'x'], options()),
+        run(
+          ['new', 'Foo Bar', '--owner', 'new-api', '--describe', 'x'],
+          options()
+        ),
         run(['new', 'bar', '--describe', 'x'], options()),
-        run(['new', 'bar', '--owner', 'ins'], options())
+        run(['new', 'bar', '--owner', 'new-api'], options())
       ])
 
       expect(refusals.map(({ status }) => status)).toEqual([1, 1, 1, 1])
@@ -225,8 +413,8 @@ describe('designer:service', () => {
   describe('list', () => {
     it('Should print each prototype-owned service with what it needs', async () => {
       fixture.write(
-        `${FOO_FOLDER}/index.js`,
-        `export const NEEDS_A_REAL_SERVICE = '${DESCRIBE}'\nexport const CONTRACT = { owner: 'new-api' }\n`
+        `${FOO_FOLDER}/contract.json`,
+        JSON.stringify({ owner: 'new-api', needsARealService: DESCRIBE })
       )
       const overridesFile = path.join(fixture.root, 'overrides.json')
       const overrides = JSON.parse(readFileSync(overridesFile, 'utf8'))

@@ -73,8 +73,11 @@ Preparing a change for the real plants service team. Ask Claude to "hand
 this to the real team", or to "write this up as a story for the developers".
 It writes a folder under `handoffs/` with a brief in plain English (and a
 copy ready to paste into Jira), screenshots, a table of changed words and a
-patch the team can apply. Nothing is sent anywhere automatically: you or a
-developer share the brief with the team.
+patch the team can apply. It also raises the story itself: it checks the
+brief for anything still unanswered, shows you the ticket it would create as
+a dry run, and only creates it once you say yes in your own words. Without
+Jira access set up, it stops there and gives you the brief to paste into a
+story yourself. Nothing is sent anywhere without you saying so.
 
 ## Needs-person
 

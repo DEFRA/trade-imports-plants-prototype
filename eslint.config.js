@@ -1,6 +1,8 @@
 import neostandard from 'neostandard'
 import sonarjs from 'eslint-plugin-sonarjs'
 
+import { designerRules } from './scripts/designer/eslint-rules/index.js'
+
 export default [
   ...neostandard({
     env: ['node', 'vitest'],
@@ -64,6 +66,50 @@ export default [
           ignoreArrayIndexes: true
         }
       ]
+    }
+  },
+  {
+    // House conventions no shared plugin checks. See
+    // scripts/designer/eslint-rules/ for why each one exists. Scoped to
+    // src/server/app/sets/: routes elsewhere (the chooser, examples) are the
+    // real service's own and out of a designer's reach.
+    files: ['src/server/app/sets/**/*.js'],
+    ignores: ['**/*.test.js', '**/*.spec.js', '**/*.cy.js'],
+    plugins: { 'designer-rules': designerRules },
+    rules: {
+      'designer-rules/route-params-validated': 'error'
+    }
+  },
+  {
+    // Only design releases and the platform sample: high-risk-plants is the
+    // real journey, proven by its own suite already. Only pages that
+    // collect fields (add, edit): a delete or cancel confirmation posts
+    // nothing to validate.
+    files: [
+      'src/server/app/sets/**/add/*.js',
+      'src/server/app/sets/**/edit/*.js',
+      'src/server/app/sets/**/features/*/controller.js'
+    ],
+    ignores: [
+      'src/server/app/sets/high-risk-plants/**',
+      '**/*.test.js',
+      '**/*.spec.js'
+    ],
+    plugins: { 'designer-rules': designerRules },
+    rules: {
+      'designer-rules/post-handler-validates': 'error'
+    }
+  },
+  {
+    // The files a hand-off's patch proposes for plants-frontend: they must
+    // not import the prototype's own plumbing.
+    files: [
+      'src/server/app/services/*/index.js',
+      'src/server/app/services/*/client.js'
+    ],
+    plugins: { 'designer-rules': designerRules },
+    rules: {
+      'designer-rules/service-barrel-imports': 'error'
     }
   }
 ]

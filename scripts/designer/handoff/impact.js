@@ -255,6 +255,56 @@ export const parseDesignGaps = (markdown) => {
   return listItems(markdown).map((gap) => ({ gap }))
 }
 
+const REMOVAL_TRIGGER = /\b(removed|unused|no longer used)\b/i
+const SERVICE_TOKEN_BEFORE = /([a-z][a-z/-]*)\s+services?\b/gi
+
+/**
+ * The service-name vocabulary a hand-off checks a new service against:
+ * every hyphenated or slashed token that sits immediately before "service"
+ * or "services" in a sentence that also says a service was removed or is no
+ * longer used. Read from the real journey's or the platform's services
+ * docs, and from the journey spec's own removal record — a hand-off checks
+ * all three (`rulingConflictsFor` in `build.js`).
+ *
+ * @param {string|null} text - a services doc or the journey spec, as text.
+ * @returns {string[]} lower-case vocabulary words, deduplicated.
+ */
+export const removalVocabularyFrom = (text) => {
+  if (!text) {
+    return []
+  }
+  const words = new Set()
+  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+    if (!REMOVAL_TRIGGER.test(sentence)) {
+      continue
+    }
+    for (const match of sentence.matchAll(SERVICE_TOKEN_BEFORE)) {
+      words.add(match[1].toLowerCase())
+    }
+  }
+  return [...words]
+}
+
+const singular = (word) => word.replace(/s$/, '')
+
+/**
+ * Whether a service name matches one of the removed-service vocabulary
+ * words, loosely: the same word once trailing plurals are dropped, or one
+ * contains the other — so "transporters" matches a removal recorded for
+ * "transporter" or for "commercial-transporters".
+ *
+ * @param {string} serviceName
+ * @param {string[]} vocabulary - from `removalVocabularyFrom`.
+ * @returns {string|undefined} the vocabulary word it matched, or undefined.
+ */
+export const matchingRemovedVocabulary = (serviceName, vocabulary) => {
+  const name = singular(serviceName.toLowerCase())
+  return vocabulary.find((word) => {
+    const term = singular(word.toLowerCase())
+    return name === term || name.includes(term) || term.includes(name)
+  })
+}
+
 /**
  * The rules a research release relaxed, from its `research-mode.md`: every
  * list item or table row, as plain text.

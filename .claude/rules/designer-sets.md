@@ -13,7 +13,7 @@ releases are sets. Keep them working with these rules.
 1. **Run `npm run designer:where -- <paths>` first.** A design release is
    yours. `high-risk-plants` belongs to the real service. A frozen release
    (its `release.json` says `"frozen": true`) must never be edited: start a
-   working release from it with the `design-release` skill.
+   working release from it.
 2. **A set never imports another set.** Every import stays inside
    `sets/<this-set>/` or goes to the shared platform
    (`src/server/app/{engine,model,bridge,flow,shared,lib,services}`). The
@@ -23,9 +23,11 @@ releases are sets. Keep them working with these rules.
    `src/server/app/services/` that `overrides.json` lists on its own line in
    `ours` (today `transporters`, `templates`, `ins-address-book` and
    `notification-search`). On a `design/*` branch that folder may be made or
-   changed through `.claude/skills/fake-a-service/SKILL.md`. Every other
-   folder under `src/server/app/services/` belongs to the real service:
-   never edit it on a `design/*` branch.
+   changed only through the service scaffold
+   (`npm run designer:service -- new <name>`) and the workspace `prototype`
+   skill's fake-a-service reference. Every other folder under
+   `src/server/app/services/` belongs to the real service: never edit it on
+   a `design/*` branch.
 3. **Keep the generated names.** `SET_ID` and `SET_BASE` in `set.js`, and
    `TEMPLATES` in `journeys/linear/config.js`, were written by
    `npm run new:set`. Do not rename or hand-edit them. The server finds the

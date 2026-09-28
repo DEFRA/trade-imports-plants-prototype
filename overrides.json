@@ -35,22 +35,7 @@
     "PROTOTYPE.md",
     "CLAUDE.md",
     "AGENTS.md",
-    ".claude/skills/change-the-journey/**",
-    ".claude/skills/change-the-words/**",
-    ".claude/skills/check-my-change/**",
-    ".claude/skills/design/**",
-    ".claude/skills/design-release/**",
-    ".claude/skills/example-data/**",
-    ".claude/skills/fake-a-service/**",
-    ".claude/skills/hand-off/**",
-    ".claude/skills/match-the-design/**",
-    ".claude/skills/port-a-kit-page/**",
-    ".claude/skills/research-session/**",
-    ".claude/skills/run-the-prototype/**",
-    ".claude/skills/share-my-change/**",
-    ".claude/skills/show-my-change/**",
     ".claude/rules/**",
-    ".claude/workflows/**",
     "docs/designers/**",
     "scripts/designer/**",
     "src/server/prototype-checks/**",
@@ -94,7 +79,7 @@
     },
     {
       "path": "src/config/config.js",
-      "why": "default port is 3103 (the real twin's plus 100), plus the identity lines: the Defra ID service id default and the development auth cookie name"
+      "why": "default port is 3103 (the real twin's plus 100); the Defra ID redirect and sign-out redirect URLs default to this port too, not plants-frontend's 3003, so a local prototype signs back in to itself; plus the identity lines: the Defra ID service id default and the development auth cookie name"
     },
     {
       "path": "src/config/config.test.js",

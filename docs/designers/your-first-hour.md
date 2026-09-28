@@ -24,26 +24,27 @@ Do these once. Ask someone who has done it before if a step is new to you.
    git config --global user.email "you@example.com"
    ```
 
-3. **The prototype on your computer.** In a terminal, in the folder where
-   you keep projects:
+3. **The workspace on your computer, not just the prototype.** In a
+   terminal, in your home folder:
 
    ```
-   git clone https://github.com/DEFRA/trade-imports-plants-prototype.git
+   git clone https://github.com/DEFRA/trade-imports-workspace.git ~/git/defra/trade-imports-workspace
    ```
 
-   Then open the new `trade-imports-plants-prototype` folder.
+   This one clone holds the prototype (under `repos/`), the real plants
+   service it copies, and everything Claude reads to build sympathetically
+   with the real thing. The exact path matters: every command below expects
+   it.
 
-4. **Node.js.** The version is in the `.nvmrc` file (Node 24). If you use
-   [nvm](https://github.com/nvm-sh/nvm), run `nvm install` in the
-   prototype's folder.
-5. **An assistant.** Either:
-   - **Claude Code**: install it from
-     [claude.com/claude-code](https://claude.com/claude-code), sign in, and
-     start it in the prototype's folder, or
-   - **Cursor** (or another coding assistant): open the prototype's folder.
-     It reads `AGENTS.md`, which holds the same instructions Claude Code
-     follows, so the same words work. See "Using Cursor or another
-     assistant" in [PROTOTYPE.md](../../PROTOTYPE.md).
+4. **Node.js.** The prototype's own version is in its `.nvmrc` file (Node
+   24). If you use [nvm](https://github.com/nvm-sh/nvm), run `nvm install`
+   in `~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype`.
+5. **Claude Code.** Install it from
+   [claude.com/claude-code](https://claude.com/claude-code), sign in, and
+   start it at the workspace root
+   (`~/git/defra/trade-imports-workspace`) — not in the prototype's own
+   folder. That is what lets Claude work out what you want and read the
+   real service while it builds for you.
 6. **The GitHub command line, for pull requests (optional).** Install `gh`
    from [cli.github.com](https://cli.github.com), then run `gh auth login`
    and follow its questions. Without it, Claude gives you a link to open each
@@ -52,14 +53,27 @@ Do these once. Ask someone who has done it before if a step is new to you.
    the terminal: the prototype's start command does not run in Command
    Prompt or PowerShell.
 
-`npm run designer:preflight` (step 1 below) checks most of this for you:
-lines starting `Before you share` are what is still missing for saving and
-sharing. `npm run designer:preflight -- --share` also checks your GitHub
-sign-in and write access.
+## Getting set up
+
+Once you have Node.js and Claude Code, run these two commands once, from
+anywhere:
+
+```
+npm --prefix ~/git/defra/trade-imports-workspace/tim link
+tim prototype setup
+```
+
+The first puts `tim`, the workspace's own command line, on your path. The
+second installs this repo's packages, checks your GitHub and Jira
+sign-in, and writes a note so Claude knows to work with you as a designer
+from here on. It prints what is still missing, if anything, and what to
+run to fix it.
 
 ## What you need each time
 
-- A terminal open in the prototype's folder. Every command below runs there.
+- Claude Code open at the workspace root
+  (`~/git/defra/trade-imports-workspace`). Every command below still runs
+  against the prototype, wherever your terminal is standing.
 
 You do not need a database, other services, passwords or environment
 variables. The prototype makes up its own data.
@@ -72,7 +86,7 @@ does steps 1 to 3 for you, then shows you what you can ask for.
 Or run:
 
 ```
-npm run designer:preflight
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:preflight
 ```
 
 It checks these things and changes nothing:
@@ -92,26 +106,27 @@ the real service's code.
 
 ## 2. Install
 
-The first time, and whenever the preflight says packages need installing, run
-the install command its `Packages` line prints. Today that is:
+`tim prototype setup` (above) already did this. If the preflight check
+above says packages need installing again later, run the command its
+`Packages` line prints — from the workspace root that is:
 
 ```
-npx --yes npm@11.6.2 ci
+tim workspace install --repo trade-imports-plants-prototype
 ```
 
-This runs the exact npm version the prototype expects. A newer npm can refuse
-to install. Never use `npm install`: it rewrites the package list.
+It runs the exact npm version the prototype expects, so it never rewrites
+the package list the way a bare `npm install` would.
 
 Then install the browser used for pictures, once:
 
 ```
-npm run playwright:install
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run playwright:install
 ```
 
 ## 3. Run it
 
 ```
-npm run dev
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run dev
 ```
 
 Leave that terminal open. When it says
@@ -122,8 +137,11 @@ To stop it, press Ctrl and C in that terminal.
 
 If it says `address already in use`, the prototype is probably already
 running somewhere else, in another terminal or your editor. Open the address
-anyway. To see what holds the port, run `npm run designer:preflight`: it names
-the program and never stops it.
+anyway. To see what holds the port, run `designer:preflight` (above): it
+names the program and never stops it.
+
+Nothing here needs the workspace docker stack. It runs the same way
+whether or not the stack is running.
 
 `npm start` runs the prototype the way it runs when deployed. Like the real
 service, it then needs a Defra ID sign-in service to sign you in, so use
@@ -159,8 +177,10 @@ To put a set's examples back at any time, go to the Prototypes page and press
 using this copy of the prototype, then makes the examples again.
 
 To get a link straight to an example, ask **"give me the example links"**, or
-run `npm run designer:examples -- links <set-id>`. These links keep working
-after restarts and resets. See [Example data](example-data.md).
+run
+`npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:examples -- links <set-id>`.
+These links keep working after restarts and resets. See
+[Example data](example-data.md).
 
 ## 6. Make your first design release
 
@@ -169,11 +189,11 @@ called a design release.
 
 Ask: **"Start a new design release called plants-working"**.
 
-Or run, then tidy the new lines:
+Or run, then tidy the new lines (both from the workspace root):
 
 ```
-npm run new:set -- plants-working --from high-risk-plants --describe "My working copy" --purpose working
-npm run designer:format
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run new:set -- plants-working --from high-risk-plants --describe "My working copy" --purpose working
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:format
 ```
 
 You can also skip this step: the first time you ask for a change with no
@@ -218,7 +238,7 @@ Ask: **"Check my changes"**.
 Or run:
 
 ```
-npm run designer:check -- --set plants-working
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:check -- --set plants-working
 ```
 
 It says pass or fail, and explains every failure in plain words. See
@@ -231,7 +251,7 @@ Ask: **"Show me, before and after"**.
 Or run:
 
 ```
-npm run designer:show -- --set plants-working --before
+npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:show -- --set plants-working --before
 ```
 
 It takes pictures of the pages your change shows up on, next to how they

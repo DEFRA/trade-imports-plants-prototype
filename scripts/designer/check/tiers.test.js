@@ -11,8 +11,11 @@ describe('stepsFor', () => {
       'tidy',
       'ownership',
       'copy',
+      'copy-usage',
       'templates',
       'code-rules',
+      'service-conformance',
+      'gds-wording',
       'prototype-checks'
     ])
   })

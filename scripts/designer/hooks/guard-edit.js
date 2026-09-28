@@ -1,15 +1,18 @@
 /**
  * Claude Code PreToolUse hook for Edit, Write and NotebookEdit. It only runs
- * once scripts/designer/hooks/settings-proposal.json is applied to
- * .claude/settings.json (see "For maintainers" in README.md).
+ * once the prototype's own .claude/settings.json wires it in as a
+ * PreToolUse hook (see "For maintainers" in README.md).
  *
  * Reads the hook's JSON on stdin and decides from the file's owner and the
  * current branch:
- * - yours: allowed, unless it is in a frozen release (blocked)
- * - any file on a handoff/* or maintain/* branch: allowed
- * - shared on purpose: allowed, with a warning
- * - belongs to the real service, or removed: blocked (exit 2), naming the
- *   file, its owner and the two safe routes
+ * - any branch other than design/*: allowed. A designer's own work happens
+ *   on design/*; every other branch (feat/*, chore/*, handoff/*, maintain/*,
+ *   main) is a developer or an agent working to the real repo's own rules,
+ *   which this guard has no part in.
+ * - on design/*: yours is allowed, unless it is in a frozen release
+ *   (blocked); shared on purpose is allowed, with a warning; belongs to the
+ *   real service, or removed, is blocked (exit 2), naming the file, its
+ *   owner and the two safe routes.
  * Reads and other tools are never blocked, and anything it cannot make
  * sense of is allowed (fail open): a broken guard must never stop work.
  */
@@ -21,7 +24,7 @@ import { ownershipOf } from '../lib/ownership.js'
 import { REPO_ROOT, readOverrides } from '../lib/repo.js'
 
 export const GUARDED_TOOLS = ['Edit', 'MultiEdit', 'Write', 'NotebookEdit']
-export const OPEN_BRANCH_PREFIXES = ['handoff/', 'maintain/']
+export const DESIGN_BRANCH_PREFIX = 'design/'
 
 const ALLOW = Object.freeze({ exitCode: 0, stderr: '' })
 const BLOCK_EXIT_CODE = 2
@@ -62,9 +65,8 @@ const warningMessage = (verdict) =>
     'Keep the change small, and update its "why" in overrides.json.'
   ].join('\n')
 
-const isOpenBranch = (branch) =>
-  typeof branch === 'string' &&
-  OPEN_BRANCH_PREFIXES.some((prefix) => branch.startsWith(prefix))
+const isDesignBranch = (branch) =>
+  typeof branch === 'string' && branch.startsWith(DESIGN_BRANCH_PREFIX)
 
 /**
  * The decision for one tool call: `{ exitCode, stderr }`. Pure apart from
@@ -81,7 +83,7 @@ export const decide = ({
   if (!GUARDED_TOOLS.includes(toolName) || typeof filePath !== 'string') {
     return ALLOW
   }
-  if (isOpenBranch(branch)) {
+  if (!isDesignBranch(branch)) {
     return ALLOW
   }
   const verdict = ownershipOf(filePath, { root, cwd: cwd ?? root, overrides })

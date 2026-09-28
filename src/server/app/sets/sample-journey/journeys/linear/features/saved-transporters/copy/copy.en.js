@@ -34,9 +34,12 @@ export const copy = {
     },
     approvalNumber: 'Approval number (optional)',
     addressLine1: 'Address line 1',
+    addressLine2: 'Address line 2 (optional)',
     townOrCity: 'Town or city',
+    county: 'County (optional)',
     postcode: 'Postcode (optional)',
     country: 'Country',
+    countryPlaceholder: 'Choose a country',
     save: 'Save transporter',
     cancel: 'Cancel'
   },

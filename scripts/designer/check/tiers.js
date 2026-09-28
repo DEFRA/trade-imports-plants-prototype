@@ -16,8 +16,11 @@ export const STEP_TITLES = Object.freeze({
   tidy: 'Tidy the code layout (Prettier)',
   ownership: 'Whose files you changed',
   copy: 'English and Welsh words',
+  'copy-usage': 'Copy a template reads',
   templates: 'Page templates',
   'code-rules': 'Code rules in the files you changed',
+  'service-conformance': 'Prototype-owned services',
+  'gds-wording': 'GOV.UK wording notes',
   'prototype-checks': 'Pages open (prototype checks)',
   'real-journey-tests': 'Real journey unit tests',
   'format-check': 'Code layout of every file (pre-commit hook)',
@@ -30,8 +33,11 @@ const QUICK = [
   'tidy',
   'ownership',
   'copy',
+  'copy-usage',
   'templates',
   'code-rules',
+  'service-conformance',
+  'gds-wording',
   'prototype-checks',
   'real-journey-tests'
 ]

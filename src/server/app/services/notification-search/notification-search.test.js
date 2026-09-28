@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -11,6 +15,13 @@ import { withSetContext } from '../../shared/set-context.js'
 import { designerRecords } from '../../../prototype-support/records.js'
 import { SET_ID } from '../../../../../test/fixtures/index.js'
 import * as notificationSearch from './index.js'
+
+const CONTRACT = JSON.parse(
+  readFileSync(
+    path.join(fileURLToPath(import.meta.url), '../contract.json'),
+    'utf8'
+  )
+)
 
 /** The unit suite's fixture set stands in for a release: dashboard rows are
  * read through the set's obligations, and the fixture is the set every unit
@@ -248,15 +259,21 @@ describe('the proposed client, against the plants backend', () => {
 })
 
 describe('what it says it needs', () => {
-  it('Should name the real service it stands in for, and its contract', () => {
-    expect(notificationSearch.NEEDS_A_REAL_SERVICE).toMatch(/plants backend/)
-    expect(notificationSearch.CONTRACT).toMatchObject({
+  it('Should name the real service it stands in for, and its contract, in contract.json', () => {
+    expect(CONTRACT.needsARealService).toMatch(/plants backend/)
+    expect(CONTRACT).toMatchObject({
       service: 'notification-search',
       owner: 'plants-backend',
       baseUrlEnv: 'TRADE_IMPORTS_PLANTS_BACKEND_URL'
     })
-    expect(
-      notificationSearch.CONTRACT.operations.map(({ name }) => name)
-    ).toEqual(['searchNotifications', 'countNotifications'])
+    expect(CONTRACT.operations.map(({ name }) => name)).toEqual([
+      'searchNotifications',
+      'countNotifications'
+    ])
+  })
+
+  it('Should export neither CONTRACT nor NEEDS_A_REAL_SERVICE from index.js', () => {
+    expect(notificationSearch.CONTRACT).toBeUndefined()
+    expect(notificationSearch.NEEDS_A_REAL_SERVICE).toBeUndefined()
   })
 })

@@ -3,7 +3,7 @@ import {
   idFromName,
   searchRecords
 } from '../../../prototype-support/search-page.js'
-import { toRecord, TRANSPORTER_TYPES, validationError } from './client.js'
+import { toRecord, validationError } from './client.js'
 
 /**
  * The stub: seven made-up transporters every organisation sees, plus the
@@ -11,9 +11,12 @@ import { toRecord, TRANSPORTER_TYPES, validationError } from './client.js'
  * clears what people added in that release only.
  */
 
-const UNITED_KINGDOM = 'United Kingdom'
+/** The transporter types the stub accepts, matching `contract.json`'s
+ * `record.fields` enum. The labels shown for each belong to the feature that
+ * asks the question, not to this service. */
+const ALLOWED_TRANSPORTER_TYPES = Object.freeze(['commercial', 'private'])
 
-/** Starter rows, in the API's shape (`CONTRACT.record` in `./index.js`). */
+/** Starter rows, in the API's shape (`contract.json`'s `record`). */
 export const STARTER_TRANSPORTERS = Object.freeze([
   {
     id: 'harbourline-haulage-ltd',
@@ -22,9 +25,11 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'UK/SUFFOLK/T1/00092001',
     approvalStatus: 'approved',
     addressLine1: '4 Quayside Park',
+    addressLine2: '',
     townOrCity: 'Felixstowe',
+    county: 'Suffolk',
     postcode: 'IP11 3QT',
-    country: UNITED_KINGDOM,
+    country: 'GB',
     deleted: false
   },
   {
@@ -34,9 +39,11 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'NL/ROTTERDAM/T1/00081002',
     approvalStatus: 'approved',
     addressLine1: 'Havenweg 12',
+    addressLine2: '',
     townOrCity: 'Rotterdam',
+    county: '',
     postcode: '3089 JB',
-    country: 'Netherlands',
+    country: 'NL',
     deleted: false
   },
   {
@@ -46,9 +53,11 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'UK/LINCOLNSHIRE/T1/00071003',
     approvalStatus: 'approved',
     addressLine1: 'Unit 7, Riverside Estate',
+    addressLine2: '',
     townOrCity: 'Spalding',
+    county: 'Lincolnshire',
     postcode: 'PE11 2RB',
-    country: UNITED_KINGDOM,
+    country: 'GB',
     deleted: false
   },
   {
@@ -58,9 +67,11 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'ES/VALENCIA/T1/00061004',
     approvalStatus: 'approved',
     addressLine1: 'Calle del Puerto 8',
+    addressLine2: '',
     townOrCity: 'Valencia',
+    county: '',
     postcode: '46024',
-    country: 'Spain',
+    country: 'ES',
     deleted: false
   },
   {
@@ -70,9 +81,11 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'UK/CAMBRIDGESHIRE/T1/00051005',
     approvalStatus: 'approved',
     addressLine1: 'Low Road Farm',
+    addressLine2: '',
     townOrCity: 'Wisbech',
+    county: 'Cambridgeshire',
     postcode: 'PE14 0SP',
-    country: UNITED_KINGDOM,
+    country: 'GB',
     deleted: false
   },
   {
@@ -82,9 +95,11 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'AT/SALZBURG/T1/00041006',
     approvalStatus: 'new',
     addressLine1: 'Industriestrasse 3',
+    addressLine2: '',
     townOrCity: 'Salzburg',
+    county: '',
     postcode: '5020',
-    country: 'Austria',
+    country: 'AT',
     deleted: false
   },
   {
@@ -94,14 +109,16 @@ export const STARTER_TRANSPORTERS = Object.freeze([
     approvalNumber: 'UK/KENT/T1/00031007',
     approvalStatus: 'new',
     addressLine1: '22 Station Approach',
+    addressLine2: '',
     townOrCity: 'Ashford',
+    county: 'Kent',
     postcode: 'TN23 1EZ',
-    country: UNITED_KINGDOM,
+    country: 'GB',
     deleted: false
   }
 ])
 
-/** The messages the API would send for each field it refuses. */
+/** The messages the API would send for each required field it refuses. */
 const MESSAGES = Object.freeze({
   name: 'Enter the transporter’s name',
   transporterType: 'Select the type of transporter',
@@ -126,22 +143,21 @@ const searchable = (row) => [
   row.approvalNumber
 ]
 
-/** The API's validation: each missing field, and a type it does not know. */
+/** The API's validation: each missing required field, and a type it does not
+ * know. */
 const problemFor = (body) => {
-  const errors = {}
-  for (const [field, message] of Object.entries(MESSAGES)) {
-    if (!text(body, field)) {
-      errors[field] = [message]
-    }
-  }
-  if (
-    !errors.transporterType &&
-    !TRANSPORTER_TYPES.includes(body.transporterType)
-  ) {
-    errors.transporterType = [MESSAGES.transporterType]
-  }
-  return Object.keys(errors).length > 0
-    ? { detail: 'Validation failed', errors }
+  const errors = Object.fromEntries(
+    Object.entries(MESSAGES)
+      .filter(([field]) => !text(body, field))
+      .map(([field, message]) => [field, [message]])
+  )
+  const knownType = ALLOWED_TRANSPORTER_TYPES.includes(body?.transporterType)
+  const withType =
+    !errors.transporterType && !knownType
+      ? { ...errors, transporterType: [MESSAGES.transporterType] }
+      : errors
+  return Object.keys(withType).length > 0
+    ? { detail: 'Validation failed', errors: withType }
     : null
 }
 
@@ -173,7 +189,9 @@ export const createTransporter = async (orgId, body = {}) => {
     approvalNumber: text(body, 'approvalNumber'),
     approvalStatus: 'new',
     addressLine1: text(body, 'addressLine1'),
+    addressLine2: text(body, 'addressLine2'),
     townOrCity: text(body, 'townOrCity'),
+    county: text(body, 'county'),
     postcode: text(body, 'postcode'),
     country: text(body, 'country'),
     deleted: false

@@ -7,7 +7,10 @@ import {
   parseCriteria,
   recipeDocPath,
   recipesFor,
-  testsToAdd
+  testsToAdd,
+  TICKET_DESCRIPTION_FILE,
+  TICKET_SCHEMA,
+  ticketManifestFor
 } from './story.js'
 
 describe('parseCriteria', () => {
@@ -194,6 +197,55 @@ describe('testsToAdd', () => {
     expect(testsToAdd(report()).at(-1)).toContain(
       '{{PORT=3053 npm run test:fit:features}}'
     )
+  })
+})
+
+describe('ticketManifestFor', () => {
+  const meta = {
+    title: 'Clearer arrival time hint',
+    screenshots: [{ fileName: 'arrival-details--before.png' }],
+    prototype: {
+      handOff: {
+        jiraProject: 'EUDPA',
+        parentEpic: null,
+        labels: ['UCD']
+      }
+    }
+  }
+
+  it('Should build a tim-ticket/1 manifest from the prototype’s hand-off settings and the story’s title', () => {
+    expect(ticketManifestFor(report(), meta)).toEqual({
+      schema: TICKET_SCHEMA,
+      project: 'EUDPA',
+      type: 'Story',
+      summary: 'Clearer arrival time hint',
+      descriptionFile: TICKET_DESCRIPTION_FILE,
+      labels: ['UCD'],
+      attachments: [
+        'screenshots/arrival-details--before.png',
+        'upstream.patch',
+        'brief.md'
+      ],
+      relates: []
+    })
+  })
+
+  it('Should name a parent epic when prototype.json has one', () => {
+    const withEpic = {
+      ...meta,
+      prototype: {
+        handOff: { ...meta.prototype.handOff, parentEpic: 'EUDPA-1' }
+      }
+    }
+
+    expect(ticketManifestFor(report(), withEpic).parent).toBe('EUDPA-1')
+  })
+
+  it('Should leave upstream.patch out of the attachments for a brief-only hand-off', () => {
+    expect(
+      ticketManifestFor(report({ briefOnly: { reason: 'x' } }), meta)
+        .attachments
+    ).toEqual(['screenshots/arrival-details--before.png', 'brief.md'])
   })
 })
 

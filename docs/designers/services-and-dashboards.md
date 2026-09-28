@@ -155,7 +155,9 @@ amended example".
 
 ## For whoever maintains the prototype
 
-The steps Claude follows are in `.claude/skills/fake-a-service/`.
+The steps Claude follows are in the workspace `prototype` skill's
+fake-a-service reference, at
+`~/git/defra/trade-imports-workspace/.claude/skills/prototype/references/fake-a-service.md`.
 
 **Prototype-owned services** live in `src/server/app/services/<name>/`,
 beside the real ones and in their shape: `index.js` picks `stub.js` or
@@ -211,7 +213,7 @@ restart does not make a second copy of them.
 with the same name as a prototype-owned one, the weekly update keeps the
 prototype's copy, labels its pull request `needs-person`, and its summary
 says to retire the prototype one (`designer:service -- retire <name>` on a
-`maintain/` branch) and take the real one
+`chore/` branch) and take the real one
 (`git checkout upstream/main -- src/server/app/services/<name>`).
 
 The saved transporters example lives in the placeholder set,

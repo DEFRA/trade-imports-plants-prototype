@@ -1,3 +1,4 @@
+import os from 'node:os'
 import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -108,6 +109,37 @@ describe('designer:where', () => {
     expect(entry.path).toBeNull()
   })
 
+  it('Should read a workspace-relative repos/<name>/… path against the repo root, whatever the cwd', () => {
+    const repoName = path.basename(fixture.root)
+    const workspacePath = `repos/${repoName}/src/server/app/sets/plants-working/set.js`
+    const fromRepoRoot = answer(
+      { paths: [workspacePath] },
+      options({ cwd: fixture.root })
+    )
+    const fromAParentFolder = answer(
+      { paths: [workspacePath] },
+      options({ cwd: path.dirname(fixture.root) })
+    )
+    for (const answers of [fromRepoRoot, fromAParentFolder]) {
+      expect(answers[0]).toMatchObject({
+        path: 'src/server/app/sets/plants-working/set.js',
+        owner: 'yours'
+      })
+    }
+  })
+
+  it('Should read a repo-relative path from the repo root when it sits two folders up (a workspace root)', () => {
+    const workspaceRoot = path.dirname(path.dirname(fixture.root))
+    const [entry] = answer(
+      { paths: ['src/server/app/sets/plants-working/set.js'] },
+      options({ cwd: workspaceRoot })
+    )
+    expect(entry).toMatchObject({
+      path: 'src/server/app/sets/plants-working/set.js',
+      owner: 'yours'
+    })
+  })
+
   it('Should say so when --changed finds nothing', () => {
     expect(run(['--changed'], options())).toBe(
       'Nothing has changed since your last save.'
@@ -131,10 +163,32 @@ describe('summarise', () => {
 })
 
 describe('designer:where on the real prototype', () => {
+  const file =
+    'src/server/app/sets/high-risk-plants/journeys/linear/features/origin/copy/copy.en.js'
+
   it('Should say a high-risk-plants copy file belongs to the real service', () => {
-    const file =
-      'src/server/app/sets/high-risk-plants/journeys/linear/features/origin/copy/copy.en.js'
     expect(run([file], { root: REPO_ROOT, cwd: REPO_ROOT })).toBe(
+      `${file} - ${SENTENCES['real-service']}`
+    )
+  })
+
+  it('Should report the real-service owner for a bare repo-relative path run from the workspace root (npm --prefix)', () => {
+    const workspaceRoot = path.resolve(REPO_ROOT, '../..')
+    expect(run([file], { root: REPO_ROOT, cwd: workspaceRoot })).toBe(
+      `${file} - ${SENTENCES['real-service']}`
+    )
+  })
+
+  it('Should accept a workspace-relative repos/trade-imports-plants-prototype/… path', () => {
+    const workspacePath = `repos/${path.basename(REPO_ROOT)}/${file}`
+    expect(run([workspacePath], { root: REPO_ROOT, cwd: REPO_ROOT })).toBe(
+      `${file} - ${SENTENCES['real-service']}`
+    )
+  })
+
+  it('Should accept a tilde path into the repo', () => {
+    const tildePath = `~/${path.relative(os.homedir(), path.join(REPO_ROOT, file))}`
+    expect(run([tildePath], { root: REPO_ROOT, cwd: REPO_ROOT })).toBe(
       `${file} - ${SENTENCES['real-service']}`
     )
   })

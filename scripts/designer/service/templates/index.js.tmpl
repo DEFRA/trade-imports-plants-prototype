@@ -3,89 +3,13 @@ import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
 import * as client from './client.js'
 import * as stub from './stub.js'
 
-/**
- * Prototype-owned service: __TITLE__.
- *
- * Made by `npm run designer:service -- new __NAME__`. Built in the real
- * services' shape (`index.js` picks `stub.js` or `client.js`), so a developer
- * can copy `index.js` and `client.js` into plants-frontend unchanged.
- * `stub.js` is the only file that uses the prototype's own plumbing.
- *
- * Fill in `CONTRACT` as the design settles: the fields a record needs, an
- * example, and the questions the real team must answer. The hand-off reads
- * it as data without running this file, so write plain values only: never a
- * name imported from another file (`client.X`, `[...client.LIST]`). A
- * constant declared in this file is fine.
- */
-
 export { PAGE_SIZE } from './client.js'
-
-export const NEEDS_A_REAL_SERVICE = __NEEDS__
-
-const COLLECTION = '__CONTRACT_PATH__'
-const ONE_RECORD = `${COLLECTION}/{id}`
-
-export const CONTRACT = Object.freeze({
-  service: '__NAME__',
-  owner: '__OWNER__',
-  baseUrlEnv: '__ENV__',
-  operations: [
-    {
-      name: 'list__PLURAL__',
-      method: 'GET',
-      path: COLLECTION,
-      params: {
-        q: 'text to find in the name',
-        page: 'number, from 1',
-        pageSize: 'number'
-      },
-      returns: '{ items: [record], page, pageSize, totalItems, totalPages }',
-      errors: []
-    },
-    {
-      name: 'get__SINGULAR__',
-      method: 'GET',
-      path: ONE_RECORD,
-      params: {},
-      returns: 'record',
-      errors: ['404 when the organisation has no such record']
-    },
-    {
-      name: 'create__SINGULAR__',
-      method: 'POST',
-      path: COLLECTION,
-      params: { body: 'name' },
-      returns: 'the saved record, with its new id',
-      errors: [
-        '400 with a problem body, { errors: { field: [message] } }, for each field it refuses'
-      ]
-    },
-    {
-      name: 'delete__SINGULAR__',
-      method: 'DELETE',
-      path: ONE_RECORD,
-      params: {},
-      returns: '204 with no body',
-      errors: ['404 when the organisation has no such record']
-    }
-  ],
-  record: {
-    fields: [
-      { name: 'id', type: 'string', required: true },
-      { name: 'name', type: 'string', required: true },
-      { name: 'deleted', type: 'boolean', required: true }
-    ]
-  },
-  examples: [],
-  openQuestions: [
-    'Which service should own this data?',
-    'Which fields does a record need, and which are required?'
-  ]
-})
 
 const impl = () => (isStubDataMode() ? stub : client)
 
-/** One page of the organisation's records, in a picker's shape. */
+/** One page of the organisation's records, in a picker's shape. Fill in
+ * `contract.json` as the design settles: the fields a record needs, an
+ * example, and the questions the real team must answer. */
 export const list__PLURAL__ = (orgId, options) =>
   impl().list__PLURAL__(orgId, options)
 

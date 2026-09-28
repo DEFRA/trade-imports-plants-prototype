@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  WORKSPACE_REPO_NAME,
   checkBrowser,
   checkGitHubCli,
   checkGitIdentity,
@@ -12,6 +13,7 @@ import {
   exitCodeFor,
   formatResults,
   installCommandFor,
+  installHintFor,
   packagesDrift,
   parseLsof
 } from './checks.js'
@@ -77,6 +79,23 @@ describe('installCommandFor', () => {
     [undefined, 'npm ci']
   ])('Should turn packageManager %s into %s', (packageManager, command) => {
     expect(installCommandFor(packageManager)).toBe(command)
+  })
+})
+
+describe('installHintFor', () => {
+  it('Should point to tim when this checkout is inside the workspace, whatever npm is pinned', () => {
+    expect(
+      installHintFor({ packageManager: 'npm@11.6.2', insideWorkspace: true })
+    ).toBe(`tim workspace install --repo ${WORKSPACE_REPO_NAME}`)
+    expect(
+      installHintFor({ packageManager: undefined, insideWorkspace: true })
+    ).toBe(`tim workspace install --repo ${WORKSPACE_REPO_NAME}`)
+  })
+
+  it('Should fall back to the pinned npm exec form outside the workspace (a lone clone, or CI)', () => {
+    expect(
+      installHintFor({ packageManager: 'npm@11.6.2', insideWorkspace: false })
+    ).toBe('npx --yes npm@11.6.2 ci')
   })
 })
 
@@ -242,6 +261,51 @@ describe('checkUpstreamRemote', () => {
     expect(
       checkUpstreamRemote({ fetchUrl: cloneUrl, pushUrl: 'DISABLED', cloneUrl })
         .status
+    ).toBe('ok')
+  })
+
+  it('Should point at tim workspace setup inside the workspace, keeping the git commands as a safety net', () => {
+    const result = checkUpstreamRemote({
+      fetchUrl: null,
+      pushUrl: null,
+      cloneUrl,
+      insideWorkspace: true
+    })
+    expect(result.status).toBe('todo')
+    expect(result.message).toContain(
+      'The workspace sets this up (tim workspace setup).'
+    )
+    expect(result.message).toContain(`git remote add upstream ${cloneUrl}`)
+    expect(result.commands).toEqual([
+      `git remote add upstream ${cloneUrl}`,
+      'git remote set-url --push upstream DISABLED'
+    ])
+  })
+
+  it('Should point at tim workspace setup inside the workspace when only the push address needs locking', () => {
+    const result = checkUpstreamRemote({
+      fetchUrl: cloneUrl,
+      pushUrl: cloneUrl,
+      cloneUrl,
+      insideWorkspace: true
+    })
+    expect(result.status).toBe('todo')
+    expect(result.message).toContain(
+      'The workspace sets this up (tim workspace setup).'
+    )
+    expect(result.message).toContain(
+      'git remote set-url --push upstream DISABLED'
+    )
+  })
+
+  it('Should stay happy inside the workspace once it can fetch and cannot send', () => {
+    expect(
+      checkUpstreamRemote({
+        fetchUrl: cloneUrl,
+        pushUrl: 'DISABLED',
+        cloneUrl,
+        insideWorkspace: true
+      }).status
     ).toBe('ok')
   })
 })

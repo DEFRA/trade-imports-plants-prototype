@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   briefOutline,
+  isStoryReady,
   longDate,
   renderBriefJira,
   renderBriefMarkdown,
+  renderTicketDescriptionJira,
   storyOf
 } from './brief.js'
 import { describeService } from './contract.js'
@@ -125,7 +127,7 @@ const META = {
   ],
   links: ['https://github.com/DEFRA/trade-imports-plants-prototype/pull/12'],
   date: '2026-09-27',
-  branch: 'feat/EUDPA-XXXX-arrival-hint',
+  branch: 'feat/EUDPA-456-arrival-hint',
   designBranch: 'design/plants-working-arrival-hint',
   installCommand: 'npx --yes npm@11.6.2 ci',
   prototype: {
@@ -192,7 +194,7 @@ describe('the story block', () => {
       '* Recipe: {{src/server/app/sets/high-risk-plants/docs/add-a-field.md}} (plants-frontend, named)'
     )
     expect(panel).toContain(
-      '* Branch: {{feat/EUDPA-XXXX-arrival-hint}} in trade-imports-plants-frontend.'
+      '* Branch: {{feat/EUDPA-456-arrival-hint}} in trade-imports-plants-frontend.'
     )
   })
 
@@ -259,25 +261,24 @@ describe('See the prototype', () => {
     )
   })
 
-  it('Should always say how to run it locally', () => {
+  it('Should always say how to run it locally, from the workspace checkout, never a fresh clone', () => {
     expect(markdown).toContain(
       [
         '### Run it on your own computer',
         '',
-        '1. `git clone https://github.com/DEFRA/trade-imports-plants-prototype.git`, then `cd trade-imports-plants-prototype`',
-        '2. `git switch design/plants-working-arrival-hint`',
-        '3. `npx --yes npm@11.6.2 ci` (the install command `npm run designer:preflight` prints)',
-        '4. `npm run dev`',
-        '5. Open `http://localhost:3103/examples/plants-working/complete?page=arrival-details`'
+        '1. `git -C ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype switch design/plants-working-arrival-hint`',
+        '2. `npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run dev`',
+        '3. Open `http://localhost:3103/examples/plants-working/complete?page=arrival-details`'
       ].join('\n')
     )
+    expect(markdown).not.toContain('git clone')
   })
 
   it('Should say a design branch that is not on GitHub yet must be pushed first', () => {
     expect(
       markdownOf(REPORT, { ...META, designBranchOnGitHub: false })
     ).toContain(
-      '2. `git switch design/plants-working-arrival-hint` (this branch is not on GitHub yet: ask the designer to push it first)'
+      '1. `git -C ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype switch design/plants-working-arrival-hint` (this branch is not on GitHub yet: ask the designer to push it first)'
     )
   })
 
@@ -494,14 +495,67 @@ describe('Tests to add and the note for the developer or agent', () => {
     expect(markdown).toContain('`npm run test:high-risk-plants`')
   })
 
-  it('Should point to the recipe, the workspace skills and the behaviour spec', () => {
+  it('Should send the developer to build it in the workspace’s plants-frontend checkout, on the story’s branch, with the recipe, then spec-catchup/spec-cover, then code-style and review', () => {
     expect(markdown).toContain(
-      'Follow `src/server/app/sets/high-risk-plants/docs/add-a-field.md`'
+      'Build it properly in `~/git/defra/trade-imports-workspace/repos/trade-imports-plants-frontend` on `feat/EUDPA-456-arrival-hint`'
     )
-    expect(markdown).toContain('`.claude/skills/frontend-change/SKILL.md`')
-    expect(markdown).toContain('`.claude/skills/ticket/SKILL.md`')
+    expect(markdown).toContain(
+      '`.claude/skills/frontend-change/SKILL.md`, target high-risk-plants-frontend'
+    )
+    expect(markdown).toContain(
+      'following `src/server/app/sets/high-risk-plants/docs/add-a-field.md`'
+    )
+    expect(markdown).toContain('`.claude/skills/spec-catchup/SKILL.md`')
+    expect(markdown).toContain('`.claude/skills/spec-cover/SKILL.md`')
+    expect(markdown).toContain('`openspec/specs/plants` in the workspace')
+    expect(markdown).toContain('`.claude/skills/code-style/SKILL.md`')
+    expect(markdown).toContain('`.claude/skills/review/SKILL.md`')
     expect(markdown).toContain(
       '`openspec/specs/plants/journey-pages/arrival-details/spec.md` with `openspec/coverage/plants/journey-pages/arrival-details/coverage.json`'
+    )
+    const developerSection = markdown.slice(
+      markdown.indexOf('## For the developer or agent'),
+      markdown.indexOf('\n\n---')
+    )
+    expect(developerSection).not.toContain(
+      'in a clone of trade-imports-plants-frontend'
+    )
+  })
+
+  it('Should send a new service through requirements-pipeline as a full-stack story, naming the owner repo, and skip the recipe route', () => {
+    const withService = markdownOf({
+      ...REPORT,
+      servicesToBuild: [TRANSPORTERS]
+    })
+
+    expect(withService).toContain(
+      '`.claude/skills/requirements-pipeline/SKILL.md`'
+    )
+    expect(withService).toContain('a new service, not one recipe')
+    expect(withService).toContain('a new API, owner to be agreed')
+    expect(withService).not.toContain(
+      '`.claude/skills/frontend-change/SKILL.md`'
+    )
+  })
+
+  it('Should send a ruling conflict through requirements-pipeline for the product owner to settle', () => {
+    const withConflict = markdownOf({
+      ...REPORT,
+      rulingConflicts: [
+        {
+          service: 'transporters',
+          matchedTerm: 'transporter',
+          source: 'src/server/app/sets/high-risk-plants/docs/services.md'
+        }
+      ]
+    })
+
+    expect(withConflict).toContain(
+      '`.claude/skills/requirements-pipeline/SKILL.md`'
+    )
+    expect(withConflict).toContain('clashes with a standing ruling')
+    expect(withConflict).toContain(
+      'Ruling conflict: transporters matches "transporter"'
     )
   })
 })
@@ -649,9 +703,58 @@ describe('brief only', () => {
     expect(markdown).toContain(
       'plants-working has no example notifications to link to.'
     )
-    expect(markdown).toContain('5. Open `http://localhost:3103/plants-working`')
+    expect(markdown).toContain('3. Open `http://localhost:3103/plants-working`')
     expect(markdown).toContain(
-      'There is no patch: build it from this story in a clone of trade-imports-plants-frontend.'
+      'There is no patch: build it from this story and the pictures.'
     )
+  })
+})
+
+describe('isStoryReady', () => {
+  it('Should be ready when there are no placeholders and the criteria are not a draft', () => {
+    expect(isStoryReady({ placeholders: [], criteriaDraft: false })).toBe(true)
+  })
+
+  it('Should not be ready with a placeholder left, or an unconfirmed draft', () => {
+    expect(
+      isStoryReady({
+        placeholders: ['As (who it is for)'],
+        criteriaDraft: false
+      })
+    ).toBe(false)
+    expect(isStoryReady({ placeholders: [], criteriaDraft: true })).toBe(false)
+  })
+})
+
+describe('renderTicketDescriptionJira', () => {
+  it('Should drop the Summary line and every "(attach ...)" suffix', () => {
+    const blocks = briefOutline(REPORT, META)
+    const description = renderTicketDescriptionJira(blocks)
+
+    expect(description).not.toMatch(/^\*Summary:\*/)
+    expect(description).not.toContain('(attach')
+    expect(description).toContain('*As* a trader notifying')
+  })
+})
+
+describe('workspace plants-frontend apply check', () => {
+  it('Should say when the patch also applies to the workspace’s own plants-frontend checkout', () => {
+    const markdown = markdownOf({
+      ...REPORT,
+      plantsFrontendApplyCheck: { ref: 'origin/main', ok: true }
+    })
+
+    expect(markdown).toContain(
+      "also applies cleanly to the workspace's own `~/git/defra/trade-imports-workspace/repos/trade-imports-plants-frontend` (its origin/main)"
+    )
+  })
+
+  it('Should say when it does not, so a developer knows to merge by hand there too', () => {
+    const markdown = markdownOf({
+      ...REPORT,
+      plantsFrontendApplyCheck: { ref: 'origin/main', ok: false }
+    })
+
+    expect(markdown).toContain('merge by hand there too')
   })
 })

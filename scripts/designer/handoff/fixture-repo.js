@@ -160,7 +160,58 @@ const store = createFakeStore({ name: 'transporters', starters: [] })
 export const listTransporters = async (orgId) => ({ results: store.visible(orgId) })
 
 export const createTransporter = async (orgId, fields) => store.add(orgId, fields)
-`
+`,
+  [`${TRANSPORTERS}/contract.json`]: JSON.stringify(
+    {
+      service: 'transporters',
+      owner: 'new-api',
+      baseUrlEnv: 'TRADE_IMPORTS_TRANSPORTERS_URL',
+      needsARealService:
+        'A transporter register: search, read, add and delete an organisation’s saved transporters. Plants-frontend has none.',
+      operations: [
+        {
+          name: 'listTransporters',
+          method: 'GET',
+          path: '/organisations/{orgId}/transporters',
+          params: ['orgId', 'search', 'page'],
+          returns: '{ results, total, page, totalPages, pageSize }',
+          errors: []
+        },
+        {
+          name: 'createTransporter',
+          method: 'POST',
+          path: '/organisations/{orgId}/transporters',
+          params: ['orgId', 'fields'],
+          returns: 'the saved transporter',
+          errors: ['400 with a problem body naming each field to fix']
+        }
+      ],
+      record: {
+        fields: [
+          { name: 'name', type: 'string', required: true },
+          {
+            name: 'transporterType',
+            type: 'string',
+            required: true,
+            enum: ['commercial', 'private']
+          },
+          { name: 'approvalNumber', type: 'string', required: false }
+        ]
+      },
+      examples: [
+        {
+          id: 'haulage-ltd',
+          name: 'Haulage Ltd',
+          transporterType: 'commercial'
+        }
+      ],
+      openQuestions: [
+        'Can one organisation see another organisation’s transporters?'
+      ]
+    },
+    null,
+    2
+  )
 })
 
 /** overrides.json with the transporters service as its own `ours` line. */

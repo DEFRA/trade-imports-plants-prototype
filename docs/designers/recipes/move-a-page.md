@@ -1,5 +1,10 @@
 # Move a page
 
+This recipe mirrors the real plants-frontend's own
+`src/server/app/sets/high-risk-plants/docs/journey-flow-and-gates.md`, which
+documents `RUN_STEPS`, `flow.js` and `task-rows.js` — the four orders below
+are the same ones that doc describes.
+
 ## When to use it
 
 Use this recipe to change where a page sits in the journey. For example:
@@ -44,9 +49,9 @@ orders now disagree.
 - `<journey>/features/check-answers/view-model/index.js`
 - `<journey>/flow/fixtures/happy-path.json`
 
-`.claude/skills/change-the-journey/references/page-id-places.md` lists every
-place a page is named, and every page in the journey today with its id, slug,
-section, task row and caption.
+The workspace `prototype` skill's change-the-journey reference,
+`page-id-places.md`, lists every place a page is named, and every page in
+the journey today with its id, slug, section, task row and caption.
 
 ## Worked example
 

@@ -25,8 +25,11 @@ const fakeRunners = (overrides = {}) => ({
   tidy: vi.fn(async () => passing()),
   ownership: vi.fn(async () => passing()),
   copy: vi.fn(async () => passing()),
+  'copy-usage': vi.fn(async () => passing()),
   templates: vi.fn(async () => passing()),
   'code-rules': vi.fn(async () => passing()),
+  'service-conformance': vi.fn(async () => passing()),
+  'gds-wording': vi.fn(async () => passing()),
   'prototype-checks': vi.fn(async () => passing()),
   'real-journey-tests': vi.fn(async () => passing()),
   'format-check': vi.fn(async () => passing()),
@@ -51,14 +54,9 @@ describe('runCheck with stand-in steps', () => {
 
     expect(result.ok).toBe(true)
     expect(result.findings).toEqual([])
-    expect(result.steps.map((step) => step.status)).toEqual([
-      'pass',
-      'pass',
-      'pass',
-      'pass',
-      'pass',
-      'pass'
-    ])
+    expect(result.steps.map((step) => step.status)).toEqual(
+      Array(9).fill('pass')
+    )
   })
 
   it('Should run the pre-commit steps for the full check', async () => {

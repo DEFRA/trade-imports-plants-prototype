@@ -6,10 +6,8 @@ import {
 } from '../../lib/http-status.js'
 import { BackendRequestError } from '../persistence/records/errors.js'
 
-/**
- * The proposed real client for notification templates, on the plants
- * backend. The backend has no templates yet: see `CONTRACT` in `./index.js`.
- */
+/** The proposed real client for notification templates, on the plants
+ * backend. The backend has no templates yet: see `contract.json`. */
 
 const ORGANISATION_ID_HEADER = 'Trade-Imports-Organisation-Id'
 
@@ -48,7 +46,7 @@ const headers = (orgId) => {
  * @returns {Error} the error to throw.
  */
 export const validationError = (problem, statusText = 'Bad Request') =>
-  Object.assign(new Error(problem.detail || 'Validation failed'), {
+  Object.assign(new Error(problem.detail ?? 'Validation failed'), {
     status: HTTP_STATUS_BAD_REQUEST,
     statusText,
     body: problem

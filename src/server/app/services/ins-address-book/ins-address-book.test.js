@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { withSetContext } from '../../shared/set-context.js'
@@ -5,6 +9,14 @@ import { clearFakesFor } from '../../../prototype-support/registry.js'
 import { STUB_BOOK } from '../address-book/stub/index.js'
 import * as pickers from '../address-book/index.js'
 import * as insAddressBook from './index.js'
+import * as thisClient from './client.js'
+
+const CONTRACT = JSON.parse(
+  readFileSync(
+    path.join(fileURLToPath(import.meta.url), '../contract.json'),
+    'utf8'
+  )
+)
 
 const RELEASE = 'plants-ins-address-book-test'
 const OTHER_RELEASE = 'plants-ins-address-book-other'
@@ -246,14 +258,77 @@ describe('the INS client, against the address book API', () => {
 })
 
 describe('what it says it needs', () => {
-  it('Should say whose service it is, and give its contract', () => {
-    expect(insAddressBook.NEEDS_A_REAL_SERVICE).toMatch(
-      /Import Notification Service/
-    )
-    expect(insAddressBook.CONTRACT).toMatchObject({
+  it('Should say whose service it is, and give its contract, in contract.json', () => {
+    expect(CONTRACT.needsARealService).toMatch(/Import Notification Service/)
+    expect(CONTRACT).toMatchObject({
       service: 'ins-address-book',
       owner: 'ins',
       baseUrlEnv: 'TRADE_IMPORTS_ADDRESS_BOOK_URL'
     })
   })
+
+  it('Should export neither CONTRACT nor NEEDS_A_REAL_SERVICE from index.js', () => {
+    expect(insAddressBook.CONTRACT).toBeUndefined()
+    expect(insAddressBook.NEEDS_A_REAL_SERVICE).toBeUndefined()
+  })
 })
+
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+const REPOS_DIR = path.join(HERE, '../../../../../..')
+const SIBLING_DIR = path.join(
+  REPOS_DIR,
+  'trade-imports-ins-frontend/src/server/app/services/address-book'
+)
+const SIBLING_INDEX = path.join(SIBLING_DIR, 'index.js')
+const SIBLING_CLIENT = path.join(SIBLING_DIR, 'client.js')
+
+/** A function's exported shape: how many parameters come before the first
+ * one with a default (or none at all), which is what changes when a call
+ * site's argument list would stop matching. */
+const shapeOf = (moduleExports) =>
+  Object.fromEntries(
+    Object.entries(moduleExports)
+      .filter(([, value]) => typeof value === 'function')
+      .map(([name, fn]) => [name, fn.length])
+  )
+
+/** Only the shape entries the sibling has, from ours: extra exports of our
+ * own (a helper such as `toRecord`) are not drift, only a missing or
+ * changed sibling operation is. */
+const sharedShapeOf = (ours, sibling) => {
+  const siblingShape = shapeOf(sibling)
+  const oursShape = shapeOf(ours)
+  return {
+    sibling: siblingShape,
+    ours: Object.fromEntries(
+      Object.keys(siblingShape).map((name) => [name, oursShape[name]])
+    )
+  }
+}
+
+describe.runIf(existsSync(SIBLING_INDEX))(
+  'the sibling in trade-imports-ins-frontend',
+  () => {
+    it('Should keep the same operations, with the same argument counts, as the INS frontend’s own address-book barrel', async () => {
+      const sibling = await import(pathToFileURL(SIBLING_INDEX).href)
+
+      const { sibling: siblingShape, ours } = sharedShapeOf(
+        insAddressBook,
+        sibling
+      )
+      expect(ours).toEqual(siblingShape)
+    })
+  }
+)
+
+describe.runIf(existsSync(SIBLING_CLIENT))(
+  'the sibling client in trade-imports-ins-frontend',
+  () => {
+    it('Should keep the same request-making operations, with the same argument counts, as the INS frontend’s own address book client', async () => {
+      const sibling = await import(pathToFileURL(SIBLING_CLIENT).href)
+
+      const { sibling: siblingShape, ours } = sharedShapeOf(thisClient, sibling)
+      expect(ours).toEqual(siblingShape)
+    })
+  }
+)

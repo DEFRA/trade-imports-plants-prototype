@@ -87,8 +87,14 @@ describe('guard-edit hook', () => {
     expect(hook(text).exitCode).toBe(2)
   })
 
-  it.each(['handoff/consignment-addresses', 'maintain/tidy-sync'])(
-    'Should allow every file on a %s branch',
+  it.each([
+    'feat/EUDPA-621-widen-hint',
+    'chore/EUDPA-621-tidy-sync',
+    'main',
+    'handoff/consignment-addresses',
+    'maintain/tidy-sync'
+  ])(
+    'Should allow every file on a %s branch: only design/* is guarded',
     (branch) => {
       for (const repoPath of [UPSTREAM, REMOVED, FROZEN, PATCHED, WORKING]) {
         expect(hook(stdin('Edit', repoPath), branch)).toEqual({
@@ -98,6 +104,11 @@ describe('guard-edit hook', () => {
       }
     }
   )
+
+  it('Should still guard a design/* branch other than the default fixture one', () => {
+    const result = hook(stdin('Edit', UPSTREAM), 'design/plants-dr2-captions')
+    expect(result.exitCode).toBe(2)
+  })
 
   it('Should never block a read, or any tool that does not write', () => {
     expect(hook(stdin('Read', UPSTREAM)).exitCode).toBe(0)

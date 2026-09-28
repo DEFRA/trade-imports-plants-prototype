@@ -1,0 +1,99 @@
+{
+  "service": "notification-search",
+  "owner": "plants-backend",
+  "baseUrlEnv": "TRADE_IMPORTS_PLANTS_BACKEND_URL",
+  "needsARealService": "A notification search for the dashboard: the plants backend lists notifications by page only, so it needs to filter them by status, commodity, lateness and arrival date, and to count them by status for the tabs.",
+  "operations": [
+    {
+      "name": "searchNotifications",
+      "method": "GET",
+      "path": "/notifications",
+      "params": {
+        "page": "number, from 1",
+        "sort": "text, for example arrivalDate,desc",
+        "referenceNumber": "text, optional",
+        "status": "DRAFT, SUBMITTED or AMEND; repeat for several",
+        "commodity": "text the commodity name contains",
+        "late": "true or false",
+        "arrivalFrom": "YYYY-MM-DD",
+        "arrivalTo": "YYYY-MM-DD"
+      },
+      "returns": "{ content: [notification], page, size, totalElements, totalPages }, scoped to the organisation in the Trade-Imports-Organisation-Id header",
+      "errors": ["400 when a filter is not valid, for example a date"]
+    },
+    {
+      "name": "countNotifications",
+      "method": "GET",
+      "path": "/notifications/counts",
+      "params": {
+        "referenceNumber": "text, optional",
+        "commodity": "as for searchNotifications",
+        "late": "as for searchNotifications",
+        "arrivalFrom": "as for searchNotifications",
+        "arrivalTo": "as for searchNotifications"
+      },
+      "returns": "{ total, byStatus: { DRAFT, SUBMITTED, AMEND }, late }, counting every notification that passes the filters",
+      "errors": ["400 when a filter is not valid"]
+    }
+  ],
+  "record": {
+    "fields": [
+      { "name": "referenceNumber", "type": "string", "required": true },
+      {
+        "name": "status",
+        "type": "string",
+        "required": true,
+        "enum": ["DRAFT", "SUBMITTED", "AMEND"]
+      },
+      { "name": "commodity", "type": "{ name: string }", "required": false },
+      {
+        "name": "transport.arrivalDate",
+        "type": "string (YYYY-MM-DD)",
+        "required": false
+      },
+      {
+        "name": "lateNotificationIndicator",
+        "type": "boolean",
+        "required": false
+      },
+      { "name": "consignor.name", "type": "string", "required": false },
+      { "name": "consignee.name", "type": "string", "required": false }
+    ]
+  },
+  "examples": [
+    {
+      "request": "GET /notifications?page=1&sort=arrivalDate,desc&status=SUBMITTED&late=true",
+      "response": {
+        "content": [
+          {
+            "referenceNumber": "GBN-HRP-26-000123",
+            "status": "SUBMITTED",
+            "commodity": { "name": "Rosa canina" },
+            "transport": { "arrivalDate": "2026-10-05" },
+            "lateNotificationIndicator": true
+          }
+        ],
+        "page": 1,
+        "size": 20,
+        "totalElements": 1,
+        "totalPages": 1
+      }
+    },
+    {
+      "request": "GET /notifications/counts?commodity=rosa",
+      "response": {
+        "total": 3,
+        "byStatus": { "DRAFT": 1, "SUBMITTED": 1, "AMEND": 1 },
+        "late": 1
+      }
+    }
+  ],
+  "openQuestions": [
+    "Should the backend work out lateness, or keep the flag the frontend sends?",
+    "The real list rows leave Commodity and Arrival empty today, because the list reads fields the plants pages never save. Which fields should the backend read?",
+    "Are tabs a frontend idea only, or should the backend know them?"
+  ],
+  "notes": [
+    "CDP dev has no backend for this service, so index.js keeps isStubDataMode() to choose stub.js until a real service exists."
+  ]
+}

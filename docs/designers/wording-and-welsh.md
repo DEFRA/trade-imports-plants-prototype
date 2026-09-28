@@ -83,11 +83,12 @@ explains why and adds a row to your release's `design-gaps.md`, so the
 request travels with your hand-off to the real team.
 
 **You can still see it.** For a vocabulary decision, such as renaming the
-status "Submitted" to "Sent", Claude offers to make the change on a separate
-hand-off branch: it changes the shared words there, takes pictures of the
-real journey before and after, and brings you back to your own branch. Your
-design release keeps the old words until the real team takes the change.
-Say "yes, show me it on a hand-off branch" when Claude offers.
+status "Submitted" to "Sent", Claude offers to make the change for real, in
+a checkout of `trade-imports-plants-frontend`: it changes the shared words
+there, takes pictures of the real journey before and after, and brings you
+back to your own branch here. Your design release keeps the old words until
+the real team takes the change. Say "yes, show me it made for real" when
+Claude offers.
 
 ## Why the Welsh matters
 
@@ -139,10 +140,10 @@ translator if they need it.
 ## Big content changes
 
 For a change on more than 5 pages, or a pasted content document with several
-changes, Claude runs the wording sweep (`.claude/workflows/wording-sweep.js`).
-It does the same steps as a single change, for many changes at once, and ends
-with one table of every page, the old words, the new words and whether Welsh
-is needed.
+changes, Claude runs the wording sweep, a workflow from the workspace
+`prototype` skill. It does the same steps as a single change, for many
+changes at once, and ends with one table of every page, the old words, the
+new words and whether Welsh is needed.
 
 ## Checking and showing a wording change
 
@@ -165,11 +166,11 @@ Claude adds `--errors`, so you see the page with the error showing.
 ## Making a wording change real
 
 Words agreed in your design release still only exist in the prototype. To
-send them to the real plants team, say "hand this to the real team". The
-`hand-off` skill prepares a brief and a patch, with a table of old and new
-English and every string that still needs Welsh.
+send them to the real plants team, say "hand this to the real team". Claude
+prepares a brief and a patch, with a table of old and new English and every
+string that still needs Welsh.
 
-Claude can also make the change in the real journey on a `handoff/<name>`
-branch. There it also updates the tests that check the old words, and runs
-the full test suite. This is for changes you are ready to hand over, not for
-trying things out.
+Claude can also make the change for real, in a checkout of
+`trade-imports-plants-frontend`. There it also updates the tests that check
+the old words, and runs the full test suite. This is for changes you are
+ready to hand over, not for trying things out.

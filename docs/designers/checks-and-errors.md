@@ -176,7 +176,7 @@ copy`.
 ### A stand-in service's CONTRACT cannot be read
 
 - You see: `Should read the CONTRACT of src/server/app/services/<name>/index.js
-as data`, from `scripts/designer/handoff/contract.test.js`.
+as data`, from the hand-off's own `contract.test.js`.
 - It means: the hand-off reads the `CONTRACT` in your prototype-owned
   service's `index.js` as data, without running it, and could not. This is
   your change, not the maintainer's.

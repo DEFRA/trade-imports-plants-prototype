@@ -1,5 +1,10 @@
 # Change what counts as a valid answer
 
+This recipe mirrors the real plants-frontend's own
+`src/server/app/docs/validation.md` ("Save rules and completion rules") and
+`src/server/app/docs/obligation-model.md` (the obligation `status` this
+recipe's completion rule sets).
+
 ## When to use it
 
 Use this recipe to change the rules a page checks when someone presses

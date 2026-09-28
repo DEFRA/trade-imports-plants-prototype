@@ -1,5 +1,12 @@
 # Templates in this prototype
 
+The workspace's own
+`~/git/defra/trade-imports-workspace/docs/best-practices/node/nunjucks.md`
+and
+`~/git/defra/trade-imports-workspace/docs/best-practices/node/govuk-frontend.md`
+are the source of truth for Nunjucks and GOV.UK Frontend conventions. This
+page covers only the shape every page in this prototype shares.
+
 Every page is a Nunjucks template (a `.njk` file) in its feature folder, for
 example
 `src/server/app/sets/<your-release>/journeys/linear/features/arrival-details/template.njk`.

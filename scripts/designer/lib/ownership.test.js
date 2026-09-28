@@ -1,3 +1,4 @@
+import os from 'node:os'
 import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -54,6 +55,24 @@ describe('ownerOf against a fixture overrides.json', () => {
 
   it('Should answer null for a path outside the repo', () => {
     expect(owner('/somewhere/else/file.js')).toBeNull()
+  })
+
+  it('Should read a workspace-relative repos/<name>/… path against the repo root, whatever the cwd', () => {
+    const workspacePath = `repos/${path.basename(fixture.root)}/PROTOTYPE.md`
+    expect(
+      ownerOf(workspacePath, { root: fixture.root, cwd: fixture.root })
+    ).toBe(OWNERS.yours)
+    expect(
+      ownerOf(workspacePath, {
+        root: fixture.root,
+        cwd: path.dirname(path.dirname(fixture.root))
+      })
+    ).toBe(OWNERS.yours)
+  })
+
+  it('Should accept a tilde path into the repo', () => {
+    const tildePath = `~/${path.relative(os.homedir(), path.join(fixture.root, 'PROTOTYPE.md'))}`
+    expect(owner(tildePath)).toBe(OWNERS.yours)
   })
 
   it('Should classify against overrides passed in rather than the file', () => {

@@ -9,17 +9,25 @@ You are editing a page template (`.njk`) in a set. Every rule below keeps the
 page real: it must render with the same GOV.UK Frontend the real service uses,
 pass the same checks and still hand over cleanly to the plants team.
 
+This rule adds a design-release layer on top of the workspace's own
+`~/git/defra/trade-imports-workspace/.claude/rules/gds.md`, which already
+applies to every `.njk` file in this repo (components, patterns,
+accessibility, styles). What is different here: page plumbing that the
+real service's `.fit.spec.js` browser tests find pages by (below) must
+never change on a `design/*` branch, even to match a Figma frame exactly.
+
 Before you edit, run `npm run designer:where -- <this file>`. If it says the
 file belongs to the real service (for example anything in
 `src/server/app/sets/high-risk-plants/`), stop and offer the designer their
-design release or the `hand-off` skill instead.
+design release, or the workspace `prototype` skill's hand-off reference,
+instead.
 
 ## Build with the GOV.UK toolbox
 
 - Use a Nunjucks macro before raw HTML. Import it at the top of the file, for
   example `{% from "govuk/components/tag/macro.njk" import govukTag %}`. The
-  list of what is installed is in
-  `.claude/skills/match-the-design/references/components-we-have.md`.
+  list of what is installed is in the workspace `prototype` skill's
+  match-the-design reference for components we have.
 - Never add a `style` attribute or an inline `<style>` or `<script>`. The
   content security policy (`styleSrc: ['self']`) blocks them, so they do
   nothing in the browser and only mislead.
@@ -31,8 +39,8 @@ design release or the `hand-off` skill instead.
 - `moj-*` markup renders only for the MoJ date picker, through the
   `mojDatePicker` macro. No other MoJ component has its styles loaded.
 - Never invent an `app-*` class. None is styled for set pages, and new Sass is
-  out of bounds. Record what the design wants in the release's
-  `design-gaps.md` instead.
+  out of bounds. Record what the design wants in the release's design-gaps.md
+  file instead.
 - Do not add Sass, client JavaScript or webpack entries. `src/client/**` and
   `webpack.config.js` belong to the real service.
 

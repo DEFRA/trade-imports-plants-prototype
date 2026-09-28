@@ -14,6 +14,7 @@ export const DESIGNER_PORT = 3103
 export const BROWSER_INSTALL_COMMAND = 'npm run playwright:install'
 export const UPSTREAM_REMOTE = 'upstream'
 export const DISABLED_PUSH_URL = 'DISABLED'
+export const WORKSPACE_REPO_NAME = 'trade-imports-plants-prototype'
 
 // The same rule as scripts/npm-version.js: Corepack allows a `+sha512...`
 // suffix, which npm itself rejects.
@@ -28,6 +29,17 @@ export const installCommandFor = (packageManager) => {
   const [spec] = String(packageManager ?? '').split('+')
   return NPM_SPEC.test(spec) ? `npx --yes ${spec} ci` : 'npm ci'
 }
+
+/**
+ * The command to print for "install the packages": `tim workspace install`
+ * when this checkout sits inside the trade-imports workspace (the workspace
+ * knows the pinned npm itself), else the pinned `npm exec`/`npx` form from
+ * `installCommandFor`, for a designer with only this repo, or CI.
+ */
+export const installHintFor = ({ packageManager, insideWorkspace }) =>
+  insideWorkspace
+    ? `tim workspace install --repo ${WORKSPACE_REPO_NAME}`
+    : installCommandFor(packageManager)
 
 const versionParts = (version) =>
   String(version)
@@ -219,21 +231,34 @@ export const checkGitIdentity = ({ name, email }) => {
 /**
  * Whether the real service's code can be fetched for a hand-off, with no way
  * to send anything to it. A fresh clone has no `upstream` remote: remotes are
- * not copied by `git clone`.
+ * not copied by `git clone`. Inside the trade-imports workspace, `tim
+ * workspace setup` sets this remote up for every repo it manages; this check
+ * stays a safety net either way, and still gives the raw git commands.
  *
- * @param {object} state - `{ fetchUrl, pushUrl, cloneUrl }`: the remote's
- *   addresses (null when there is no such remote) and the real service's
- *   clone address from scripts/designer/prototype.json.
+ * @param {object} state - `{ fetchUrl, pushUrl, cloneUrl, insideWorkspace }`:
+ *   the remote's addresses (null when there is no such remote), the real
+ *   service's clone address from scripts/designer/prototype.json, and
+ *   whether this checkout sits inside the trade-imports workspace.
  */
-export const checkUpstreamRemote = ({ fetchUrl, pushUrl, cloneUrl }) => {
+export const checkUpstreamRemote = ({
+  fetchUrl,
+  pushUrl,
+  cloneUrl,
+  insideWorkspace = false
+}) => {
   const addRemote = `git remote add ${UPSTREAM_REMOTE} ${cloneUrl}`
   const lockPush = `git remote set-url --push ${UPSTREAM_REMOTE} ${DISABLED_PUSH_URL}`
+  const workspaceHint = insideWorkspace
+    ? 'The workspace sets this up (tim workspace setup).'
+    : null
   if (!fetchUrl) {
     return {
       id: 'upstream',
       status: 'todo',
       commands: [addRemote, lockPush],
-      message: `This copy cannot compare a hand-off with the real service (plants-frontend) yet. Run: ${addRemote} then ${lockPush} (the second stops anything ever being sent there).`
+      message: workspaceHint
+        ? `This copy cannot compare a hand-off with the real service (plants-frontend) yet. ${workspaceHint} As a safety net, you can also run: ${addRemote} then ${lockPush} (the second stops anything ever being sent there).`
+        : `This copy cannot compare a hand-off with the real service (plants-frontend) yet. Run: ${addRemote} then ${lockPush} (the second stops anything ever being sent there).`
     }
   }
   if (pushUrl !== DISABLED_PUSH_URL) {
@@ -241,7 +266,9 @@ export const checkUpstreamRemote = ({ fetchUrl, pushUrl, cloneUrl }) => {
       id: 'upstream',
       status: 'todo',
       commands: [lockPush],
-      message: `The real service (plants-frontend) can be fetched, but its send address is not locked. Run: ${lockPush}`
+      message: workspaceHint
+        ? `The real service (plants-frontend) can be fetched, but its send address is not locked. ${workspaceHint} As a safety net, you can also run: ${lockPush}`
+        : `The real service (plants-frontend) can be fetched, but its send address is not locked. Run: ${lockPush}`
     }
   }
   return {

@@ -9,6 +9,8 @@
   },
   "handOff": {
     "jiraProject": "EUDPA",
+    "parentEpic": null,
+    "labels": ["UCD"],
     "raiseWith": "the plants-frontend team's delivery lead or product owner, who triages design hand-offs into the EUDPA Jira project"
   },
   "maintainer": "the prototype maintainer: whoever reviews the weekly sync pull requests (see \"For maintainers\" in README.md)"

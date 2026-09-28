@@ -35,7 +35,7 @@ import {
   checkUpstreamRemote,
   exitCodeFor,
   formatResults,
-  installCommandFor,
+  installHintFor,
   packagesDrift,
   parseLsof
 } from './checks.js'
@@ -58,6 +58,13 @@ const readNvmrc = (root) => {
   const file = path.join(root, '.nvmrc')
   return existsSync(file) ? readFileSync(file, 'utf8').trim() : null
 }
+
+/**
+ * Whether this checkout sits inside the trade-imports workspace: a sibling
+ * `tim` folder two directories up (`<workspace>/repos/<this repo>`). Reading
+ * the filesystem is as far as this goes; nothing here imports tim.
+ */
+const isInsideWorkspace = (root) => existsSync(path.resolve(root, '../../tim'))
 
 const browserState = async (packagesInstalled) => {
   if (!packagesInstalled) {
@@ -130,7 +137,7 @@ const gitConfig = (key, root) =>
   outputOf('git', ['config', '--get', key], { root }) || null
 
 /** What saving, sharing and handing off need from git and GitHub. */
-const shareChecks = (root, { share }) => {
+const shareChecks = (root, { share, insideWorkspace }) => {
   const config = readPrototypeConfig({ root })
   const ghInstalled = outputOf('gh', ['--version'], { root }) !== null
   const results = [
@@ -147,7 +154,8 @@ const shareChecks = (root, { share }) => {
         ['remote', 'get-url', '--push', UPSTREAM_REMOTE],
         { root }
       ),
-      cloneUrl: config.realService.cloneUrl
+      cloneUrl: config.realService.cloneUrl,
+      insideWorkspace
     }),
     checkGitHubCli({
       installed: ghInstalled,
@@ -185,6 +193,7 @@ const shareChecks = (root, { share }) => {
 
 /** Runs every check. */
 export const runChecks = async (root = REPO_ROOT, { share = false } = {}) => {
+  const insideWorkspace = isInsideWorkspace(root)
   const installedList = readJson(
     path.join(root, 'node_modules/.package-lock.json')
   )
@@ -197,9 +206,10 @@ export const runChecks = async (root = REPO_ROOT, { share = false } = {}) => {
           installedList
         )
       : [],
-    installCommand: installCommandFor(
-      readJson(path.join(root, 'package.json'))?.packageManager
-    )
+    installCommand: installHintFor({
+      packageManager: readJson(path.join(root, 'package.json'))?.packageManager,
+      insideWorkspace
+    })
   })
   const free = await isPortFree(DESIGNER_PORT)
   return [
@@ -211,7 +221,7 @@ export const runChecks = async (root = REPO_ROOT, { share = false } = {}) => {
       holder: free ? null : portHolder(),
       answersLikeThePrototype: free ? false : await answersLikeThePrototype()
     }),
-    ...shareChecks(root, { share })
+    ...shareChecks(root, { share, insideWorkspace })
   ]
 }
 

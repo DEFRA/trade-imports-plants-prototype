@@ -3,12 +3,13 @@
 ## Just say what you want
 
 You do not need to read these documents, learn the commands or know the
-names of anything. Open Claude Code (or Cursor) in the prototype's folder and
-say what you want in your own words: "we've got a demo on Thursday, get it
-ready", "the dashboard should show which ones are overdue", "write this up as
-a story for the developers". Claude works out what that means, does each
-part, checks it, shows you pictures and tells you what to click. If Claude
-seems lost, say "use the design skill".
+names of anything. Open Claude Code at the workspace root
+(`~/git/defra/trade-imports-workspace`) and say what you want in your own
+words: "we've got a demo on Thursday, get it ready", "the dashboard should
+show which ones are overdue", "write this up as a story for the
+developers". Claude works out what that means, does each part, checks it,
+shows you pictures and tells you what to click. If Claude seems lost, say
+"use the design skill".
 
 [PROTOTYPE.md](../../PROTOTYPE.md) has a table of things you can ask for.
 
@@ -48,12 +49,13 @@ to the real team.
 
 ## GOV.UK design, in more depth
 
-- [Components](gov-uk/components.md)
-- [Patterns](gov-uk/patterns.md)
-- [Styles](gov-uk/styles.md)
-- [Accessibility](gov-uk/accessibility.md)
-- [Language](gov-uk/language.md)
-- [Service design](gov-uk/service-design.md)
+The workspace's own `docs/best-practices/gds/` is the source of truth for
+GOV.UK components, patterns, styles, accessibility, language and service
+design — see [GOV.UK design in this prototype](gov-uk/README.md) for the
+exact files. These pages cover only what is different in this prototype:
+
+- [Components in this prototype](gov-uk/components.md)
+- [Accessibility in this prototype](gov-uk/accessibility.md)
 - [Templates in this prototype](gov-uk/templates-in-this-prototype.md)
 - [Design gaps](gov-uk/design-gaps.md)
 
@@ -76,15 +78,12 @@ to the real team.
 
 ## For maintainers: how requests are routed
 
-Designers never need this. Every agent (Claude Code, Cursor, Codex, Copilot)
-routes a request with `AGENTS.md`: its "Working out what they want" steps,
-its Outcomes table and its Phrases table. Each route names a steps file,
-`.claude/skills/<skill>/SKILL.md`, so it works whether or not the host loads
-skills. The skills are `design` (the front door: "use the design skill"),
-`run-the-prototype`, `design-release`, `change-the-words`,
-`match-the-design`, `port-a-kit-page`, `change-the-journey`, `example-data`,
-`fake-a-service`, `research-session`, `check-my-change`, `show-my-change`,
-`share-my-change` and `hand-off`. `CLAUDE.md` imports `AGENTS.md` and adds
-only what is particular to Claude Code. A new skill needs a row in
-`AGENTS.md` and its own line in `ours` in `overrides.json`;
-`scripts/designer/suite.test.js` fails until it has both.
+Designers never need this. A request is routed by the `prototype` skill at
+`~/git/defra/trade-imports-workspace/.claude/skills/prototype/SKILL.md`,
+which lives in the workspace, not in this repository — a Claude Code
+session rooted here on its own has no routing to fall back on, only the
+repo contract in `AGENTS.md`. The skill's own `references/ROUTING.md` is
+the one routing source: its "Working out what they want" steps, its
+Outcomes table and its Phrases table, each naming a
+`references/<name>.md` file to open and follow. A new reference needs a
+row there.

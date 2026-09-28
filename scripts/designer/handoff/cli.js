@@ -1,11 +1,21 @@
 /**
  * `npm run designer:handoff -- --set <release> [options]`
+ * `npm run designer:handoff -- status --dir <handoffs/folder> [--json]`
  *
  * Writes `handoffs/<yyyy-mm-dd>-<slug>/` for the real plants-frontend team:
  * `brief.md`, `brief.jira.txt` (a story ready to paste into Jira),
- * `upstream.patch`, `report.json` and a `screenshots/` folder (at most 2 MB).
- * With `--dry-run` the same folder goes under `.cache/designer/handoff/`
- * instead, which git ignores. With `--brief-only` there is no patch.
+ * `ticket.json` and `ticket.description.jira.txt` (a `tim-ticket/1` manifest
+ * `tim jira create --from` can raise for real), `upstream.patch`,
+ * `report.json` and a `screenshots/` folder (at most 2 MB). With `--dry-run`
+ * the same folder goes under `.cache/designer/handoff/` instead, which git
+ * ignores. With `--brief-only` there is no patch, and `ticket.json` has no
+ * `upstream.patch` attachment.
+ *
+ * `status` records a raised hand-off's real ticket and branch, once
+ * `tim jira create --from <folder>/ticket.json --confirm <planId>` has
+ * written that folder's `ticket.created.json`: `Ticket:` and `Branch:` lines
+ * under the brief's own heading, and a row of `handoffs/README.md`'s
+ * "Keeping track" table.
  *
  * Options:
  *   --set <id>            the design release to hand over (required). Use
@@ -49,6 +59,11 @@
  *   --date <yyyy-mm-dd>   the date in the folder name (default today)
  *   --dry-run             write under .cache/designer/handoff/ instead
  *   --json                print the report as JSON
+ *
+ * `status` options:
+ *   --dir <folder>        the hand-off folder, for example
+ *                         handoffs/2026-09-27-arrival-time-hint (required)
+ *   --json                print the result as JSON
  */
 import {
   copyFileSync,
@@ -70,14 +85,21 @@ import { buildHandoff, HandoffError, REAL_JOURNEY } from './build.js'
 import {
   briefOutline,
   isContentNote,
+  isStoryReady,
   renderBriefJira,
   renderBriefMarkdown,
+  renderTicketDescriptionJira,
   storyOf
 } from './brief.js'
 import { readJourneyFlow } from './flow.js'
 import { gitOrNull } from './git.js'
 import { ANY_PAGE, pickScreenshots } from './screenshots.js'
-import { CriteriaError, parseCriteria } from './story.js'
+import {
+  CriteriaError,
+  parseCriteria,
+  TICKET_DESCRIPTION_FILE,
+  ticketManifestFor
+} from './story.js'
 
 export const REPO_ROOT = path.resolve(
   fileURLToPath(import.meta.url),
@@ -333,7 +355,9 @@ export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
     links: resolved.links ?? [],
     date: resolved.date,
     slug: resolved.slug,
-    branch: `feat/EUDPA-XXXX-${resolved.slug}`,
+    branch: resolved.ticketKey
+      ? `feat/${resolved.ticketKey}-${resolved.slug}`
+      : `feat/<story key>-${resolved.slug}`,
     designBranch,
     designBranchOnGitHub: use.branchOnGitHub(root, designBranch),
     installCommand: use.installCommand(root),
@@ -362,6 +386,15 @@ export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
   }
   writeFileSync(path.join(dir, 'brief.md'), renderBriefMarkdown(blocks))
   writeFileSync(path.join(dir, 'brief.jira.txt'), renderBriefJira(blocks))
+  writeFileSync(
+    path.join(dir, TICKET_DESCRIPTION_FILE),
+    renderTicketDescriptionJira(blocks)
+  )
+  const ticketManifest = ticketManifestFor(report, meta)
+  writeFileSync(
+    path.join(dir, 'ticket.json'),
+    JSON.stringify(ticketManifest, null, 2) + '\n'
+  )
   const { patch, ...withoutPatch } = report
   writeFileSync(
     path.join(dir, 'report.json'),
@@ -388,17 +421,203 @@ export const runHandoff = async (root, resolved, sources = DEFAULT_SOURCES) => {
         story: {
           criteriaFrom: story.criteriaSource,
           criteria: story.scenarios.length,
-          placeholders: story.placeholders
+          placeholders: story.placeholders,
+          ready: isStoryReady(story)
         }
       },
       null,
       2
     ) + '\n'
   )
-  tidyFiles([path.join(dir, 'brief.md'), path.join(dir, 'report.json')], {
-    root
-  })
-  return { report, dir, meta, shots, story }
+  tidyFiles(
+    [
+      path.join(dir, 'brief.md'),
+      path.join(dir, 'ticket.json'),
+      path.join(dir, 'report.json')
+    ],
+    { root }
+  )
+  return { report, dir, meta, shots, story, ticketManifest }
+}
+
+/** The status lines a hand-off keeps directly under its brief's `# ` title,
+ * in this order, as `handoffs/README.md`'s "Keeping track" describes. */
+export const STATUS_LABELS = Object.freeze([
+  'Status',
+  'Sent on',
+  'Ticket',
+  'Branch',
+  'Merged in plants-frontend'
+])
+
+const labelOf = (line) => {
+  const at = line.indexOf(': ')
+  return at === -1 ? null : line.slice(0, at)
+}
+
+/**
+ * Inserts or updates a brief's status lines, directly under its `# ` title:
+ * `Status:`, `Sent on:`, `Ticket:`, `Branch:` and `Merged in
+ * plants-frontend:`. A block already there is merged into, field by field,
+ * never duplicated.
+ *
+ * @param {string} markdown - the brief, as written by `runHandoff`.
+ * @param {Object<string, string>} updates - one or more of `STATUS_LABELS`
+ * mapped to its new value.
+ */
+export const setStatusLines = (markdown, updates) => {
+  const lines = markdown.split('\n')
+  const titleIndex = lines.findIndex((line) => line.startsWith('# '))
+  if (titleIndex === -1) {
+    return markdown
+  }
+  let cursor = titleIndex + 1
+  while (lines[cursor] === '') {
+    cursor += 1
+  }
+  const blockStart = cursor
+  while (
+    cursor < lines.length &&
+    STATUS_LABELS.includes(labelOf(lines[cursor]))
+  ) {
+    cursor += 1
+  }
+  const existing = Object.fromEntries(
+    lines.slice(blockStart, cursor).map((line) => {
+      const label = labelOf(line)
+      return [label, line.slice(label.length + 2)]
+    })
+  )
+  const merged = { ...existing, ...updates }
+  const blockLines = STATUS_LABELS.filter(
+    (label) => merged[label] !== undefined
+  ).map((label) => `${label}: ${merged[label]}`)
+  let rest = lines.slice(cursor)
+  while (rest[0] === '') {
+    rest = rest.slice(1)
+  }
+  return [
+    ...lines.slice(0, titleIndex + 1),
+    '',
+    ...blockLines,
+    ...(rest.length ? ['', ...rest] : [])
+  ].join('\n')
+}
+
+const HANDOFFS_TABLE_HEADER = '| Hand-off | Ticket | Branch |'
+const HANDOFFS_TABLE_DIVIDER = '| --- | --- | --- |'
+
+/**
+ * Records one hand-off's ticket and branch as a row of the "Keeping track"
+ * table in `handoffs/README.md`, adding the table on its first use. A
+ * hand-off already in the table is updated in place, never duplicated.
+ */
+export const recordHandoffStatus = (readme, { folderName, ticket, branch }) => {
+  const row = `| ${folderName} | ${ticket} | ${branch} |`
+  const lines = readme.split('\n')
+  const headerIndex = lines.indexOf(HANDOFFS_TABLE_HEADER)
+  if (headerIndex === -1) {
+    const withTrailingNewline = readme.endsWith('\n') ? readme : `${readme}\n`
+    return `${withTrailingNewline}\n${HANDOFFS_TABLE_HEADER}\n${HANDOFFS_TABLE_DIVIDER}\n${row}\n`
+  }
+  const folderOf = (line) => line.split('|')[1]?.trim()
+  let cursor = headerIndex + 2
+  while (cursor < lines.length && lines[cursor].startsWith('|')) {
+    if (folderOf(lines[cursor]) === folderName) {
+      lines[cursor] = row
+      return lines.join('\n')
+    }
+    cursor += 1
+  }
+  lines.splice(cursor, 0, row)
+  return lines.join('\n')
+}
+
+const STATUS_VALUE_OPTIONS = { '--dir': 'dir' }
+const STATUS_FLAG_OPTIONS = { '--json': 'json' }
+
+/** Parses `status`'s own arguments (everything after the word "status"). */
+export const parseStatusArgs = (argv) => {
+  const options = {}
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]
+    if (STATUS_FLAG_OPTIONS[arg]) {
+      options[STATUS_FLAG_OPTIONS[arg]] = true
+      continue
+    }
+    if (!STATUS_VALUE_OPTIONS[arg]) {
+      throw new HandoffError(
+        `I do not know "${arg}". "status" takes --dir <handoffs/folder> and --json.`
+      )
+    }
+    const value = argv[++index]
+    if (value === undefined || value.startsWith('--')) {
+      throw new HandoffError(`${arg} needs a value.`)
+    }
+    options[STATUS_VALUE_OPTIONS[arg]] = value
+  }
+  if (!options.dir) {
+    throw new HandoffError(
+      'Say which hand-off folder: status --dir handoffs/<folder>.'
+    )
+  }
+  return options
+}
+
+const HANDOFF_FOLDER_NAME = /^\d{4}-\d{2}-\d{2}-(.+)$/
+export const TICKET_CREATED_FILE = 'ticket.created.json'
+const HANDOFFS_README = 'handoffs/README.md'
+
+/**
+ * `status --dir <folder>`: reads that hand-off's `ticket.created.json`
+ * (written by `tim jira create --confirm`) and records the real ticket and
+ * branch in the brief's status lines and in `handoffs/README.md`'s
+ * "Keeping track" table.
+ */
+export const runStatus = (root, options) => {
+  const dir = path.resolve(root, options.dir)
+  const folderName = path.basename(dir)
+  const match = HANDOFF_FOLDER_NAME.exec(folderName)
+  if (!match) {
+    throw new HandoffError(
+      `"${folderName}" does not look like a hand-off folder (<yyyy-mm-dd>-<slug>).`
+    )
+  }
+  const createdPath = path.join(dir, TICKET_CREATED_FILE)
+  if (!existsSync(createdPath)) {
+    throw new HandoffError(
+      `There is no ${TICKET_CREATED_FILE} in ${options.dir}. Run tim jira create --from ${options.dir}/ticket.json --confirm <planId> first.`
+    )
+  }
+  const created = JSON.parse(readFileSync(createdPath, 'utf8'))
+  const branch = `feat/${created.key}-${match[1]}`
+  const briefPath = path.join(dir, 'brief.md')
+  writeFileSync(
+    briefPath,
+    setStatusLines(readFileSync(briefPath, 'utf8'), {
+      Status: 'sent',
+      'Sent on': today(),
+      Ticket: created.key,
+      Branch: branch
+    })
+  )
+  const readmePath = path.join(root, HANDOFFS_README)
+  writeFileSync(
+    readmePath,
+    recordHandoffStatus(readFileSync(readmePath, 'utf8'), {
+      folderName,
+      ticket: created.key,
+      branch
+    })
+  )
+  tidyFiles([briefPath, readmePath], { root })
+  return {
+    dir,
+    folderName,
+    ticket: created.key,
+    ticketUrl: created.url,
+    branch
+  }
 }
 
 const plural = (count, noun, many = `${noun}s`) =>
@@ -474,12 +693,33 @@ export const summaryLines = ({ report, dir, shots, story, meta }, root) => {
   return lines
 }
 
+/** The plain-English summary printed after `status`. */
+export const statusSummaryLines = (result, root) => [
+  `Recorded Ticket: ${result.ticket} and Branch: ${result.branch} in ${path.relative(root, result.dir)}/brief.md and ${HANDOFFS_README}.`
+]
+
 export const main = async (
   argv,
   root = REPO_ROOT,
   sources = DEFAULT_SOURCES
 ) => {
   try {
+    if (argv[0] === 'status') {
+      const options = parseStatusArgs(argv.slice(1))
+      const result = runStatus(root, options)
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            { ...result, dir: path.relative(root, result.dir) },
+            null,
+            2
+          )
+        )
+      } else {
+        console.log(statusSummaryLines(result, root).join('\n'))
+      }
+      return 0
+    }
     const resolved = resolveOptions(parseArgs(argv))
     if (resolved.set === REAL_JOURNEY && !resolved.base) {
       resolved.base = 'main'

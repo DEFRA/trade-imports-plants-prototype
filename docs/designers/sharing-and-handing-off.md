@@ -150,38 +150,45 @@ journey's, writes the folder, reads the brief back to you, and saves the
 folder on your branch. The real team then takes it from there.
 
 **Route 2: ready for the real team's own tests.** When a developer wants the
-change proven first, Claude builds the ready part of your change into a copy
-of the real journey on a separate branch named `handoff/<a-few-words>`,
-updates the real team's tests that expect the old words, runs those tests,
-takes before-and-after screenshots, and writes the folder there. Anything
-that cannot ship yet is left out and listed. Then Claude takes you back to
-your own branch.
+change proven first, Claude builds the ready part of your change into a
+checkout of the real journey, `trade-imports-plants-frontend`, on its own
+branch (`feat/EUDPA-N-<slug>`, or `feat/NO_JIRA-<slug>` without a ticket
+yet), updates the real team's tests that expect the old words, runs those
+tests, takes before-and-after screenshots, and writes the folder there.
+Anything that cannot ship yet is left out and listed. Then Claude takes you
+back to your own branch here.
 
-The `handoff/` branch is never merged into the prototype's `main`. Once the
+That branch lives in the real repository, never in this prototype. Once the
 real team merges your change into plants-frontend, Monday's weekly update
 brings it back into the prototype.
 
 ### How it reaches the real service
 
-Either:
+Claude raises the story itself, once you say so:
 
-- **the team takes the brief and the patch**: share the brief's link from your
-  pull request, or paste `brief.jira.txt` into a story in the EUDPA Jira
-  project and attach `upstream.patch` and the screenshots, or
-- **a developer applies the patch** in their own copy of
-  trade-imports-plants-frontend (`git apply --3way upstream.patch`), updates the
-  tests the brief lists, runs the tests and raises the pull request there. The
-  file paths are the same in both repositories.
+1. It checks the brief for anything still marked with a placeholder (a
+   `[Welsh needed]` marker, an unanswered "Who is this for?") and asks about
+   each before going on.
+2. It shows you the ticket it would create — the summary, the description,
+   which epic it sits under, every attachment — as a dry run: nothing is
+   sent yet. This only works when you have Jira access set up (ask the
+   prototype maintainer if you are not sure); without it, Claude gives you
+   `brief.jira.txt` to paste into a story yourself, and `upstream.patch` and
+   the screenshots to attach.
+3. Say yes, in your own words, only once you are happy with the plan. Claude
+   then creates the story in the **EUDPA** Jira project, attaches
+   `upstream.patch` and the screenshots, and gives you the link. Send it to
+   the plants-frontend team's delivery lead or product owner: they decide
+   when it is built.
 
-### Who to send it to
+Either way, a developer can also apply the patch directly in their own copy
+of `trade-imports-plants-frontend` (`git apply --3way upstream.patch`),
+update the tests the brief lists, run the tests and raise the pull request
+there. The file paths are the same in both repositories.
 
-Raise the story in the **EUDPA** Jira project and send its link to the
-plants-frontend team's delivery lead or product owner: they decide when it is
-built. If you do not know who that is, ask the prototype maintainer.
-
-Then tell Claude what happened ("I raised it as EUDPA-123", "it was
-merged"). Claude adds a status line to the brief, so everyone can see which
-hand-offs were taken up. See [the hand-offs folder's guide](../../handoffs/README.md).
+Then tell Claude what happened ("it was merged"). Claude adds a status line
+to the brief, so everyone can see which hand-offs were taken up. See
+[the hand-offs folder's guide](../../handoffs/README.md).
 
 ### When the patch does not apply cleanly
 

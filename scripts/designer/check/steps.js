@@ -11,19 +11,32 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { pathToFileURL } from 'node:url'
 import * as prettier from 'prettier'
 
 import { ownershipOf } from '../lib/ownership.js'
+import { readOverrides } from '../lib/repo.js'
 import { SETS_DIR, setDir } from '../lib/sets.js'
 import {
   checkSetCopy,
   describeCopyProblem
 } from '../../../src/server/prototype-checks/copy-shape.js'
+import { checkCopyUsage } from '../../../src/server/prototype-checks/copy-usage.js'
 import {
   describeFrozenChange,
   frozenReleaseChanges
 } from '../../../src/server/prototype-checks/frozen-releases.js'
-import { CHECK_SET_ENV } from '../../../src/server/prototype-checks/sets-on-disk.js'
+import { advisoryLinesForCopy } from '../../../src/server/prototype-checks/gds-wording.js'
+import { checkServiceConformance } from '../../../src/server/prototype-checks/service-conformance.js'
+import {
+  CHECK_SET_ENV,
+  REAL_JOURNEY_SET
+} from '../../../src/server/prototype-checks/sets-on-disk.js'
+import {
+  ownedServiceNames,
+  serviceFolderOf
+} from '../../../src/server/prototype-support/contracts.js'
+import { leaves } from '../../../src/server/app/shared/copy-leaves.js'
 import { checkSetTemplates } from './templates.js'
 
 const PRETTIER_EXTENSIONS = new Set(['.js', '.cjs', '.md', '.json'])
@@ -225,6 +238,98 @@ const templates = ({ root, setId }) => {
   return result('pass', `${plural(checked.templates, 'template')} compile.`)
 }
 
+const serviceConformance = ({ root }) => {
+  // A folder overrides.json lists but that is not on disk at all is a
+  // different problem (a fixture, or a service mid-retirement): not this
+  // step's to report.
+  const owned = ownedServiceNames(readOverrides({ root })).filter((name) =>
+    existsSync(path.join(root, serviceFolderOf(name)))
+  )
+  const { problems } = checkServiceConformance(owned, (name) =>
+    path.join(root, serviceFolderOf(name))
+  )
+  if (problems.length > 0) {
+    return result(
+      'fail',
+      `${plural(problems.length, 'problem')} in your prototype-owned services.`,
+      {
+        details: problems.map((found) => found.message),
+        output: problems
+          .map((found) => `service-conformance: ${found.message}`)
+          .join('\n')
+      }
+    )
+  }
+  return result(
+    'pass',
+    owned.length === 0
+      ? 'There are no prototype-owned services.'
+      : `${plural(owned.length, 'service')} match the house shape.`
+  )
+}
+
+// high-risk-plants reads copy through macro parameters that shadow the
+// page's own copy object (see commodities/list and commodities/details),
+// which a plain-text scan cannot tell apart from the real thing. Its own
+// upstream tests (copy-parity.test.js) already prove its copy.
+const copyUsage = async ({ root, setId }) => {
+  if (setId === REAL_JOURNEY_SET) {
+    return result('pass', 'high-risk-plants proves its own copy upstream.')
+  }
+  const { problems } = await checkCopyUsage(setDir(setId, { root }))
+  if (problems.length > 0) {
+    return result(
+      'fail',
+      `${plural(problems.length, 'problem')} with copy a template reads.`,
+      {
+        details: problems.map((found) => found.message),
+        output: problems
+          .map((found) => `copy-usage: ${found.message}`)
+          .join('\n')
+      }
+    )
+  }
+  return result('pass', 'Every template’s copy resolves.')
+}
+
+/** Every `copy.en.js` among the changed paths, read fresh (never cached: a
+ * designer's edit since the last check must show). */
+const changedEnglishCopy = async (changedPaths, { root }) => {
+  const files = changedPaths.filter((repoPath) =>
+    repoPath.endsWith('copy.en.js')
+  )
+  const read = await Promise.all(
+    files.map(async (repoPath) => {
+      const full = path.join(root, repoPath)
+      if (!existsSync(full)) {
+        return null
+      }
+      const loaded = await import(`${pathToFileURL(full).href}?t=${Date.now()}`)
+      return { repoPath, copy: loaded.copy }
+    })
+  )
+  return read.filter(Boolean)
+}
+
+const gdsWording = async ({ root, changedPaths }) => {
+  const files = await changedEnglishCopy(changedPaths, { root })
+  const lines = files.flatMap(({ repoPath, copy }) =>
+    advisoryLinesForCopy(leaves(copy)).map((line) => `${repoPath}: ${line}`)
+  )
+  if (lines.length === 0) {
+    return result(
+      'pass',
+      files.length === 0
+        ? 'You changed no English copy.'
+        : 'No wording notes on your changed English copy.'
+    )
+  }
+  return result('warn', `${plural(lines.length, 'wording note')}.`, {
+    details: lines,
+    output: lines.join('\n')
+  })
+}
+
 const TESTS_PASSED = /Tests\s+(\d+) passed/
 
 const commandResult = ({ code, output }, passSummary) => {
@@ -295,8 +400,11 @@ export const STEP_RUNNERS = {
   tidy,
   ownership,
   copy,
+  'copy-usage': copyUsage,
   templates,
   'code-rules': codeRulesOnChanged,
+  'service-conformance': serviceConformance,
+  'gds-wording': gdsWording,
   'prototype-checks': prototypeChecks,
   'real-journey-tests': npmStep(
     'test:high-risk-plants',

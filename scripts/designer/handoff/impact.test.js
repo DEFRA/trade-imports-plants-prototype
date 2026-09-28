@@ -6,10 +6,12 @@ import {
   findWelshMarkers,
   isTestFile,
   literalsIn,
+  matchingRemovedVocabulary,
   ownedServicesFrom,
   parseDesignGaps,
   parseResearchRules,
   relativeImportsOf,
+  removalVocabularyFrom,
   removedLiterals
 } from './impact.js'
 
@@ -274,6 +276,56 @@ describe('parseDesignGaps', () => {
 
   it('Should give nothing for a release with no file', () => {
     expect(parseDesignGaps(null)).toEqual([])
+  })
+})
+
+describe('removalVocabularyFrom', () => {
+  it('Should read the service names immediately before "service(s)" in a sentence that says one was removed', () => {
+    const text =
+      'The reason-for-import/purpose service and the transport and transporter services were removed because this journey asks no such question.'
+
+    expect(removalVocabularyFrom(text)).toEqual([
+      'reason-for-import/purpose',
+      'transporter'
+    ])
+  })
+
+  it('Should also read a sentence that says a service is unused, not just "removed"', () => {
+    const text =
+      'no plants source asks a reason-for-import or purpose question, so the platform commercial-transporters services are likewise unused.'
+
+    expect(removalVocabularyFrom(text)).toEqual(['commercial-transporters'])
+  })
+
+  it('Should give nothing when no sentence mentions a removal', () => {
+    expect(
+      removalVocabularyFrom('Countries and ports serve stub data.')
+    ).toEqual([])
+  })
+
+  it('Should give nothing for empty or missing text', () => {
+    expect(removalVocabularyFrom(null)).toEqual([])
+    expect(removalVocabularyFrom('')).toEqual([])
+  })
+})
+
+describe('matchingRemovedVocabulary', () => {
+  it('Should match a plural service name against the singular word a removal recorded', () => {
+    expect(matchingRemovedVocabulary('transporters', ['transporter'])).toBe(
+      'transporter'
+    )
+  })
+
+  it('Should match a service name that is part of a longer removed term', () => {
+    expect(
+      matchingRemovedVocabulary('transporters', ['commercial-transporters'])
+    ).toBe('commercial-transporters')
+  })
+
+  it('Should find no match for an unrelated service', () => {
+    expect(matchingRemovedVocabulary('countries', ['transporter'])).toBe(
+      undefined
+    )
   })
 })
 

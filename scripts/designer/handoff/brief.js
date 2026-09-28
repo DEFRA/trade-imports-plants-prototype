@@ -16,7 +16,6 @@ import {
   exampleLinks,
   recipeDocPath,
   recipesFor,
-  SERVICES_GUIDE,
   STORY_PLACEHOLDERS,
   TESTING_GUIDE,
   testsToAdd
@@ -39,6 +38,9 @@ const MONTHS = [
 
 const LOCAL_BASE_URL = 'http://localhost:3103'
 const PLANTS_FRONTEND = 'trade-imports-plants-frontend'
+const WORKSPACE_ROOT = '~/git/defra/trade-imports-workspace'
+const WORKSPACE_PROTOTYPE = `${WORKSPACE_ROOT}/repos/trade-imports-plants-prototype`
+const WORKSPACE_PLANTS_FRONTEND = `${WORKSPACE_ROOT}/repos/trade-imports-plants-frontend`
 
 /**
  * Code in the brief's own markup (`{{…}}`, monospace in Jira and Markdown).
@@ -95,14 +97,30 @@ const madeFrom = (report) => {
   return `Design release ${report.set}, made from ${steps.join(', then ')}.`
 }
 
+/** A sentence naming the extra check against the workspace's own sibling
+ * clone of plants-frontend (never its working tree, always `origin/main`),
+ * when that clone is there to check against. */
+const workspaceCloneLine = (report) => {
+  const check = report.plantsFrontendApplyCheck
+  if (!check) {
+    return ''
+  }
+  return check.ok
+    ? ` It also applies cleanly to the workspace's own {{${WORKSPACE_PLANTS_FRONTEND}}} (its ${check.ref}).`
+    : ` It does not apply cleanly to the workspace's own {{${WORKSPACE_PLANTS_FRONTEND}}} (its ${check.ref}): merge by hand there too.`
+}
+
 const upstreamLine = (report) => {
   const check = report.upstreamApplyCheck
   if (!check) {
-    return ' It was not checked against plants-frontend itself: the prototype had not fetched it (git fetch upstream).'
+    return ` It was not checked against plants-frontend itself: the prototype had not fetched it (git fetch upstream).${workspaceCloneLine(report)}`
   }
-  return check.ok
-    ? ` It also applies cleanly to plants-frontend's ${check.ref}, as last fetched.`
-    : ` It does not apply cleanly to plants-frontend's ${check.ref}, as last fetched: the real service has moved on since the prototype's last weekly update, so a developer will need to merge by hand.`
+  return (
+    (check.ok
+      ? ` It also applies cleanly to plants-frontend's ${check.ref}, as last fetched.`
+      : ` It does not apply cleanly to plants-frontend's ${check.ref}, as last fetched: the real service has moved on since the prototype's last weekly update, so a developer will need to merge by hand.`) +
+    workspaceCloneLine(report)
+  )
 }
 
 const services = (report) => report.servicesToBuild ?? []
@@ -213,6 +231,16 @@ export const storyOf = (report, meta) => {
     placeholders
   }
 }
+
+/**
+ * Whether the story is ready to raise as it is: no placeholder text left for
+ * the designer to fill in, and its acceptance criteria are the designer's
+ * own words, not a draft the designer has not yet confirmed.
+ *
+ * @param {ReturnType<typeof storyOf>} story
+ */
+export const isStoryReady = (story) =>
+  story.placeholders.length === 0 && !story.criteriaDraft
 
 const patchNote = (report) => {
   if (report.briefOnly) {
@@ -336,32 +364,25 @@ const addStory = (add, report, meta, story) => {
 }
 
 const localSteps = (report, meta, links) => {
-  const prototype = meta.prototype ?? {}
-  const clone = prototype.cloneUrl ?? '<the prototype’s clone address>'
-  const folder = (prototype.repository ?? 'trade-imports-plants-prototype')
-    .split('/')
-    .at(-1)
   const open = links.length
     ? `Open {{${links[0].url.replace(/^https?:\/\/[^/]+/, LOCAL_BASE_URL)}}} (an example notification, on the changed page), or {{${LOCAL_BASE_URL}/${report.set}}} to start one.`
     : `Open {{${LOCAL_BASE_URL}/${report.set}}} and start a notification.`
   return [
-    `{{git clone ${clone}}}, then {{cd ${folder}}}`,
     designBranchStep(meta),
-    `{{${meta.installCommand ?? 'npm ci'}}} (the install command {{npm run designer:preflight}} prints)`,
-    '{{npm run dev}}',
+    `{{npm --prefix ${WORKSPACE_PROTOTYPE} run dev}}`,
     open
   ]
 }
 
 const designBranchStep = (meta) => {
   if (!meta.designBranch) {
-    return 'Switch to the design branch the link above names.'
+    return `Switch to the design branch the link above names, in {{${WORKSPACE_PROTOTYPE}}}.`
   }
   const notPushed =
     meta.designBranchOnGitHub === false
       ? ' (this branch is not on GitHub yet: ask the designer to push it first)'
       : ''
-  return `{{git switch ${meta.designBranch}}}${notPushed}`
+  return `{{git -C ${WORKSPACE_PROTOTYPE} switch ${meta.designBranch}}}${notPushed}`
 }
 
 const addSeeThePrototype = (add, report, meta) => {
@@ -621,27 +642,65 @@ const addTestsToAdd = (add, report) => {
   add('list', { items: testsToAdd(report) })
 }
 
-const addForTheDeveloper = (add, report) => {
-  add('heading', { text: 'For the developer or agent' })
+/** C1: one to three frontend-only elements, no clash — build it directly in
+ * the workspace's own plants-frontend checkout, recipe by recipe. */
+const recipeRoute = (report, meta) => {
   const recipes = recipePaths(report)
   const recipeText = recipes.length
-    ? `Follow ${recipes.map((item) => `{{${item.path}}}`).join(', ')}`
-    : `Follow the recipe that fits in {{src/server/app/sets/high-risk-plants/docs/}}`
+    ? recipes.map((item) => `{{${item.path}}}`).join(', ')
+    : 'the recipe that fits in {{src/server/app/sets/high-risk-plants/docs/}}'
+  return `Build it properly in {{${WORKSPACE_PLANTS_FRONTEND}}} on {{${meta.branch}}}, with the frontend-change skill ({{${AGENT_SKILLS.frontendChange}}}, target high-risk-plants-frontend), following ${recipeText}. Then run spec-catchup and spec-cover ({{${AGENT_SKILLS.specCatchup}}}, {{${AGENT_SKILLS.specCover}}}) for {{openspec/specs/plants}} in the workspace, so the behaviour spec and its coverage catch up with the change. Then run code-style and review ({{${AGENT_SKILLS.codeStyle}}}, {{${AGENT_SKILLS.review}}}) before it is ready to merge.`
+}
+
+/** C2: a new service — not one recipe. Goes to the requirements-pipeline
+ * skill as a full-stack story, naming the service's owner repo. */
+const newServiceRoute = (report) => {
+  const owners = [
+    ...new Set(
+      services(report)
+        .map((service) => service.contract?.owner)
+        .filter(Boolean)
+    )
+  ]
+  const ownerText = owners.length
+    ? owners.map((owner) => OWNER_REPOS[owner] ?? owner).join(', ')
+    : 'to be agreed'
+  return `This adds a new service, not one recipe: raise it as a full-stack story through the requirements-pipeline skill ({{${AGENT_SKILLS.requirementsPipeline}}}) in the trade-imports workspace, with this hand-off folder, the design branch and {{${WORKSPACE_PLANTS_FRONTEND}}} as sources, and its owner repo (${ownerText}) named for the increments that reach it. It works out the full-stack increments and builds them one at a time; a designer session never launches that build itself.`
+}
+
+/** C2: a clash with a standing ruling (a service the real journey removed on
+ * purpose) — the product owner settles it before any code changes. */
+const rulingConflictRoute = () =>
+  `This clashes with a standing ruling to remove a service from the real journey (see "What cannot ship as it is"): raise it through the requirements-pipeline skill ({{${AGENT_SKILLS.requirementsPipeline}}}) in the trade-imports workspace so the product owner settles the conflict before any code changes.`
+
+const addForTheDeveloper = (add, report, meta) => {
+  add('heading', { text: 'For the developer or agent' })
   const start = report.briefOnly
-    ? 'There is no patch: build it from this story in a clone of trade-imports-plants-frontend.'
-    : 'Start from upstream.patch in a clone of trade-imports-plants-frontend.'
-  const capabilities = report.specCapabilities ?? []
-  const spec = capabilities.length
-    ? capabilities
-        .map(
-          (capability) =>
-            `{{openspec/specs/plants/${capability}/spec.md}} with {{openspec/coverage/plants/${capability}/coverage.json}}`
-        )
-        .join(', ')
-    : 'the matching capability under {{openspec/specs/plants/}} with its {{coverage.json}} under {{openspec/coverage/plants/}}'
+    ? 'There is no patch: build it from this story and the pictures.'
+    : 'Start from upstream.patch in this hand-off folder as a starting point.'
+  const rulingConflict = (report.rulingConflicts ?? []).length > 0
+  const newService = services(report).length > 0
   add('para', {
-    text: `${start} ${recipeText}, and the testing guide {{${TESTING_GUIDE}}}${services(report).length ? `, and {{${SERVICES_GUIDE}}} for the service` : ''}. In the trade-imports workspace, an agent can make it with the frontend-change skill ({{${AGENT_SKILLS.frontendChange}}}), one recipe at a time, or plan and build the whole story with the ticket skill ({{${AGENT_SKILLS.ticket}}}) once it has an EUDPA number. Update the behaviour spec in the workspace too: ${spec}.`
+    text: rulingConflict
+      ? `${start} ${rulingConflictRoute()}`
+      : newService
+        ? `${start} ${newServiceRoute(report)}`
+        : `${start} ${recipeRoute(report, meta)}`
   })
+  if (!rulingConflict && !newService) {
+    const capabilities = report.specCapabilities ?? []
+    const spec = capabilities.length
+      ? capabilities
+          .map(
+            (capability) =>
+              `{{openspec/specs/plants/${capability}/spec.md}} with {{openspec/coverage/plants/${capability}/coverage.json}}`
+          )
+          .join(', ')
+      : 'the matching capability under {{openspec/specs/plants/}} with its {{coverage.json}} under {{openspec/coverage/plants/}}'
+    add('para', {
+      text: `The testing guide is {{${TESTING_GUIDE}}}. The behaviour spec to update: ${spec}.`
+    })
+  }
 }
 
 /**
@@ -663,7 +722,7 @@ export const briefOutline = (report, meta) => {
     addService(add, service)
   }
   addTestsToAdd(add, report)
-  addForTheDeveloper(add, report)
+  addForTheDeveloper(add, report, meta)
 
   add('rule', {})
   add('heading', { text: 'Detail' })
@@ -878,6 +937,10 @@ const addCannotShip = (add, report) => {
     ),
     ...researchRules.map(
       (rule) => `Research mode only (turn back on before shipping): ${rule}`
+    ),
+    ...(report.rulingConflicts ?? []).map(
+      (conflict) =>
+        `Ruling conflict: ${conflict.service} matches "${conflict.matchedTerm}", a service removed from the real journey on purpose (recorded in {{${conflict.source}}}). Check with the product owner before building it again.`
     )
   ]
   add(
@@ -1087,3 +1150,19 @@ export const renderBriefJira = (blocks) =>
       }
     })
     .join('\n\n') + '\n'
+
+const ATTACH_SUFFIX = / \(attach [^)]*\)/g
+
+/**
+ * The ticket's Jira description, for `ticket.json`'s `descriptionFile`: the
+ * same brief in Jira wiki markup, minus the `*Summary:*` line (Jira's own
+ * Summary field carries that) and minus every image's "(attach ...)"
+ * suffix (the manifest's own `attachments` list does the attaching).
+ *
+ * @param {object[]} blocks - from `briefOutline`.
+ */
+export const renderTicketDescriptionJira = (blocks) =>
+  renderBriefJira(blocks.filter((block) => block.kind !== 'title')).replace(
+    ATTACH_SUFFIX,
+    ''
+  )

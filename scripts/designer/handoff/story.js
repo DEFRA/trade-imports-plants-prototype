@@ -282,8 +282,49 @@ export const testsToAdd = (report) => {
 /** The workspace skills an implementing agent uses. */
 export const AGENT_SKILLS = Object.freeze({
   frontendChange: '.claude/skills/frontend-change/SKILL.md',
-  ticket: '.claude/skills/ticket/SKILL.md'
+  specCatchup: '.claude/skills/spec-catchup/SKILL.md',
+  specCover: '.claude/skills/spec-cover/SKILL.md',
+  codeStyle: '.claude/skills/code-style/SKILL.md',
+  review: '.claude/skills/review/SKILL.md',
+  requirementsPipeline: '.claude/skills/requirements-pipeline/SKILL.md'
 })
+
+export const TICKET_SCHEMA = 'tim-ticket/1'
+
+/** Where the ticket's description lives, next to `ticket.json` itself. */
+export const TICKET_DESCRIPTION_FILE = 'ticket.description.jira.txt'
+
+/**
+ * The `tim-ticket/1` manifest a hand-off writes beside its brief, so
+ * `tim jira create --from` can raise the story straight from this folder.
+ * The project, parent epic and labels come from the prototype's own hand-off
+ * settings (`scripts/designer/prototype.json`, read into `meta.prototype`);
+ * everything else from the story's own words. Attachments are relative to
+ * the manifest's own folder: every picked screenshot, then `upstream.patch`
+ * unless the hand-off is brief only, then `brief.md` itself.
+ *
+ * @param {object} report - from `buildHandoff`.
+ * @param {object} meta - the hand-off's own metadata, as `runHandoff` builds it.
+ * @returns {object} a `tim-ticket/1` manifest (not yet validated).
+ */
+export const ticketManifestFor = (report, meta) => {
+  const handOff = meta.prototype?.handOff ?? {}
+  return {
+    schema: TICKET_SCHEMA,
+    project: handOff.jiraProject,
+    type: 'Story',
+    summary: meta.title,
+    descriptionFile: TICKET_DESCRIPTION_FILE,
+    ...(handOff.parentEpic ? { parent: handOff.parentEpic } : {}),
+    labels: handOff.labels ?? [],
+    attachments: [
+      ...meta.screenshots.map((shot) => `screenshots/${shot.fileName}`),
+      ...(report.briefOnly ? [] : ['upstream.patch']),
+      'brief.md'
+    ],
+    relates: []
+  }
+}
 
 /**
  * The behaviour spec capabilities in the trade-imports workspace that a

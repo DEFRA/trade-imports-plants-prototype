@@ -2,14 +2,13 @@ import { getTraceId } from '@defra/hapi-tracing'
 
 import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
 
-/**
- * The Import Notification Service frontend's address book client, copied
- * from trade-imports-ins-frontend
- * (`src/server/app/services/address-book/client.js`). The address book API
+/** The Import Notification Service's address book client: the same request
+ * shape as trade-imports-ins-frontend's own
+ * (`src/server/app/services/address-book/client.js`), kept in step by
+ * `ins-address-book.test.js`'s shape-drift test. The address book API
  * exists: this is the client the INS frontend already uses, so the
  * address-book pages a design release builds on it can move to the INS
- * frontend unchanged.
- */
+ * frontend unchanged. See `contract.json`. */
 
 const ORGANISATION_ID_HEADER = 'Trade-Imports-Organisation-Id'
 
@@ -52,7 +51,7 @@ const parseProblemBody = async (response) => {
  * @returns {Error} the error to throw.
  */
 export const validationError = (problem, statusText = 'Bad Request') =>
-  Object.assign(new Error(problem.detail || 'Validation failed'), {
+  Object.assign(new Error(problem.detail ?? 'Validation failed'), {
     status: HTTP_STATUS_BAD_REQUEST,
     statusText,
     body: problem
@@ -65,8 +64,8 @@ const throwOnError = async (response) => {
   const problem = await parseProblemBody(response)
   throw Object.assign(
     new Error(
-      problem.detail ||
-        problem.message ||
+      problem.detail ??
+        problem.message ??
         `Address book request failed: ${response.status} ${response.statusText}`
     ),
     { status: response.status, statusText: response.statusText, body: problem }

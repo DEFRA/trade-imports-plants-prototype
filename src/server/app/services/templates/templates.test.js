@@ -1,8 +1,19 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { withSetContext } from '../../shared/set-context.js'
 import { clearFakesFor } from '../../../prototype-support/registry.js'
 import * as templates from './index.js'
+
+const CONTRACT = JSON.parse(
+  readFileSync(
+    path.join(fileURLToPath(import.meta.url), '../contract.json'),
+    'utf8'
+  )
+)
 
 const RELEASE = 'plants-templates-test'
 const OTHER_RELEASE = 'plants-templates-elsewhere'
@@ -215,12 +226,17 @@ describe('the proposed client, against the plants backend', () => {
 })
 
 describe('what it says it needs', () => {
-  it('Should name the real service it stands in for, and its contract', () => {
-    expect(templates.NEEDS_A_REAL_SERVICE).toMatch(/templates/)
-    expect(templates.CONTRACT).toMatchObject({
+  it('Should name the real service it stands in for, and its contract, in contract.json', () => {
+    expect(CONTRACT.needsARealService).toMatch(/templates/)
+    expect(CONTRACT).toMatchObject({
       service: 'templates',
       owner: 'plants-backend',
       baseUrlEnv: 'TRADE_IMPORTS_PLANTS_BACKEND_URL'
     })
+  })
+
+  it('Should export neither CONTRACT nor NEEDS_A_REAL_SERVICE from index.js', () => {
+    expect(templates.CONTRACT).toBeUndefined()
+    expect(templates.NEEDS_A_REAL_SERVICE).toBeUndefined()
   })
 })

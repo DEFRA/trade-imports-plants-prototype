@@ -18,6 +18,20 @@ describe('#config', () => {
     )
   })
 
+  describe('Defra ID redirect URLs', () => {
+    test('defaults the sign-in redirect to this prototype’s own port, 3103', () => {
+      expect(config.get('defraId.redirectUrl')).toBe(
+        'http://localhost:3103/auth/sign-in-oidc'
+      )
+    })
+
+    test('defaults the sign-out redirect to this prototype’s own port, 3103', () => {
+      expect(config.get('defraId.signOutRedirectUrl')).toBe(
+        'http://localhost:3103/auth/sign-out-oidc'
+      )
+    })
+  })
+
   describe('stubMode', () => {
     beforeEach(() => {
       vi.resetModules()

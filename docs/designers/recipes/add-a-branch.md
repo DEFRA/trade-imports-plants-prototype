@@ -1,5 +1,10 @@
 # Show a page only when an answer says so (add a branch)
 
+This recipe mirrors the real plants-frontend's own
+`src/server/app/sets/high-risk-plants/docs/journey-flow-and-gates.md` and
+`src/server/app/docs/flow-and-gates.md`, which document the gates and flow
+sections this same mechanism runs on.
+
 ## When to use it
 
 Use this recipe when a page should only appear for some people, depending on
@@ -405,8 +410,8 @@ asking again. It is part of this change, not a separate one:
 ## How to check it
 
 1. `npm run designer:check -- --set <release> --full`. The prototype must
-   start: a missing step shows as one of the refusals in
-   `.claude/skills/change-the-journey/references/errors-explained.md`.
+   start: a missing step shows as one of the refusals in the workspace
+   `prototype` skill's change-the-journey reference, `errors-explained.md`.
 2. `npm run designer:examples -- check <release>`. Every example must say it
    was reached.
 3. `npm run designer:check -- --set <release> --walk`. This walks both

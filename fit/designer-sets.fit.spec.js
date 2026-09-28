@@ -109,7 +109,7 @@ test.describe('a prototype-owned service behind real pages', () => {
     await page.getByLabel('Commercial').check()
     await page.getByLabel('Address line 1').fill('1 Depot Road')
     await page.getByLabel('Town or city').fill('Dover')
-    await page.getByLabel('Country').fill('United Kingdom')
+    await page.getByLabel('Country').selectOption({ label: 'United Kingdom' })
     await page.getByRole('button', { name: 'Save transporter' }).click()
   }
 

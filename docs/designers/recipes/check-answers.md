@@ -1,5 +1,10 @@
 # Change check your answers
 
+This recipe mirrors §5 ("Add the check-answers row") of the real
+plants-frontend's own
+`src/server/app/sets/high-risk-plants/docs/add-a-field.md`, which documents
+the same view model, rows and copy this recipe changes.
+
 ## When to use it
 
 Use this recipe to change what the check your answers page shows, or in what

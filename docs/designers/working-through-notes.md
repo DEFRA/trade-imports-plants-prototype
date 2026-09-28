@@ -51,8 +51,3 @@ and gives you the gallery.
 - Say which page each note is about when it is not obvious.
 - Notes about research findings often need example data too ("an example
   stopped at the commodities page"). Put those in the list as well.
-
-## In Cursor or another assistant
-
-The same list works, but the assistant follows the same steps one change after
-another instead of as a workflow. It takes longer and ends in the same place.

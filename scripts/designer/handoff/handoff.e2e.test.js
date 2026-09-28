@@ -12,7 +12,7 @@ import {
   rmSync,
   writeFileSync
 } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
@@ -63,6 +63,17 @@ const PLANTS_FRONTEND = path.resolve(
 const hasPlantsFrontend =
   existsSync(path.join(PLANTS_FRONTEND, '.git')) &&
   resolveCommit(PLANTS_FRONTEND, 'main') !== null
+
+/** `tim`'s own CLI, beside the prototype as the workspace lays it out.
+ * Present on a workspace checkout, absent in the prototype's own CI. */
+const TIM_CLI = path.resolve(REPO_ROOT, '../../tim/src/cli.js')
+const hasTim = existsSync(TIM_CLI)
+
+/** The prototype's hand-off settings, fixed for these scratch repos, which
+ * have no `scripts/designer/prototype.json` of their own. */
+const TEST_PROTOTYPE_CONFIG = {
+  handOff: { jiraProject: 'EUDPA', parentEpic: null, labels: ['UCD'] }
+}
 
 /** Copies the real journey the way `new:set` does: every path and file
  * rewritten by the real transform, each UUID given a fresh value. Tests and
@@ -245,6 +256,134 @@ describe('designer:handoff end to end', () => {
       expect(prettierLeavesAlone(root, dir, ['brief.md', 'report.json'])).toBe(
         true
       )
+    },
+    TIMEOUT_MS
+  )
+
+  it(
+    'Should write ticket.json and ticket.description.jira.txt, and report.json’s story.ready',
+    async () => {
+      scaffoldRelease(root)
+      changeHintAndTemplate(root)
+      const gallery = '.cache/designer/show/plants-working/latest'
+      writeFiles(root, {
+        [`${gallery}/arrival-details--before--page--desktop.png`]: 'png',
+        [`${gallery}/arrival-details--now--page--desktop.png`]: 'png',
+        '.cache/designer/handoff/arrival.criteria.txt':
+          'Given I am on the Arrival details page\nWhen I look at the time question\nThen the hint is clearer\n'
+      })
+
+      const { dir, ticketManifest } = await runHandoff(
+        root,
+        {
+          set: 'plants-working',
+          slug: 'arrival-time-hint',
+          date: '2026-09-27',
+          folderName: '2026-09-27-arrival-time-hint',
+          title: 'Clearer arrival time hint',
+          why: 'Traders were unsure about the time format.',
+          as: 'a trader notifying potatoes',
+          want: 'to know how to write the arrival time',
+          soThat: 'I get it right the first time',
+          criteria: '.cache/designer/handoff/arrival.criteria.txt',
+          features: [],
+          recipes: [],
+          links: []
+        },
+        {
+          ...TEST_SOURCES,
+          prototype: () => TEST_PROTOTYPE_CONFIG
+        }
+      )
+
+      expect(ticketManifest).toEqual({
+        schema: 'tim-ticket/1',
+        project: 'EUDPA',
+        type: 'Story',
+        summary: 'Clearer arrival time hint',
+        descriptionFile: 'ticket.description.jira.txt',
+        labels: ['UCD'],
+        attachments: [
+          'screenshots/arrival-details--before--page--desktop.png',
+          'screenshots/arrival-details--now--page--desktop.png',
+          'upstream.patch',
+          'brief.md'
+        ],
+        relates: []
+      })
+      const ticketJson = JSON.parse(readFile(dir, 'ticket.json'))
+      expect(ticketJson).toEqual(ticketManifest)
+
+      const description = readFile(dir, 'ticket.description.jira.txt')
+      expect(description).not.toMatch(/^\*Summary:\*/)
+      expect(description).not.toContain('(attach')
+      expect(description).toContain('*As* a trader notifying potatoes')
+
+      const reportStory = JSON.parse(readFile(dir, 'report.json')).story
+      expect(reportStory.ready).toBe(true)
+      expect(reportStory.placeholders).toEqual([])
+    },
+    TIMEOUT_MS
+  )
+
+  it.runIf(hasTim)(
+    'Should let tim jira create --from ticket.json --json plan the ticket as a dry run, with zero requests',
+    async () => {
+      scaffoldRelease(root)
+      changeHintAndTemplate(root)
+      const gallery = '.cache/designer/show/plants-working/latest'
+      writeFiles(root, {
+        [`${gallery}/arrival-details--before--page--desktop.png`]: 'png'
+      })
+
+      const { dir } = await runHandoff(
+        root,
+        {
+          set: 'plants-working',
+          slug: 'arrival-time-hint',
+          date: '2026-09-27',
+          folderName: '2026-09-27-arrival-time-hint',
+          title: 'Clearer arrival time hint',
+          features: [],
+          recipes: [],
+          links: []
+        },
+        {
+          ...TEST_SOURCES,
+          prototype: () => TEST_PROTOTYPE_CONFIG
+        }
+      )
+
+      const stdout = execFileSync(
+        process.execPath,
+        [
+          TIM_CLI,
+          'jira',
+          'create',
+          '--from',
+          path.join(dir, 'ticket.json'),
+          '--json'
+        ],
+        {
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            JIRA_USER: '',
+            JIRA_TOKEN: '',
+            JIRA_BASE_URL: ''
+          }
+        }
+      )
+      const payload = JSON.parse(stdout.trim())
+
+      expect(payload).toMatchObject({ ok: true, result: { mode: 'dry-run' } })
+      expect(payload.result.planId).toMatch(/^[0-9a-f]{64}$/)
+      expect(payload.result.fields.project).toEqual({ key: 'EUDPA' })
+      expect(payload.result.attachments.map((a) => a.filename)).toEqual([
+        'arrival-details--before--page--desktop.png',
+        'upstream.patch',
+        'brief.md'
+      ])
     },
     TIMEOUT_MS
   )

@@ -36,9 +36,12 @@ export const copy = {
     },
     approvalNumber: '[Welsh needed] Approval number (optional)',
     addressLine1: '[Welsh needed] Address line 1',
+    addressLine2: '[Welsh needed] Address line 2 (optional)',
     townOrCity: '[Welsh needed] Town or city',
+    county: '[Welsh needed] County (optional)',
     postcode: '[Welsh needed] Postcode (optional)',
     country: '[Welsh needed] Country',
+    countryPlaceholder: '[Welsh needed] Choose a country',
     save: '[Welsh needed] Save transporter',
     cancel: '[Welsh needed] Cancel'
   },

@@ -12,10 +12,17 @@ Every designer document is listed in
 
 ## Just say what you want
 
-Open Claude Code in this folder and say what you want in your own words. You
-do not need to learn the code, the commands or the names of anything. Claude
-works out what you mean, makes the change in your design release, checks it,
-shows you pictures of it and tells you what to click.
+Clone the workspace, run its setup, then open Claude Code at the workspace
+root — not in this repo's own folder. See "Getting started" below. Once
+you are there, say what you want in your own words. You do not need to
+learn the code, the commands or the names of anything. Claude works out
+what you mean, makes the change in your design release, checks it, shows
+you pictures of it and tells you what to click.
+
+It runs entirely on its own: `npm run dev` needs no docker stack, no
+backend and no Jira access to show a change. The workspace is only for
+Claude to read while it builds, so what it makes for you matches the real
+service.
 
 | You want to                                   | Say something like                                                           |
 | --------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -39,16 +46,23 @@ hand it to the real team.
 **If Claude seems lost, say "use the design skill".** It then works out what
 you want from your words and splits it into parts.
 
-**Using Cursor or another assistant.** It reads `AGENTS.md`, which holds the
-same instructions, so the same words work. Two differences: there is no
-automatic guard on the real service's files (ask "whose file is this?" if
-unsure), and lists of changes run one at a time, which takes longer but ends
-in the same place.
+## Getting started
 
-If Claude Code reports a missing hook script when it starts, the prototype's
-own Claude Code settings are not in place yet. It is harmless: carry on. The
-prototype maintainer has the fix (see "For maintainers" in
-[README.md](README.md)).
+1. Clone the workspace:
+   `git clone https://github.com/DEFRA/trade-imports-workspace.git`.
+2. Run its setup once you have Node.js and Claude Code:
+   `npm --prefix ~/git/defra/trade-imports-workspace/tim link`, then
+   `tim prototype setup`. It installs this repo's packages, checks your
+   GitHub and Jira sign-in, and tells you what is left before you can
+   share your work.
+3. Open Claude Code at the workspace root
+   (`~/git/defra/trade-imports-workspace`), not in this repo's own folder.
+   Say what you want, exactly as above: the workspace root is where the
+   `prototype` skill lives, and it is what makes Claude read the real
+   service while it builds for you, so your prototype stays close to it.
+
+See [Your first hour](docs/designers/your-first-hour.md) for the full
+walk-through, from nothing to a shared change.
 
 ## How close is this to the real service?
 
@@ -66,8 +80,11 @@ Very close, with these differences. All of them are known.
 - **Design gaps.** Only GOV.UK Frontend components and classes are
   available. What they cannot do is logged in your release's
   `design-gaps.md` and travels with the hand-off.
-- **The "Address book" link in the header goes nowhere.** The real service
-  sends it to a separate service this prototype does not run.
+- **The "Address book" link in the header** goes wherever the Import
+  Notification Service frontend runs: on your own computer that is the
+  workspace stack or `trade-imports-ins-frontend` run natively; on the
+  deployed prototype it is whatever `TRADE_IMPORTS_INS_FRONTEND_URL` is
+  set to. Neither is ever needed to see a change you make here.
 - **Commodity and Arrival are blank on the real journey's dashboard.** This
   is a bug in the real service, not in your release: your release shows them.
 - **Welsh is never shown.** The prototype only shows English. New words get
@@ -80,17 +97,20 @@ Very close, with these differences. All of them are known.
 
 ## Known gaps
 
-- **It is not deployed yet.** Until it is, run demos and research sessions
-  from a laptop with `npm run dev`. The research sheet prints a local link
-  for each task.
+- **It is not deployed yet.** Its own `Dockerfile` builds and boots it in
+  CDP dev, alongside the Defra ID stub, and every pull request's checks
+  prove that boot works — but nobody has stood up the CDP environment
+  itself yet. Until it is deployed, run demos and research sessions from a
+  laptop with `npm run dev`. The research sheet prints a local link for
+  each task.
 - **No custom styles or scripts yet**, as above: they are design gaps.
 
 ## Deploying and merging
 
-When the prototype is deployed, the maintainer puts its address here and in
-`deployedUrl` in `scripts/designer/prototype.json`. It signs you in through
-the Defra ID stub, the same test sign-in the real service uses: pick any
-test user, and sign out and in again to change user.
+Once deployed, the maintainer puts its address here and in `deployedUrl`
+in `scripts/designer/prototype.json`. It signs you in through the Defra ID
+stub, the same test sign-in the real service uses: pick any test user, and
+sign out and in again to change user.
 
 The deployed prototype only changes when a pull request is merged into
 `main`. Your pull request is reviewed and merged by the prototype maintainer

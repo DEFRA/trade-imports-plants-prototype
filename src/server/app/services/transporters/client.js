@@ -6,13 +6,6 @@ import {
 } from '../../lib/http-status.js'
 import { BackendRequestError } from '../persistence/records/errors.js'
 
-/**
- * The proposed real client for a transporter register. No such API exists
- * yet: see `CONTRACT` in `./index.js`. It follows the address book's API
- * (organisation in the path and in the header, a 400 problem body for
- * validation), so the same pages and error mapping work against both.
- */
-
 const ORGANISATION_ID_HEADER = 'Trade-Imports-Organisation-Id'
 
 const transportersUrl =
@@ -23,9 +16,6 @@ const tracingHeader = process.env.TRACING_HEADER ?? 'x-cdp-request-id'
 /** Rows per page of a picker's results table, the same as the address book
  * picker. */
 export const PAGE_SIZE = 5
-
-/** The transporter types a record can have. Their labels belong in copy. */
-export const TRANSPORTER_TYPES = Object.freeze(['commercial', 'private'])
 
 const transportersPath = (orgId, id) => {
   if (!orgId) {
@@ -55,7 +45,7 @@ const headers = (orgId) => ({
  * @returns {Error} the error to throw.
  */
 export const validationError = (problem, statusText = 'Bad Request') =>
-  Object.assign(new Error(problem.detail || 'Validation failed'), {
+  Object.assign(new Error(problem.detail ?? 'Validation failed'), {
     status: HTTP_STATUS_BAD_REQUEST,
     statusText,
     body: problem
@@ -82,7 +72,9 @@ export const toRecord = (transporter) => ({
   deleted: Boolean(transporter.deleted),
   address: {
     addressLine1: transporter.addressLine1,
+    addressLine2: transporter.addressLine2 ?? '',
     townOrCity: transporter.townOrCity,
+    county: transporter.county ?? '',
     postalOrZipCode: transporter.postcode,
     country: transporter.country
   },

@@ -37,6 +37,8 @@ describe('readPrototypeConfig', () => {
       'https://github.com/DEFRA/trade-imports-plants-frontend.git'
     )
     expect(config.handOff.jiraProject).toBe('EUDPA')
+    expect(config.handOff.parentEpic).toBeNull()
+    expect(config.handOff.labels).toEqual(['UCD'])
     expect(config).toHaveProperty('deployedUrl')
   })
 

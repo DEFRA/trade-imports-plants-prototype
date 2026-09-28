@@ -5,11 +5,9 @@ import { BackendRequestError } from '../persistence/records/errors.js'
 import { mapStatus } from '../persistence/records/real/status.js'
 import { countRows, DEFAULT_TABS, STATUSES } from './filters.js'
 
-/**
- * The proposed real client: the plants backend's notification list, asked to
- * filter and count on the server. The backend does not take these filters
- * yet: see `CONTRACT` in `./index.js`.
- */
+/** The proposed real client: the plants backend's notification list, asked
+ * to filter and count on the server. The backend does not take these
+ * filters yet: see `contract.json`. */
 
 const ORGANISATION_ID_HEADER = 'Trade-Imports-Organisation-Id'
 const DEFAULT_SORT = 'arrivalDate,desc'

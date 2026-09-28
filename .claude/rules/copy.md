@@ -8,16 +8,26 @@ paths:
 
 You are editing words a user reads. Every string in a copy file reaches a page.
 
+This rule adds a design-release layer on top of the workspace's own
+`~/git/defra/trade-imports-workspace/.claude/rules/copy.md`, which already
+applies to every `copy.en.js`/`copy.cy.js` in this repo: read that one
+first for the GDS wording rules (plain English, active voice, dates and
+numbers). What is different here: a design release is allowed the
+`[Welsh needed]` marker (below), which the real journey's own, stricter
+copy-parity tests refuse.
+
 ## Before you edit
 
 - Find every home of the words first:
   `npm run designer:words -- find "<words>" --set <set-id>`. One phrase often
   lives in a caption, a task list group and a check your answers heading.
-- Check who owns the file: `npm run designer:where -- <path>`. Change a file
-  that "belongs to the real service" only on a `handoff/*` branch.
+- Check who owns the file: `npm run designer:where -- <path>`. A file that
+  "belongs to the real service" is changed in the real repository instead
+  (see the workspace `prototype` skill's build-it-for-real reference),
+  never in this design release.
 - `src/server/app/shared/copy.en.js` and `copy.cy.js` are shared by every set
   and owned by the real service. Never change them in a design release: log a
-  design gap in the release's `design-gaps.md` instead.
+  design gap in the release's design-gaps.md file instead.
 - Never edit a frozen release (its `release.json` says `"frozen": true`).
 
 ## The rules
@@ -34,9 +44,8 @@ You are editing words a user reads. Every string in a copy file reaches a page.
 - **Welsh that nobody has translated carries the marker.** With no Welsh from
   the designer, write `'[Welsh needed] <the English>'`. Never copy the English
   into the Welsh file without the marker: the Welsh would look translated when
-  it is not. In a design release the marker is the rule. On a `handoff/*`
-  branch the marker is allowed, and the hand-off brief lists it as Welsh still
-  needed.
+  it is not. In a design release the marker is the rule, and the hand-off
+  brief lists every marker as Welsh still needed.
 - **Link addresses are the same in both files, with no marker.** A value that
   is only an address (`https://…`, `mailto:`, `tel:` or a path starting `/`),
   or any key whose name ends in `Href` or `Url`, may be copied straight into

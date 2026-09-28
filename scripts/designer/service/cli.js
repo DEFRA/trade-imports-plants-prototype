@@ -2,11 +2,16 @@
  * `npm run designer:service -- new|list|retire`
  *
  * Makes, lists and retires prototype-owned services: services the real
- * plants service does not have yet, built in its own shape under
- * `src/server/app/services/<name>/` (`index.js` picks `stub.js` or
- * `client.js`), each with its own line in `overrides.json`'s `ours`.
+ * plants service does not have yet, built in its own shape (`index.js`
+ * picks `stub.js` or `client.js`, and `contract.json` carries the owner,
+ * operations and open questions as data). A platform service (the default)
+ * goes under `src/server/app/services/<name>/`, with its own line in
+ * `overrides.json`'s `ours`; a set-owned one goes under
+ * `src/server/app/sets/<release>/services/<name>/`, owned by that release
+ * alone.
  *
- *   new <name> --owner <plants-backend|new-api|ins> --describe "<text>"
+ *   new <name> --owner <plants-backend|address-book|reference-data|ins-backend|dynamics-gateway|new-api>
+ *              --describe "<text>" [--scope platform|set --set <release>]
  *   list
  *   retire <name> [--force]
  */
@@ -23,7 +28,6 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import {
-  describeServices,
   ownedGlobOf,
   ownedServiceNames,
   serviceFolderOf
@@ -36,13 +40,46 @@ import {
 import { tidyFiles } from '../format/cli.js'
 import { runGit } from '../lib/git.js'
 import { REPO_ROOT, readOverrides } from '../lib/repo.js'
-import { filesFor, OWNERS } from './templates.js'
+import { OWNER_IDS, filesFor } from './templates.js'
+
+/**
+ * Every prototype-owned service, with what it says it needs, read from its
+ * own `contract.json` — never by importing `index.js`, which would run the
+ * service's own module-load side effects.
+ *
+ * @param {object} [options]
+ * @param {string} [options.root] - the repo root.
+ * @returns {Array<{ name: string, folder: string, needsARealService: string|null, contract: object|null, problem?: string }>}
+ * one entry per service. `problem` says why a service could not be read.
+ */
+const describeOwnedServices = ({ root = REPO_ROOT } = {}) =>
+  ownedServiceNames(readOverrides({ root })).map((name) => {
+    const folder = serviceFolderOf(name)
+    const contractFile = path.join(root, folder, 'contract.json')
+    const entry = { name, folder, needsARealService: null, contract: null }
+    if (!existsSync(contractFile)) {
+      return { ...entry, problem: `${folder}/contract.json does not exist` }
+    }
+    try {
+      const contract = JSON.parse(readFileSync(contractFile, 'utf8'))
+      return {
+        ...entry,
+        needsARealService: contract.needsARealService ?? null,
+        contract
+      }
+    } catch (error) {
+      return { ...entry, problem: error.message }
+    }
+  })
 
 export const USAGE = [
   'Usage: npm run designer:service -- <command>',
   '',
-  '  new <name> --owner <plants-backend|new-api|ins> --describe "<what the real service would need to do>"',
-  '             makes a prototype-owned service in src/server/app/services/<name>/',
+  `  new <name> --owner <${OWNER_IDS.join('|')}> --describe "<what the real service would need to do>" [--scope platform|set --set <release>]`,
+  '             makes a prototype-owned service. --scope platform (the default) makes it in',
+  '             src/server/app/services/<name>/, shared by every set. --scope set --set <release>',
+  '             makes it in src/server/app/sets/<release>/services/<name>/, owned by that release',
+  '             alone: no overrides.json line, and no clash with the real service to check.',
   '  list       lists every prototype-owned service and what it needs',
   '  retire <name> [--force]',
   '             deletes a prototype-owned service and its line in overrides.json'
@@ -71,14 +108,16 @@ export const ANIMALS_SERVICES = Object.freeze([
   'transporters'
 ])
 
-/** argv in, `{ command, name, owner, describe, force, help }` out. */
+/** argv in, `{ command, name, owner, describe, scope, set, force, help }`
+ * out. `scope` defaults to `'platform'` when `--scope` is left out, which
+ * keeps every existing call working unchanged. */
 export const parseArgs = (argv) => {
   const valueOf = (flag) => {
     const index = argv.indexOf(flag)
     return index === -1 ? undefined : argv[index + 1]
   }
   const flagValues = new Set(
-    ['--owner', '--describe'].map(valueOf).filter(Boolean)
+    ['--owner', '--describe', '--scope', '--set'].map(valueOf).filter(Boolean)
   )
   const words = argv.filter(
     (arg) => !arg.startsWith('--') && !flagValues.has(arg)
@@ -88,6 +127,8 @@ export const parseArgs = (argv) => {
     name: words[1],
     owner: valueOf('--owner'),
     describe: valueOf('--describe'),
+    scope: valueOf('--scope') ?? 'platform',
+    set: valueOf('--set'),
     force: argv.includes('--force'),
     help: argv.includes('--help')
   }
@@ -113,18 +154,39 @@ const overridesPathOf = (root) => path.join(root, 'overrides.json')
 
 const refuse = (lines) => ({ status: 1, lines })
 
-const newServiceProblems = (
-  { name, owner, describe },
-  { root, upstreamHas }
-) => {
+/** Where a service's folder goes: shared by every set (the default), or
+ * owned by one release alone, under its own `services/`. */
+export const serviceFolderFor = ({ name, scope, set }) =>
+  scope === 'set'
+    ? `src/server/app/sets/${set}/services/${name}`
+    : serviceFolderOf(name)
+
+const scopeProblems = ({ scope, set }, { root }) => {
+  if (scope !== 'platform' && scope !== 'set') {
+    return [`--scope must be platform or set, not "${scope}".`]
+  }
+  if (scope !== 'set') {
+    return []
+  }
+  if (!set) {
+    return ['Say which release owns the service with --set <release>.']
+  }
+  if (!existsSync(path.join(root, `src/server/app/sets/${set}`))) {
+    return [`There is no release called ${set} (src/server/app/sets/${set}/).`]
+  }
+  return []
+}
+
+const newServiceProblems = (args, { root, upstreamHas }) => {
+  const { name, owner, describe, scope } = args
   if (!name || !isKebabCase(name)) {
     return [
       'Give the service a name in lower-case words joined by hyphens, like saved-vehicles.'
     ]
   }
-  if (!OWNERS.includes(owner)) {
+  if (!OWNER_IDS.includes(owner)) {
     return [
-      `Say who would own the real service with --owner: ${OWNERS.join(', ')}.`
+      `Say who would own the real service with --owner: ${OWNER_IDS.join(', ')}.`
     ]
   }
   if (!describe || describe.trim() === '') {
@@ -132,26 +194,30 @@ const newServiceProblems = (
       'Say in one sentence what the real service would need to do, with --describe "…".'
     ]
   }
+  const scoped = scopeProblems(args, { root })
+  if (scoped.length > 0) {
+    return scoped
+  }
   if (REMOVED_BY_THE_REAL_SERVICE.includes(name)) {
     return [
       `The real plants service removed a service called ${name} on purpose. Pick another name, and talk to the plants team before bringing it back.`
     ]
   }
-  if (upstreamHas(name) === true) {
+  if (scope === 'platform' && upstreamHas(name) === true) {
     return [
       `The real plants service already has ${serviceFolderOf(name)}/. Use it (its index.js), and do not make a prototype copy.`
     ]
   }
-  if (existsSync(path.join(root, serviceFolderOf(name)))) {
+  if (existsSync(path.join(root, serviceFolderFor(args)))) {
     return [
-      `${serviceFolderOf(name)}/ already exists. Change that service, or pick another name.`
+      `${serviceFolderFor(args)}/ already exists. Change that service, or pick another name.`
     ]
   }
   return []
 }
 
-const newServiceWarnings = (name, { upstreamHas }) => [
-  ...(upstreamHas(name) === null
+const newServiceWarnings = (name, scope, { upstreamHas }) => [
+  ...(scope === 'platform' && upstreamHas(name) === null
     ? [
         'Could not check the real plants service: upstream/main is not fetched here. Run git fetch upstream main to check the name.'
       ]
@@ -164,7 +230,11 @@ const newServiceWarnings = (name, { upstreamHas }) => [
 ]
 
 /**
- * Makes a new prototype-owned service.
+ * Makes a new prototype-owned service: shared by every set under
+ * `src/server/app/services/<name>/` (`--scope platform`, the default), or
+ * owned by one release alone under `src/server/app/sets/<set>/services/<name>/`
+ * (`--scope set --set <release>`). Only a platform service takes an
+ * `overrides.json` line: a set-owned one is already inside that release.
  *
  * @returns {{ status: number, lines: string[] }}
  */
@@ -180,8 +250,8 @@ export const newService = (
   if (problems.length > 0) {
     return refuse(problems)
   }
-  const { name } = args
-  const folder = serviceFolderOf(name)
+  const { name, scope } = args
+  const folder = serviceFolderFor(args)
   mkdirSync(path.join(root, folder), { recursive: true })
   const written = Object.entries(filesFor(args)).map(([file, content]) => {
     const relative = `${folder}/${file}`
@@ -189,15 +259,29 @@ export const newService = (
     return relative
   })
   tidy(written)
-  addOwnedPaths(overridesPathOf(root), [ownedGlobOf(name)])
+  if (scope === 'platform') {
+    addOwnedPaths(overridesPathOf(root), [ownedGlobOf(name)])
+  }
+  // A feature's controller.js sits six directories under src/server/app for
+  // a platform service (sets/<release>/journeys/linear/features/<feature>/),
+  // but only four under its own release root for a set-owned one
+  // (journeys/linear/features/<feature>/, inside sets/<release>/ already).
+  const importPath =
+    scope === 'set'
+      ? `../../../../services/${name}/index.js`
+      : `../../../../../../services/${name}/index.js`
   return {
     status: 0,
     lines: [
-      ...newServiceWarnings(name, { upstreamHas }),
+      ...newServiceWarnings(name, scope, { upstreamHas }),
       `Made ${folder}/: ${written.map((file) => path.basename(file)).join(', ')}.`,
-      `Added ${ownedGlobOf(name)} to ours in overrides.json, so the weekly update leaves it alone.`,
+      ...(scope === 'platform'
+        ? [
+            `Added ${ownedGlobOf(name)} to ours in overrides.json, so the weekly update leaves it alone.`
+          ]
+        : [`Owned by ${args.set} alone: no overrides.json line needed.`]),
       `Check it: npm test -- ${folder} --coverage.enabled=false`,
-      `A page in a release imports it as '../../../../../../services/${name}/index.js'.`
+      `A page in the release imports it as '${importPath}'.`
     ]
   }
 }
@@ -257,7 +341,7 @@ export const retireService = ({ name, force }, { root = REPO_ROOT } = {}) => {
  * @returns {Promise<{ status: number, lines: string[] }>}
  */
 export const listServices = async ({ root = REPO_ROOT } = {}) => {
-  const services = await describeServices({ root })
+  const services = describeOwnedServices({ root })
   if (services.length === 0) {
     return { status: 0, lines: ['There are no prototype-owned services.'] }
   }

@@ -1,9 +1,20 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { withSetContext } from '../../shared/set-context.js'
 import { clearFakesFor } from '../../../prototype-support/registry.js'
 import * as transporters from './index.js'
 import { STARTER_TRANSPORTERS } from './stub.js'
+
+const CONTRACT = JSON.parse(
+  readFileSync(
+    path.join(fileURLToPath(import.meta.url), '../contract.json'),
+    'utf8'
+  )
+)
 
 const RELEASE = 'plants-transporters-test'
 const OTHER_RELEASE = 'plants-transporters-other'
@@ -20,7 +31,7 @@ const QUICK_HAULAGE = {
   addressLine1: '1 Depot Road',
   townOrCity: 'Dover',
   postcode: 'CT16 1AA',
-  country: 'United Kingdom'
+  country: 'GB'
 }
 
 const inRelease = (fn) => withSetContext(RELEASE, fn)
@@ -224,9 +235,11 @@ describe('the proposed client, against a transporters API', () => {
           deleted: false,
           address: {
             addressLine1: '4 Quayside Park',
+            addressLine2: '',
             townOrCity: 'Felixstowe',
+            county: 'Suffolk',
             postalOrZipCode: 'IP11 3QT',
-            country: 'United Kingdom'
+            country: 'GB'
           },
           approvalNumber: 'UK/SUFFOLK/T1/00092001',
           transporterType: 'commercial',
@@ -301,18 +314,23 @@ describe('the proposed client, against a transporters API', () => {
 })
 
 describe('what it says it needs', () => {
-  it('Should name the real service it stands in for, and its contract', () => {
-    expect(transporters.NEEDS_A_REAL_SERVICE).toMatch(/transporter register/)
-    expect(transporters.CONTRACT).toMatchObject({
+  it('Should name the real service it stands in for, and its contract, in contract.json', () => {
+    expect(CONTRACT.needsARealService).toMatch(/transporter register/)
+    expect(CONTRACT).toMatchObject({
       service: 'transporters',
       owner: 'new-api',
       baseUrlEnv: 'TRADE_IMPORTS_TRANSPORTERS_URL'
     })
-    expect(transporters.CONTRACT.operations.map(({ name }) => name)).toEqual([
+    expect(CONTRACT.operations.map(({ name }) => name)).toEqual([
       'listTransporters',
       'getTransporter',
       'createTransporter',
       'deleteTransporter'
     ])
+  })
+
+  it('Should export neither CONTRACT nor NEEDS_A_REAL_SERVICE from index.js', () => {
+    expect(transporters.CONTRACT).toBeUndefined()
+    expect(transporters.NEEDS_A_REAL_SERVICE).toBeUndefined()
   })
 })

@@ -222,15 +222,15 @@ export const config = convict({
       env: 'DEFRA_ID_POLICY'
     },
     redirectUrl: {
-      doc: 'Redirect URL after Defra ID sign-in (OIDC callback)',
+      doc: "Redirect URL after Defra ID sign-in (OIDC callback). Defaults to this prototype's own port (3103), not plants-frontend's 3003, so a local prototype signs back in to itself.",
       format: String,
-      default: 'http://localhost:3003/auth/sign-in-oidc',
+      default: 'http://localhost:3103/auth/sign-in-oidc',
       env: 'DEFRA_ID_REDIRECT_URL'
     },
     signOutRedirectUrl: {
-      doc: 'Redirect URL after Defra ID sign-out',
+      doc: "Redirect URL after Defra ID sign-out. Defaults to this prototype's own port (3103), not plants-frontend's 3003, so a local prototype signs back in to itself.",
       format: String,
-      default: 'http://localhost:3003/auth/sign-out-oidc',
+      default: 'http://localhost:3103/auth/sign-out-oidc',
       env: 'DEFRA_ID_SIGN_OUT_REDIRECT_URL'
     },
     signOutHostnameRewrite: {

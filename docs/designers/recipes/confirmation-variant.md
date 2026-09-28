@@ -1,5 +1,12 @@
 # Change the confirmation page
 
+The real plants-frontend has no dedicated recipe doc for the confirmation
+page; `src/server/app/sets/high-risk-plants/docs/README.md`'s "review
+section" description is the closest. This recipe instead mirrors the real
+confirmation feature's own code directly (see "How the page works" below),
+which is why every step says to copy its existing pattern rather than a
+documented one.
+
 ## When to use it
 
 The confirmation page shows after someone submits a notification. Use this

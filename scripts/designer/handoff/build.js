@@ -24,6 +24,7 @@
  * it as proposed files.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 import {
@@ -51,10 +52,12 @@ import {
   findPrototypeServiceImports,
   findWelshMarkers,
   isTestFile,
+  matchingRemovedVocabulary,
   ownedServicesFrom,
   parseDesignGaps,
   parseResearchRules,
   relativeImportsOf,
+  removalVocabularyFrom,
   removedLiterals
 } from './impact.js'
 import { copyChanges, isCopyFile, isWelshCopyFile } from './copy-table.js'
@@ -479,11 +482,52 @@ const testImpactOf = (root, changes) =>
  * lays it out (`repos/<this repo>` beside `openspec/`). */
 export const WORKSPACE_PLANTS_SPEC = 'openspec/specs/plants'
 
-/** Where the workspace's plants behaviour spec is on this computer, or null
- * when the prototype was cloned on its own. */
-export const workspaceSpecDir = (root, override) => {
-  const dir = override ?? path.resolve(root, '../..', WORKSPACE_PLANTS_SPEC)
-  return existsSync(dir) ? dir : null
+/** The canonical workspace clone, the one place agent instructions and
+ * `CLAUDE.md` say to look — never resolved relative to this checkout, so it
+ * is right however deep this repo happens to sit. */
+export const CANONICAL_WORKSPACE_ROOT = path.join(
+  os.homedir(),
+  'git/defra/trade-imports-workspace'
+)
+
+/** Whether `root` (this checkout) sits inside `canonicalRoot`: true for the
+ * real designer setup (`.../trade-imports-workspace/repos/trade-imports-plants-prototype`),
+ * false for a standalone clone elsewhere — CI, or a scratch test repo. */
+const isInsideWorkspace = (root, canonicalRoot) =>
+  `${path.resolve(root)}${path.sep}`.startsWith(`${canonicalRoot}${path.sep}`)
+
+/**
+ * Where the workspace's plants behaviour spec is on this computer.
+ *
+ * - This checkout sits inside the canonical workspace (the real designer
+ *   setup): resolve `openspec/specs/plants` there. Missing there is a real
+ *   error, in plain words — that checkout is broken, not merely standalone.
+ * - This checkout sits outside it (a standalone clone, as in the
+ *   prototype's own CI, or a scratch test repo): null, exactly as before.
+ *
+ * @param {string} root - this checkout's root.
+ * @param {string} [override] - a spec directory to use instead (tests).
+ * @param {string} [canonicalRoot] - the workspace root to treat as
+ * canonical (tests only; defaults to `CANONICAL_WORKSPACE_ROOT`).
+ */
+export const workspaceSpecDir = (
+  root,
+  override,
+  canonicalRoot = CANONICAL_WORKSPACE_ROOT
+) => {
+  if (override) {
+    return existsSync(override) ? override : null
+  }
+  if (!isInsideWorkspace(root, canonicalRoot)) {
+    return null
+  }
+  const dir = path.join(canonicalRoot, WORKSPACE_PLANTS_SPEC)
+  if (!existsSync(dir)) {
+    throw new HandoffError(
+      `The trade-imports workspace is at ${canonicalRoot} but has no ${WORKSPACE_PLANTS_SPEC}. Check that checkout before handing off.`
+    )
+  }
+  return dir
 }
 
 /** The real journey's requirement files (`spec/`): the journey spec, the
@@ -689,6 +733,91 @@ const BRIEF_ONLY_REASONS = {
     'Brief only, as asked: the story, pictures and services, with no patch.'
 }
 
+/** Where the real plants-frontend sits beside this checkout, as the
+ * workspace lays every repo out under `repos/`. */
+const PLANTS_FRONTEND_SIBLING = '../trade-imports-plants-frontend'
+const PLANTS_FRONTEND_REF = 'origin/main'
+
+/**
+ * Checks the patch against the workspace's own sibling clone of
+ * plants-frontend — never its working tree, always `origin/main`, read with
+ * `git show` so a designer's read-only checkout is never touched however it
+ * happens to be checked out. Null for a brief-only hand-off, an empty patch,
+ * or when that sibling clone is not there (a standalone prototype clone).
+ *
+ * @param {string} root - this checkout's root.
+ * @param {object[]} patchChanges
+ * @param {string} patch
+ * @param {boolean} briefOnly
+ * @param {string} [plantsFrontendDir] - override (tests only).
+ */
+export const plantsFrontendApplyCheck = (
+  root,
+  patchChanges,
+  patch,
+  briefOnly,
+  plantsFrontendDir = path.resolve(root, PLANTS_FRONTEND_SIBLING)
+) => {
+  if (briefOnly || patch.trim() === '') {
+    return null
+  }
+  if (!resolveCommit(plantsFrontendDir, PLANTS_FRONTEND_REF)) {
+    return null
+  }
+  return {
+    ref: PLANTS_FRONTEND_REF,
+    ...checkPatchApplies(
+      patch,
+      checkTargetFiles(plantsFrontendDir, patchChanges, PLANTS_FRONTEND_REF, {
+        proposedFromRef: true
+      })
+    )
+  }
+}
+
+/** Where a hand-off checks for a standing ruling that removed a service the
+ * real journey no longer uses: the real journey's own services doc, the
+ * platform's shared services doc, this set's own (a release rarely keeps
+ * one — `new:set` drops `docs/`), and the real journey's own requirement
+ * spec, which records removals with their reasoning. */
+const removalVocabularySources = (set) => [
+  ...new Set([
+    `${setDirOf(REAL_JOURNEY)}/docs/services.md`,
+    'src/server/app/docs/services.md',
+    `${setDirOf(set)}/docs/services.md`,
+    `${setDirOf(REAL_JOURNEY)}/spec/journey-spec.json`
+  ])
+]
+
+/**
+ * The services in `servicesToBuild` that match a service the real journey
+ * removed on purpose, from every removal-vocabulary source that exists. A
+ * conflict for the product owner, not a build blocker: `buildHandoff` still
+ * writes the patch, and the brief names the conflict.
+ *
+ * @param {string} root
+ * @param {string} set
+ * @param {{name: string}[]} services - as `describeService` returns them.
+ * @returns {{service: string, matchedTerm: string, source: string}[]}
+ */
+export const rulingConflictsFor = (root, set, services) => {
+  const conflicts = []
+  for (const source of removalVocabularySources(set)) {
+    const text = readIfExists(root, source)
+    if (!text) {
+      continue
+    }
+    const vocabulary = removalVocabularyFrom(text)
+    for (const service of services) {
+      const matchedTerm = matchingRemovedVocabulary(service.name, vocabulary)
+      if (matchedTerm) {
+        conflicts.push({ service: service.name, matchedTerm, source })
+      }
+    }
+  }
+  return conflicts
+}
+
 /**
  * The patch and both checks: against the real journey as the prototype has
  * it, and against plants-frontend's `upstream/main` when it has been fetched.
@@ -850,6 +979,14 @@ export const buildHandoff = (options) => {
     patch,
     applyCheck,
     upstreamApplyCheck,
+    plantsFrontendApplyCheck: plantsFrontendApplyCheck(
+      root,
+      patchChanges,
+      patch,
+      Boolean(briefOnly),
+      options.plantsFrontendDir
+    ),
+    rulingConflicts: rulingConflictsFor(root, set, services),
     wordsOnly:
       !placeholder &&
       shippable.length > 0 &&

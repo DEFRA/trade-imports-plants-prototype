@@ -51,6 +51,174 @@ jobs:
           docker build --no-cache --tag trade-imports-plants-prototype .
           exit $?
 
+  # Proves the built image is the thing that reaches CDP dev, not just that it
+  # builds: boots it in NODE_ENV=production beside the real Defra ID stub image
+  # (never the local-only stub sign-in, which production never registers — see
+  # production-run.test.js) and drives a full sign-in, the same route a trader
+  # takes. Runs after pr-validator so it never boots an image that failed unit
+  # tests or the plain `docker build`.
+  boot-check:
+    name: Production boot check
+    runs-on: ubuntu-latest
+    needs: pr-validator
+    timeout-minutes: 15
+    env:
+      # Every DEFRA_ID_* value here only stands in for CDP dev's real ones
+      # (a real client id/secret, the real Defra ID discovery URL) so this job
+      # can drive a real OIDC round trip against the stub instead:
+      # - DEFRA_ID_OIDC_CONFIGURATION_URL reaches the stub by its container
+      #   name on the network below, the same way the workspace's own dev
+      #   stack reaches it by host.docker.internal
+      #   (docker/stack/frontend.compose.yml) — a plain container name works
+      #   here because both containers share one Docker network.
+      # - DEFRA_ID_REDIRECT_URL and DEFRA_ID_SIGN_OUT_REDIRECT_URL are
+      #   browser-visible (src/config/config.js), so they name this job's own
+      #   published port on localhost, the same shape as the 3103 default.
+      # - SESSION_COOKIE_SECURE is off because this job's curl session talks
+      #   to the container over plain HTTP: production's real default (a
+      #   Secure cookie) is right for CDP's HTTPS front door, but would stop
+      #   curl sending the session cookie back here.
+      DEFRA_ID_STUB_PORT: 3007
+      APP_PORT: 3103
+      AUTH_PASSWORD: Password123
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build the image under test
+        run: docker build --tag trade-imports-plants-prototype .
+
+      - name: Create a network for the app and the Defra ID stub
+        run: docker network create boot-check
+
+      - name: Start the Defra ID stub
+        run: |
+          docker run -d --name defra-id-stub --network boot-check \
+            -p "${DEFRA_ID_STUB_PORT}:${DEFRA_ID_STUB_PORT}" \
+            -e "PORT=${DEFRA_ID_STUB_PORT}" \
+            -e AUTH_MODE=mock \
+            -e SECURE_COOKIE=false \
+            -e "AUTH_PASSWORD=${AUTH_PASSWORD}" \
+            -e "WELL_KNOWN_HOST_OVERRIDE=http://localhost:${DEFRA_ID_STUB_PORT}" \
+            defradigital/trade-imports-defra-id-stub:latest
+
+      - name: Wait for the Defra ID stub to report healthy
+        run: |
+          for _ in $(seq 1 30); do
+            curl --fail --silent "http://localhost:${DEFRA_ID_STUB_PORT}/health" && exit 0
+            sleep 2
+          done
+          echo "The Defra ID stub never became healthy" >&2
+          docker logs defra-id-stub
+          exit 1
+
+      - name: Start the prototype
+        run: |
+          docker run -d --name plants-prototype --network boot-check \
+            -p "${APP_PORT}:${APP_PORT}" \
+            -e NODE_ENV=production \
+            -e "PORT=${APP_PORT}" \
+            -e SESSION_COOKIE_SECURE=false \
+            -e "DEFRA_ID_OIDC_CONFIGURATION_URL=http://defra-id-stub:${DEFRA_ID_STUB_PORT}/idphub/b2c/b2c_1a_cui_cpdev_signupsigninsfi/.well-known/openid-configuration" \
+            -e "DEFRA_ID_REDIRECT_URL=http://localhost:${APP_PORT}/auth/sign-in-oidc" \
+            -e "DEFRA_ID_SIGN_OUT_REDIRECT_URL=http://localhost:${APP_PORT}/auth/sign-out-oidc" \
+            trade-imports-plants-prototype
+
+      - name: Wait for the prototype to report healthy
+        run: |
+          for _ in $(seq 1 30); do
+            curl --fail --silent "http://localhost:${APP_PORT}/health" && exit 0
+            sleep 2
+          done
+          echo "The prototype never became healthy" >&2
+          docker logs plants-prototype
+          exit 1
+
+      - name: Assert the chooser and a real page's sign-in are wired up
+        run: |
+          chooser_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://localhost:${APP_PORT}/")
+          if [ "$chooser_status" != "200" ]; then
+            echo "Expected the chooser at / to be 200 signed out, got $chooser_status" >&2
+            exit 1
+          fi
+
+          # The prototype's own `/` is the chooser, not a redirect (it stands
+          # in for plants-frontend's redirect to its default set — see
+          # src/server/prototype-sets/index.js) — a real set behind it is
+          # where sign-in is enforced, the same as plants-frontend's `/`.
+          real_set_redirect=$(curl --silent --output /dev/null --write-out '%{redirect_url}' "http://localhost:${APP_PORT}/high-risk-plants")
+          case "$real_set_redirect" in
+            */auth/sign-in) ;;
+            *)
+              echo "Expected /high-risk-plants to redirect to /auth/sign-in signed out, got: $real_set_redirect" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Sign in through the Defra ID stub and reach the chooser
+        run: |
+          jar="$RUNNER_TEMP/boot-check-cookies.txt"
+
+          sign_in_page=$(curl --silent --cookie-jar "$jar" --cookie "$jar" --location "http://localhost:${APP_PORT}/auth/sign-in")
+          if ! echo "$sign_in_page" | grep -q 'name="crn"'; then
+            echo "Did not reach the Defra ID stub's sign-in form" >&2
+            exit 1
+          fi
+
+          # Sarah Plumber (the stub's mock data, src/data/mock.json) has two
+          # organisations, so this exercises the stub's own organisation-select
+          # form rather than the single-organisation auto-select.
+          picker_page=$(curl --silent --cookie-jar "$jar" --cookie "$jar" --location \
+            --data-urlencode "crn=2100010102" \
+            --data-urlencode "password=${AUTH_PASSWORD}" \
+            "http://localhost:${DEFRA_ID_STUB_PORT}/dcidmtest.onmicrosoft.com/oauth2/authresp")
+          if ! echo "$picker_page" | grep -q 'name="sbi"'; then
+            echo "Did not reach the Defra ID stub's organisation-select form" >&2
+            exit 1
+          fi
+
+          chooser_page=$(curl --silent --cookie-jar "$jar" --cookie "$jar" --location \
+            --data-urlencode "sbi=110100102" \
+            "http://localhost:${DEFRA_ID_STUB_PORT}/organisations")
+          if ! echo "$chooser_page" | grep -q 'href="/high-risk-plants"'; then
+            echo "Did not land back on the chooser after sign-in" >&2
+            exit 1
+          fi
+
+          echo "BOOT_CHECK_COOKIE_JAR=$jar" >> "$GITHUB_ENV"
+
+      - name: Open a release page
+        run: |
+          status=$(curl --silent --cookie "$BOOT_CHECK_COOKIE_JAR" --output /dev/null --write-out '%{http_code}' "http://localhost:${APP_PORT}/high-risk-plants")
+          if [ "$status" != "200" ]; then
+            echo "Expected the high-risk-plants dashboard to be 200 signed in, got $status" >&2
+            exit 1
+          fi
+
+      - name: Open an example link
+        run: |
+          status=$(curl --silent --cookie "$BOOT_CHECK_COOKIE_JAR" --location --output /dev/null --write-out '%{http_code}' "http://localhost:${APP_PORT}/examples/high-risk-plants/submitted")
+          if [ "$status" != "200" ]; then
+            echo "Expected the submitted example link to be 200 signed in, got $status" >&2
+            exit 1
+          fi
+
+      - name: Show container logs
+        if: failure()
+        run: |
+          echo "::group::plants-prototype"
+          docker logs plants-prototype || true
+          echo "::endgroup::"
+          echo "::group::defra-id-stub"
+          docker logs defra-id-stub || true
+          echo "::endgroup::"
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker rm --force plants-prototype defra-id-stub || true
+          docker network rm boot-check || true
+
   # Proves on every pull request — and every Monday, after the weekly update
   # from plants-frontend — that a designer can still make a design release
   # from the real journey: the copy boots, lints, passes the unit suite and

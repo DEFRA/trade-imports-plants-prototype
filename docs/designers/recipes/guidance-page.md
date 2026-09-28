@@ -1,5 +1,9 @@
 # Add a guidance page
 
+This recipe is the no-questions half of the real plants-frontend's own
+`src/server/app/sets/high-risk-plants/docs/add-a-page.md`, which this
+recipe hands off to the moment a page needs even one question.
+
 ## When to use it
 
 Use this recipe for a page that tells people something and asks nothing. For

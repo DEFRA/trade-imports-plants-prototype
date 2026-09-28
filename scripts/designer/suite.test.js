@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -42,9 +43,7 @@ const repoFiles = execFileSync(
   .filter((repoPath) => existsSync(path.join(REPO_ROOT, repoPath)))
 
 const SUITE_PREFIXES = [
-  '.claude/skills/',
   '.claude/rules/',
-  '.claude/workflows/',
   'docs/designers/',
   'scripts/designer/',
   'src/server/prototype-checks/',
@@ -65,57 +64,24 @@ const isDesignerFacing = (repoPath) =>
     repoPath
   ) ||
   repoPath.startsWith('docs/designers/') ||
-  repoPath.startsWith('.claude/skills/') ||
-  repoPath.startsWith('.claude/rules/') ||
-  repoPath.startsWith('.claude/workflows/')
+  repoPath.startsWith('.claude/rules/')
 
 const designerFacingFiles = repoFiles.filter(isDesignerFacing)
 const designerFacingMarkdown = designerFacingFiles.filter((repoPath) =>
   repoPath.endsWith('.md')
 )
 
-const SKILLS_DIR = path.join(REPO_ROOT, '.claude/skills')
-const skillNames = readdirSync(SKILLS_DIR, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .sort()
+// The designer's agent layer (routing, steps files and workflows) is the
+// workspace's `prototype` skill. This repo carries none of it.
+const WORKSPACE = '~/git/defra/trade-imports-workspace/'
+const WORKSPACE_SKILL = `${WORKSPACE}.claude/skills/prototype/SKILL.md`
+const AGENT_LAYER_FOLDERS = ['.claude/skills/', '.claude/workflows/']
 
-const workflowNames = readdirSync(path.join(REPO_ROOT, '.claude/workflows'))
-  .filter((file) => file.endsWith('.js') && !file.endsWith('.test.js'))
-  .map((file) => file.replace(/\.js$/, ''))
-  .sort()
-
-const frontmatterOf = (text) => {
-  const match = /^---\n([\s\S]*?)\n---\n/.exec(text)
-  return match ? match[1] : ''
-}
-
-const frontmatterField = (frontmatter, field) => {
-  const match = new RegExp(`^${field}:\\s*(.*)$`, 'm').exec(frontmatter)
-  return match ? match[1].trim().replace(/^'|'$/g, '') : ''
-}
-
-// The rows of the markdown table that follows a heading in a document.
-const tableRowsUnder = (text, heading) => {
-  const start = text.indexOf(heading)
-  if (start === -1) {
-    return []
-  }
-  const rest = text.slice(start + heading.length).split('\n')
-  const rows = []
-  let inTable = false
-  for (const line of rest) {
-    if (line.startsWith('|')) {
-      inTable = true
-      rows.push(line)
-    } else if (inTable || line.startsWith('#')) {
-      break
-    }
-  }
-  return rows
-}
-
-const quotedPhrasesIn = (line) => line.match(/"[^"]+"/g) ?? []
+// The workspace is on disk when this repo is its repos/ checkout. CI and a
+// designer with only this repo have no workspace, so existence is skipped.
+const insideWorkspace = existsSync(path.resolve(REPO_ROOT, '../../tim'))
+const resolveTildePath = (tildePath) =>
+  path.join(os.homedir(), tildePath.slice('~/'.length))
 
 const SHIPPED_SETS = new Set([REAL_JOURNEY_SET, PLACEHOLDER_SET])
 
@@ -134,8 +100,6 @@ const namesAnExampleSet = (named) => {
 
 describe('the designer suite', () => {
   test('finds the files it checks', () => {
-    expect(skillNames.length).toBeGreaterThan(0)
-    expect(workflowNames.length).toBeGreaterThan(0)
     expect(designerFacingMarkdown.length).toBeGreaterThan(0)
   })
 
@@ -146,44 +110,17 @@ describe('the designer suite', () => {
     expect(notOurs).toEqual([])
   })
 
-  test('every skill folder is declared in overrides.json', () => {
-    const undeclared = skillNames.filter(
-      (name) => !overrides.ours.includes(`.claude/skills/${name}/**`)
+  // Nested skills under the workspace's repos/ never load from the workspace
+  // root, so any skill or workflow here would be dead weight that drifts.
+  test('this repo carries no skills or workflows of its own', () => {
+    const agentLayerFiles = repoFiles.filter((repoPath) =>
+      AGENT_LAYER_FOLDERS.some((folder) => repoPath.startsWith(folder))
     )
-    expect(undeclared).toEqual([])
-  })
-
-  describe.each(skillNames)('the %s skill', (name) => {
-    const skillMd = readRepoFile(`.claude/skills/${name}/SKILL.md`)
-    const frontmatter = frontmatterOf(skillMd)
-    const description = frontmatterField(frontmatter, 'description')
-
-    test('has a name that matches its folder', () => {
-      expect(frontmatterField(frontmatter, 'name')).toBe(name)
-    })
-
-    test('says when to use it and what it is not for', () => {
-      expect(description).toContain('Use when')
-      expect(description).toContain('NOT for')
-    })
-
-    // Hosts that never load skills still reach a skill's steps, because the
-    // routing in AGENTS.md names each steps file by path.
-    test('is in the AGENTS.md phrase table by its steps file, with at least 3 phrases', () => {
-      const row = tableRowsUnder(agentsMd, '## Phrases').find((line) =>
-        line.includes(`\`.claude/skills/${name}/SKILL.md\``)
-      )
-      expect(row, `no AGENTS.md phrase row for ${name}`).toBeDefined()
-      expect(quotedPhrasesIn(row).length).toBeGreaterThanOrEqual(3)
-    })
-  })
-
-  test('every workflow is in the AGENTS.md workflow table', () => {
-    const rows = tableRowsUnder(agentsMd, '## Workflows')
-    const missing = workflowNames.filter(
-      (name) => !rows.some((line) => line.includes(`\`${name}\``))
+    expect(agentLayerFiles).toEqual([])
+    const agentLayerEntries = overrides.ours.filter((pattern) =>
+      AGENT_LAYER_FOLDERS.some((folder) => pattern.startsWith(folder))
     )
-    expect(missing).toEqual([])
+    expect(agentLayerEntries).toEqual([])
   })
 
   describe('the front door', () => {
@@ -203,43 +140,26 @@ describe('the designer suite', () => {
       }
     })
 
-    test('AGENTS.md names every skill by its steps file', () => {
-      const unnamed = skillNames.filter(
-        (name) => !agentsMd.includes(`.claude/skills/${name}/SKILL.md`)
-      )
-      expect(unnamed).toEqual([])
+    test('AGENTS.md sends routing to the workspace prototype skill by its full path', () => {
+      expect(agentsMd).toContain(`\`${WORKSPACE_SKILL}\``)
+      if (insideWorkspace) {
+        expect(existsSync(resolveTildePath(WORKSPACE_SKILL))).toBe(true)
+      }
     })
 
-    test('AGENTS.md works out what they want before its tables', () => {
-      const intent = agentsMd.indexOf('## Working out what they want')
-      expect(intent).toBeGreaterThan(-1)
-      expect(intent).toBeLessThan(agentsMd.indexOf('## Outcomes'))
-      expect(agentsMd.indexOf('## Outcomes')).toBeLessThan(
-        agentsMd.indexOf('## Phrases')
-      )
-    })
-
-    test('AGENTS.md carries the design handle, and never stalls on "nothing fits"', () => {
-      expect(agentsMd).toContain(
-        'If the designer says "use the design skill" or "design", follow Working out what they want. This works with or without skills.'
-      )
-      expect(agentsMd).not.toMatch(/When nothing fits/i)
-    })
-
-    test('every outcome names a steps file or a command to run', () => {
-      const rows = tableRowsUnder(agentsMd, '## Outcomes').slice(2)
-      expect(rows.length).toBeGreaterThanOrEqual(8)
-      const vague = rows.filter(
-        (line) =>
-          !/\.claude\/skills\/[a-z-]+\/SKILL\.md|`design-session`/.test(line)
-      )
-      expect(vague).toEqual([])
-    })
-
-    test('the design skill is a handle with no routing table of its own', () => {
-      const skill = readRepoFile('.claude/skills/design/SKILL.md')
-      expect(skill).toContain('Working out what they want')
-      expect(skill.split('\n').some((line) => line.startsWith('|'))).toBe(false)
+    // The routing has one home, the workspace skill's references/ROUTING.md.
+    // A second copy here would drift from it.
+    test('AGENTS.md is the repo contract and holds no routing of its own', () => {
+      expect(agentsMd).toContain('## Load-bearing rules')
+      for (const heading of [
+        '## Working out what they want',
+        '## Outcomes',
+        '## Phrases',
+        '## Workflows',
+        '## Routing'
+      ]) {
+        expect(agentsMd).not.toContain(heading)
+      }
     })
   })
 
@@ -319,22 +239,31 @@ describe('the designer suite', () => {
     expect(unknown).toEqual([])
   })
 
-  test('every skill a designer file names by folder exists', () => {
-    const unknown = []
+  // A designer file may name a skill only as the workspace's own, by its
+  // full tilde path: a bare .claude/skills/ path points at a folder this
+  // repo no longer has.
+  test('every skill a designer file names is the workspace prototype skill, by its full path', () => {
+    const offending = []
     for (const repoPath of designerFacingFiles) {
       const text = readRepoFile(repoPath)
-      for (const [, name] of text.matchAll(/\.claude\/skills\/([a-z-]+)/g)) {
-        if (!skillNames.includes(name)) {
-          unknown.push(`${repoPath}: .claude/skills/${name}`)
+      for (const match of text.matchAll(/\.claude\/skills\/([a-z-]+)/g)) {
+        const isWorkspacePath =
+          match.index >= WORKSPACE.length &&
+          text.slice(match.index - WORKSPACE.length, match.index) === WORKSPACE
+        if (!isWorkspacePath || match[1] !== 'prototype') {
+          offending.push(`${repoPath}: .claude/skills/${match[1]}`)
         }
       }
     }
-    expect(unknown).toEqual([])
+    expect(offending).toEqual([])
   })
 
+  // A path inside a longer one (a workspace tilde path such as
+  // ~/git/defra/trade-imports-workspace/.claude/rules/gds.md) is not this
+  // repo's: the workspace-path test below checks those.
   test('every suite file a designer file names by path exists', () => {
     const SUITE_PATH =
-      /(?:docs\/designers\/[\w/-]+\.md|\.claude\/(?:rules|workflows)\/[\w.-]+\.(?:md|js)|scripts\/designer\/[\w/-]+\.js|src\/server\/prototype-[a-z]+\/[\w/-]+\.js)(?!\w)/g
+      /(?<![\w/.-])(?:docs\/designers\/[\w/-]+\.md|\.claude\/rules\/[\w.-]+\.md|scripts\/designer\/[\w/-]+\.js|src\/server\/prototype-[a-z]+\/[\w/-]+\.js)(?!\w)/g
     const missing = []
     for (const repoPath of designerFacingFiles) {
       const text = readRepoFile(repoPath)
@@ -393,10 +322,7 @@ describe('the designer suite', () => {
   test('every npm version a designer file names is the one package.json pins', () => {
     const pinned = packageJson.packageManager.split('+')[0]
     const stale = []
-    const allowlists = new Set([
-      'scripts/designer/hooks/settings-proposal.json',
-      '.claude/settings.json'
-    ])
+    const allowlists = new Set(['.claude/settings.json'])
     for (const repoPath of [
       ...designerFacingFiles,
       ...repoFiles.filter((repoPath) => allowlists.has(repoPath))
@@ -430,18 +356,37 @@ describe('the designer suite', () => {
     expect(broken).toEqual([])
   })
 
-  test('no designer file points outside this repo', () => {
-    const forbidden = [
-      /trade-imports-workspace/,
-      /\btim /,
-      /(^|[^\w-])tools\//m,
-      /openspec/i,
-      /~\/git\/defra/
-    ]
-    const offending = designerFacingFiles.filter((repoPath) => {
+  // Designers now open Claude Code at the trade-imports workspace root, so a
+  // designer file may point there — but only in the one form every tool and
+  // skill in this suite already resolves: the full tilde path. A bare
+  // mention ("trade-imports-workspace" with no "~/git/defra/" in front) is
+  // still wrong, because it names nothing a designer with only this repo, or
+  // one deployed to CDP, could ever open. The one other form allowed is the
+  // GitHub address the workspace is cloned from. The existence half needs
+  // the workspace on disk as a sibling checkout, so it is skipped in CI (and
+  // for any designer who genuinely has only this repo).
+  test('every workspace path a designer file names uses the ~/git/defra/trade-imports-workspace/ form, and exists once the workspace is a sibling checkout', () => {
+    const BARE_MENTION =
+      /(?<!~\/git\/defra\/|github\.com\/DEFRA\/)trade-imports-workspace/
+    const TILDE_PATH = /~\/git\/defra\/trade-imports-workspace\/[\w./-]+/g
+    const bareMentions = []
+    const missing = []
+    for (const repoPath of designerFacingFiles) {
       const text = readRepoFile(repoPath)
-      return forbidden.some((pattern) => pattern.test(text))
-    })
-    expect(offending).toEqual([])
+      if (BARE_MENTION.test(text)) {
+        bareMentions.push(repoPath)
+      }
+      if (!insideWorkspace) {
+        continue
+      }
+      for (const [named] of text.matchAll(TILDE_PATH)) {
+        const tildePath = named.replace(/\.+$/, '')
+        if (!existsSync(resolveTildePath(tildePath))) {
+          missing.push(`${repoPath}: ${tildePath}`)
+        }
+      }
+    }
+    expect(bareMentions).toEqual([])
+    expect(missing).toEqual([])
   })
 })

@@ -1,5 +1,10 @@
 # Change the task list
 
+This recipe mirrors the real plants-frontend's own
+`src/server/app/sets/high-risk-plants/docs/journey-flow-and-gates.md`
+(task rows and groups) and, for adding a whole new task,
+`src/server/app/sets/high-risk-plants/docs/add-a-section.md`.
+
 ## When to use it
 
 The task list is the "Overview" page of a notification. In the code it is

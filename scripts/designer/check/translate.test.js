@@ -32,10 +32,10 @@ AssertionError: origin: cy paths must equal en paths: expected [ 'heading' ] to 
   'copy-convention': `FAIL  src/server/app/copy-convention.test.js > copy convention — every feature owns its copy > Should give transporter a copy/ folder with copy.en.js, copy.cy.js and copy.test.js
 AssertionError: transporter must carry its Welsh copy: expected [ 'copy.en.js' ] to include 'copy.cy.js'`,
   'service-contract': ` ❯ scripts/designer/handoff/contract.test.js (14 tests | 1 failed) 21ms
-     × Should read the CONTRACT of src/server/app/services/saved-vehicles/index.js as data 5ms
+     × Should read src/server/app/services/saved-vehicles/contract.json as data 5ms
 
- FAIL  scripts/designer/handoff/contract.test.js > the prototype’s own services > Should read the CONTRACT of src/server/app/services/saved-vehicles/index.js as data
-AssertionError: service CONTRACT: must be plain values written in index.js, with no imported names: expected false to be true // Object.is equality`,
+ FAIL  scripts/designer/handoff/contract.test.js > the prototype’s own services > Should read src/server/app/services/saved-vehicles/contract.json as data
+AssertionError: service contract.json: must exist and parse as a JSON object: expected false to be true // Object.is equality`,
   contract: `FAIL  src/server/app/contract.test.js > controller <-> model commit contract > Should commit exactly what origin collects
 AssertionError: expected [ 'countryOfOrigin', 'regionOfOrigin' ] to deeply equal [ 'countryOfOrigin' ]`,
   'no-orphans': `  warn no-orphans: src/server/app/sets/plants-working/journeys/linear/features/transporter/controller.js
@@ -201,14 +201,14 @@ describe('translate — whose failure is it', () => {
     expect(NOT_YOURS).toMatch(/^Not caused by your change: tell the maintainer/)
   })
 
-  it("Should explain an unreadable service CONTRACT as the designer's own, not a real journey contract", () => {
+  it("Should explain an unreadable service contract.json as the designer's own, not a real journey contract", () => {
     const findings = translate(FIXTURES['service-contract'], {
-      changedPaths: ['src/server/app/services/saved-vehicles/index.js']
+      changedPaths: ['src/server/app/services/saved-vehicles/contract.json']
     })
 
     expect(findings.map((finding) => finding.id)).toEqual(['service-contract'])
     expect(findings[0].cause).toContain(
-      'src/server/app/services/saved-vehicles/index.js'
+      'src/server/app/services/saved-vehicles/contract.json'
     )
     expect(findings[0].attribution).toBe('yours')
   })
