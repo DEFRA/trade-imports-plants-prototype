@@ -14,10 +14,10 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { remountReleases } from '../designer/release/remount.js'
-import { REPO_ROOT, scaffoldSet } from './index.js'
+import { REPO_ROOT, run, scaffoldSet } from './index.js'
 import { listFiles } from './copy-set.js'
 import { UUID_PATTERN } from './transform.js'
 
@@ -249,6 +249,32 @@ describe('new:set --from high-risk-plants', () => {
   it('Should refuse a purpose it does not know', () => {
     expect(() => scaffold({ purpose: 'final' })).toThrow(/is not a purpose/)
   })
+
+  it.each([
+    [['--title', 'Working release'], 'under Working release.'],
+    [[], 'under Plants wip.']
+  ])(
+    'Should name the release in its next steps as the chooser does (%j)',
+    (titleArgs, expected) => {
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      run(
+        [
+          'plants-wip',
+          '--from',
+          REAL_JOURNEY,
+          '--describe',
+          'A release for the regression test',
+          ...titleArgs
+        ],
+        { repoRoot, now: NOW }
+      )
+
+      const printed = log.mock.calls.flat().join('\n')
+      log.mockRestore()
+      expect(printed).toContain(expected)
+    }
+  )
 })
 
 describe('new:set --from another release', () => {

@@ -56,3 +56,14 @@ Keep each cell on one line. Escape a pipe character inside a cell as `\|`.
 ```text
 | dashboard | Status tag in navy (#1d3f6e) | `govukTag` with `govuk-tag--blue` (default blue) | GOV.UK tags come in 9 fixed colours; a new colour needs Sass in the real service. | Dashboard v4 (Figma) |
 ```
+
+## Content notes
+
+`change-the-words` also logs notes for the content designer here, so they
+travel with a hand-off. A content note starts its second cell with
+`Content note:`, and the hand-off brief lists it under "Content notes", not
+as a design gap:
+
+```text
+| task-list | Content note: "3. Consignment addresses" also holds Identification numbers, which is not an address. | No change: the words are as the designer asked | Content designer to review | None |
+```

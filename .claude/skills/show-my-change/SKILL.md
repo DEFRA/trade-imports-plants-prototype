@@ -186,10 +186,13 @@ Keep it short and concrete:
 
 - **Each pair:** what is different, in words ("the hint under 'Expected time
   of arrival' now reads 'Use the 24-hour clock, like 09:15 or 17:45'"), or
-  "no visible difference" if you looked and found none. The notification
-  reference (GBN-HRP-26-…) and today's dates differ between the before and
-  after pictures, because each copy of the prototype makes its examples
-  afresh: never report those as a change. For a reference
+  "no visible difference" if you looked and found none. Every picture shows
+  notification references as stand-ins in page order (GBN-HRP-26-EXMP01,
+  then EXMP02), so before and after match; the real numbers are different
+  each run. Today's dates can still differ between the before and after
+  pictures, because each copy of the prototype makes its examples afresh:
+  never report either as a change. If the designer asks why the reference
+  says EXMP01, say that. For a reference
   image, list every visible difference: spacing, sizes, order, wording,
   colour, missing or extra parts. `match-the-design` can close the gaps.
 - **Error states:** which messages the error summary lists. If a page moved

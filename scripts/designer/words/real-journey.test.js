@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { copy as captions } from '../../../src/server/app/sets/high-risk-plants/journeys/linear/flow/section-captions/copy/copy.en.js'
 import { captionSections } from '../../../src/server/app/sets/high-risk-plants/journeys/linear/flow/section-captions/index.js'
-import { findWords } from './find.js'
+import { copy as hubCopy } from '../../../src/server/app/sets/high-risk-plants/journeys/linear/features/hub/copy/copy.en.js'
+import { findWords, pageWords } from './find.js'
+import { formatPage } from './format.js'
 import { REPO_ROOT } from './repo.js'
 import { buildReport } from './report.js'
 
@@ -38,6 +40,40 @@ describe('designer:words on the real journey', () => {
     expect(files).toContain(
       'src/server/app/sets/high-risk-plants/journeys/linear/flow/section-captions/copy/copy.test.js'
     )
+  })
+
+  it('Should say check your answers shows only the other pages’ strings it reads', async () => {
+    const result = await pageWords({
+      root: REPO_ROOT,
+      page: 'notification-view',
+      setId: 'high-risk-plants'
+    })
+    const borrowedFromDestination = result.copy.filter(
+      (entry) => entry.feature === 'place-of-destination'
+    )
+    expect(borrowedFromDestination.length).toBeGreaterThan(0)
+    expect(
+      borrowedFromDestination.filter(
+        (entry) => !entry.keyPath.startsWith('headings.')
+      )
+    ).toEqual([])
+  })
+
+  it('Should list each task list group with the tasks under it', async () => {
+    const result = await pageWords({
+      root: REPO_ROOT,
+      page: 'task-list',
+      setId: 'high-risk-plants'
+    })
+    expect(result.groups.map((group) => group.caption).sort()).toEqual(
+      Object.values(hubCopy.groups).sort()
+    )
+    expect(result.groups.flatMap((group) => group.rows).sort()).toEqual(
+      Object.values(hubCopy.rows)
+        .map((row) => row.title)
+        .sort()
+    )
+    expect(formatPage(result)).toContain('Its groups, and the tasks under each')
   })
 
   it('Should report every string with Welsh, none missing', async () => {

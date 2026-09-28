@@ -330,8 +330,8 @@ since the release was made:
 
 1. Confirm with the designer by name. Say: "This removes `<release-id>`, its
    examples and its line on the chooser from this branch. It stays in git
-   history." It refuses a release with unsaved changes: save or undo them
-   first (`share-my-change`).
+   history." It refuses a saved release with unsaved changes: save or undo
+   them first (`share-my-change`).
 2. Retire it:
 
    ```
@@ -341,6 +341,13 @@ since the release was made:
    It removes the folder and routes file (`git rm`), the mount, the chooser
    description, its two `overrides.json` lines, and its example scenario,
    fixtures and extra data if it has them. It prints each removal.
+
+   **A release that was never saved** is refused with "was never saved": it
+   is not in git history, so removing it is for good. Tell the designer that
+   in those words and ask whether to throw it away or save it first. Only on
+   their yes (or when you made it yourself in this run and nothing was
+   changed in it since), run it again with `--discard`. It then says "gone
+   for good and there is nothing to save": skip steps 3 and 4.
 
 3. `git status` should show only those removals and the three shared files.
    Stage the three shared files:

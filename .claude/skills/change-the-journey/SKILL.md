@@ -294,8 +294,8 @@ a release is the one thing saved straight away, by `design-release`, because
 every later change builds on it.)
 
 If the designer then says "undo that", do not ask again: `share-my-change`
-("Undo") puts this change's files aside at once, so it can come back. Once it
-is saved, "undo that" adds an undo commit instead.
+("Undo") saves this change and then adds a revert commit that reverses it,
+saved or not, so the history shows both and it can come back.
 
 If the prototype is running (`npm run dev`), saving files restarted it. The
 example links above still work. If a page you made yourself has lost its

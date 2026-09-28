@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { addressPath, addressPattern, missingFilesNote } from './capture.js'
+import {
+  REFERENCE_PATTERN,
+  addressPath,
+  addressPattern,
+  missingFilesNote,
+  pinnedReferences
+} from './capture.js'
 
 describe('addressPath', () => {
   const where = { setBase: '/plants-working', journeyId: 'GBN-1' }
@@ -46,6 +52,31 @@ describe('addressPattern', () => {
     expect(addressPattern('/plants-working', '/plants-working')).toBe(
       '/plants-working'
     )
+  })
+})
+
+describe('pinnedReferences', () => {
+  it('Should show the references on a page as the same stand-ins in every run, in page order', () => {
+    const before = pinnedReferences(['GBN-HRP-26-RFDM62', 'GBN-HRP-26-K2ABXQ'])
+    const after = pinnedReferences(['GBN-HRP-26-J047SQ', 'GBN-HRP-26-7TTW0A'])
+
+    expect(Object.values(before)).toEqual([
+      'GBN-HRP-26-EXMP01',
+      'GBN-HRP-26-EXMP02'
+    ])
+    expect(Object.values(after)).toEqual(Object.values(before))
+  })
+
+  it('Should find a reference inside other words, and nothing else', () => {
+    const text = 'Your reference number is GBN-HRP-26-RFDM62. Keep ABCDEF safe.'
+
+    expect(text.match(REFERENCE_PATTERN)).toEqual(['GBN-HRP-26-RFDM62'])
+  })
+
+  it('Should leave a page already pinned as it is', () => {
+    expect(pinnedReferences(['GBN-HRP-26-EXMP01'])).toEqual({
+      'GBN-HRP-26-EXMP01': 'GBN-HRP-26-EXMP01'
+    })
   })
 })
 

@@ -41,9 +41,19 @@ const readable = (slug) => {
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
+/** What designers and the real team call the pages whose ids say otherwise. */
+const DESIGNER_PAGE_NAMES = {
+  hub: 'Task list',
+  'task-list': 'Task list',
+  'notification-view': 'Check your answers',
+  'check-answers': 'Check your answers'
+}
+
+const pageLabel = (slug) => DESIGNER_PAGE_NAMES[slug] ?? readable(slug)
+
 const pageName = (page) =>
   page.feature
-    ? `${page.slugs.map(readable).join(', ')} (${page.slugs.join(', ')})`
+    ? `${[...new Set(page.slugs.map(pageLabel))].join(', ')} (${page.slugs.join(', ')})`
     : 'Across the journey (flow, questions or shared parts)'
 
 const madeFrom = (report) => {
@@ -249,8 +259,42 @@ const exampleSentence = (service) =>
     ? ` Its example data (from ${service.shape.file}) is a starting point for the API conversation: ${JSON.stringify(service.shape.example)}`
     : ''
 
+const WANTS = 'what the design wants'
+const CONTENT_NOTE = /^content note\b:?\s*/i
+
+/**
+ * Whether a design-gaps.md row is a note for the content designer rather
+ * than a gap. The note is the second cell after "Content note:"; a row
+ * written with the note in the third cell ("Content note" alone first) is
+ * read the same way.
+ */
+export const isContentNote = (row) => CONTENT_NOTE.test(row[WANTS] ?? '')
+
+const contentNoteText = (row) => {
+  const inWants = (row[WANTS] ?? '').replace(CONTENT_NOTE, '').trim()
+  const note = inWants || row['closest option built'] || ''
+  const action = row.why ? ` (${row.why.replace(/\.$/, '')})` : ''
+  const page = row.page ? `${pageLabel(row.page)}: ` : ''
+  return `${page}${note}${action}`
+}
+
+const addContentNotes = (add, notes) => {
+  if (notes.length === 0) {
+    return
+  }
+  add('heading', { text: 'Content notes' })
+  add('list', { items: notes.map(contentNoteText) })
+  add('para', {
+    text: 'Notes for a content designer on the new words. Nothing here stops the change shipping.'
+  })
+}
+
 const addCannotShip = (add, report) => {
-  const { services, designGaps, researchRules, welshNeeded } = report.cannotShip
+  const { services, researchRules, welshNeeded } = report.cannotShip
+  const designGaps = report.cannotShip.designGaps.filter(
+    (row) => !isContentNote(row)
+  )
+  addContentNotes(add, report.cannotShip.designGaps.filter(isContentNote))
   add('heading', { text: 'What cannot ship as it is' })
   const items = [
     ...services.map(

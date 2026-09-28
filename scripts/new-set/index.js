@@ -181,12 +181,13 @@ const skippedSummary = (skipped) => {
   ]
 }
 
-const nextSteps = ({ setId, from }) => {
+const nextSteps = ({ setId, from, release }) => {
   const url = `http://localhost:3103/${setId}`
+  const chooserName = release.title ?? sentenceCase(setId)
   const steps = [
     'Run `npm run designer:format` to tidy the new lines in src/server/prototype-sets/.',
     `Start the prototype with \`npm run dev\` and open ${url}`,
-    `If its example notifications are missing, sign in, open http://localhost:3103/ and press "Reset this prototype’s data" under ${sentenceCase(setId)}.`,
+    `If its example notifications are missing, sign in, open http://localhost:3103/ and press "Reset this prototype’s data" under ${chooserName}.`,
     `See every page with \`npm run designer:show -- --set ${setId} --pages all\`.`
   ]
   if (from === PLACEHOLDER_TEMPLATE) {

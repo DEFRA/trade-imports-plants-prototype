@@ -174,6 +174,8 @@ It will not retire:
 
 - `high-risk-plants` or `sample-journey`
 - a release with changes you have not saved: save or undo them first
+- a release that was never saved at all, unless you say to throw it away.
+  It is not in git history, so once removed it is gone for good.
 
 ## Two branches that each started a release
 

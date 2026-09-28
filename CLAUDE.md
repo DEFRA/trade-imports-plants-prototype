@@ -57,7 +57,7 @@ When nothing fits, say so plainly and point at `docs/designers/README.md`.
 
 Do every part in the same turn, one skill after another, and report the parts together:
 
-- **Words and layout** ("rename X, and drop the extra subheadings"): `change-the-words` first, then `match-the-design` for the layout part. If the page has no such element, say "already done: there is no such element", with the picture, and change nothing that only looks similar.
+- **Words and layout** ("rename X, and drop the extra subheadings"): `change-the-words` first, then `match-the-design` for the layout part. If the page has no such element, say "already done: there is no such element", with the picture, and change nothing that only looks similar. When something similar could be what they meant (the numbered headings on check your answers), add one line offering to remove it.
 - **Renaming a task list group** (only its words): `change-the-words`. Moving tasks between groups, or adding or removing a group: `change-the-journey`'s task-list recipe.
 - **The confirmation page's panel and reference number**: `change-the-journey` (confirmation-variant recipe), never `match-the-design`.
 - **A branch plus a move, or two journey changes**: `change-the-journey`, part by part in one run.

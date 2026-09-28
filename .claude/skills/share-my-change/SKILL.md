@@ -256,7 +256,7 @@ work out which it is:
 
 - **Unsaved edits.** The change skills do not save, so "undo that" straight
   after a change is this one when `git status` lists the files that change
-  made.
+  made. It still ends in a revert commit (below).
 - **The last saved change**, when `git status` is clean, or the designer says
   "my last saved change".
 - **A named change** ("undo the confirmation panel change").
@@ -268,26 +268,51 @@ exactly what was undone. Ask one question only when the words fit more than
 one of the three (unsaved edits from two different changes, say), or when a
 named change matches more than one commit.
 
-Nothing is ever lost: unsaved edits are put aside (they can come back), and a
-saved change is undone with a new commit (the history shows both).
+Nothing is ever lost, and every undo is the same kind of thing: a change
+saved, then a new "Revert" commit that reverses it. The history shows both,
+and the designer can see and bring back either one. Unsaved edits are saved
+first, then reversed, so "undo that" straight after a change gives a revert
+commit whether or not the change was saved.
 
-### Unsaved edits ("throw away what I just did")
+### Unsaved edits ("undo that", "throw away what I just did")
 
 1. Run `git status --porcelain` and list the changed files in plain words
    (page and what kind of file).
 2. Take the files of the change being undone: all of them when every
    unsaved file came from that change, otherwise only the ones it made (the
    change skill's report names them). Ask only when you cannot tell.
-3. Put them aside in one command, new files included, so they can come back:
+3. Save exactly those files as the change, with the Share steps: step 2
+   (only files that are "Yours"), step 3 (branch), step 5 (stage each by
+   name, then `designer:save` with the message written from the change).
+   Skip step 4's `--full` run: the save runs the same checks.
+4. Then reverse it with a revert commit, through `designer:save` like every
+   other save:
 
    ```
-   git stash push --include-untracked -m "undone: <what the change was>" -- <path> <path>
+   git revert --no-commit HEAD
    ```
 
-4. Run `git status --porcelain` again: none of those files is listed now.
-   Tell the designer what was undone and that it is kept: "say 'bring back
-   what you put aside' and I will put it back" (`git stash list`, then
-   `git stash pop stash@{<n>}` for the matching one).
+   ```
+   npm run designer:save -- -m "Revert \"<first line of the change>\"" -m "Undone at the designer's request straight after it was made."
+   ```
+
+5. Run `git status --porcelain` (none of those files is listed) and
+   `git log -2 --oneline` (the change, then its `Revert`). Tell the designer
+   what was undone, and that it can come back: "say 'bring back the change I
+   undid' and I will undo the undo".
+
+**When the edits cannot be saved** (a file that is not "Yours", or the
+checks fail on the change and the designer wants it gone rather than
+fixed), put those files aside instead, and say so plainly: "I could not
+save this change, so I put it aside rather than deleting it. Say 'bring back
+what you put aside' and I will put it back."
+
+```
+git stash push --include-untracked -m "undone: <what the change was>" -- <path> <path>
+```
+
+(`git stash list`, then `git stash pop stash@{<n>}` for the matching one,
+brings it back.)
 
 ### The last saved change ("undo my last change", "go back")
 
@@ -301,10 +326,15 @@ saved change is undone with a new commit (the history shows both).
    maintainer's to undo. A release is retired, not undone (`design-release`
    section F). Research mode has its own off switch:
    `npm run designer:research -- off <set-id>` (`research-session`).
-4. Undo it:
+4. Undo it, saving the reverse through `designer:save` like every other
+   save:
 
    ```
-   git revert --no-edit HEAD
+   git revert --no-commit HEAD
+   ```
+
+   ```
+   npm run designer:save -- -m "Revert \"<its first line>\""
    ```
 
 5. Run `git status --porcelain` (it must print nothing) and
@@ -329,13 +359,20 @@ saved change is undone with a new commit (the history shows both).
 3. With a clean `git status`:
 
    ```
-   git revert --no-edit <commit>
+   git revert --no-commit <commit>
    ```
 
-4. If git reports a conflict, a later change touched the same lines. Run
+   ```
+   npm run designer:save -- -m "Revert \"<its first line>\"" -m "This reverts commit <commit>."
+   ```
+
+4. If git reports a conflict at the `git revert` step, a later change touched the same lines. Run
    `git revert --abort` (this puts everything back as it was), explain that,
    and offer to undo the later change first or to make the change back by
    hand.
+
+"Bring back the change I undid" is a named change too: its commit is the
+`Revert "…"` one. Undo that with the same steps, and the change is back.
 
 The undo commit is saved on the designer's branch like any other change. If
 the branch is already on GitHub, offer to send the undo too (ask first).
@@ -348,7 +385,7 @@ the branch is already on GitHub, offer to send the undo too (ask first).
 3. After an undo, run `npm run designer:check -- --set <set-id>` and
    `npm run designer:show -- --set <set-id> --pages <the pages it touched>`,
    read the key PNGs yourself, and describe what the pages look like now.
-   After undoing a saved change, add `--before-commit HEAD~1` to picture the
+   After a revert commit, add `--before-commit HEAD~1` to picture the
    version before the undo beside it (plain `--before` would compare with the
    undo commit itself, so both pictures would match).
    Never claim a visual result you have not looked at.

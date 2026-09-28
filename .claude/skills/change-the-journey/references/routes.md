@@ -7,7 +7,8 @@ Two kinds of recipe exist:
 
 - **Real-service recipes.** The plants team wrote these for the real journey.
   They live in `src/server/app/sets/high-risk-plants/docs/`. A design release
-  does not carry a `docs/` folder, so always read them from high-risk-plants.
+  does not carry copies of them: its `docs/` folder holds only a one-line
+  `README.md` pointing back there. So always read them from high-risk-plants.
   Never edit them: they belong to the real service.
 - **Designer recipes.** These live in `docs/designers/recipes/`. They cover the
   changes designers make most often that the real-service recipes do not.

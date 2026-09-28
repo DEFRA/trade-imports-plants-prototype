@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { scaffoldSet } from '../../new-set/index.js'
+import { run } from './cli.js'
 import { git } from './git.js'
 import { retireRelease } from './retire.js'
 import {
@@ -50,7 +51,9 @@ afterEach(() => {
 
 describe('retire', () => {
   it('Should leave only deletions, and the shared files as they were before the release', () => {
-    const removed = retireRelease('plants-old', { repoRoot })
+    const { removed, neverSaved } = retireRelease('plants-old', { repoRoot })
+
+    expect(neverSaved).toBe(false)
 
     expect(removed).toEqual(
       expect.arrayContaining([
@@ -80,16 +83,71 @@ describe('retire', () => {
     ).toBe(false)
   })
 
-  it('Should remove a release that was never saved, leaving a clean tree', () => {
+  it('Should refuse a release that was never saved, and keep every file of it', () => {
+    scaffoldSet(
+      { setId: 'plants-unsaved', from: 'high-risk-plants', purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+    const before = statusOf(repoRoot)
+
+    expect(() => retireRelease('plants-unsaved', { repoRoot })).toThrow(
+      /was never saved[\s\S]*retire plants-unsaved --discard/
+    )
+    expect(statusOf(repoRoot)).toEqual(before)
+    expect(
+      existsSync(path.join(repoRoot, 'src/server/app/sets/plants-unsaved'))
+    ).toBe(true)
+  })
+
+  it('Should throw away a release that was never saved when told to discard it, leaving a clean tree', () => {
     scaffoldSet(
       { setId: 'plants-unsaved', from: 'high-risk-plants', purpose: 'working' },
       { repoRoot, now: NOW }
     )
 
-    retireRelease('plants-unsaved', { repoRoot })
+    const { neverSaved } = retireRelease('plants-unsaved', {
+      repoRoot,
+      discard: true
+    })
 
+    expect(neverSaved).toBe(true)
     expect(statusOf(repoRoot)).toEqual([])
   })
+
+  it.each([
+    [
+      'a saved release',
+      'plants-old',
+      [],
+      /still in git history[\s\S]*save my work/
+    ],
+    [
+      'a release that was never saved',
+      'plants-unsaved',
+      ['--discard'],
+      /never saved, so it is gone for good and there is nothing to save/
+    ]
+  ])(
+    'Should tell the designer what retiring %s means',
+    async (_kind, setId, flags, message) => {
+      if (setId === 'plants-unsaved') {
+        scaffoldSet(
+          { setId, from: 'high-risk-plants', purpose: 'working' },
+          { repoRoot, now: NOW }
+        )
+      }
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      await run(['retire', setId, ...flags], { repoRoot })
+
+      const printed = log.mock.calls.flat().join('\n')
+      log.mockRestore()
+      expect(printed).toMatch(message)
+      expect(printed).not.toMatch(
+        setId === 'plants-old' ? /gone for good/ : /git history/
+      )
+    }
+  )
 
   it('Should refuse a release with changes that are not saved', () => {
     editIn(

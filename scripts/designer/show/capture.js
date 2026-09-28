@@ -145,6 +145,71 @@ const runAxe = async (page) => {
   }
 }
 
+/** A notification reference number, as the stub records store mints them. */
+export const REFERENCE_PATTERN = /\b(GBN-[A-Z]{2,4}-\d{2}-)[0-9A-Z]{6}\b/g
+
+/**
+ * The stand-in for each reference number on a page: the first one in the
+ * page becomes `…-EXMP01`, the second `…-EXMP02`, and so on. Every run mints
+ * new numbers, so without this the before and after pictures of the same
+ * page differ in text the change never touched.
+ *
+ * @param {string[]} references - distinct reference numbers, in page order.
+ * @returns {Record<string, string>} each reference to its stand-in.
+ */
+export const pinnedReferences = (references) =>
+  Object.fromEntries(
+    references.map((reference, index) => [
+      reference,
+      reference.replace(
+        new RegExp(REFERENCE_PATTERN.source),
+        (_, prefix) => `${prefix}EXMP${String(index + 1).padStart(2, '0')}`
+      )
+    ])
+  )
+
+const textNodesOf = (page, pattern) =>
+  page.evaluate((source) => {
+    const found = []
+    const walker = document.createTreeWalker(
+      document.body,
+      globalThis.NodeFilter.SHOW_TEXT
+    )
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      for (const match of node.nodeValue.matchAll(new RegExp(source, 'g'))) {
+        if (!found.includes(match[0])) {
+          found.push(match[0])
+        }
+      }
+    }
+    return found
+  }, pattern.source)
+
+const replaceText = (page, replacements) =>
+  page.evaluate((pairs) => {
+    const walker = document.createTreeWalker(
+      document.body,
+      globalThis.NodeFilter.SHOW_TEXT
+    )
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      let text = node.nodeValue
+      for (const [from, to] of Object.entries(pairs)) {
+        text = text.split(from).join(to)
+      }
+      if (text !== node.nodeValue) {
+        node.nodeValue = text
+      }
+    }
+  }, replacements)
+
+/** Shows every reference number on the page as its stand-in (above). */
+const pinReferenceNumbers = async (page) => {
+  const references = await textNodesOf(page, REFERENCE_PATTERN).catch(() => [])
+  if (references.length > 0) {
+    await replaceText(page, pinnedReferences(references)).catch(() => undefined)
+  }
+}
+
 const photograph = async (page, run, shot) => {
   const file = captureFileName({
     key: shot.key,
@@ -152,6 +217,7 @@ const photograph = async (page, run, shot) => {
     state: shot.state,
     width: shot.width
   })
+  await pinReferenceNumbers(page)
   await page.screenshot({ path: path.join(run.outDir, file), fullPage: true })
   return {
     key: shot.key,

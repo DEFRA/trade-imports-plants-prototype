@@ -125,6 +125,16 @@ export const formatPage = (result) => {
   const lines = [
     `The page ${result.page} in ${result.sets[0].setId} shows ${plural(result.copy.length, 'copy string')}.`
   ]
+  if ((result.groups ?? []).length > 0) {
+    lines.push(
+      '',
+      'Its groups, and the tasks under each',
+      ...result.groups.flatMap((group) => [
+        `  ${group.caption}`,
+        ...group.rows.map((row) => `    - ${row}`)
+      ])
+    )
+  }
   if (own.length > 0) {
     lines.push('', 'Its own words', ...own.flatMap(copyLines))
   }

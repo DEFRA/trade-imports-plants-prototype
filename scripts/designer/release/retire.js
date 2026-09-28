@@ -43,19 +43,29 @@ const removePaths = (repoRoot, paths) => {
  * when committed), its mount, its chooser description, its two `ours` globs
  * in overrides.json, and its example scenarios, fixtures and extra data.
  *
- * Refuses when the release has changes that are not saved, so retiring
- * never throws work away. A retired release stays in git history.
+ * Refuses when a saved release has changes that are not saved, so retiring
+ * never throws work away. A saved release stays in git history once retired.
  *
- * @returns {string[]} what was removed, one plain line each.
+ * A release that was never saved is not in git history at all, so removing
+ * it is for good. It is refused unless `discard` is true.
+ *
+ * @returns {{ removed: string[], neverSaved: boolean }} what was removed, one
+ *   plain line each, and whether the release had never been saved.
  */
-export const retireRelease = (setId, { repoRoot }) => {
+export const retireRelease = (setId, { repoRoot, discard = false }) => {
   refuseNonRelease(setId, 'retire')
   existingSet(repoRoot, setId)
 
   const own = relativePathsOf(setId)
   const extras = extrasOf(setId)
+  const neverSaved = !isTracked(repoRoot, own)
+  if (neverSaved && !discard) {
+    throw new ReleaseRefused(
+      `"${setId}" was never saved, so it is not in git history: retiring it throws it and every change in it away for good.\nTo keep it, save it first (say "save my work").\nTo throw it away, run: npm run designer:release -- retire ${setId} --discard`
+    )
+  }
   const unsaved = uncommittedChanges(repoRoot, [...own, ...extras])
-  if (unsaved.length > 0 && isTracked(repoRoot, own)) {
+  if (unsaved.length > 0 && !neverSaved) {
     throw new ReleaseRefused(
       `"${setId}" has changes that are not saved yet:\n${unsaved.join('\n')}\nSave them (say "save my work") or throw them away first, then retire it.`
     )
@@ -87,5 +97,5 @@ export const retireRelease = (setId, { repoRoot }) => {
   )) {
     removed.push(`"${glob}" from overrides.json`)
   }
-  return removed
+  return { removed, neverSaved }
 }

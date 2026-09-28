@@ -104,7 +104,12 @@ changing anything. If the page has no such thing (a request remembered from
 the old Prototype Kit prototype, say), change nothing for that part and tell
 the designer "already done: <page> here has no <thing>", with the picture as
 proof. Never remove something that only looks similar, such as the numbered
-section headings on check your answers.
+section headings on check your answers, unasked. But when that similar thing
+is a plausible reading of the words, name it in one more line so the
+designer can choose: "If you meant the numbered headings (1. About the
+consignment, 2. …), say so and I will remove them." On check your answers
+those numbered headings are the only headings above the cards, so "drop the
+extra subheadings" always gets this line.
 
 ### 4. Map each difference to the toolbox
 

@@ -302,13 +302,19 @@ essentials (for example "Please enter", Title Case, a date written
 "27/09/2026"), say so in one line with a suggestion. Then use the designer's
 words unless they take the suggestion. Never block on style.
 
-Also check the new words still make sense where they land. When a renamed
-task list group or caption no longer matches what sits under it ("Consignment
-addresses" over a group with no address in it, say), tell the designer in one
-line, as a note for the content designer. Do not change anything else because
-of it. Write the same note as a row in the release's `design-gaps.md` (page,
-"Content note", the note, "Content designer to review", "None"), so it
-travels with a hand-off brief.
+Also check the new words still make sense where they land. For a task list
+group, `npm run designer:words -- page task-list --set <release>` lists each
+group with the tasks under it (never read the hub's JavaScript for this).
+When a renamed task list group or caption no longer matches what sits under
+it ("Consignment addresses" over a group with no address in it, say), tell
+the designer in one line, as a note for the content designer. Do not change
+anything else because of it. Write the same note as a row in the release's
+`design-gaps.md`, so it travels with a hand-off brief, in this shape (the
+brief lists it under "Content notes", not as a design gap):
+
+```text
+| task-list | Content note: "3. Consignment addresses" also holds Identification numbers, which is not an address. | No change: the words are as the designer asked | Content designer to review | None |
+```
 
 One error message can serve several states of a page. `errors.arrivalDate.required`
 on arrival details shows for a consignment that will arrive and for one that
@@ -446,7 +452,10 @@ answers". Do both in the same turn, words first:
    is not (a request remembered from the old Prototype Kit prototype, say),
    do not change something that looks similar: tell the designer "already
    done: check your answers here has no such subheadings", with the picture as
-   proof. Never delete the numbered section headings to satisfy it.
+   proof. Never delete the numbered section headings unasked. They are the
+   only headings above the cards, so add one line: "If you meant the
+   numbered headings (1. About the consignment, 2. …), say so and I will
+   remove them."
 3. Report both parts in one reply, in the step 10 shape, with a line for each
    part.
 

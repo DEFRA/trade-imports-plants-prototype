@@ -86,9 +86,11 @@ the go-ahead: Claude does it straight away and tells you exactly what it
 undid. It asks one question only when your words could mean two different
 changes.
 
-- **Changes you have not saved yet.** The files are put aside rather than
-  deleted, so the change can come back if you ask ("bring back what you put
-  aside").
+- **Changes you have not saved yet.** Claude saves the change, then adds an
+  "undo" change that reverses it, the same as for a saved change. Both are in
+  your history, so the change can come back if you ask ("bring back the
+  change I undid"). If the change cannot be saved (its checks fail, say),
+  Claude puts the files aside rather than deleting them, and tells you.
 - **The last change you saved.** Claude adds a new "undo" change that
   reverses it. Your history keeps both, so nothing is lost.
 - **A particular change**, found by what it was called ("undo the green panel

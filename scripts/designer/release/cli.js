@@ -15,7 +15,7 @@ export const USAGE = [
   'npm run designer:release -- changes <release> [--json]   (saved changes to it on every branch, newest first)',
   'npm run designer:release -- freeze <release> [--as <new-working-release>] [--describe "<text>"] [--title "<name>"] [--frozen-describe "<text>"] [--frozen-title "<name>"]',
   'npm run designer:release -- carry --from <release> --to <release> [--commit <commit id> | --working]',
-  'npm run designer:release -- retire <release>',
+  'npm run designer:release -- retire <release> [--discard]   (--discard: throw away a release that was never saved)',
   'npm run designer:release -- remount   (after a merge clash in overrides.json or src/server/prototype-sets/)'
 ].join('\n')
 
@@ -125,13 +125,18 @@ const printCarry = ({ flags }, repoRoot) => {
   ].join('\n')
 }
 
-const printRetire = ({ target }, repoRoot) => {
-  const removed = retireRelease(target, { repoRoot })
+const printRetire = ({ target, flags }, repoRoot) => {
+  const { removed, neverSaved } = retireRelease(target, {
+    repoRoot,
+    discard: flags.discard === true
+  })
   return [
     `Retired "${target}". Removed:`,
     ...removed.map((line) => `  - ${line}`),
     '',
-    'It is still in git history if you need it back. Save the removal with one commit (say "save my work").'
+    neverSaved
+      ? 'It was never saved, so it is gone for good and there is nothing to save.'
+      : 'It is still in git history if you need it back. Save the removal with one commit (say "save my work").'
   ].join('\n')
 }
 

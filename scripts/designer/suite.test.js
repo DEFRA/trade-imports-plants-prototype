@@ -6,6 +6,7 @@ import path from 'node:path'
 import { describe, expect, test } from 'vitest'
 
 import { classifyPath } from '../sync-upstream/rules.js'
+import { PLACEHOLDER_SET, REAL_JOURNEY_SET } from './lib/sets.js'
 
 const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), '../../..')
 
@@ -102,6 +103,21 @@ const tableRowsUnder = (text, heading) => {
 }
 
 const quotedPhrasesIn = (line) => line.match(/"[^"]+"/g) ?? []
+
+const SHIPPED_SETS = new Set([REAL_JOURNEY_SET, PLACEHOLDER_SET])
+
+/**
+ * Whether a named path sits inside a design release (any set other than the
+ * real journey and the placeholder), or is a release's gateway. Designer docs
+ * name those paths as examples (plants-working, a-set). Whether a release with
+ * that id happens to exist on this branch changes nothing: a fresh
+ * plants-working never has design-gaps.md or a ported page.
+ */
+const namesAnExampleSet = (named) => {
+  const inSet =
+    /^src\/server\/app\/(?:sets\/|routes-)([\w-]+?)(?:\/|\.js$)/.exec(named)
+  return inSet !== null && !SHIPPED_SETS.has(inSet[1])
+}
 
 describe('the designer suite', () => {
   test('finds the files it checks', () => {
@@ -216,26 +232,31 @@ describe('the designer suite', () => {
     expect(missing).toEqual([])
   })
 
+  // A designer makes plants-working first (CLAUDE.md rule 9). The check below
+  // must not start failing the moment that folder exists, or no save is
+  // possible on the designer's branch.
+  test.each([
+    ['src/server/app/sets/plants-working/design-gaps.md', true],
+    ['src/server/app/sets/plants-working/x/template.njk', true],
+    ['src/server/app/sets/a-set/set.js', true],
+    ['src/server/app/routes-plants-working.js', true],
+    ['src/server/app/sets/high-risk-plants/set.js', false],
+    ['src/server/app/sets/sample-journey/set.js', false],
+    ['src/server/app/routes-high-risk-plants.js', false],
+    ['src/server/app/engine/index.js', false]
+  ])(
+    'treats %s as an example path: %s, whatever releases exist',
+    (named, expected) => {
+      expect(namesAnExampleSet(named)).toBe(expected)
+    }
+  )
+
   // The weekly update can rename or delete any file the real service owns. A
   // skill that still names the old path would send the agent to a file that
   // is gone, so the sync pull request's npm test fails here instead.
   test('every real-service file a designer file names by path exists', () => {
     const SOURCE_PATH =
       /(?<![\w/.-])src\/(?:server|client)\/[\w/.-]+\.(?:js|njk|md|scss|json)(?![\w/])/g
-    const realSets = new Set(
-      readdirSync(path.join(REPO_ROOT, 'src/server/app/sets'), {
-        withFileTypes: true
-      })
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => entry.name)
-    )
-    // A path inside a design release that only exists once a designer makes
-    // it (plants-working, a-set) is an example, not a promise.
-    const namesAnExampleSet = (named) => {
-      const inSet =
-        /^src\/server\/app\/(?:sets\/|routes-)([\w-]+?)(?:\/|\.js$)/.exec(named)
-      return inSet !== null && !realSets.has(inSet[1])
-    }
     const missing = []
     for (const repoPath of designerFacingFiles) {
       const text = readRepoFile(repoPath)

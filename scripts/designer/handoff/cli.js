@@ -43,8 +43,14 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
+import { tidyFiles } from '../format/cli.js'
 import { buildHandoff, HandoffError, REAL_JOURNEY } from './build.js'
-import { briefOutline, renderBriefJira, renderBriefMarkdown } from './brief.js'
+import {
+  briefOutline,
+  isContentNote,
+  renderBriefJira,
+  renderBriefMarkdown
+} from './brief.js'
 import { ANY_PAGE, pickScreenshots } from './screenshots.js'
 
 export const REPO_ROOT = path.resolve(
@@ -236,6 +242,9 @@ export const runHandoff = (root, resolved) => {
       2
     ) + '\n'
   )
+  tidyFiles([path.join(dir, 'brief.md'), path.join(dir, 'report.json')], {
+    root
+  })
   return { report, dir, meta, shots }
 }
 
@@ -244,13 +253,22 @@ const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`
 /** The plain-English summary printed after a run. */
 export const summaryLines = ({ report, dir, shots }, root) => {
   const relativeDir = path.relative(root, dir)
+  const designGaps = report.cannotShip.designGaps.filter(
+    (row) => !isContentNote(row)
+  )
+  const contentNotes = report.cannotShip.designGaps.length - designGaps.length
   const lines = [
     `Hand-off written to ${relativeDir}/`,
     `- ${plural(report.files.length, 'file')} in upstream.patch. ${report.applyCheck.message.split('\n')[0]}`,
     `- ${plural(report.cannotShip.welshNeeded.length, 'Welsh string')} still need translating.`,
     `- ${plural(report.testImpact.length, 'place')} in the tests still expect the old words.`,
     `- ${plural((report.specImpact ?? []).length, 'place')} in the real journey's requirement files (spec/) still quote the old words.`,
-    `- ${plural(report.cannotShip.services.length, 'use')} of a service that only exists in the prototype (needs a real service), and ${plural(report.cannotShip.designGaps.length, 'design gap')}, cannot ship as they are.`,
+    `- ${plural(report.cannotShip.services.length, 'use')} of a service that only exists in the prototype (needs a real service), and ${plural(designGaps.length, 'design gap')}, cannot ship as they are.`,
+    ...(contentNotes > 0
+      ? [
+          `- ${plural(contentNotes, 'content note')} for a content designer (they do not stop it shipping).`
+        ]
+      : []),
     `- ${plural(report.leftOut.length, 'file')} left out of the patch.`
   ]
   if (report.cannotShip.services.length > 0) {

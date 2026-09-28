@@ -138,6 +138,71 @@ describe('the Markdown brief', () => {
     )
   })
 
+  it.each([
+    [
+      'with the note after "Content note:"',
+      {
+        page: 'task-list',
+        'what the design wants':
+          'Content note: The group also holds identification numbers.',
+        'closest option built':
+          'No change: the words are as the designer asked',
+        why: 'Content designer to review',
+        frame: 'None'
+      }
+    ],
+    [
+      'with the note in the next cell',
+      {
+        page: 'task-list',
+        'what the design wants': 'Content note',
+        'closest option built': 'The group also holds identification numbers.',
+        why: 'Content designer to review',
+        frame: 'None'
+      }
+    ]
+  ])(
+    'Should list a content note as a plain note, not a design gap (%s)',
+    (_shape, note) => {
+      const brief = renderBriefMarkdown(
+        briefOutline(
+          {
+            ...REPORT,
+            cannotShip: { ...REPORT.cannotShip, designGaps: [note] }
+          },
+          META
+        )
+      )
+
+      expect(brief).toContain(
+        '## Content notes\n\n- Task list: The group also holds identification numbers. (Content designer to review)'
+      )
+      expect(brief).not.toContain('Design gap: page: task-list')
+    }
+  )
+
+  it('Should head each page with the name designers use, then its id', () => {
+    const brief = renderBriefMarkdown(
+      briefOutline(
+        {
+          ...REPORT,
+          pages: [
+            { ...REPORT.pages[0], feature: 'hub', slugs: ['hub'] },
+            {
+              ...REPORT.pages[0],
+              feature: 'check-answers',
+              slugs: ['notification-view']
+            }
+          ]
+        },
+        META
+      )
+    )
+
+    expect(brief).toContain('### Task list (hub)')
+    expect(brief).toContain('### Check your answers (notification-view)')
+  })
+
   it('Should explain both ways the change can land', () => {
     expect(markdown).toContain('`git apply --3way upstream.patch`')
     expect(markdown).toContain('The prototype never pushes to plants-frontend.')

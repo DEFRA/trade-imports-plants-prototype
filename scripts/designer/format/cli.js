@@ -64,6 +64,21 @@ export const tidyAll = ({ root = REPO_ROOT } = {}) => {
   }
 }
 
+/**
+ * Tidies the named files the way `npm run format` would, so a generated file
+ * is saved as Prettier leaves it. Quiet; a failure leaves the file as written.
+ *
+ * @returns {boolean} whether Prettier ran cleanly.
+ */
+export const tidyFiles = (files, { root = REPO_ROOT } = {}) => {
+  const result = spawnSync(
+    process.execPath,
+    [PRETTIER, '--write', '--log-level', 'warn', ...files],
+    { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+  )
+  return result.status === 0
+}
+
 export const main = ({ root = REPO_ROOT } = {}) => {
   const { status, lines, stderr } = tidyAll({ root })
   if (stderr) {

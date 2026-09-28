@@ -12,9 +12,13 @@ import {
   rmSync,
   writeFileSync
 } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+
+import { REPO_ROOT } from '../lib/repo.js'
 
 import { transformContent, transformPath } from '../../new-set/transform.js'
 import { briefOutline, renderBriefMarkdown } from './brief.js'
@@ -82,6 +86,19 @@ const changeHintAndTemplate = (root) => {
     '<h1 class="govuk-heading-xl">'
   )
 }
+
+/** Whether `npm run format` would leave the files as they are, so a save
+ * after the hand-off has nothing to tidy. */
+const prettierLeavesAlone = (root, dir, files) =>
+  spawnSync(
+    process.execPath,
+    [
+      path.join(REPO_ROOT, 'node_modules/prettier/bin/prettier.cjs'),
+      '--check',
+      ...files.map((file) => path.join(dir, file))
+    ],
+    { cwd: root, encoding: 'utf8' }
+  ).status === 0
 
 /** `git apply --check` in a fresh copy of the real journey, as a developer would. */
 const applyCheckInScratchCopy = (root, patch) => {
@@ -183,6 +200,9 @@ describe('designer:handoff end to end', () => {
       )
       expect(JSON.parse(readFile(dir, 'report.json')).set).toBe(
         'plants-working'
+      )
+      expect(prettierLeavesAlone(root, dir, ['brief.md', 'report.json'])).toBe(
+        true
       )
     },
     TIMEOUT_MS

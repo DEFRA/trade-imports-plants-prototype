@@ -107,6 +107,12 @@ A release you have never saved has no "before" yet. The gallery says so.
 The before pictures use today's styles and scripts. That makes no difference
 unless someone changed `src/client/`, which belongs to the real service.
 
+Every run makes its example notifications afresh, with new reference
+numbers. So that before and after match, the pictures show each reference
+as a stand-in, in the order the page shows them: GBN-HRP-26-EXMP01, then
+EXMP02, and so on. The prototype itself, and the example links, show the
+real numbers.
+
 ### A Figma frame beside the page
 
 Export the frame from Figma as a PNG (select the frame, then Export, PNG, 1x).
