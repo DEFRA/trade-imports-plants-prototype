@@ -49,19 +49,7 @@ const gitEnv = () =>
 const makeRepo = () => {
   const root = mkdtempSync(path.join(tmpdir(), 'sync-upstream-'))
   const git = (...args) =>
-    execFileSync(
-      'git',
-      [
-        '-c',
-        'user.name=Fixture',
-        '-c',
-        'user.email=fixture@example.com',
-        '-c',
-        'commit.gpgsign=false',
-        ...args
-      ],
-      { cwd: root, env: gitEnv(), stdio: 'ignore' }
-    )
+    execFileSync('git', args, { cwd: root, env: gitEnv(), stdio: 'ignore' })
   const write = (file, content) => {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
     writeFileSync(path.join(root, file), content)
@@ -71,6 +59,11 @@ const makeRepo = () => {
     git('commit', '--quiet', '--no-verify', '-m', message)
   }
   git('init', '--quiet', '--initial-branch=main')
+  // In the repo's own config, not `-c`, so the sync's own git calls (the
+  // merge) have an identity too on a CI runner that has none.
+  git('config', 'user.name', 'Fixture')
+  git('config', 'user.email', 'fixture@example.com')
+  git('config', 'commit.gpgsign', 'false')
   write('overrides.json', `${JSON.stringify(OVERRIDES, null, 2)}\n`)
   write('src/server/app/services/countries/index.js', 'export const a = 1\n')
   commitAll('shared history')
