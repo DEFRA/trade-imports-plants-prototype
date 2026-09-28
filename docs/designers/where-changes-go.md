@@ -131,13 +131,12 @@ service and is shared by every set. A change to the header or navigation is a
 design gap: write it down in your release's `design-gaps.md` so it travels
 with the hand-off.
 
-The header's "Address book" link goes to the Import Notification Service
-frontend, a separate service, the same as the real service. This prototype
-does not run it itself, so the link only goes somewhere when that service
-is: the workspace docker stack, or `trade-imports-ins-frontend` run
-natively, both work locally. On a deployed prototype,
-`TRADE_IMPORTS_INS_FRONTEND_URL` sets where it points. None of this is
-ever needed to see a change you make here.
+The header's "Address book" link is deliberately dead. The address book
+belongs to the Import Notification Service, a separate service this
+prototype does not include, and there is no setting that points the link
+at a real one — not the workspace docker stack, not
+`trade-imports-ins-frontend` run natively, not a deployed prototype. None
+of this is ever needed to see a change you make here.
 
 ## What the weekly update really does
 

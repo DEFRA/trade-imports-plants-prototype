@@ -67,7 +67,7 @@ describe('context and cache', () => {
           authEnabled: true,
           staleActionRejected: false,
           activeNavigationItem: 'dashboard',
-          addressBookUrl: 'http://localhost:3002/address-book',
+          addressBookUrl: 'https://address-book.invalid/address-book',
           userSession: { isAuthenticated: false }
         })
       })
@@ -205,7 +205,7 @@ describe('context and cache', () => {
           authEnabled: true,
           staleActionRejected: false,
           activeNavigationItem: 'dashboard',
-          addressBookUrl: 'http://localhost:3002/address-book',
+          addressBookUrl: 'https://address-book.invalid/address-book',
           userSession: { isAuthenticated: false }
         })
       })

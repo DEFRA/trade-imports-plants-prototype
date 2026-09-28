@@ -33,8 +33,9 @@ weekly sync pull requests.
 - **Env vars.** `src/config/config.js` is the one list, with each
   variable's `doc` saying what it is for and what it defaults to. The
   redirect URLs already default to this prototype's own port (3103), not
-  plants-frontend's 3003. `TRADE_IMPORTS_INS_FRONTEND_URL` sets the
-  header's "Address book" link.
+  plants-frontend's 3003. The header's "Address book" link is deliberately
+  dead — no env var sets it — because the address book belongs to the
+  Import Notification Service, which this prototype does not include.
 - **One instance.** Run a single instance in CDP dev. Data lives in
   memory (`SESSION_CACHE_ENGINE=memory`, the stub stores), so a second
   instance would show a different set of examples to different visitors
@@ -267,11 +268,11 @@ stands up MongoDB, Floci, Redis, the stubs and the real trade-imports
 services, but never this one. This prototype always runs on its own
 stubs, with `npm run dev`, whether or not the stack is running.
 
-The one place the stack matters is the header's "Address book" link,
-which needs a running Import Notification Service frontend
-(`TRADE_IMPORTS_INS_FRONTEND_URL`) to go anywhere — the stack, or
-`trade-imports-ins-frontend` run natively, both work, and neither is
-ever needed to see a change made here.
+The header's "Address book" link is deliberately dead, stack running or
+not: the address book belongs to the Import Notification Service, which
+this prototype does not include, and there is no setting that points the
+link at a real one, local or deployed. It is never needed to see a change
+made here.
 
 ## Licence
 

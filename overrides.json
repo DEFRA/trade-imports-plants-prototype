@@ -79,11 +79,11 @@
     },
     {
       "path": "src/config/config.js",
-      "why": "default port is 3103 (the real twin's plus 100); the Defra ID redirect and sign-out redirect URLs default to this port too, not plants-frontend's 3003, so a local prototype signs back in to itself; plus the identity lines: the Defra ID service id default and the development auth cookie name"
+      "why": "default port is 3103 (the real twin's plus 100); the Defra ID redirect and sign-out redirect URLs default to this port too, not plants-frontend's 3003, so a local prototype signs back in to itself; plus the identity lines: the Defra ID service id default and the development auth cookie name; and tradeImportsInsFrontend.baseUrl has no env binding and defaults to the dead https://address-book.invalid, so the header's address book link can never resolve to a real Import Notification Service, in CDP or against the local dev stack"
     },
     {
       "path": "src/config/config.test.js",
-      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in; and one describe block pinning the Defra ID redirect and sign-out redirect defaults to port 3103"
+      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in; one describe block pinning the Defra ID redirect and sign-out redirect defaults to port 3103; and a test proving TRADE_IMPORTS_INS_FRONTEND_URL is ignored, so the address book link's dead default cannot be overridden"
     },
     {
       "path": "src/server/router.js",

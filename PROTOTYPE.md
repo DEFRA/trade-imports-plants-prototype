@@ -80,11 +80,11 @@ Very close, with these differences. All of them are known.
 - **Design gaps.** Only GOV.UK Frontend components and classes are
   available. What they cannot do is logged in your release's
   `design-gaps.md` and travels with the hand-off.
-- **The "Address book" link in the header** goes wherever the Import
-  Notification Service frontend runs: on your own computer that is the
-  workspace stack or `trade-imports-ins-frontend` run natively; on the
-  deployed prototype it is whatever `TRADE_IMPORTS_INS_FRONTEND_URL` is
-  set to. Neither is ever needed to see a change you make here.
+- **The "Address book" link in the header is deliberately dead.** The
+  address book belongs to the Import Notification Service, which this
+  prototype does not include, so the link never resolves — not on your own
+  computer, not on the deployed prototype. There is no setting that points
+  it at a real one. It is never needed to see a change you make here.
 - **Commodity and Arrival are blank on the real journey's dashboard.** This
   is a bug in the real service, not in your release: your release shows them.
 - **Welsh is never shown.** The prototype only shows English. New words get

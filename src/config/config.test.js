@@ -12,10 +12,30 @@ const restoreStubMode = () => {
 }
 
 describe('#config', () => {
-  test('loads TRADE_IMPORTS_INS_FRONTEND_URL with the 3002 default', () => {
+  test('defaults the address book link to a dead .invalid address', () => {
     expect(config.get('tradeImportsInsFrontend.baseUrl')).toBe(
-      'http://localhost:3002'
+      'https://address-book.invalid'
     )
+  })
+
+  describe('tradeImportsInsFrontend.baseUrl', () => {
+    beforeEach(() => {
+      vi.resetModules()
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    test('ignores TRADE_IMPORTS_INS_FRONTEND_URL — the address book link can never point at a real service', async () => {
+      vi.stubEnv('TRADE_IMPORTS_INS_FRONTEND_URL', 'http://localhost:3002')
+
+      const { config: freshConfig } = await import('./config.js')
+
+      expect(freshConfig.get('tradeImportsInsFrontend.baseUrl')).toBe(
+        'https://address-book.invalid'
+      )
+    })
   })
 
   describe('Defra ID redirect URLs', () => {

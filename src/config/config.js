@@ -372,10 +372,9 @@ export const config = convict({
   },
   tradeImportsInsFrontend: {
     baseUrl: {
-      doc: "Trade Imports INS Frontend base URL. Browser-visible — used to build deep links the trader's own browser navigates to, so it must resolve outside the Docker network (unlike the server-side API base URLs above).",
+      doc: 'Trade Imports INS Frontend base URL. The address book belongs to the Import Notification Service, which this prototype does not include, so the header link must never resolve to a real one — not in CDP, not against the local dev stack. No env binding: the default is the only value, an .invalid address that can never resolve, so the link stays dead everywhere.',
       format: 'url',
-      default: 'http://localhost:3002',
-      env: 'TRADE_IMPORTS_INS_FRONTEND_URL'
+      default: 'https://address-book.invalid'
     }
   }
 })
