@@ -11,6 +11,8 @@
  */
 
 export const WALKTHROUGH_TAG_NAME = 'walkthrough'
+const FEATURED_TAG_NAME = 'featured'
+const NON_SET_TAGS = new Set([WALKTHROUGH_TAG_NAME, FEATURED_TAG_NAME])
 
 const WALKED = new Set(['expected', 'flaky'])
 
@@ -28,8 +30,12 @@ export const firstLine = (message) =>
 
 const crash = (reason) => ({ crashed: true, reason, sets: [] })
 
-/** Every spec in the report, each with the title of the suite it sits in. */
-const specsOf = (suites, parentTitle = null) =>
+/**
+ * Every spec in the report, each with the title of the suite it sits in.
+ * Shared with `scripts/reports/demo/model.js`, so the stakeholder demo page
+ * walks the same tree as the walkthrough's own verdict.
+ */
+export const specsOf = (suites, parentTitle = null) =>
   (suites ?? []).flatMap((suite) => [
     ...(suite.specs ?? []).map((spec) => ({
       ...spec,
@@ -40,11 +46,15 @@ const specsOf = (suites, parentTitle = null) =>
 
 const isWalkthrough = (spec) => (spec.tags ?? []).includes(WALKTHROUGH_TAG_NAME)
 
+// Every tag but 'walkthrough' and 'featured' is the set id.
 const setIdOf = (spec) =>
-  (spec.tags ?? []).find((tag) => tag !== WALKTHROUGH_TAG_NAME) ?? 'unknown'
+  (spec.tags ?? []).find((tag) => !NON_SET_TAGS.has(tag)) ?? 'unknown'
 
-/** The last top-level step, and inside it the deepest one that failed. */
-const failedStepTitle = (steps) => {
+/**
+ * The last top-level step, and inside it the deepest one that failed. Shared
+ * with `scripts/reports/demo/model.js`.
+ */
+export const failedStepTitle = (steps) => {
   const last = (steps ?? []).at(-1)
   if (!last?.error) {
     return null
@@ -53,7 +63,9 @@ const failedStepTitle = (steps) => {
   return deeper ? deeper.title : last.title
 }
 
-const annotationsOf = (test, result) => {
+/** A test's and its last result's annotations, deduplicated. Shared with
+ * `scripts/reports/demo/model.js`. */
+export const annotationsOf = (test, result) => {
   const seen = new Set()
   return [...(test.annotations ?? []), ...(result?.annotations ?? [])].filter(
     (annotation) => {

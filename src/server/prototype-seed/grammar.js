@@ -25,11 +25,19 @@ import { findFixture } from './fixtures.js'
  *             notification late.'         why the example exists, in one or
  *                                         two plain sentences. The seed ignores
  *                                         it; the walkthrough report shows it
+ *     featured: 1,                        on the demo page, in this position
+ *                                         (1 = first). At most 4 per set; the
+ *                                         seed ignores it
+ *     headline: 'Send a notification      the demo page's title for it.
+ *       from start to finish'             Defaults to `label`. The seed
+ *                                         ignores it
  *   }
  *
  * Every example is also a story in the walkthrough report
  * (fit/walkthroughs/): its label is the story's name, so write it for
- * someone who has never seen the prototype.
+ * someone who has never seen the prototype. `featured` and `headline` choose
+ * what the stakeholder demo page shows first (docs/designers/example-data.md,
+ * "Featured journeys").
  */
 
 export const EXAMPLE_KEYS = Object.freeze([
@@ -44,12 +52,15 @@ export const EXAMPLE_KEYS = Object.freeze([
   'delete',
   'copy',
   'organisationId',
-  'story'
+  'story',
+  'featured',
+  'headline'
 ])
 
 const ACTIONS = Object.freeze(['submit', 'amend', 'cancelAmend', 'delete'])
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const MAX_FEATURED = 4
 
 export const DRAFT = 'draft'
 export const SUBMITTED = 'submitted'
@@ -197,6 +208,40 @@ const identityProblems = (raw, slugsSoFar) => {
   return problems
 }
 
+const featuredProblems = (raw, usedFeatured) => {
+  const problems = []
+  if (raw.featured !== undefined) {
+    const inRange =
+      Number.isInteger(raw.featured) &&
+      raw.featured >= 1 &&
+      raw.featured <= MAX_FEATURED
+    if (!inRange) {
+      problems.push(
+        `has a featured position that is not a whole number from 1 to ${MAX_FEATURED}, like featured: 1`
+      )
+    } else if (usedFeatured.has(raw.featured)) {
+      problems.push(
+        `is featured at position ${raw.featured}, which '${usedFeatured.get(raw.featured)}' already uses`
+      )
+    } else {
+      usedFeatured.set(raw.featured, raw.label ?? 'this example')
+    }
+  }
+  if (raw.headline !== undefined) {
+    if (!isText(raw.headline)) {
+      problems.push(
+        "has a headline that is not text, like headline: 'Send a notification from start to finish'"
+      )
+    }
+    if (raw.featured === undefined) {
+      problems.push(
+        'gives a headline but is not featured, so the headline would never show'
+      )
+    }
+  }
+  return problems
+}
+
 const actionProblems = (raw) => {
   const problems = ACTIONS.filter(
     (action) => raw[action] !== undefined && typeof raw[action] !== 'boolean'
@@ -293,7 +338,8 @@ const checkOne = (raw, context) => {
   const problems = [
     ...unknownKeyProblems(raw),
     ...identityProblems(raw, context.earlier),
-    ...actionProblems(raw)
+    ...actionProblems(raw),
+    ...featuredProblems(raw, context.usedFeatured)
   ]
   const walk = walkOf(raw, context)
   if (walk.problem) {
@@ -322,7 +368,9 @@ const checkOne = (raw, context) => {
     cancelAmend: raw.cancelAmend === true,
     delete: raw.delete === true,
     organisationId: raw.organisationId ?? null,
-    story: raw.story ?? null
+    story: raw.story ?? null,
+    featured: raw.featured ?? null,
+    headline: raw.headline ?? raw.label
   }
   return { problems, example: { ...example, status: statusOf(example) } }
 }
@@ -345,9 +393,10 @@ export const validateExamples = (raw, { pool, source }) => {
     ])
   }
   const earlier = new Map()
+  const usedFeatured = new Map()
   const problems = []
   raw.forEach((item, index) => {
-    const checked = checkOne(item, { pool, earlier })
+    const checked = checkOne(item, { pool, earlier, usedFeatured })
     for (const problem of checked.problems) {
       problems.push(`${nameOf(item, index)} ${problem}.`)
     }
@@ -357,6 +406,14 @@ export const validateExamples = (raw, { pool, source }) => {
       earlier.set(slug, checked.example)
     }
   })
+  const declaredFeatured = raw.filter(
+    (item) => isPlainObject(item) && item.featured !== undefined
+  ).length
+  if (declaredFeatured > MAX_FEATURED) {
+    problems.push(
+      `The examples feature ${declaredFeatured}: the demo page shows ${MAX_FEATURED} at most, plus what happens when something is missing.`
+    )
+  }
   if (problems.length > 0) {
     throw new ExampleGrammarError(source, problems)
   }

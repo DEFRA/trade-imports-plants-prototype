@@ -121,11 +121,14 @@ export const startNotification = async (session, example) => {
  * Presses the dashboard's start button on screen. When that does not open a
  * notification, starts one directly and opens it.
  *
+ * @param {object} session
+ * @param {string} example
+ * @param {{ pace?: object }} [options] - see `scripts/designer/show/walk.js`.
  * @returns {Promise<string>} the new notification's id.
  */
-export const startOnScreen = async (session, example) => {
+export const startOnScreen = async (session, example, { pace } = {}) => {
   const { page } = session
-  const sent = await submitAndWait(page)
+  const sent = await submitAndWait(page, { pace })
   const journeyId =
     sent.outcome === 'moved'
       ? journeyIdOfPath(session.setBase, new URL(page.url()).pathname)
@@ -167,17 +170,18 @@ export const sentDirectlyNote = (slug, errors) =>
  * @param {object} session
  * @param {{ slug: string, fields: object }} step
  * @param {string} journeyId
- * @param {{ example: string, onNote?: (text: string) => void }} options
+ * @param {{ example: string, onNote?: (text: string) => void, pace?: object
+ *   }} options
  * @returns {Promise<{ sentDirectly: boolean, errors: string[] }>}
  */
 export const answerStep = async (
   session,
   step,
   journeyId,
-  { example, onNote = () => {} }
+  { example, onNote = () => {}, pace }
 ) => {
-  await fillFields(session.page, resolveStepFields(step))
-  const sent = await submitAndWait(session.page)
+  await fillFields(session.page, resolveStepFields(step), { pace })
+  const sent = await submitAndWait(session.page, { pace })
   if (sent.outcome === 'moved') {
     return { sentDirectly: false, errors: [] }
   }
@@ -208,12 +212,13 @@ export const stuckAfterHubNote = (key, errors) =>
  * @param {(key: string, index: number) => Promise<void>} [options.onPage] -
  *   called on each page before it is sent.
  * @param {(text: string) => void} [options.onNote]
+ * @param {object} [options.pace]
  * @returns {Promise<boolean>} whether every page moved on.
  */
 export const walkOnFromHub = async (
   session,
   journeyId,
-  { after, onPage = async () => {}, onNote = () => {} }
+  { after, onPage = async () => {}, onNote = () => {}, pace }
 ) => {
   const { page, setBase } = session
   for (let index = 0; index < after.length; index += 1) {
@@ -224,8 +229,8 @@ export const walkOnFromHub = async (
     }
     await onPage(key, index)
     if (index < after.length - 1) {
-      await tickEveryCheckbox(page)
-      const sent = await submitAndWait(page)
+      await tickEveryCheckbox(page, { pace })
+      const sent = await submitAndWait(page, { pace })
       if (sent.outcome !== 'moved') {
         onNote(stuckAfterHubNote(key, sent.errors))
         return false
@@ -265,18 +270,19 @@ const settle = (page) =>
  * while they are on screen, then goes back to the page as it was.
  *
  * @param {import('@playwright/test').Page} page
- * @param {{ onErrors?: (errors: string[]) => Promise<void> }} [options]
+ * @param {{ onErrors?: (errors: string[]) => Promise<void>, pace?: object }}
+ *   [options]
  * @returns {Promise<'no-form'|'errors'|'moved'|'nothing'>} what happened.
  */
 export const captureErrors = async (
   page,
-  { onErrors = async () => {} } = {}
+  { onErrors = async () => {}, pace } = {}
 ) => {
   if (!(await hasPostForm(page))) {
     return 'no-form'
   }
   const here = page.url()
-  const sent = await submitAndWait(page)
+  const sent = await submitAndWait(page, { pace })
   if (sent.outcome === 'errors') {
     await settle(page)
     await onErrors(sent.errors)

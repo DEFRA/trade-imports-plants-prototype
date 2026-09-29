@@ -28,16 +28,20 @@ export const examples = [
     slug: 'draft-midway',
     fixture: 'plantsForPlanting',
     through: 'destinations/select',
+    featured: 2,
+    headline: 'Save a notification and come back to it later',
     story:
-      'A trader bringing in plants for planting has answered about half the questions and will come back to finish.'
+      'A trader bringing in plants for planting answers about half the questions, leaves, and finds the draft waiting on their dashboard.'
   },
   {
     label: 'Submitted',
     slug: 'submitted',
     fixture: 'seedPotatoes',
     submit: true,
+    featured: 1,
+    headline: 'Send a notification from start to finish',
     story:
-      'A trader answers every question about seed potatoes, checks the answers and sends the notification.'
+      'A trader bringing in seed potatoes answers every question, checks their answers and sends the notification.'
   },
   {
     label: 'Submitted, then amended',
@@ -45,6 +49,8 @@ export const examples = [
     fixture: 'woodWithoutBark',
     submit: true,
     amend: true,
+    featured: 3,
+    headline: 'Change a notification after sending it',
     story:
       'A trader sends a notification for wood without bark, then starts to change it.'
   },
@@ -74,6 +80,8 @@ export const examples = [
     answers: {
       'arrival-details': { proposedPlaceOfLanding: 'GB FXT' }
     },
+    featured: 4,
+    headline: 'Start a new notification from an earlier one',
     story:
       'A trader reuses the answers from an earlier notification, with the goods arriving at Felixstowe instead.'
   },

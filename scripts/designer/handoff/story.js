@@ -343,11 +343,11 @@ export const specCapabilitiesFor = (pages, exists) =>
 const withTrailingSlash = (url) => (url.endsWith('/') ? url : `${url}/`)
 
 /**
- * The link to the set's walkthrough in the published Playwright report, from
+ * The link to the set's section of the stakeholder demo page, from
  * `siteUrl` in `scripts/designer/prototype.json`. With a pull request number
- * it is that pull request's report (`reports/pr-<n>/`); without one it is the
- * report for main at the site root, which shows the release once it is on
- * main (merged from a pull request or pushed straight there).
+ * it is that pull request's own demo page (`reports/pr-<n>/`); without one
+ * it is the demo page for main at the site root, which shows the release
+ * once it is on main (merged from a pull request or pushed straight there).
  *
  * @param {{ siteUrl?: string|null }} prototype - the prototype's facts.
  * @param {string} setId
@@ -366,12 +366,12 @@ export const walkthroughLink = (
   }
   const base = withTrailingSlash(siteUrl)
   const url = pullRequest
-    ? `${base}reports/pr-${pullRequest}/#?q=@${setId}`
-    : `${base}#?q=@${setId}`
+    ? `${base}reports/pr-${pullRequest}/#set-${setId}`
+    : `${base}#set-${setId}`
   const note = pullRequest
     ? ''
     : ' (this shows the saved version once it is on main)'
-  return { url, line: `See it walked through, page by page: ${url}${note}` }
+  return { url, line: `Watch it walked through: ${url}${note}` }
 }
 
 /**

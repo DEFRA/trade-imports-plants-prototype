@@ -3,8 +3,9 @@
 This guide takes you from nothing to a changed page you can show someone. It
 takes about an hour the first time, most of it waiting for installs.
 
-Before you install anything, you can see the whole prototype walked through,
-page by page: `https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`.
+Before you install anything, you can see the plants prototype's demo page:
+short videos of the most important journeys, most important first:
+`https://defra.github.io/trade-imports-plants-prototype/`.
 
 You can do every step by asking Claude Code in plain words. You never need
 to know the names of Claude's skills or commands: just say what you want. If
@@ -275,9 +276,9 @@ checks it and commits it, on whatever branch you're already on — `main`
 included; you never need a branch of your own.
 
 Then ask: **"Share this"**. Claude pushes it straight to `main` — the
-deployed prototype and its report update once the pipeline runs. If you'd
-rather share it for review first, without it touching `main` yet, say "keep
-this off main" or "make a pull request": Claude then puts it on a
+deployed prototype and its demo page update once the pipeline runs. If
+you'd rather share it for review first, without it touching `main` yet, say
+"keep this off main" or "make a pull request": Claude then puts it on a
 `design/*` branch and opens a draft pull request with the gallery in it, for
 the prototype maintainer to review and merge. See
 [Sharing and handing off](sharing-and-handing-off.md).

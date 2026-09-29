@@ -19,6 +19,15 @@ import { fileSafe } from '../../scripts/designer/show/manifest.js'
 import { journeyPath } from '../../scripts/designer/show/steps.js'
 import { pageHeading, primaryButton } from '../../scripts/designer/show/walk.js'
 import {
+  createPace,
+  installCursor
+} from '../../scripts/designer/walkthrough/human-pace.js'
+import {
+  PACES,
+  paceFromEnv,
+  roleOfStep
+} from '../../scripts/designer/walkthrough/pace.js'
+import {
   WALKTHROUGH_TAG,
   onlySetsFrom,
   planWalkthroughs,
@@ -44,8 +53,8 @@ import {
  * note. Accessibility is checked by the journeys project, not here.
  */
 
-const PAUSE_MS = Number(process.env.WALKTHROUGH_PAUSE_MS ?? 800)
 const PICTURE_QUALITY = 70
+const HIDE_OVERLAY_STYLE = '[data-walkthrough-overlay]{display:none!important}'
 const HTTP_ERROR = 400
 const CHECK_ANSWERS = 'notification-view'
 const AFTER_SENDING = [CHECK_ANSWERS, 'declaration', 'confirmation']
@@ -58,6 +67,15 @@ const plan = planWalkthroughs({
   sets: readSets(),
   only: onlySetsFrom(process.env.WALKTHROUGH_SETS)
 })
+
+// Read once: every test in this file walks at the same pace, and an unknown
+// value's warning is worth printing once, not once per story.
+const paceSetting = paceFromEnv(process.env.WALKTHROUGH_PACE)
+if (paceSetting.warning) {
+  console.warn(paceSetting.warning)
+}
+
+const FEATURED_TAG = 'featured'
 
 const annotationsFor = (setId, story) => [
   ...(story.story ? [{ type: 'Story', description: story.story }] : []),
@@ -79,6 +97,20 @@ const annotationsFor = (setId, story) => [
           description: `${story.madeBy} in the example data`
         }
       ]
+    : []),
+  ...(story.featured !== null && story.featured !== undefined
+    ? [
+        { type: 'Featured', description: String(story.featured) },
+        { type: 'Headline', description: story.headline }
+      ]
+    : [])
+]
+
+const tagsFor = (setId, story) => [
+  WALKTHROUGH_TAG,
+  setTag(setId),
+  ...(story.featured !== null && story.featured !== undefined
+    ? [`@${FEATURED_TAG}`]
     : [])
 ]
 
@@ -128,7 +160,8 @@ const pageStep = async (
   const heading = (await pageHeading(page)) ?? key
   walk.health.where = heading
   await test.step(`${walk.count}. ${heading}${suffix}`, async () => {
-    await page.waitForTimeout(PAUSE_MS)
+    await walk.pace.settle()
+    await walk.pace.linger(roleOfStep(key))
     await picture(walk, `${number}-${fileSafe(key)}`, `${number} ${heading}`)
     await expect
       .soft(page.locator('#main-content'), `${heading} has its main content`)
@@ -143,7 +176,8 @@ const picture = async (walk, fileName, name) => {
     path: file,
     fullPage: true,
     type: 'jpeg',
-    quality: PICTURE_QUALITY
+    quality: PICTURE_QUALITY,
+    style: HIDE_OVERLAY_STYLE
   })
   await walk.testInfo.attach(name, { path: file, contentType: 'image/jpeg' })
 }
@@ -157,9 +191,10 @@ const showErrorState = async (walk, key) => {
     return
   }
   const outcome = await captureErrors(walk.page, {
+    pace: walk.pace,
     onErrors: async (errors) => {
       await test.step(EMPTY_FORM_STEP, async () => {
-        await walk.page.waitForTimeout(PAUSE_MS)
+        await walk.pace.linger('errors')
         await picture(
           walk,
           `${String(walk.count).padStart(2, '0')}-${fileSafe(key)}-errors`,
@@ -185,6 +220,7 @@ const walkSteps = async (walk, story, journeyId) => {
         }
         await answerStep(walk.session, step, journeyId, {
           example: story.name,
+          pace: walk.pace,
           onNote: (text) => annotate(walk, 'Sent directly', text)
         })
       }
@@ -208,6 +244,7 @@ const walkToConfirmation = async (walk, journeyId) => {
   let stuck = null
   const moved = await walkOnFromHub(walk.session, journeyId, {
     after: AFTER_SENDING,
+    pace: walk.pace,
     onPage: (key) => pageStep(walk, { key }),
     onNote: (text) => {
       stuck = text
@@ -226,8 +263,9 @@ const buttonFor = (page, journeyId, slug) =>
     .locator('button:not([type="button"])')
     .first()
 
-const pressAndWait = async (page, button) => {
+const pressAndWait = async (page, button, pace) => {
   const from = page.url()
+  await pace.beforePress(button)
   await button.click()
   await page.waitForURL((url) => url.href !== from)
 }
@@ -245,7 +283,7 @@ const actionOnScreen = async (walk, journeyId, slug) => {
   if ((await onDashboard.count()) > 0) {
     await pageStep(walk, {
       key: `dashboard-${slug}`,
-      action: () => pressAndWait(page, onDashboard)
+      action: () => pressAndWait(page, onDashboard, walk.pace)
     })
     return
   }
@@ -257,7 +295,7 @@ const actionOnScreen = async (walk, journeyId, slug) => {
     if ((await confirm.count()) > 0) {
       await pageStep(walk, {
         key: slug,
-        action: () => pressAndWait(page, confirm)
+        action: () => pressAndWait(page, confirm, walk.pace)
       })
       return
     }
@@ -289,7 +327,7 @@ const walkStory = async (walk, story) => {
   await pageStep(walk, {
     key: 'dashboard',
     action: async () => {
-      journeyId = await startOnScreen(session, story.name)
+      journeyId = await startOnScreen(session, story.name, { pace: walk.pace })
     }
   })
   await walkSteps(walk, story, journeyId)
@@ -315,7 +353,7 @@ for (const { setId, title, stories } of plan) {
       test(
         story.name,
         {
-          tag: [WALKTHROUGH_TAG, setTag(setId)],
+          tag: tagsFor(setId, story),
           annotation: annotationsFor(setId, story)
         },
         async ({ page, context, baseURL }, testInfo) => {
@@ -323,12 +361,14 @@ for (const { setId, title, stories } of plan) {
             throw new Error(story.message)
           }
           const health = watchHealth(page)
+          await installCursor(context)
           const walk = {
             page,
             testInfo,
             health,
             count: 0,
             storyName: story.name,
+            pace: createPace(page, PACES[paceSetting.name]),
             session: { context, page, baseUrl: baseURL, setBase: `/${setId}` }
           }
           await signIn(page, {

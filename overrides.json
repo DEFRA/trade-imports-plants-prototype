@@ -110,7 +110,7 @@
     },
     {
       "path": "package.json",
-      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge, which CI uses to merge the FIT and walkthrough reports into the one published to GitHub Pages; scripts and dependencies otherwise follow upstream"
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge and reports:demo, which CI uses to merge the FIT and walkthrough reports and then build the stakeholder demo page published to GitHub Pages; scripts and dependencies otherwise follow upstream"
     },
     {
       "path": "package-lock.json",
@@ -134,7 +134,7 @@
     },
     {
       "path": "playwright.config.js",
-      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty; plus an opt-in 'walkthroughs' project (PROTOTYPE_WALKTHROUGHS=true) for fit/walkthroughs, and PLAYWRIGHT_RECORD_EVERYTHING=true turning video, trace and screenshots on for every project, for the published report"
+      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty; plus an opt-in 'walkthroughs' project (PROTOTYPE_WALKTHROUGHS=true) for fit/walkthroughs, and PLAYWRIGHT_RECORD_EVERYTHING=true turning video, trace and screenshots on for every project, for the published report. The walkthroughs project's slowMo now defaults to 0 (human pacing is explicit, in scripts/designer/walkthrough/pace.js and human-pace.js, not from slowMo), its timeout is 600 000ms (long enough for a human-paced walk of the longest story), and it alone runs with bypassCSP: true, because the human-pace cursor overlay's CSSOM style writes are inline styles under the prototype's CSP and every story failed on that without it"
     }
   ]
 }

@@ -1,13 +1,14 @@
 name: Prune Playwright reports
 
-# The cleanup for the Playwright reports check-pull-request.yml publishes to
-# gh-pages: reports/pr-<n>/ per pull request, and the merged report for main
-# at the site root (never under reports/). Copied from the workspace's
-# cleanup-e2e-reports.yml, with its own name because that name is in
-# overrides.json `deleted`. This only ever prunes reports/pr-<n>/ folders for
-# a pull request that closed or has not updated in 21 days — the root report
-# and .nojekyll live outside reports/, and reports/main/ is only a redirect
-# to the root, so this workflow never touches them — then orphan-resets
+# The cleanup for what check-pull-request.yml publishes to gh-pages:
+# reports/pr-<n>/ per pull request, and the demo page and the merged report
+# (under tests/) for main at the site root (never under reports/). Copied
+# from the workspace's cleanup-e2e-reports.yml, with its own name because
+# that name is in overrides.json `deleted`. This only ever prunes
+# reports/pr-<n>/ folders for a pull request that closed or has not updated
+# in 21 days — the root's index.html, demo.css, media/, tests/ and
+# .nojekyll live outside reports/, and reports/main/ is only a redirect to
+# the root, so this workflow never touches them — then orphan-resets
 # gh-pages so the videos of pruned reports do not stay in its history.
 
 on:

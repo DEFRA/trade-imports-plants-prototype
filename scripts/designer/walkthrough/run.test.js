@@ -9,9 +9,13 @@ import {
   WalkthroughProblem,
   chooseSets,
   keepAwakeCommand,
+  localWorkers,
+  paceEstimateMinutes,
   playwrightArgs,
   playwrightEnv,
-  runWalkthrough
+  runWalkthrough,
+  walkingLine,
+  whereLines
 } from './run.js'
 
 const ROOT = '/prototype'
@@ -103,6 +107,11 @@ const fakeDeps = ({
       return 0
     },
     appendSummary: (file, text) => calls.summaries.push({ file, text }),
+    buildDemoSite: async (input) => {
+      calls.demoSite = calls.demoSite ?? []
+      calls.demoSite.push(input)
+    },
+    localWorkers: () => 1,
     ...overrides
   }
   return { deps, calls }
@@ -159,7 +168,7 @@ describe('chooseSets', () => {
 })
 
 describe('playwrightArgs and playwrightEnv', () => {
-  it('Should switch the walkthroughs on and keep a designer’s run under .cache', () => {
+  it('Should switch the walkthroughs on, at the human pace, and keep a designer’s run under .cache', () => {
     const options = optionsFrom(['--set', 'plants-working'])
 
     expect(playwrightArgs(options)).toEqual([
@@ -176,6 +185,7 @@ describe('playwrightArgs and playwrightEnv', () => {
       })
     ).toEqual({
       PROTOTYPE_WALKTHROUGHS: 'true',
+      WALKTHROUGH_PACE: 'human',
       PORT: '3203',
       WALKTHROUGH_SETS: 'plants-working',
       PLAYWRIGHT_JSON_OUTPUT_FILE: path.join(
@@ -184,14 +194,24 @@ describe('playwrightArgs and playwrightEnv', () => {
       ),
       PLAYWRIGHT_HTML_OUTPUT_DIR: path.join(
         ROOT,
-        '.cache/designer/walkthrough/report'
+        '.cache/designer/walkthrough/site/tests'
       ),
       PLAYWRIGHT_HTML_OPEN: 'never',
       PLAYWRIGHT_HTML_TITLE: 'Walkthrough: plants-working'
     })
   })
 
-  it('Should write a blob report to merge and a JSON report on CI', () => {
+  it('Should set the fast pace with --fast', () => {
+    expect(
+      playwrightEnv(optionsFrom(['--fast']), {
+        root: ROOT,
+        port: 3203,
+        setIds: null
+      })
+    ).toMatchObject({ WALKTHROUGH_PACE: 'fast' })
+  })
+
+  it('Should write a blob report to merge and a JSON report on CI, with 4 workers and the wider timeout', () => {
     const options = optionsFrom(['--ci'])
 
     expect(playwrightArgs(options)).toEqual([
@@ -199,12 +219,14 @@ describe('playwrightArgs and playwrightEnv', () => {
       '--project=walkthroughs',
       '--reporter=list,blob,json',
       '--output=test-results',
-      '--global-timeout=1500000'
+      '--global-timeout=2400000',
+      '--workers=4'
     ])
     expect(
       playwrightEnv(options, { root: ROOT, port: CI_PORT, setIds: null })
     ).toEqual({
       PROTOTYPE_WALKTHROUGHS: 'true',
+      WALKTHROUGH_PACE: 'human',
       PORT: '3054',
       PLAYWRIGHT_JSON_OUTPUT_FILE: path.join(
         ROOT,
@@ -212,6 +234,66 @@ describe('playwrightArgs and playwrightEnv', () => {
       ),
       PLAYWRIGHT_BLOB_OUTPUT_DIR: path.join(ROOT, 'blob-report')
     })
+  })
+})
+
+describe('paceEstimateMinutes', () => {
+  it('Should reckon about two minutes per story, shared across the workers', () => {
+    expect(paceEstimateMinutes(10, 1)).toBe(20)
+    expect(paceEstimateMinutes(10, 4)).toBe(5)
+  })
+
+  it('Should never say less than the longest story takes on its own', () => {
+    expect(paceEstimateMinutes(10, 8)).toBe(3)
+    expect(paceEstimateMinutes(1, 4)).toBe(3)
+  })
+})
+
+describe('localWorkers', () => {
+  it('Should match Playwright’s default of half the processors, and at least one', () => {
+    expect(localWorkers(16)).toBe(8)
+    expect(localWorkers(1)).toBe(1)
+  })
+})
+
+describe('walkingLine', () => {
+  it('Should give a pace-based estimate at the human pace, shared across the local workers', () => {
+    expect(
+      walkingLine(['high-risk-plants'], 3203, {
+        storyCount: 10,
+        ci: false,
+        workers: 4
+      })
+    ).toBe(
+      "Walking high-risk-plants through, on port 3203. At a person's pace this takes about 5 minutes. Your own prototype on 3103 is not touched."
+    )
+  })
+
+  it('Should use the 4 CI workers on CI, whatever the machine has', () => {
+    expect(
+      walkingLine(['high-risk-plants'], 3203, {
+        storyCount: 10,
+        ci: true,
+        workers: 1
+      })
+    ).toContain('about 5 minutes')
+  })
+
+  it('Should say it is the quick check with --fast', () => {
+    expect(
+      walkingLine(['high-risk-plants'], 3203, { fast: true, storyCount: 10 })
+    ).toContain('This is the quick check, so it should take a few minutes.')
+  })
+})
+
+describe('whereLines', () => {
+  it('Should point at the demo page and the technical report', () => {
+    expect(whereLines()).toEqual([
+      '',
+      `Demo page: ${path.join('.cache', 'designer', 'walkthrough', 'site', 'index.html')}`,
+      `Technical report (every step, trace): ${path.join('.cache', 'designer', 'walkthrough', 'site', 'tests', 'index.html')}`,
+      'To watch it: npm run designer:walkthrough -- --show'
+    ])
   })
 })
 
@@ -246,6 +328,30 @@ describe('runWalkthrough', () => {
       'To watch it: npm run designer:walkthrough -- --show'
     )
     expect(fake.calls.served).toEqual([])
+    expect(fake.calls.demoSite).toEqual([
+      {
+        root: ROOT,
+        reportFile: path.join(ROOT, '.cache/designer/walkthrough/report.json'),
+        resultsDir: path.join(ROOT, '.cache/designer/walkthrough/test-results'),
+        siteDir: path.join(ROOT, '.cache/designer/walkthrough/site')
+      }
+    ])
+  })
+
+  it('Should build the demo site on CI too, through a separate reports:demo step, not by calling buildDemoSite itself', async () => {
+    const fake = fakeDeps()
+
+    await run(['--ci'], fake)
+
+    expect(fake.calls.demoSite ?? []).toEqual([])
+  })
+
+  it('Should not build the demo site with --show, which only opens what is already there', async () => {
+    const fake = fakeDeps()
+
+    await run(['--show'], fake)
+
+    expect(fake.calls.demoSite ?? []).toEqual([])
   })
 
   it('Should keep the computer awake while Playwright runs, and let it sleep after', async () => {
@@ -283,7 +389,7 @@ describe('runWalkthrough', () => {
     const { said } = await run([], fake)
 
     expect(fake.calls.served).toEqual([
-      path.join(ROOT, '.cache/designer/walkthrough/report')
+      path.join(ROOT, '.cache/designer/walkthrough/site')
     ])
     expect(said).toContain(
       'Your walkthrough is open at http://localhost:9323. Press Ctrl+C here when you have finished looking.'

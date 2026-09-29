@@ -25,20 +25,31 @@ const PREFERRED = Object.freeze([
     slug: 'draft-midway',
     fixture: 'plantsForPlanting',
     through: 'destinations/select',
-    part: 'middle'
+    part: 'middle',
+    featured: 2,
+    headline: 'Save a notification and come back to it later',
+    story:
+      'A trader answers about half the questions, leaves, and finds the draft waiting on their dashboard.'
   },
   {
     label: 'Submitted',
     slug: 'submitted',
     fixture: 'seedPotatoes',
-    submit: true
+    submit: true,
+    featured: 1,
+    headline: 'Send a notification from start to finish',
+    story:
+      'A trader answers every question, checks their answers and sends the notification.'
   },
   {
     label: 'Submitted, then amended',
     slug: 'amended',
     fixture: 'woodWithoutBark',
     submit: true,
-    amend: true
+    amend: true,
+    featured: 3,
+    headline: 'Change a notification after sending it',
+    story: 'A trader sends a notification, then starts to change it.'
   }
 ])
 

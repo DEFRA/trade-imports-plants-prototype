@@ -77,9 +77,7 @@ Very close, with these differences. All of them are known.
   `design-gaps.md` and travels with the hand-off.
 - **The "Address book" link in the header is deliberately dead.** The
   address book belongs to the Import Notification Service, which this
-  prototype does not include, so the link never resolves — not on your own
-  computer, not on the deployed prototype. There is no setting that points
-  it at a real one. It is never needed to see a change you make here.
+  prototype does not include. You never need it to see a change here.
 - **Commodity and Arrival are blank on the real journey's dashboard.** This
   is a bug in the real service, not in your release: your release shows them.
 - **Welsh is never shown.** The prototype only shows English. New words get
@@ -97,17 +95,21 @@ Very close, with these differences. All of them are known.
   and research from a laptop with `npm run dev`.
 - **No custom styles or scripts yet**, as above: they are design gaps.
 
-## Walkthroughs: the prototype documents itself
+## Walkthroughs: the demo page and the technical report
 
-Every set gets a **walkthrough**: each of its examples, page by page, with
-pictures, a video and a trace, made from the words the release already has.
-It is documentation, not a test: a red story never stops a pull request.
-Every pull request gets a comment linking to its own copy; once the work is
-on `main` (pushed straight there or merged), the lasting link is
-`https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`
-(once the maintainer turns GitHub Pages on; until then the comment points
-at a download). Say "record a walkthrough" to make one yourself. See
-[Seeing your change](docs/designers/seeing-your-change.md#the-walkthrough-on-every-pull-request).
+Every set gets a **walkthrough**: each example, page by page, at a person's
+pace, with pictures, a video and a trace. It is documentation, not a test: a
+red story never stops a pull request. Say "record a walkthrough" to make one.
+
+The walkthroughs feed a **demo page**: short videos of the most important
+journeys first, for anyone interested in the prototype rather than the code.
+Each pull request gets a comment linking to its copy at `reports/pr-<n>/`;
+`main`'s lives at `https://defra.github.io/trade-imports-plants-prototype/`
+(once GitHub Pages is on), with the full Playwright report at `tests/`. Choose what leads it with
+`featured` and `headline` on an example — see
+[Example data](docs/designers/example-data.md#choose-what-the-demo-page-shows-first)
+and
+[Seeing your change](docs/designers/seeing-your-change.md#the-demo-page-and-the-technical-report).
 
 ## Deploying, sharing and merging
 
@@ -116,10 +118,8 @@ Once deployed, the maintainer puts its address here and in `deployedUrl` in
 signed in automatically, on purpose, until CDP puts its own auth in front.
 
 `main` is not protected: "save my work" then "share this" pushes straight
-there, and the deployed prototype and its report update once the pipeline
-runs. Say "keep this off main" or "make a pull request" instead to share
-work in progress on a branch first, with its own report at `reports/pr-<n>/`
-— see [Sharing and handing off](docs/designers/sharing-and-handing-off.md).
+there. Say "make a pull request" to share work in progress on a branch
+first — see [Sharing and handing off](docs/designers/sharing-and-handing-off.md).
 
 ## If you're not sure
 

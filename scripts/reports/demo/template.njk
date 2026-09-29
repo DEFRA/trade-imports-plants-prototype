@@ -1,0 +1,150 @@
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+{% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+<!doctype html>
+<html lang="en" class="govuk-template">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The plants prototype, walked through</title>
+  <link rel="stylesheet" href="demo.css">
+  <script>
+    if (location.hash.startsWith('#?')) {
+      location.replace('tests/' + location.hash)
+    }
+  </script>
+</head>
+<body class="govuk-template__body">
+  <div class="govuk-width-container">
+    {{ govukPhaseBanner({
+      tag: { text: "prototype" },
+      html: 'This is a prototype of the import notification service for high-risk plants. It uses made-up data.'
+    }) }}
+
+    <main class="govuk-main-wrapper" id="main-content">
+      <h1 class="govuk-heading-xl">The plants prototype, walked through</h1>
+
+      {% if isPullRequest %}
+        <p class="govuk-caption-m">Proposed change: pull request #{{ prNumber }}, {{ headRef }}</p>
+        {{ govukInsetText({
+          html: 'This shows a change that has not been agreed yet. <a class="govuk-link" href="../../">See what is on main</a>.'
+        }) }}
+      {% else %}
+        <p class="govuk-caption-m">What is on main today. Updated {{ updatedDate }} (commit {{ sha }})</p>
+      {% endif %}
+
+      {% if noWalkthroughs %}
+        <p class="govuk-body">The walkthroughs did not run this time. See <a class="govuk-link" href="tests/">the technical report</a> for what did run.</p>
+      {% else %}
+        <p class="govuk-body">Each video shows someone using the prototype, page by page, at a normal pace. They are made automatically every time the prototype changes, so they always match it.</p>
+        <p class="govuk-body">The most important journeys are first.</p>
+        <p class="govuk-body">Each video has no sound. The pictures under it show the same pages.</p>
+
+        {% if sets.length > 1 %}
+          <nav class="govuk-body" aria-label="Releases on this page">
+            <ul class="govuk-list">
+              {% for set in sets %}
+                <li><a class="govuk-link" href="#set-{{ set.id }}">{{ set.title }}</a></li>
+              {% endfor %}
+            </ul>
+          </nav>
+        {% endif %}
+
+        {% for set in sets %}
+          <section id="set-{{ set.id }}">
+            <h2 class="govuk-heading-l">
+              {{ set.title }}
+              {{ govukTag({ text: set.tag, classes: "govuk-!-margin-left-2" }) }}
+            </h2>
+
+            {% if set.description %}
+              <p class="govuk-body">{{ set.description }}</p>
+            {% endif %}
+
+            {% if set.featured.length > 1 %}
+              <nav aria-label="Journeys in {{ set.title }}">
+                <ol class="govuk-list govuk-list--number">
+                  {% for story in set.featured %}
+                    <li><a class="govuk-link" href="#{{ set.id }}-{{ loop.index }}">{{ story.headline }}</a></li>
+                  {% endfor %}
+                </ol>
+                {% if set.other.length > 0 %}
+                  <p class="govuk-body"><a class="govuk-link" href="#{{ set.id }}-other">Other journeys in this release ({{ set.other.length }})</a></p>
+                {% endif %}
+              </nav>
+            {% endif %}
+
+            {% for story in set.featured %}
+              <h3 class="govuk-heading-m" id="{{ set.id }}-{{ loop.index }}">{{ loop.index }}. {{ story.headline }}</h3>
+              {% if story.summary %}
+                <p class="govuk-body">{{ story.summary }}</p>
+              {% endif %}
+
+              {% if story.status == 'stopped' %}
+                {{ govukWarningText({
+                  text: 'This walkthrough stopped before the end: ' + story.warning,
+                  iconFallbackText: 'Warning'
+                }) }}
+              {% endif %}
+
+              {% if story.video %}
+                <video controls preload="metadata"
+                  {% if story.pages.length > 0 %}poster="{{ (story.pages | last).url }}"{% endif %}
+                  src="{{ story.video }}" class="app-demo-video">
+                  Your browser cannot play this video.
+                  <a class="govuk-link" href="{{ story.video }}">Download the video</a> instead.
+                </video>
+                <p class="govuk-body"><a class="govuk-link" href="{{ story.video }}">Download the video</a></p>
+              {% endif %}
+
+              <p class="govuk-body-s">{{ story.durationLabel }} · {{ story.pageCountLabel }}</p>
+
+              {% if story.pages.length > 0 %}
+                {% set pagesHtml %}
+                  <div class="app-demo-page-strip">
+                    {% for page in story.pages %}
+                      <a class="app-demo-page-strip__item" href="{{ page.url }}">
+                        <img src="{{ page.url }}" alt="{{ page.caption }}" loading="lazy">
+                        <span class="govuk-body-s">{{ page.caption }}</span>
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% endset %}
+                {{ govukDetails({
+                  summaryText: story.detailsLabel,
+                  html: pagesHtml
+                }) }}
+              {% endif %}
+
+              <p class="govuk-body">
+                <a class="govuk-link" href="{{ story.detailsPath }}">See every step, and the technical detail</a>
+              </p>
+            {% endfor %}
+
+            {% if set.other.length > 0 %}
+              <h3 class="govuk-heading-m" id="{{ set.id }}-other">Other journeys in this release</h3>
+              {{ govukSummaryList({ rows: set.otherRows }) }}
+            {% endif %}
+          </section>
+        {% endfor %}
+      {% endif %}
+
+      <h2 class="govuk-heading-l">For the development team</h2>
+      <p class="govuk-body">
+        <a class="govuk-link" href="tests/">The technical report</a>: every automatic test and every walkthrough, with traces.
+      </p>
+      {% if fit %}
+        <p class="govuk-body">FIT tests: {{ fit.passed }} passed, {{ fit.failed }} failed, {{ fit.flaky }} flaky.</p>
+      {% else %}
+        <p class="govuk-body">The FIT tests did not run this time.</p>
+      {% endif %}
+      {% if runUrl %}
+        <p class="govuk-body">Made by run {{ runUrl }}</p>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

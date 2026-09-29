@@ -19,6 +19,26 @@ const DEFAULT_TIMEOUT_MS = 15_000
 export const cssString = (value) =>
   String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')
 
+/**
+ * The pacing hooks a walkthrough step calls (see
+ * `scripts/designer/walkthrough/human-pace.js`), as no-ops. `designer:show`
+ * and every FIT spec call `fillFields`/`submitAndWait`/`tickEveryCheckbox`
+ * with no `pace`, so they behave exactly as they always have: `approach`,
+ * `type` and `choose` fall back to today's plain `fill()`/`check()`.
+ */
+export const NO_PACE = Object.freeze({
+  settle: async () => {},
+  linger: async () => {},
+  approach: async () => {},
+  type: async (locator, value) => {
+    await locator.fill(value)
+  },
+  choose: async (locator) => {
+    await locator.check()
+  },
+  beforePress: async () => {}
+})
+
 const byName = (name) => `${POST_FORM} [name="${cssString(name)}"]`
 
 const SUBMIT = 'button:not([type="button"])'
@@ -98,26 +118,51 @@ const setValue = (control, value) =>
     element.dispatchEvent(new Event('change', { bubbles: true }))
   }, value)
 
-const fillOne = async (page, name, value) => {
+/**
+ * An enhanced type-ahead's visible text box, when `control` is the select it
+ * replaces (see `setValue`'s own comment): the element whose id is the
+ * select's id with the `-select` suffix removed. Null for a plain select.
+ */
+const visibleBoxFor = async (page, control) => {
+  const id = await control.getAttribute('id')
+  if (!id?.endsWith('-select')) {
+    return null
+  }
+  const box = page.locator(
+    `[id="${cssString(id.slice(0, -'-select'.length))}"]`
+  )
+  return (await box.count()) > 0 ? box.first() : null
+}
+
+const fillOne = async (page, name, value, pace) => {
   const controls = page.locator(byName(name))
   if ((await controls.count()) === 0) {
     await addHidden(page, name, value)
     return
   }
-  const kind = await controlKind(controls.first())
+  const control = controls.first()
+  const kind = await controlKind(control)
   if (kind === 'radio' || kind === 'checkbox') {
     const option = page.locator(`${byName(name)}[value="${cssString(value)}"]`)
     if ((await option.count()) > 0) {
-      await option.first().check()
+      await pace.choose(option.first())
     } else {
       await addHidden(page, name, value)
     }
     return
   }
-  const control = controls.first()
   if (kind !== 'select' && kind !== 'hidden' && (await control.isVisible())) {
-    await control.fill(value)
+    await pace.type(control, value)
     return
+  }
+  if (kind === 'select') {
+    // Typing into accessible-autocomplete is unreliable, so the value is
+    // still set directly below; the cursor still visits the visible box a
+    // person would have typed into.
+    const visibleBox = await visibleBoxFor(page, control)
+    if (visibleBox) {
+      await pace.approach(visibleBox)
+    }
   }
   await setValue(control, value)
 }
@@ -127,19 +172,30 @@ const fillOne = async (page, name, value) => {
  * checkboxes are ticked, text boxes typed into, selects and hidden fields
  * set. A field the page has no control for is added as a hidden field, so the
  * form sends exactly what the example says.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {Record<string, unknown>} fields
+ * @param {{ pace?: object }} [options] - `pace`'s hooks are called for every
+ *   visible control; see `scripts/designer/walkthrough/human-pace.js`.
+ *   Defaults to `NO_PACE`, so every other caller behaves exactly as before.
  */
-export const fillFields = async (page, fields) => {
+export const fillFields = async (page, fields, { pace = NO_PACE } = {}) => {
   for (const [name, value] of Object.entries(fields)) {
-    await fillOne(page, name, String(value))
+    await fillOne(page, name, String(value), pace)
   }
 }
 
-/** Ticks every checkbox in the page's form (a declaration, for example). */
-export const tickEveryCheckbox = async (page) => {
+/**
+ * Ticks every checkbox in the page's form (a declaration, for example).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ pace?: object }} [options]
+ */
+export const tickEveryCheckbox = async (page, { pace = NO_PACE } = {}) => {
   const boxes = page.locator(`${POST_FORM} input[type="checkbox"]`)
   const count = await boxes.count()
   for (let index = 0; index < count; index += 1) {
-    await boxes.nth(index).check()
+    await pace.choose(boxes.nth(index))
   }
 }
 
@@ -147,11 +203,13 @@ export const tickEveryCheckbox = async (page) => {
  * Presses the form's main button and waits until the browser moves to
  * another page or an error summary appears.
  *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ timeout?: number, pace?: object }} [options]
  * @returns {Promise<{ outcome: 'moved'|'errors'|'nothing', errors: string[] }>}
  */
 export const submitAndWait = async (
   page,
-  { timeout = DEFAULT_TIMEOUT_MS } = {}
+  { timeout = DEFAULT_TIMEOUT_MS, pace = NO_PACE } = {}
 ) => {
   const from = page.url()
   const moved = page.waitForURL((url) => url.href !== from, { timeout })
@@ -160,6 +218,7 @@ export const submitAndWait = async (
     .first()
     .waitFor({ state: 'visible', timeout })
   const button = await primaryButton(page)
+  await pace.beforePress(button)
   await button.click()
   const outcome = await Promise.any([
     moved.then(() => 'moved'),

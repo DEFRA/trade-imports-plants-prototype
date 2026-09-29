@@ -77,6 +77,14 @@ export const slugOf = (name) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
+/** At most this many examples can be featured on the demo page. */
+export const MAX_FEATURED = 4
+
+/** The headline a set's first story gets when nothing is featured on purpose. */
+export const FALLBACK_HEADLINE = 'Send a notification from start to finish'
+
+export const ERROR_STORY_HEADLINE = 'What happens when something is missing'
+
 const exampleStory = (example) => ({
   kind: 'example',
   name: example.label,
@@ -89,7 +97,9 @@ const exampleStory = (example) => ({
   cancelAmend: example.cancelAmend === true,
   delete: example.delete === true,
   fixture: example.fixture ?? null,
-  madeBy: example.organisationId ?? null
+  madeBy: example.organisationId ?? null,
+  featured: example.featured ?? null,
+  headline: example.headline ?? example.label
 })
 
 const scenarioStory = (scenario) => ({
@@ -104,7 +114,9 @@ const scenarioStory = (scenario) => ({
   cancelAmend: false,
   delete: false,
   fixture: `happy-path/${scenario.name}`,
-  madeBy: null
+  madeBy: null,
+  featured: null,
+  headline: scenario.useCase ?? scenario.name
 })
 
 const isFullWalk = (example) => !example.through && !example.delete
@@ -113,8 +125,13 @@ const isFullWalk = (example) => !example.through && !example.delete
  * The story that sends every page empty first, to show its error messages.
  * It walks the first example that answers every page, or else the first
  * happy-path scenario. Null when there is neither.
+ *
+ * @param {object[]} examples
+ * @param {object[]} scenarios
+ * @param {number} highestFeatured - the highest featured position already in
+ *   use, so the error story lands one place after it (at most 5th).
  */
-const errorStory = (examples, scenarios) => {
+const errorStory = (examples, scenarios, highestFeatured) => {
   const example = examples.find(isFullWalk)
   const walk = example
     ? { steps: example.steps, fixture: example.fixture ?? null }
@@ -130,7 +147,9 @@ const errorStory = (examples, scenarios) => {
     name: ERROR_STORY_NAME,
     slug: ERROR_STORY_SLUG,
     story:
-      'Each page is sent empty first, to show what it says when nothing is filled in. Then it is filled in and sent as normal.',
+      'Each page is first sent with nothing filled in, to show the message a trader would see, then filled in properly.',
+    featured: highestFeatured + 1,
+    headline: ERROR_STORY_HEADLINE,
     ...walk
   }
 }
@@ -151,6 +170,47 @@ const uniqueNames = (stories) => {
   )
 }
 
+/**
+ * When a set has featured nothing on purpose, the first example that sends
+ * its notification is featured as 1, with a headline every stakeholder can
+ * follow, or failing that the first story. So every set always has a
+ * headline video.
+ */
+const withFallbackFeature = (stories) => {
+  if (
+    stories.length === 0 ||
+    stories.some((story) => story.featured !== null)
+  ) {
+    return stories
+  }
+  const chosen = stories.findIndex((story) => story.submit)
+  const index = chosen === -1 ? 0 : chosen
+  return stories.map((story, i) =>
+    i === index ? { ...story, featured: 1, headline: FALLBACK_HEADLINE } : story
+  )
+}
+
+const highestFeaturedOf = (stories) =>
+  stories.reduce((max, story) => Math.max(max, story.featured ?? 0), 0)
+
+/** Featured stories first, in position order; then the rest, in file order. */
+const orderByFeatured = (stories) =>
+  stories
+    .map((story, index) => ({ story, index }))
+    .sort((a, b) => {
+      if (a.story.featured !== null && b.story.featured !== null) {
+        return a.story.featured - b.story.featured
+      }
+      if (a.story.featured !== null) {
+        return -1
+      }
+      if (b.story.featured !== null) {
+        return 1
+      }
+      return a.index - b.index
+    })
+    .map(({ story }) => story)
+
 const storiesOf = (set) => {
   if (set.examplesProblem) {
     return [
@@ -164,12 +224,13 @@ const storiesOf = (set) => {
   }
   const examples = set.examples ?? []
   const scenarios = set.scenarios ?? []
-  const walks =
+  const walks = withFallbackFeature(
     examples.length > 0
       ? examples.map(exampleStory)
       : scenarios.map(scenarioStory)
-  const errors = errorStory(examples, scenarios)
-  return uniqueNames(errors ? [...walks, errors] : walks)
+  )
+  const errors = errorStory(examples, scenarios, highestFeaturedOf(walks))
+  return orderByFeatured(uniqueNames(errors ? [...walks, errors] : walks))
 }
 
 const isWalkable = (set) =>

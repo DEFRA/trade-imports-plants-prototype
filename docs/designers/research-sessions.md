@@ -108,9 +108,9 @@ If you share what you found, Claude can turn it into a list of changes for your
 next working release, each with the skill that makes it. Findings go into a
 working release, not the research release.
 
-Link the walkthrough report in your write-up of the round, so anyone who was
-not there can see what participants saw:
-`https://defra.github.io/trade-imports-plants-prototype/#?q=@<release-id>`
+Link the demo page in your write-up of the round, so anyone who was not
+there can see what participants saw:
+`https://defra.github.io/trade-imports-plants-prototype/#set-<release-id>`
 once it is merged.
 
 ## Why research mode never ships

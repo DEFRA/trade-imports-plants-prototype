@@ -111,8 +111,11 @@ call it, then:
 Your release also gets its own walkthrough automatically, made from its
 examples: there is nothing to write. It runs on every pull request and
 whenever you say "record a walkthrough", and the real journey's own
-walkthrough sits beside it as the baseline. See
-[Seeing your change](seeing-your-change.md#the-walkthrough-on-every-pull-request).
+walkthrough sits beside it as the baseline. Its featured examples (see
+[Example data](example-data.md#choose-what-the-demo-page-shows-first)) lead
+the demo page; a design release copied from `high-risk-plants` inherits the
+same defaults, so there is nothing to write there either. See
+[Seeing your change](seeing-your-change.md#the-demo-page-and-the-technical-report).
 
 To copy another release instead of the real journey, name it: "make a copy
 of plants-dr2 for research".

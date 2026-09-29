@@ -1,4 +1,7 @@
 import { existsSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+import { format as formatWithPrettier, resolveConfig } from 'prettier'
 
 import {
   exampleSourceFor,
@@ -308,7 +311,20 @@ ${examples.map(exampleText).join(',\n')}
 ]
 `
 
-const init = (setId, io) => {
+// Resolved from this file's own path, not the scenario file's: a fresh
+// release's scenario file starts life outside any folder Prettier's config
+// search would find it from (a brand-new src/server/prototype-seed/scenarios
+// file is fine, but a test writes it to a temp folder), and the generator's
+// own values (a long `story` sentence, say) can be too wide for one line, so
+// this always formats through Prettier rather than hand-rolling its rules.
+const PRETTIER_CONFIG_ANCHOR = fileURLToPath(import.meta.url)
+
+const formatScenarioFile = async (text, file) => {
+  const options = await resolveConfig(PRETTIER_CONFIG_ANCHOR)
+  return formatWithPrettier(text, { ...options, filepath: file })
+}
+
+const init = async (setId, io) => {
   const file = io.scenarioFileFor(setId)
   if (existsSync(file)) {
     io.err(
@@ -324,7 +340,8 @@ const init = (setId, io) => {
     )
     return FAILED
   }
-  io.writeFile(file, scenarioFileText(setId, examples))
+  const text = await formatScenarioFile(scenarioFileText(setId, examples), file)
+  io.writeFile(file, text)
   io.out(
     `Started ${SCENARIO_FILES}/${setId}.js with ${examples.length} examples. Add yours, then run: npm run designer:examples -- check ${setId}`
   )

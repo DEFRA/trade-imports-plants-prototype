@@ -1,11 +1,13 @@
 name: Check Pull Request
 
-# Besides checking a pull request, this publishes one merged Playwright report
-# (FIT tests and walkthroughs, with video, pictures and trace) to gh-pages:
-# reports/pr-<n>/ for a pull request, the site root for main (a push, the
-# Monday run, or a manual run on main) — so the lasting link never depends on
-# a pull request having existed. prune-reports.yml cleans up closed pull
-# requests' folders; it never touches the root report.
+# Besides checking a pull request, this publishes a site to gh-pages: the
+# stakeholder demo page (the most important journeys first, built by
+# scripts/reports/demo/) at the root, and the full merged Playwright report
+# (FIT tests and every walkthrough, with video, pictures and trace) under
+# tests/. reports/pr-<n>/ for a pull request, the site root for main (a push,
+# the Monday run, or a manual run on main) — so the lasting link never
+# depends on a pull request having existed. prune-reports.yml cleans up
+# closed pull requests' folders; it never touches the root site.
 on:
   schedule:
     - cron: '0 7 * * 1'
@@ -223,8 +225,11 @@ jobs:
 
       # Proves a brand-new release gets its walkthrough with no designer
       # effort: made from its examples at run time, nothing written for it.
+      # --fast: this proves the story reaches the end, not that the video is
+      # watchable, so it skips human pacing and keeps this job's 25-minute
+      # limit.
       - name: Walk the throwaway release through
-        run: npm run designer:walkthrough -- --ci --set plants-working
+        run: npm run designer:walkthrough -- --ci --fast --set plants-working
 
       - name: Upload Playwright report
         if: failure()
@@ -337,7 +342,13 @@ jobs:
   walkthroughs:
     name: Walkthroughs
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Human pacing (scripts/designer/walkthrough/pace.js) makes a walk take
+    # far longer than the old fixed slowMo did. When this job goes over 25
+    # minutes, turn it into a matrix of --shard=i/n (blob reports shard
+    # cleanly: the merge job's copy loop below already renames each zip
+    # under blob-walkthroughs-*, and only needs its pattern widened to
+    # blob-walkthroughs*).
+    timeout-minutes: 50
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -388,6 +399,9 @@ jobs:
     needs: [playwright, walkthroughs]
     if: always() && (needs.playwright.result != 'skipped' || needs.walkthroughs.result != 'skipped')
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -440,21 +454,68 @@ jobs:
           fi
           npm run reports:merge -- merged-blobs
 
+      # A missing artifact just means the walkthroughs job did not produce
+      # one (it crashed, or was skipped): reports:demo below writes the
+      # "did not run this time" page instead of failing.
+      - name: Download the walkthrough results
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: walkthrough-results
+          path: walkthrough-download
+
+      # Only puts the pull request's own release first on the demo page: if
+      # the listing fails, the page is still built, in the usual order.
+      - name: List the pull request's changed files
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/${REPO}/pulls/${PR_NUMBER}/files" --paginate \
+            --jq '.[].filename' > changed-files.txt
+
+      # Copies the merged FIT-and-walkthroughs report to site/tests/, then
+      # builds the stakeholder demo page (index.html + demo.css) alongside
+      # it from the walkthrough report on its own (for the featured videos
+      # and pictures) and the merged report (for real #?testId= links). The
+      # download this job's artifact holds now holds site/index.html (the
+      # demo page) and site/tests/index.html (the full technical report).
+      - name: Build the demo page
+        run: |
+          mkdir -p site/tests
+          cp -R playwright-report/. site/tests/
+          npm run reports:demo -- \
+            --report walkthrough-download/walkthrough-results/report.json \
+            --results walkthrough-download/test-results \
+            --links merged/report.json \
+            --site site \
+            ${{ github.event_name == 'pull_request' && '--changed-files changed-files.txt' || '' }}
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
       - name: Upload the merged report
         uses: actions/upload-artifact@v7
         with:
           name: prototype-playwright-report
           path: |
-            playwright-report/
+            site/
             merged/report.json
           retention-days: 14
 
-  # Publishes the merged report to gh-pages, then comments its link on the
-  # pull request. When GitHub Pages is not turned on, the comment points at
-  # the prototype-playwright-report download instead, and nothing fails.
-  # Skipped for a pull request from a fork or one Dependabot pushed to: both
-  # get a read-only token, so the push and the comment could only fail. Their
-  # report is still in the prototype-playwright-report download.
+  # Publishes the demo page and the technical report (site/, with the demo
+  # page at its root and the merged report under tests/) to gh-pages, then
+  # comments its link on the pull request. When GitHub Pages is not turned
+  # on, the comment points at the prototype-playwright-report download
+  # instead, and nothing fails. Skipped for a pull request from a fork or
+  # one Dependabot pushed to: both get a read-only token, so the push and
+  # the comment could only fail. Their site is still in the
+  # prototype-playwright-report download.
   publish-report:
     name: Publish the Playwright report
     runs-on: ubuntu-latest
@@ -548,7 +609,7 @@ jobs:
           set -euo pipefail
           find . -mindepth 1 -maxdepth 1 \
             ! -name reports ! -name .git ! -name .nojekyll -exec rm -rf {} +
-          cp -R ../playwright-report/. .
+          cp -R ../site/. .
           touch .nojekyll
           rm -rf reports/main
           mkdir -p reports/main
@@ -571,7 +632,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore: publish the Playwright report for main at the site root"
+          git commit -m "chore: publish the prototype demo page and Playwright report for main at the site root"
           git push origin gh-pages
 
       # For a pull request, keep_files:false replaces just reports/pr-<n>/,
@@ -585,7 +646,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./playwright-report
+          publish_dir: ./site
           destination_dir: ${{ steps.destination.outputs.destination_dir }}
           keep_files: ${{ steps.destination.outputs.keep_files }}
 

@@ -1,7 +1,8 @@
 # Designer documents
 
-See it before you install anything: every release, walked through page by
-page: `https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`.
+See it before you install anything: the demo page, with short videos of the
+most important journeys, most important first:
+`https://defra.github.io/trade-imports-plants-prototype/`.
 
 ## Just say what you want
 
