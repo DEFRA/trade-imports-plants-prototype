@@ -2,8 +2,10 @@ name: Check Pull Request
 
 # Besides checking a pull request, this publishes one merged Playwright report
 # (FIT tests and walkthroughs, with video, pictures and trace) to gh-pages:
-# reports/pr-<n>/ for a pull request, reports/main/ for main (a push, the
-# Monday run, or a manual run on main). prune-reports.yml cleans them up.
+# reports/pr-<n>/ for a pull request, the site root for main (a push, the
+# Monday run, or a manual run on main) — so the lasting link never depends on
+# a pull request having existed. prune-reports.yml cleans up closed pull
+# requests' folders; it never touches the root report.
 on:
   schedule:
     - cron: '0 7 * * 1'
@@ -487,36 +489,114 @@ jobs:
           name: prototype-playwright-report
           path: .
 
+      # Main (a push, the Monday run, or a manual run on main) publishes to
+      # the site root, so the lasting link never depends on a pull request
+      # having existed. A pull request keeps its own reports/pr-<n>/ folder,
+      # so several can be shared at once without going anywhere near main.
       - name: Work out where the report goes
         id: destination
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ -n "$PR_NUMBER" ]; then
-            echo "folder=pr-${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "destination_dir=reports/pr-${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "keep_files=false" >> "$GITHUB_OUTPUT"
+            echo "is_root=false" >> "$GITHUB_OUTPUT"
           else
-            echo "folder=main" >> "$GITHUB_OUTPUT"
+            echo "destination_dir=." >> "$GITHUB_OUTPUT"
+            echo "keep_files=true" >> "$GITHUB_OUTPUT"
+            echo "is_root=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Replaces only this folder, so the last run's videos go with it. The
-      # first run creates gh-pages.
+      # peaceiris with keep_files:false and destination_dir "." wipes the
+      # whole gh-pages branch (everything except .git) before copying the
+      # new report in — that would take reports/pr-*/ with it. So once
+      # gh-pages exists, the root report is swapped in by hand, in one
+      # commit: the previous root-level report is removed (reports/, .git
+      # and .nojekyll stay), the new one copied in, and reports/main/ kept
+      # as a redirect to the root so links from before the move still
+      # work. One commit means a failed run leaves the old report in place
+      # rather than an empty site root.
+      - name: Check for a gh-pages branch
+        id: pages-branch
+        if: steps.destination.outputs.is_root == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh api "repos/${REPO}/branches/gh-pages" --silent 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No gh-pages branch yet: the first publish below creates it."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout gh-pages for the root report
+        if: steps.destination.outputs.is_root == 'true' && steps.pages-branch.outputs.exists == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          path: gh-pages-root
+          fetch-depth: 1
+
+      - name: Publish the root report to gh-pages
+        id: deploy-root
+        if: steps.destination.outputs.is_root == 'true' && steps.pages-branch.outputs.exists == 'true'
+        continue-on-error: true
+        working-directory: gh-pages-root
+        run: |
+          set -euo pipefail
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name reports ! -name .git ! -name .nojekyll -exec rm -rf {} +
+          cp -R ../playwright-report/. .
+          touch .nojekyll
+          rm -rf reports/main
+          mkdir -p reports/main
+          cat > reports/main/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <title>The report has moved</title>
+          <script>location.replace('../../' + location.hash)</script>
+          <meta http-equiv="refresh" content="0; url=../../">
+          </head>
+          <body><p>The report has moved to <a href="../../">the site root</a>.</p></body>
+          </html>
+          HTML
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "The root report is unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: publish the Playwright report for main at the site root"
+          git push origin gh-pages
+
+      # For a pull request, keep_files:false replaces just reports/pr-<n>/,
+      # so the last run's videos go with it and nothing else is touched. At
+      # the root this runs only for the very first publish (no gh-pages
+      # yet), which creates the branch; keep_files is true there anyway.
       - name: Publish to gh-pages
         id: deploy
+        if: steps.destination.outputs.is_root != 'true' || steps.pages-branch.outputs.exists != 'true'
         continue-on-error: true
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
-          destination_dir: reports/${{ steps.destination.outputs.folder }}
-          keep_files: false
+          destination_dir: ${{ steps.destination.outputs.destination_dir }}
+          keep_files: ${{ steps.destination.outputs.keep_files }}
 
       - name: Find the report's web address
         id: address
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          DEPLOYED: ${{ steps.deploy.outcome }}
-          FOLDER: ${{ steps.destination.outputs.folder }}
+          DEPLOYED: ${{ steps.deploy.outcome == 'success' || steps.deploy-root.outcome == 'success' }}
+          IS_ROOT: ${{ steps.destination.outputs.is_root }}
+          DESTINATION_DIR: ${{ steps.destination.outputs.destination_dir }}
         run: |
           # gh api prints the error body to stdout on a 404, so keep the
           # address only when the call succeeded and it is a real https URL.
@@ -526,12 +606,16 @@ jobs:
               https://*) site="$found" ;;
             esac
           fi
-          if [ "$DEPLOYED" = "success" ] && [ -n "$site" ]; then
+          if [ "$DEPLOYED" = "true" ] && [ -n "$site" ]; then
             case "$site" in
               */) ;;
               *) site="${site}/" ;;
             esac
-            echo "url=${site}reports/${FOLDER}/" >> "$GITHUB_OUTPUT"
+            if [ "$IS_ROOT" = "true" ]; then
+              echo "url=${site}" >> "$GITHUB_OUTPUT"
+            else
+              echo "url=${site}${DESTINATION_DIR}/" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "GitHub Pages is not on (or publishing failed), so there is no web link. The report is in the prototype-playwright-report download."
             echo "url=" >> "$GITHUB_OUTPUT"

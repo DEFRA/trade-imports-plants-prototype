@@ -22,12 +22,13 @@ releases are sets. Keep them working with these rules.
    A release may import a prototype-owned service, a folder under
    `src/server/app/services/` that `overrides.json` lists on its own line in
    `ours` (today `transporters`, `templates`, `ins-address-book` and
-   `notification-search`). On a `design/*` branch a new one is made only
+   `notification-search`). While working in a design release (`main` or a
+   `design/*` branch — a branch is never required) a new one is made only
    through the service scaffold (`npm run designer:service -- new <name>`),
    and an existing one is changed in place through the workspace
    `prototype` skill's fake-a-service reference. Every other folder under
-   `src/server/app/services/` belongs to the real service: never edit it on
-   a `design/*` branch.
+   `src/server/app/services/` belongs to the real service: never edit it
+   while working in a design release.
 3. **Keep the generated names.** `SET_ID` and `SET_BASE` in `set.js`, and
    `TEMPLATES` in `journeys/linear/config.js`, were written by
    `npm run new:set`. Do not rename or hand-edit them. The server finds the

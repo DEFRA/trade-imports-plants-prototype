@@ -210,10 +210,11 @@ run through every example in every release on the branch, page by page, with
 a picture of each page, a video and a trace. It is documentation, not a
 test: a red story is reported, but it never blocks the pull request.
 
-Within about ten minutes, a comment appears on the pull request with the
-report's link. Add `#?q=@walkthrough` to see only the walkthroughs, or
-`#?q=@<release-id>` for one release's alone. Once merged, the lasting link is
-`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`.
+For a pull request, within about ten minutes, a comment appears on it with
+the report's link. Add `#?q=@walkthrough` to see only the walkthroughs, or
+`#?q=@<release-id>` for one release's alone. Once the work is on `main`
+(pushed straight there or merged), the lasting link is
+`https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`.
 If the comment says GitHub Pages is not turned on for this repository yet,
 download the `prototype-playwright-report` Actions artifact from the run
 instead and open its `index.html`.

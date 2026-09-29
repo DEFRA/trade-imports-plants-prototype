@@ -18,7 +18,10 @@ Claude will:
 2. Check every changed file is yours (see [Where your changes go](where-changes-go.md)).
    If a file belongs to the real service, Claude stops and offers to make the
    change in your design release instead, or to hand it to the real team.
-3. Put your work on your own branch if you are on `main`. Branches are named
+3. Save it on whatever branch you are already on. `main` works just as well
+   as a branch of your own: you never have to be on a branch to save. A
+   branch only comes into it if you ask to share your work without it going
+   to `main` yet — see "Sharing it with others" below — and it is named
    `design/<release>-<a-few-words>`, for example
    `design/plants-working-consignment-addresses`.
 4. Tidy the formatting and run the full check
@@ -36,11 +39,22 @@ A saved change is only on your computer until you share it.
 
 ## Sharing it with others
 
-Say "make a pull request", "share this" or "publish".
+Say "share this", "push it", "publish" or "put it live". Claude never sends
+anything to GitHub until you ask, and does it one of two ways — you choose:
 
-Claude always asks before sending anything to GitHub. When you say yes, it
-sends your branch and opens a pull request on the prototype's own repository.
-The pull request says:
+**Straight to `main` (the default when you're working on `main`).** Claude
+pushes your saved change directly to `main`. There is nothing to review and
+nothing more to do: the deployed prototype and its report at
+`https://defra.github.io/trade-imports-plants-prototype/` update once the
+pipeline runs, usually within about ten minutes. This is exactly how the old
+GB-notification-service prototype worked, where the designer committed
+straight to `main` throughout — fully supported here too.
+
+**On a branch, if you'd rather share it before it goes to `main`.** Say
+"keep this off main", "put it on a branch first" or "make a pull request".
+Claude makes a `design/<release>-<a-few-words>` branch (if you are not on
+one already), sends it, and opens a **draft** pull request on the
+prototype's own repository. The pull request says:
 
 - what changed and why, and which design release it is in,
 - which pages changed, with links,
@@ -49,13 +63,18 @@ The pull request says:
 - any Welsh still needed and any design gaps,
 - how to make it real.
 
-The pull request's checks publish a walkthrough of every release on this
-branch as a web page: a picture of each page, a video and a trace. A comment
-appears on the pull request with its link, usually within about ten minutes.
-Send that link to stakeholders — it is the shareable demo. If the comment
-says GitHub Pages is not turned on yet, download the
+Its checks publish a walkthrough of every release on that branch as a web
+page, at its own address (`reports/pr-<n>/`): a picture of each page, a
+video and a trace. A comment appears on the pull request with its link,
+usually within about ten minutes. Send that link to stakeholders — it is
+the shareable demo, live for as long as the pull request stays open. If the
+comment says GitHub Pages is not turned on yet, download the
 `prototype-playwright-report` artifact from the check's run instead and open
 its `index.html`.
+
+Which way you chose — straight to `main`, or on a branch — sticks for the
+rest of your session: Claude will not offer the other way again unless you
+change your mind. It still asks before each send.
 
 Something to send before a show and tell, with no web link yet? Say "record
 a walkthrough", then zip the folder
@@ -67,15 +86,14 @@ No GitHub command line (`gh`) on your computer? Claude sends your branch and
 gives you a link that opens the pull request form in your browser, with the
 description ready to paste.
 
-The deployed prototype only changes after the pull request is merged to
-`main`. If you need a change for a research session, get it merged the day
-before.
+## Getting a branch merged
 
-## Getting it merged
+Skip this if you pushed straight to `main` — there is nothing to merge.
 
-Your pull request is reviewed and merged by the prototype maintainer: the
-person who looks after this prototype and its weekly update. If you do not
-know who that is, ask in your team.
+A pull request is reviewed and merged by the prototype maintainer, or by you
+if you have merge rights: the maintainer is the person who looks after this
+prototype and its weekly update. If you do not know who that is, ask in your
+team.
 
 1. **Ask for a review.** Send the pull request link to the maintainer and say
    when you need it merged. Leave at least a working day before a demo or a
@@ -85,9 +103,10 @@ know who that is, ask in your team.
    review, has failing checks, has a clash with `main`, or is merged.
 3. **Red checks.** Claude explains each failure, fixes it ("check my
    changes"), saves the fix and sends it. The pull request updates itself.
-4. **Merging it yourself.** If you have merge rights and the maintainer has
-   approved it, say "merge my pull request". Claude merges only when every
-   check is green, and never without you asking.
+4. **Merging it yourself.** If you have merge rights and the pull request is
+   ready (approved, if your repository needs that), say "merge my pull
+   request". Claude merges only when every check is green, and never
+   without you asking. Merging brings your change onto `main`.
 
 ## Undoing a change
 
@@ -211,9 +230,13 @@ then hand off again.
 
 ## Quick reference
 
-- "save my work": save the change on your branch.
-- "make a pull request": send it to GitHub and open a pull request (Claude
-  asks first).
+- "save my work": save the change on whatever branch you're on, `main`
+  included.
+- "share this" or "push it": send it to GitHub — straight to `main` by
+  default, or ask to "keep this off main" first (Claude asks before sending
+  either way).
+- "make a pull request": share it on a branch with a draft pull request,
+  instead of pushing straight to `main`.
 - "is my pull request merged yet?": where your pull request is, in plain
   words.
 - "merge my pull request": merge it, when it is approved, the checks are

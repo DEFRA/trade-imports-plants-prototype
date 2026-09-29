@@ -1,11 +1,14 @@
 name: Prune Playwright reports
 
 # The cleanup for the Playwright reports check-pull-request.yml publishes to
-# gh-pages under reports/pr-<n>/ and reports/main/. Copied from the
-# workspace's cleanup-e2e-reports.yml, with its own name because that name is
-# in overrides.json `deleted`. Keeps `main` and every open pull request
-# updated in the last 21 days, removes the rest, then orphan-resets gh-pages
-# so the videos of pruned reports do not stay in its history.
+# gh-pages: reports/pr-<n>/ per pull request, and the merged report for main
+# at the site root (never under reports/). Copied from the workspace's
+# cleanup-e2e-reports.yml, with its own name because that name is in
+# overrides.json `deleted`. This only ever prunes reports/pr-<n>/ folders for
+# a pull request that closed or has not updated in 21 days — the root report
+# and .nojekyll live outside reports/, and reports/main/ is only a redirect
+# to the root, so this workflow never touches them — then orphan-resets
+# gh-pages so the videos of pruned reports do not stay in its history.
 
 on:
   pull_request:
@@ -54,7 +57,11 @@ jobs:
           ref: gh-pages
           fetch-depth: 1
 
-      - name: Prune reports that are not for main or an active pull request
+      # reports/main/ no longer holds a report (main's is at the site root —
+      # see check-pull-request.yml). It holds only the small redirect to the
+      # root that each main publish writes, so links from before the move
+      # keep working; it stays on the keep-list for that.
+      - name: Prune reports that are not for an active pull request
         if: steps.pages.outputs.exists == 'true'
         env:
           GH_TOKEN: ${{ github.token }}

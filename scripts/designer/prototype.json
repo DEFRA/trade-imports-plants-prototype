@@ -2,7 +2,7 @@
   "repository": "DEFRA/trade-imports-plants-prototype",
   "cloneUrl": "https://github.com/DEFRA/trade-imports-plants-prototype.git",
   "deployedUrl": null,
-  "reportsUrl": "https://defra.github.io/trade-imports-plants-prototype/reports/",
+  "siteUrl": "https://defra.github.io/trade-imports-plants-prototype/",
   "realService": {
     "name": "plants-frontend",
     "repository": "DEFRA/trade-imports-plants-frontend",

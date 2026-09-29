@@ -36,9 +36,10 @@ in a Claude Code session opened at the workspace root
 
 1. **Ask whose file it is before any edit.** Run
    `npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run designer:where -- <paths>`
-   and follow the answer. Never edit a real-service file in place on a
-   `design/*` branch: offer "do it in your design release" or "prepare it
-   for the real team" instead.
+   and follow the answer. Never edit a real-service file in place while
+   working in a design release — on `main` or a `design/*` branch alike:
+   offer "do it in your design release" or "prepare it for the real team"
+   instead.
 2. **Never edit a frozen release.** Start a working release from it
    instead.
 3. **Change `copy.en.js` and `copy.cy.js` together.** Same keys, same
@@ -51,8 +52,9 @@ in a Claude Code session opened at the workspace root
 5. **Example data replays real pages.** Never write a record by hand:
    every example is a list of page answers posted to the set's own
    routes.
-6. **Never edit a real-service file on a `design/*` branch.** The one
-   exception is a **prototype-owned service folder**: a folder under
+6. **Never edit a real-service file while working in a design release**, on
+   `main` or a `design/*` branch alike. The one exception is a
+   **prototype-owned service folder**: a folder under
    `src/server/app/services/` that `overrides.json` lists on its own line
    in `ours` (today `transporters`, `templates`, `ins-address-book` and
    `notification-search`). A new one is made only through the service
@@ -63,7 +65,7 @@ in a Claude Code session opened at the workspace root
    reference; the scaffold has no change verb. Every other folder under
    `src/server/app/services/` (such as `address-book`, `countries`,
    `ports`, `persistence` and `set-context`) belongs to the real service
-   and stays forbidden on a `design/*` branch.
+   and stays forbidden while working in a design release.
 7. **Never add a file to `ours` in `overrides.json` just to make it
    editable.** That hides the clash, it does not avoid it. The one way a
    services folder joins `ours` is the service scaffold above.
@@ -86,10 +88,18 @@ in a Claude Code session opened at the workspace root
 
 ## Branches
 
-- `design/<set>-<slug>`: a designer's work, for example
-  `design/plants-working-consignment-addresses`. Create it from `main`
-  before the first change. Prototype-only: it never crosses into any
-  other repository.
+Designers are never required to use a branch. `main` is a fully supported
+place to work end to end: make the change, check it, show it, save it, and
+push straight to `main` when asked. The deployed prototype and its report
+update from whatever lands on `main`, however it got there.
+
+- `design/<set>-<slug>`: a designer's own branch, for example
+  `design/plants-working-consignment-addresses`, made from `main` only when
+  it helps them share in-progress work without it going to `main` yet (a
+  review before merging, a demo that should not touch the deployed
+  prototype). The agent offers this, in one line, when it would help; it is
+  never made by default and never required. Prototype-only: it never
+  crosses into any other repository.
 - `chore/NO_JIRA-<slug>` or `chore/EUDPA-N-<slug>`: a maintainer's own
   change to this repo (its scripts, rules, docs or contract), following
   the workspace's own branch-naming rule.
@@ -100,14 +110,15 @@ in a Claude Code session opened at the workspace root
   real repository, `trade-imports-plants-frontend`, on
   `feat/EUDPA-N-<slug>` (or `feat/NO_JIRA-<slug>` without a ticket yet),
   with the same name in every other repo it reaches. A hand-off folder for a
-  design release (under `handoffs/`) lands on the designer's own `design/*`
-  branch, not here.
+  design release (under `handoffs/`) lands on the designer's own current
+  branch (`main` or a `design/*` branch), not here.
 
-One rule for every change: **stay only on a `design/*` branch (or a
-`handoff/*` branch for the upstream-bound route). From any other branch —
-`main`, or someone's `feat/*` or `chore/*` — make `design/<set>-<slug>`
-first.** Starting a release, making the change and saving it all happen on
-that one branch, so nothing is split across two or lands on someone else's.
+One rule for every change: **stay on the branch the designer is already on
+— `main` included — or on a `handoff/*` branch for the upstream-bound
+route. Someone else's `feat/*` or `chore/*` branch is never a place to
+work: move to `main` or make `design/<set>-<slug>` instead.** Starting a
+release, making the change and saving it all happen on that one branch, so
+nothing is split across two or lands on someone else's.
 
 ## Commands
 

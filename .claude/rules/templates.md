@@ -14,7 +14,8 @@ This rule adds a design-release layer on top of the workspace's own
 applies to every `.njk` file in this repo (components, patterns,
 accessibility, styles). What is different here: page plumbing that the
 real service's `.fit.spec.js` browser tests find pages by (below) must
-never change on a `design/*` branch, even to match a Figma frame exactly.
+never change while working in a design release — on `main` or a `design/*`
+branch alike — even to match a Figma frame exactly.
 
 Before you edit, run `npm run designer:where -- <this file>`. If it says the
 file belongs to the real service (for example anything in

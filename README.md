@@ -50,13 +50,15 @@ weekly sync pull requests.
   merging") until the session ends.
 - **Playwright reports.** Every pull request, and every push to `main`,
   publishes a merged Playwright report — FIT tests plus the walkthroughs —
-  to the `gh-pages` branch: `reports/pr-<n>/` for a pull request,
-  `reports/main/` for `main`. The pull request gets a comment with its link.
-  A nightly job (`.github/workflows/prune-reports.yml`) removes closed pull
-  requests' reports and keeps `main`'s pruned to the same folder each time,
-  so `gh-pages` stays small. Each run is also uploaded as the
-  `prototype-playwright-report` Actions artifact, so the checks are useful
-  even before Pages is turned on.
+  to the `gh-pages` branch: `reports/pr-<n>/` for a pull request, the site
+  root (`https://defra.github.io/trade-imports-plants-prototype/`) for
+  `main`, so the lasting link never depends on a pull request having
+  existed (`reports/main/` stays as a redirect to the root, for links made
+  before the move). The pull request gets a comment with its own link. A nightly job
+  (`.github/workflows/prune-reports.yml`) removes closed pull requests'
+  reports, so `gh-pages` stays small; the root report is never pruned. Each
+  run is also uploaded as the `prototype-playwright-report` Actions
+  artifact, so the checks are useful even before Pages is turned on.
 
 Two things are still pending:
 

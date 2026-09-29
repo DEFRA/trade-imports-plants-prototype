@@ -102,24 +102,24 @@ Very close, with these differences. All of them are known.
 Every set gets a **walkthrough**: each of its examples, page by page, with
 pictures, a video and a trace, made from the words the release already has.
 It is documentation, not a test: a red story never stops a pull request.
-Every pull request gets a comment linking to it; once merged, the lasting
-link is
-`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`
+Every pull request gets a comment linking to its own copy; once the work is
+on `main` (pushed straight there or merged), the lasting link is
+`https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`
 (once the maintainer turns GitHub Pages on; until then the comment points
 at a download). Say "record a walkthrough" to make one yourself. See
 [Seeing your change](docs/designers/seeing-your-change.md#the-walkthrough-on-every-pull-request).
 
-## Deploying and merging
+## Deploying, sharing and merging
 
-Once deployed, the maintainer puts its address here and in `deployedUrl`
-in `scripts/designer/prototype.json`. Like `npm run dev`, it uses stub
-sign-in: anyone who reaches the link is signed in automatically, on purpose,
-until CDP puts its own auth in front.
+Once deployed, the maintainer puts its address here and in `deployedUrl` in
+`scripts/designer/prototype.json`. Like `npm run dev`, it uses stub sign-in:
+signed in automatically, on purpose, until CDP puts its own auth in front.
 
-The deployed prototype only changes when a pull request is merged into
-`main`, by the prototype maintainer. Say "make a pull request", send them
-the link, and leave a working day before a demo or research session. "Is my
-pull request merged yet?" explains any red check.
+`main` is not protected: "save my work" then "share this" pushes straight
+there, and the deployed prototype and its report update once the pipeline
+runs. Say "keep this off main" or "make a pull request" instead to share
+work in progress on a branch first, with its own report at `reports/pr-<n>/`
+— see [Sharing and handing off](docs/designers/sharing-and-handing-off.md).
 
 ## If you're not sure
 
