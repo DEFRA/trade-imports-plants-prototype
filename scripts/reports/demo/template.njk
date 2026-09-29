@@ -64,6 +64,10 @@
               <p class="govuk-body">{{ set.description }}</p>
             {% endif %}
 
+            {% if set.serviceMap %}
+              <p class="govuk-body"><a class="govuk-link" href="{{ set.serviceMap }}">See how the pages connect</a>: every page, in order, and which answers send someone a different way.</p>
+            {% endif %}
+
             {% if set.featured.length > 1 %}
               <nav aria-label="Journeys in {{ set.title }}">
                 <ol class="govuk-list govuk-list--number">
@@ -135,6 +139,9 @@
       <h2 class="govuk-heading-l">For the development team</h2>
       <p class="govuk-body">
         <a class="govuk-link" href="tests/">The technical report</a>: every automatic test and every walkthrough, with traces.
+      </p>
+      <p class="govuk-body">
+        <a class="govuk-link" href="service-map/">How the pages connect</a>: a map of every release’s journey, made from its code, with the map as data for each.
       </p>
       {% if fit %}
         <p class="govuk-body">FIT tests: {{ fit.passed }} passed, {{ fit.failed }} failed, {{ fit.flaky }} flaky.</p>

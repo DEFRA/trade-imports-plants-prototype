@@ -86,6 +86,30 @@ describe('renderPage', () => {
     expect(headScript).toContain("location.replace('tests/' + location.hash)")
   })
 
+  it('Should link each release to its service map, and the development team to every map', () => {
+    const html = renderPage(
+      basePage({
+        model: model([
+          {
+            id: 'plants-working',
+            title: 'Working release',
+            description: null,
+            tag: 'Design release',
+            serviceMap: 'service-map/plants-working/',
+            featured: [story()],
+            other: []
+          }
+        ])
+      })
+    )
+    const $ = cheerio.load(html)
+
+    expect(
+      $('#set-plants-working a[href="service-map/plants-working/"]').text()
+    ).toBe('See how the pages connect')
+    expect($('a[href="service-map/"]').text()).toBe('How the pages connect')
+  })
+
   it('Should give each featured video a resolvable src and, from its last page (the outcome), a poster', () => {
     const html = renderPage(
       basePage({

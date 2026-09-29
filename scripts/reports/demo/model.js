@@ -218,6 +218,9 @@ export const buildModel = (
       title: set.id === REAL_JOURNEY_SET ? REAL_JOURNEY_TITLE : set.title,
       description: facts.description ?? null,
       tag: tagFor(set.id, info),
+      // Built beside the demo page by reports:service-map (and, locally, by
+      // designer:walkthrough), for every set.
+      serviceMap: `service-map/${set.id}/`,
       bucket: bucketOf(set.id, info),
       featured: orderFeatured(
         set.stories.filter((story) => story.featured !== null)

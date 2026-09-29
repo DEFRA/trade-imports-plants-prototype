@@ -1,0 +1,65 @@
+// The service map pages' one stylesheet. Maintainer report tooling, like
+// scripts/reports/demo/demo.scss beside it, so rule 4's "no Sass" does not
+// apply: this file is the toolbox itself, compiled once at build time by
+// scripts/reports/service-map/cli.js.
+//
+// GDS Transport is licensed only for service.gov.uk domains and these pages
+// are published to github.io, so the font is plain Arial and no font files
+// are downloaded or bundled.
+@use "pkg:govuk-frontend" as * with (
+  $govuk-font-family: (Arial, sans-serif),
+  $govuk-include-default-font-face: false
+);
+
+// The diagram scrolls on its own, never the page, so a wide journey stays
+// readable on a phone.
+.app-service-map__figure {
+  margin: 0 0 govuk-spacing(6);
+  padding: govuk-spacing(2);
+  overflow-x: auto;
+  border: 1px solid govuk-functional-colour(border);
+  background-color: govuk-colour("white");
+
+  svg {
+    display: block;
+    max-width: none;
+  }
+
+  a:focus rect:first-of-type {
+    stroke: govuk-functional-colour(focus);
+    stroke-width: 4;
+  }
+}
+
+// Page addresses are one long word; let them wrap on a phone rather than
+// push the page sideways.
+.govuk-main-wrapper code {
+  overflow-wrap: anywhere;
+}
+
+.app-service-map__thumbnail {
+  display: block;
+  max-width: 100%;
+  width: 320px;
+  height: 200px;
+  // The pictures are of the whole page: show its top, where the heading is.
+  object-fit: cover;
+  object-position: top;
+  border: 1px solid govuk-functional-colour(border);
+}
+
+.app-service-map__swatch {
+  display: inline-block;
+  margin-right: govuk-spacing(2);
+  vertical-align: middle;
+}
+
+.app-service-map__branch-number {
+  display: inline-block;
+  min-width: 1.6em;
+  margin-right: govuk-spacing(1);
+  border: 2px solid govuk-colour("orange");
+  border-radius: 50%;
+  font-weight: $govuk-font-weight-bold;
+  text-align: center;
+}

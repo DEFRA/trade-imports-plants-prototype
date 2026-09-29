@@ -1,0 +1,147 @@
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+{% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% if indexPage %}
+  {% set pageTitle = "How the pages connect, for every release" %}
+  {% set stylesheet = "service-map.css" %}
+  {% set backHref = "../" %}
+{% else %}
+  {% set pageTitle = "How the pages connect: " + set.title %}
+  {% set stylesheet = "../service-map.css" %}
+  {% set backHref = "../../" %}
+{% endif %}
+<!doctype html>
+<html lang="en" class="govuk-template">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ pageTitle }}</title>
+  <link rel="stylesheet" href="{{ stylesheet }}">
+</head>
+<body class="govuk-template__body">
+  <div class="govuk-width-container">
+    {{ govukPhaseBanner({
+      tag: { text: "prototype" },
+      html: 'This is a prototype of the import notification service for high-risk plants. It uses made-up data.'
+    }) }}
+    {{ govukBackLink({ text: "Back to the walkthroughs", href: backHref }) }}
+
+    <main class="govuk-main-wrapper" id="main-content">
+      {% if indexPage %}
+        <h1 class="govuk-heading-xl">{{ pageTitle }}</h1>
+        <p class="govuk-body">Each map shows every page of a release, the order they come in and which answers send someone a different way. The maps are made from the prototype’s own code every time it changes.</p>
+        <ul class="govuk-list">
+          {% for map in maps %}
+            <li>
+              <a class="govuk-link" href="{{ map.id }}/">{{ map.title }}</a>
+              {{ govukTag({ text: map.tag, classes: "govuk-!-margin-left-2" }) }}
+              {% if map.problem %}<span class="govuk-body-s"> (could not be drawn this time)</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+
+      {% elif problemPage %}
+        <h1 class="govuk-heading-xl">{{ pageTitle }}</h1>
+        {{ govukWarningText({ text: "This map could not be drawn this time: " + message, iconFallbackText: "Warning" }) }}
+        <p class="govuk-body">Everything else on the site is unaffected. <a class="govuk-link" href="../">See the other maps</a>.</p>
+
+      {% else %}
+        <span class="govuk-caption-l">How the pages connect</span>
+        <h1 class="govuk-heading-xl">
+          {{ set.title }}
+          {{ govukTag({ text: tag, classes: "govuk-!-margin-left-2" }) }}
+        </h1>
+        <p class="govuk-body">Every page of this release, the order they come in, and which answers send someone a different way. It is made from the prototype’s own code, so it always matches what the prototype does. The pictures come from the walkthroughs.</p>
+
+        {{ govukSummaryList({ rows: counts }) }}
+
+        {% if problems.length > 0 %}
+          {% set problemsHtml %}
+            <ul class="govuk-list govuk-list--bullet">
+              {% for problem in problems %}<li>{{ problem }}</li>{% endfor %}
+            </ul>
+          {% endset %}
+          {{ govukWarningText({ text: "The journey has something to look at:", iconFallbackText: "Warning" }) }}
+          {{ problemsHtml | safe }}
+        {% endif %}
+
+        <h2 class="govuk-heading-l">The map</h2>
+        <p class="govuk-body"><a class="govuk-link" href="#list-view">Skip the map and read the pages as a list</a></p>
+        {% if keyRows.length > 0 %}
+          <h3 class="govuk-heading-s">Key</h3>
+          {{ govukSummaryList({ rows: keyRows, classes: "govuk-summary-list--no-border" }) }}
+        {% endif %}
+        {% if backToHub %}
+          <p class="govuk-body">A “↩ {{ hubTitle }}” tag under a page means its Continue button goes back to the task list once the first time through is over.</p>
+        {% endif %}
+        {% if changeLinks %}
+          <p class="govuk-body">Check your answers links back to every page that asks a question; those Change links are listed below, not drawn.</p>
+        {% endif %}
+
+        {% if branches.length > 0 %}
+          <h3 class="govuk-heading-s">When each numbered arrow is followed</h3>
+          <ol class="govuk-list">
+            {% for branch in branches %}
+              <li id="branch-{{ branch.number }}"><span class="app-service-map__branch-number">{{ branch.number }}</span> {{ branch.from }} to {{ branch.to }}: only if {{ branch.when }}</li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+
+        <figure class="app-service-map__figure">
+          {{ svg | safe }}
+        </figure>
+
+        <h2 class="govuk-heading-l" id="list-view">The pages, as a list</h2>
+        {% for lane in lanes %}
+          <h3 class="govuk-heading-m" id="lane-{{ lane.id }}">{{ lane.title }}</h3>
+          {% for card in lane.cards %}
+            <div id="page-{{ card.id }}">
+              {{ govukSummaryList({ card: card.card, rows: card.rows }) }}
+            </div>
+          {% endfor %}
+        {% endfor %}
+
+        {% if withoutPicture.length > 0 %}
+          <h2 class="govuk-heading-l">Pages no walkthrough reaches</h2>
+          <p class="govuk-body">These pages have no picture yet because none of this release’s examples walks to them.</p>
+          <ul class="govuk-list govuk-list--bullet">
+            {% for page in withoutPicture %}
+              <li><a class="govuk-link" href="#page-{{ page.id }}">{{ page.title }}</a>: {{ page.note }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if outsideTheFlow.length > 0 %}
+          <h2 class="govuk-heading-l">Pages outside the flow</h2>
+          <p class="govuk-body">Pages reached from a button or link rather than by answering questions.</p>
+          <ul class="govuk-list govuk-list--bullet">
+            {% for page in outsideTheFlow %}
+              <li>{{ page.title }} (<code>{{ page.route }}</code>)</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if guessedTitles.length > 0 %}
+          <h2 class="govuk-heading-l">Titles guessed</h2>
+          <p class="govuk-body">These pages have no title in their copy, so the map made one from the page’s name.</p>
+          <ul class="govuk-list govuk-list--bullet">
+            {% for page in guessedTitles %}
+              <li>{{ page.title }} ({{ page.id }})</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <h2 class="govuk-heading-l">For the development team</h2>
+        <p class="govuk-body">The same map as data: <a class="govuk-link" href="service-map.json">service-map.json</a>, and which picture belongs to which page: <a class="govuk-link" href="screens.json">screens.json</a>.</p>
+      {% endif %}
+
+      {% if sha %}
+        <p class="govuk-body-s">Made from the code at {{ sha }}.</p>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

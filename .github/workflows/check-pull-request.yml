@@ -305,6 +305,11 @@ jobs:
       - name: Walk the throwaway release through
         run: npm run designer:walkthrough -- --ci --fast --set plants-working
 
+      # Proves a brand-new release gets its service map with no code written
+      # for it: its pages, branches and pictures read from its own files.
+      - name: Map the throwaway release
+        run: npm run designer:service-map -- --set plants-working --no-open
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
@@ -572,6 +577,22 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      # The service map of every set, beside the demo page it links from:
+      # site/service-map/<set>/ (the page, service-map.json, screens.json)
+      # and site/service-map/index.html. Made from each set's own journey
+      # files; the walkthrough pictures are added when there are any. A set
+      # whose map cannot be drawn gets a page saying so and a warning here,
+      # never a failed job.
+      - name: Build the service maps
+        run: |
+          npm run reports:service-map -- \
+            --report walkthrough-download/walkthrough-results/report.json \
+            --results walkthrough-download/test-results \
+            --site site \
+            ${{ github.event_name == 'pull_request' && '--changed-files changed-files.txt' || '' }}
+        env:
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Upload the merged report
         uses: actions/upload-artifact@v7

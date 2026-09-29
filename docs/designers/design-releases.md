@@ -291,6 +291,10 @@ notification, for example `?page=task-list` or `?page=notification-view`
 - Every pull request also makes a throwaway release from the real journey and
   checks it works. If this "design release canary" fails after a weekly
   update, making new releases is broken: tell the maintainer.
+- Every release also gets its own **service map** — a page showing how its
+  pages connect, with pictures from the walkthrough — built automatically on
+  every pull request. See
+  [Seeing your change](seeing-your-change.md#the-service-map).
 
 ## How a change in a release reaches the real service
 

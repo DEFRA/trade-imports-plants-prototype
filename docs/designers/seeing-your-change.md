@@ -267,6 +267,41 @@ Demo page: .cache/designer/walkthrough/site/index.html
 Technical report (every step, trace): .cache/designer/walkthrough/site/tests/index.html
 ```
 
+## The service map
+
+Every set also gets a **service map**: one page showing how its pages
+connect. Each page is a card with its picture from the walkthrough, an
+arrow to wherever Continue goes next, and the task list groups as lanes. An
+arrow only some answers follow is orange and numbered, and the numbers are
+written out above the diagram: which question, which answer. It is built
+straight from the release's own flow — the same code the prototype runs —
+so it can never say something the pages themselves do not do.
+
+Ask Claude Code **"show me the service map"**, or run it yourself:
+
+```
+npm run designer:service-map -- --set <set-id>
+```
+
+It opens the map in your browser. At the top is a key explaining each line
+style (a solid arrow the first time through a page, a dashed one on
+Continue later, a thin one from the task list) and the counts: pages,
+branches, questions. Underneath the diagram, a list view has the same facts
+in words — what each page asks, why, what to answer first, and where it
+goes next — for reading on a phone or without the picture.
+
+If the journey has a gap — a question that must be answered on a page some
+answers never reach — a warning at the top says which, in words.
+
+A page no walkthrough example reaches gets a grey placeholder card instead
+of a picture, under "Pages no walkthrough reaches", with the example that
+would reach it. Ask Claude to add that example
+([Example data](example-data.md)) to give it a picture too.
+
+Published copies sit beside the demo page: `service-map/<set-id>/` once
+your work is on `main`, `reports/pr-<n>/service-map/<set-id>/` for a pull
+request.
+
 ## If something goes wrong
 
 | You see                                                                  | What it means                                                     | What to do                                                        |
