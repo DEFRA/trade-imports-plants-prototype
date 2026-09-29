@@ -263,7 +263,8 @@ http://localhost:3103/auth/stub-sign-in?organisationId=example-organisation-b
 To go back, sign out (`http://localhost:3103/auth/sign-out`) and sign in again.
 The deployed prototype signs in the same way, with the same stub sign-in: use
 the same `?organisationId=` link against its own address instead of
-`localhost:3103`.
+`localhost:3103`. If it asks for the prototype password first, enter it and it
+carries on to the link.
 
 ## Extra parties, ports and countries
 

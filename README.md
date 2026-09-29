@@ -23,13 +23,23 @@ weekly sync pull requests.
   image its own `Dockerfile` builds. `STUB_MODE`'s bypass is honoured in
   production too, by design (Sam's decision) — the deployed prototype
   signs in exactly the way a local `npm run dev` does, so it needs no
-  Defra ID stub and no `DEFRA_ID_*` variables in CDP dev. It is
-  temporarily unprotected until CDP puts auth in front, or a later change
-  sets `STUB_MODE=false` to restore plants-frontend's own Defra ID
-  sign-in. The pull-request boot check in
-  `.github/workflows/check-pull-request.yml` proves the deployed shape
-  every time: it boots the built image in production mode and drives a
-  stub sign-in through to the chooser.
+  Defra ID stub and no `DEFRA_ID_*` variables in CDP dev. Setting
+  `STUB_MODE=false` restores plants-frontend's own Defra ID sign-in. The
+  pull-request boot check in `.github/workflows/check-pull-request.yml`
+  proves the deployed shape every time: it boots the built image in
+  production mode and drives a stub sign-in through to the chooser, then
+  boots it again with a password set and signs in through the password page.
+- **The prototype password.** CDP puts nothing in front of a service, so
+  the prototype has its own shared password, the way the GOV.UK Prototype
+  Kit protects a deployed prototype. Add a CDP secret called
+  `PROTOTYPE_PASSWORD` to the prototype's dev environment in the CDP portal
+  and redeploy: every page but `/health` then asks for it first (the
+  password page is at `/prototype-password`), and remembers it in a signed
+  cookie for 30 days. Unset, the prototype is open to anyone who reaches it,
+  and says so in its start-up log. Changing the secret signs everyone out.
+  `/prototype-password/sign-out` forgets it in one browser. It is one shared
+  password for now; the code lives in `src/server/prototype-password/`.
+  Try it locally with `PROTOTYPE_PASSWORD=<anything> npm run dev`.
 - **Env vars.** `src/config/config.js` is the one list, with each
   variable's `doc` saying what it is for and what it defaults to. The
   redirect URLs already default to this prototype's own port (3103), not
@@ -243,6 +253,11 @@ prototype signs in exactly the way `npm run dev` does. Set `STUB_MODE=false`
 to restore plants-frontend's own Defra ID sign-in. The Playwright suite sets
 `STUB_MODE=true` for its own web server, so `npm run test:fit` needs no other
 service running.
+
+Stub sign-in lets anyone in, so the prototype adds its own shared password in
+front of every page when `PROTOTYPE_PASSWORD` is set (a CDP secret on the
+deployed prototype; see "For maintainers" above). It sits before sign-in, so a
+visitor gives the password first and then signs in as usual.
 
 ## Docker
 

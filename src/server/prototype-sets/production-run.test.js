@@ -4,8 +4,10 @@
  * Sign-in follows STUB_MODE everywhere, including production, by design
  * (Sam's decision): the deployed prototype signs in exactly like a local
  * `npm run dev` does, with stub sign-in and no Defra ID stub deployed
- * alongside it, temporarily unprotected until CDP puts its own auth in front
- * or a later change sets STUB_MODE=false. Every data service still serves
+ * alongside it. With no PROTOTYPE_PASSWORD it is open to anyone who reaches
+ * it, which is what these runs prove; the shared password in front of it is
+ * covered by src/server/prototype-password/index.test.js, and STUB_MODE=false
+ * is the way back to Defra ID. Every data service still serves
  * stub data, and the shared example data still reaches a signed-in
  * dashboard. This covers every kind of thing the prototype serves — the real
  * journey, the chooser, the placeholder set, a prototype-owned service page,

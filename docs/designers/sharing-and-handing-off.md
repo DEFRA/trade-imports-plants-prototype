@@ -89,6 +89,32 @@ No GitHub command line (`gh`) on your computer? Claude sends your branch and
 gives you a link that opens the pull request form in your browser, with the
 description ready to paste.
 
+## The prototype password
+
+The deployed prototype uses stub sign-in, so without a password anyone who
+finds its address can use it. It can ask for one shared password first, the
+way GOV.UK Prototype Kit prototypes do. It is one password for everyone for
+now: there are no separate logins.
+
+- **Turning it on or changing it.** The prototype maintainer adds or changes
+  a secret called `PROTOTYPE_PASSWORD` for the prototype's dev environment in
+  the CDP portal, then redeploys it. Changing it asks everyone for the new
+  password next time they open a page. With no secret, the prototype is open
+  to anyone who reaches it.
+- **Sharing it.** Send the link and the password separately, for example the
+  link in the invitation and the password in a separate message on the day.
+  Never put the password in a pull request, a ticket, the research sheet or
+  anything saved in this repository.
+- **What people see.** A page headed "This is a prototype" asks for the
+  password, then takes them to the page they first opened, where they sign
+  in as usual. Their browser remembers the password for 30 days.
+  `/prototype-password/sign-out` makes one browser forget it, which is
+  useful between research participants on a shared laptop.
+- **What it does not cover.** The demo page and technical report on GitHub
+  Pages are not behind the password: anyone with their link can see them.
+  Your own computer (`npm run dev`) asks for a password only if you start it
+  with one, for example `PROTOTYPE_PASSWORD=try-me npm run dev`.
+
 ## Getting a branch merged
 
 Skip this if you pushed straight to `main` — there is nothing to merge.

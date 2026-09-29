@@ -25,6 +25,8 @@
     "src/server/app/sets/sample-journey/**",
     "src/server/app/sets-index/**",
     "src/server/sets-index/**",
+    "src/server/prototype-password/**",
+    "src/server/app/prototype-password/**",
     "fit/sets-chooser.fit.spec.js",
     ".github/workflows/check-pull-request.yml",
     ".github/workflows/publish.yml",
@@ -62,7 +64,7 @@
     },
     {
       "path": "src/server/common/services/mode.js",
-      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. Also changes isStubMode() itself to honour STUB_MODE in production, by design (Sam's decision): the deployed prototype signs in exactly like a local `npm run dev` — stub sign-in, temporarily unprotected — unless STUB_MODE=false restores plants-frontend's own Defra ID sign-in. Covered by src/server/prototype-sets/production-run.test.js"
+      "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. Also changes isStubMode() itself to honour STUB_MODE in production, by design (Sam's decision): the deployed prototype signs in exactly like a local `npm run dev` — stub sign-in, open to anyone who reaches it unless PROTOTYPE_PASSWORD puts the prototype's own shared password in front (src/server/prototype-password) — unless STUB_MODE=false restores plants-frontend's own Defra ID sign-in. Covered by src/server/prototype-sets/production-run.test.js"
     },
     {
       "path": "src/server/app/services/persistence/records/index.js",
@@ -90,7 +92,7 @@
     },
     {
       "path": "src/server/router.js",
-      "why": "registers prototype-sets (the sample-journey set and the chooser at /) in place of the redirect to the default set, inside the same auth.enabled gate"
+      "why": "registers prototype-sets (the sample-journey set and the chooser at /) in place of the redirect to the default set, inside the same auth.enabled gate; and registers prototype-password (one import, one line, before and outside that gate), the shared password in front of every page when PROTOTYPE_PASSWORD is set, so server.js stays untouched"
     },
     {
       "path": "src/server/app/routes.test.js",
@@ -102,7 +104,7 @@
     },
     {
       "path": "README.md",
-      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed; the AUTHENTICATION section notes that STUB_MODE is honoured in production too (Sam's decision), unlike plants-frontend"
+      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed; the AUTHENTICATION section notes that STUB_MODE is honoured in production too (Sam's decision), unlike plants-frontend, and describes the prototype's own password (PROTOTYPE_PASSWORD, a CDP secret) that keeps the deployed prototype from being open to anyone"
     },
     {
       "path": "Dockerfile",

@@ -96,7 +96,12 @@ else using the same release.
 
 - **On your computer** (`npm run dev`): you are signed in straight away.
 - **Deployed prototype**: signed in straight away too, the same stub sign-in
-  `npm run dev` uses. Everyone sees the same examples.
+  `npm run dev` uses. Everyone sees the same examples. If the maintainer has
+  set the prototype password, the first page asks for it: type it in for the
+  participant, or give it to them on the day, never in the invitation with
+  the link. Open `/prototype-password/sign-out` between participants on a
+  shared laptop. See
+  [The prototype password](sharing-and-handing-off.md#the-prototype-password).
 
 ## After the sessions
 
