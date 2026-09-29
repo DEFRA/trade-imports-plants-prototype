@@ -111,6 +111,15 @@ const fakeDeps = ({
       calls.demoSite = calls.demoSite ?? []
       calls.demoSite.push(input)
     },
+    buildServiceMaps: async (input) => {
+      calls.serviceMaps = calls.serviceMaps ?? []
+      calls.serviceMaps.push(input)
+      return {
+        built: input.setIds,
+        failed: [],
+        lines: ['Service maps: 1 built.']
+      }
+    },
     localWorkers: () => 1,
     ...overrides
   }
@@ -287,10 +296,11 @@ describe('walkingLine', () => {
 })
 
 describe('whereLines', () => {
-  it('Should point at the demo page and the technical report', () => {
+  it('Should point at the demo page, the service maps and the technical report', () => {
     expect(whereLines()).toEqual([
       '',
       `Demo page: ${path.join('.cache', 'designer', 'walkthrough', 'site', 'index.html')}`,
+      `How the pages connect: ${path.join('.cache', 'designer', 'walkthrough', 'site', 'service-map', 'index.html')}`,
       `Technical report (every step, trace): ${path.join('.cache', 'designer', 'walkthrough', 'site', 'tests', 'index.html')}`,
       'To watch it: npm run designer:walkthrough -- --show'
     ])
@@ -338,12 +348,30 @@ describe('runWalkthrough', () => {
     ])
   })
 
+  it('Should build the service map of each set it walked, beside the demo page', async () => {
+    const fake = fakeDeps()
+
+    const { said } = await run(['--no-open'], fake)
+
+    expect(fake.calls.serviceMaps).toEqual([
+      {
+        root: ROOT,
+        setIds: ['high-risk-plants'],
+        reportFile: path.join(ROOT, '.cache/designer/walkthrough/report.json'),
+        resultsDir: path.join(ROOT, '.cache/designer/walkthrough/test-results'),
+        siteDir: path.join(ROOT, '.cache/designer/walkthrough/site')
+      }
+    ])
+    expect(said).toContain('Service maps: 1 built.')
+  })
+
   it('Should build the demo site on CI too, through a separate reports:demo step, not by calling buildDemoSite itself', async () => {
     const fake = fakeDeps()
 
     await run(['--ci'], fake)
 
     expect(fake.calls.demoSite ?? []).toEqual([])
+    expect(fake.calls.serviceMaps ?? []).toEqual([])
   })
 
   it('Should not build the demo site with --show, which only opens what is already there', async () => {

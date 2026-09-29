@@ -375,6 +375,36 @@ export const walkthroughLink = (
 }
 
 /**
+ * The link to the release's service map (how its pages connect), published
+ * beside the demo page `walkthroughLink` names: the pull request's own site
+ * with a number, else main's.
+ *
+ * @param {{ siteUrl?: string|null }} prototype - the prototype's facts.
+ * @param {string} setId
+ * @param {{ pullRequest?: number|string|null }} [options]
+ * @returns {{ url: string, line: string }|null} the link and the story's line
+ *   for it, or null when no report is published.
+ */
+export const serviceMapLink = (
+  prototype,
+  setId,
+  { pullRequest = null } = {}
+) => {
+  const siteUrl = prototype?.siteUrl
+  if (!siteUrl) {
+    return null
+  }
+  const base = withTrailingSlash(siteUrl)
+  const url = pullRequest
+    ? `${base}reports/pr-${pullRequest}/service-map/${setId}/`
+    : `${base}service-map/${setId}/`
+  const note = pullRequest
+    ? ''
+    : ' (this shows the saved version once it is on main)'
+  return { url, line: `See how the pages connect: ${url}${note}` }
+}
+
+/**
  * The example links for the changed pages: each opens a saved example
  * notification on that page. Uses an example with no organisation, so the
  * link works on the deployed prototype too.

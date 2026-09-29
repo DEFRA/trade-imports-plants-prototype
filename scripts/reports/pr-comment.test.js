@@ -6,6 +6,7 @@ import {
   demoLink,
   featuredCounts,
   fitCounts,
+  serviceMapLink,
   testsLink
 } from './pr-comment.js'
 
@@ -113,9 +114,9 @@ describe('commentFor', () => {
         '',
         `**[Watch the main journeys](${REPORT_URL})**: short videos of the most important journeys, most important first — the link to send stakeholders.`,
         '',
-        '| Release | Featured on the demo page | Walked to the end |',
-        '| --- | --- | --- |',
-        `| [The real journey (high-risk-plants)](${demoLink(REPORT_URL, 'high-risk-plants')}) | 1 | 2 of 2 |`,
+        '| Release | Featured on the demo page | Walked to the end | How the pages connect |',
+        '| --- | --- | --- | --- |',
+        `| [The real journey (high-risk-plants)](${demoLink(REPORT_URL, 'high-risk-plants')}) | 1 | 2 of 2 | [Service map](${serviceMapLink(REPORT_URL, 'high-risk-plants')}) |`,
         '',
         `For the development team: [every test and walkthrough, with traces](${REPORT_URL}tests/). FIT tests: 2 passed, 1 failed, 1 flaky.`,
         '',
@@ -129,7 +130,7 @@ describe('commentFor', () => {
     const comment = commentFor(someRed, { reportUrl: REPORT_URL })
 
     expect(comment).toContain(
-      `| [Working release (plants-working)](${demoLink(REPORT_URL, 'plants-working')}) | 1 | 1 of 3: 'Deleted draft' stopped at '2. Delete \\| confirm': Error: the page said "Try again" (and 1 more) |`
+      `| [Working release (plants-working)](${demoLink(REPORT_URL, 'plants-working')}) | 1 | 1 of 3: 'Deleted draft' stopped at '2. Delete \\| confirm': Error: the page said "Try again" (and 1 more) | [Service map](${REPORT_URL}service-map/plants-working/) |`
     )
   })
 
@@ -147,7 +148,7 @@ describe('commentFor', () => {
     }
 
     expect(commentFor(oneSet, { reportUrl: REPORT_URL })).toContain(
-      `| [Working release (plants-working)](${demoLink(REPORT_URL, 'plants-working')}) | 0 | 1 of 1 |`
+      `| [Working release (plants-working)](${demoLink(REPORT_URL, 'plants-working')}) | 0 | 1 of 1 | [Service map](${serviceMapLink(REPORT_URL, 'plants-working')}) |`
     )
   })
 
@@ -162,7 +163,7 @@ describe('commentFor', () => {
       `The report could not be published as a web page (GitHub Pages is not turned on for this repository yet). Download **prototype-playwright-report** from [this run](${RUN_URL}), unzip it and open \`site/index.html\`.`
     )
     expect(comment).toContain(
-      '| The real journey (high-risk-plants) | 1 | 2 of 2 |'
+      '| The real journey (high-risk-plants) | 1 | 2 of 2 | In the download, at site/service-map/high-risk-plants/ |'
     )
     expect(comment).toContain(
       'For the development team: every test and walkthrough, with traces (see the FIT Tests and Walkthroughs checks). FIT tests: 2 passed, 1 failed, 1 flaky.'

@@ -30,6 +30,7 @@ import { REPO_ROOT } from '../lib/repo.js'
 import { buildClientAssets, needsClientBuild } from '../show/assets.js'
 import { findFreePort } from '../show/server.js'
 import { buildDemoSite } from '../../reports/demo/cli.js'
+import { buildServiceMaps } from '../../reports/service-map/cli.js'
 import { planWalkthroughs, readSets, unknownSets } from './plan.js'
 import {
   exitCodeOf,
@@ -163,6 +164,7 @@ export const playwrightEnv = (options, { root, port, setIds }) => {
 export const whereLines = () => [
   '',
   `Demo page: ${path.join(OUTPUTS.local.site, 'index.html')}`,
+  `How the pages connect: ${path.join(OUTPUTS.local.site, 'service-map', 'index.html')}`,
   `Technical report (every step, trace): ${path.join(OUTPUTS.local.site, 'tests', 'index.html')}`,
   'To watch it: npm run designer:walkthrough -- --show'
 ]
@@ -284,6 +286,7 @@ export const DEFAULT_DEPS = Object.freeze({
   serveReport,
   appendSummary: (file, text) => appendFileSync(file, text),
   buildDemoSite,
+  buildServiceMaps,
   localWorkers: () => localWorkers()
 })
 
@@ -387,6 +390,17 @@ export const runWalkthrough = async (
     resultsDir: path.join(root, outputs.results),
     siteDir: path.join(root, OUTPUTS.local.site)
   })
+  // The service map of each set walked, beside the demo page it links from.
+  // A map that cannot be drawn says so on its own page; it never stops the
+  // walkthrough.
+  const maps = await deps.buildServiceMaps({
+    root,
+    setIds: expectedSets,
+    reportFile: jsonFile,
+    resultsDir: path.join(root, outputs.results),
+    siteDir: path.join(root, OUTPUTS.local.site)
+  })
+  say(maps.lines.join('\n'))
   say(whereLines().join('\n'))
   if (options.open && !verdict.crashed) {
     await showLastReport({ root, deps, say })

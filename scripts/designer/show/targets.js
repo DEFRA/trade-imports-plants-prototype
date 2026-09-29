@@ -24,7 +24,9 @@ export const HUB_KEY = 'hub'
  */
 export const pageKey = (page) => (page.slug ? page.slug : page.id)
 
-const ALIASES = Object.freeze({
+/** Plain names a page also answers to, shared with the service map, which
+ * reads the walkthrough's `task-list` pictures as the hub's. */
+export const ALIASES = Object.freeze({
   'check-answers': 'notification-view',
   'check-your-answers': 'notification-view',
   'task-list': HUB_KEY,

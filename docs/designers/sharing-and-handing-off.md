@@ -70,6 +70,8 @@ pull request with its link, usually within about ten minutes. Send that
 link to stakeholders — it is the shareable demo, live for as long as the
 pull request stays open. The full technical report, with every test, every
 walkthrough and every trace, sits alongside it at `reports/pr-<n>/tests/`.
+Each release's **service map** — how its pages connect, with pictures —
+publishes too, at `reports/pr-<n>/service-map/<release-id>/`.
 If the comment says GitHub Pages is not turned on yet, download the
 `prototype-playwright-report` artifact from the check's run instead: it
 holds both.
@@ -177,7 +179,8 @@ A folder in `handoffs/`, named with the date and a few words, for example
 - `brief.md`: the brief, in plain English. What changed and why, each page
   with screenshots, a table of old and new words, the Welsh still needed, the
   tests the real team must update, what cannot ship yet, the recipe you
-  followed, what was left out and why, and how to apply it.
+  followed, what was left out and why, how to apply it, and a link to the
+  release's published service map so the team can see how the pages connect.
 - `brief.jira.txt`: the same brief, ready to paste into a Jira story.
 - `upstream.patch`: your change rewritten as the real service's files. It has
   been checked against the real journey, so the brief says whether it applies

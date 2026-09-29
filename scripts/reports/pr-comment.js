@@ -2,8 +2,8 @@
  * The pull request comment (and job summary) for the published site: a link
  * to the demo page (the most important journeys, most important first — the
  * link to send stakeholders), a row per release saying how many of its
- * journeys are featured there and how many walked to the end, and the FIT
- * test counts.
+ * journeys are featured there, how many walked to the end and a link to its
+ * service map (how its pages connect), and the FIT test counts.
  *
  *   node scripts/reports/pr-comment.js merged/report.json > comment.md
  *
@@ -85,6 +85,15 @@ export const demoLink = (reportUrl, setId) => `${reportUrl}#set-${setId}`
 /** The technical report's specs for one set. */
 export const testsLink = (reportUrl, tag) => `${reportUrl}tests/#?q=@${tag}`
 
+/** A set's service map, built beside the demo page. */
+export const serviceMapLink = (reportUrl, setId) =>
+  `${reportUrl}service-map/${setId}/`
+
+const mapCell = (set, reportUrl) =>
+  reportUrl
+    ? `[Service map](${serviceMapLink(reportUrl, set.setId)})`
+    : `In the download, at site/service-map/${tableCell(set.setId)}/`
+
 const setCell = (set, reportUrl) =>
   reportUrl
     ? `[${tableCell(set.title)}](${demoLink(reportUrl, set.setId)})`
@@ -105,11 +114,11 @@ const walkedCell = (set) => {
 const walkthroughTable = (sets, report, reportUrl) => {
   const featured = featuredCounts(report)
   return [
-    '| Release | Featured on the demo page | Walked to the end |',
-    '| --- | --- | --- |',
+    '| Release | Featured on the demo page | Walked to the end | How the pages connect |',
+    '| --- | --- | --- | --- |',
     ...sets.map(
       (set) =>
-        `| ${setCell(set, reportUrl)} | ${featured.get(set.setId) ?? 0} | ${walkedCell(set)} |`
+        `| ${setCell(set, reportUrl)} | ${featured.get(set.setId) ?? 0} | ${walkedCell(set)} | ${mapCell(set, reportUrl)} |`
     )
   ]
 }

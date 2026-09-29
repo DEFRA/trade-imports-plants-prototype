@@ -11,6 +11,7 @@ import {
   TICKET_DESCRIPTION_FILE,
   TICKET_SCHEMA,
   ticketManifestFor,
+  serviceMapLink,
   walkthroughLink
 } from './story.js'
 
@@ -306,5 +307,25 @@ describe('walkthroughLink', () => {
 
   it('Should give no link when no report is published', () => {
     expect(walkthroughLink({ siteUrl: null }, 'plants-working')).toBeNull()
+  })
+})
+
+describe('serviceMapLink', () => {
+  it('Should link the release’s service map beside main’s demo page, saying when it shows', () => {
+    expect(
+      serviceMapLink({ siteUrl: 'https://example.test' }, 'plants-working')
+    ).toEqual({
+      url: 'https://example.test/service-map/plants-working/',
+      line: 'See how the pages connect: https://example.test/service-map/plants-working/ (this shows the saved version once it is on main)'
+    })
+  })
+
+  it('Should link a pull request’s own map before it is merged, and nothing when no report is published', () => {
+    expect(
+      serviceMapLink({ siteUrl: 'https://example.test/' }, 'plants-working', {
+        pullRequest: 12
+      }).url
+    ).toBe('https://example.test/reports/pr-12/service-map/plants-working/')
+    expect(serviceMapLink({ siteUrl: null }, 'plants-working')).toBeNull()
   })
 })

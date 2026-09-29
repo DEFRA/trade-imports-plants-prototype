@@ -277,6 +277,18 @@ describe('buildModel', () => {
     expect(model.sets[0].description).toBe('A trial of a new page.')
   })
 
+  it('Should link each set to its own service map, beside the demo page', () => {
+    const report = reportOf([
+      walkthroughSuite('Working release (plants-working)', [
+        spec('id-1', 'Submitted', 'plants-working')
+      ])
+    ])
+
+    expect(buildModel(report).sets[0].serviceMap).toBe(
+      'service-map/plants-working/'
+    )
+  })
+
   it('Should give an empty report no sets', () => {
     expect(buildModel(null)).toEqual({ sets: [] })
     expect(buildModel(reportOf([]))).toEqual({ sets: [] })

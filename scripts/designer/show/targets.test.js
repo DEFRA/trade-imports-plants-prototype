@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ALIASES,
+  HUB_KEY,
   knownKeys,
   pageKey,
   planWalk,
@@ -53,6 +55,13 @@ const SCENARIOS = [
     )
   }
 ]
+
+describe('ALIASES', () => {
+  it('Should read the walkthrough’s task-list name as the hub, for the service map to share', () => {
+    expect(ALIASES['task-list']).toBe(HUB_KEY)
+    expect(Object.isFrozen(ALIASES)).toBe(true)
+  })
+})
 
 describe('pageKey', () => {
   it('Should name a page by its address, or by its id when it has none', () => {

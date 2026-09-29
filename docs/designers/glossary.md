@@ -149,6 +149,15 @@ without error messages. It is switched on in one saved change, listed in the
 release's `research-mode.md`, and switched off after the research by undoing
 that change. It never goes into a hand-off.
 
+## Service map
+
+A page showing how a release's pages connect: every page as a card with its
+picture from the walkthrough, the arrows between pages labelled with the
+question and answer that leads there, and the task list groups as lanes.
+Built automatically from the release's own flow, the same way for every
+set, and published alongside the **demo page** at `service-map/<set-id>/`.
+Run it yourself with `npm run designer:service-map -- --set <set-id>`.
+
 ## Set
 
 One journey the prototype can show, living in
