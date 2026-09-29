@@ -75,7 +75,9 @@ export default defineConfig({
             name: 'walkthroughs',
             testDir: './fit/walkthroughs',
             testMatch: '**/*.walkthrough.spec.js',
-            timeout: 300_000,
+            // 600s: a human-paced walk of the longest story (the error
+            // messages story, ~24 pages) takes several minutes on its own.
+            timeout: 600_000,
             use: {
               ...devices['Desktop Chrome'],
               baseURL: `http://localhost:${port}`,
@@ -83,8 +85,22 @@ export default defineConfig({
               video: { mode: 'on', size: WALKTHROUGH_SIZE },
               trace: 'on',
               screenshot: 'on',
+              // The human-pace cursor overlay (scripts/designer/walkthrough/
+              // human-pace.js) sets its position through the CSSOM
+              // (`element.style.x = …`). That still counts as an inline
+              // style under the prototype's CSP (`style-src 'self'`, no
+              // 'unsafe-inline') and is blocked without this — confirmed by
+              // running a walkthrough with it left off, which failed every
+              // story on a console CSP violation. Walkthroughs only: this
+              // changes what the page is allowed to do, so it stays off
+              // everywhere else (journeys, features).
+              bypassCSP: true,
               launchOptions: {
-                slowMo: Number(process.env.WALKTHROUGH_SLOWMO ?? 250)
+                // 0 by default: slowMo slows every protocol call, not just
+                // real actions, which makes for jerky, uneven video now that
+                // pace.js/human-pace.js pace the walk explicitly. Kept as an
+                // override for maintainers only.
+                slowMo: Number(process.env.WALKTHROUGH_SLOWMO ?? 0)
               }
             }
           }

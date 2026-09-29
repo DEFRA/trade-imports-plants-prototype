@@ -1,0 +1,46 @@
+// The stakeholder demo page's one stylesheet. This is maintainer report
+// tooling, not a design-release template, so rule 4's "no Sass" (stay in
+// the GOV.UK toolbox) does not apply here: this file is the toolbox itself,
+// compiled once at build time by scripts/reports/demo/cli.js.
+//
+// GDS Transport (govuk-frontend's default typeface) is licensed only for
+// service.gov.uk domains, and this page is published to github.io, so the
+// font family is set to plain Arial and the default font-face is switched
+// off — no font files are downloaded or bundled.
+@use "pkg:govuk-frontend" as * with (
+  $govuk-font-family: (Arial, sans-serif),
+  $govuk-include-default-font-face: false
+);
+
+.app-demo-video {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  display: block;
+  margin-bottom: govuk-spacing(4);
+  background-color: govuk-colour("black");
+}
+
+.app-demo-page-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+  padding-top: govuk-spacing(2);
+}
+
+.app-demo-page-strip__item {
+  display: block;
+  width: 160px;
+  text-align: center;
+  color: govuk-colour("black");
+
+  &:hover {
+    color: $govuk-link-hover-colour;
+  }
+
+  img {
+    width: 100%;
+    height: auto;
+    border: 1px solid govuk-colour("black", $variant: "tint-80");
+  }
+}

@@ -42,7 +42,9 @@ A second exception is **the walkthrough spec**, `fit/walkthroughs/**`.
 time from the set's examples, for `designer:walkthrough` and CI, so no
 release ever gets a spec of its own. A designer never needs to touch it
 (they change a story through the release's examples); a maintainer may, on
-a `chore/*` branch.
+a `chore/*` branch. `scripts/reports/demo/` is the same kind of
+prototype-owned tooling, alongside it: it builds the stakeholder demo page
+from the walkthrough report, and needs no release-specific content either.
 
 Before any edit:
 

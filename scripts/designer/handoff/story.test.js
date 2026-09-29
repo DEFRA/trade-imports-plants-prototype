@@ -287,20 +287,20 @@ describe('walkthroughLink', () => {
     siteUrl: 'https://defra.github.io/trade-imports-plants-prototype/'
   }
 
-  it('Should link the release’s walkthrough at the site root on main, saying when it shows', () => {
+  it('Should link the release’s section of the demo page at the site root on main, saying when it shows', () => {
     expect(walkthroughLink(prototype, 'plants-working')).toEqual({
-      url: 'https://defra.github.io/trade-imports-plants-prototype/#?q=@plants-working',
-      line: 'See it walked through, page by page: https://defra.github.io/trade-imports-plants-prototype/#?q=@plants-working (this shows the saved version once it is on main)'
+      url: 'https://defra.github.io/trade-imports-plants-prototype/#set-plants-working',
+      line: 'Watch it walked through: https://defra.github.io/trade-imports-plants-prototype/#set-plants-working (this shows the saved version once it is on main)'
     })
   })
 
-  it('Should link a pull request’s own report before it is merged', () => {
+  it('Should link a pull request’s own demo page before it is merged', () => {
     expect(
       walkthroughLink({ siteUrl: 'https://example.test/' }, 'plants-working', {
         pullRequest: 12
       }).line
     ).toBe(
-      'See it walked through, page by page: https://example.test/reports/pr-12/#?q=@plants-working'
+      'Watch it walked through: https://example.test/reports/pr-12/#set-plants-working'
     )
   })
 

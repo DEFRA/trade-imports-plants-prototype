@@ -18,6 +18,8 @@ export const USAGE = [
   '  --no-open                  do not open the report when done (agents',
   '                             always use this: opening it waits for Ctrl+C)',
   '  --show                     open the last report again, without walking',
+  '  --fast                     skip the human pacing, to check the stories',
+  '                             still reach the end, not to watch them',
   '  --ci                       what the pull request checks run: every set,',
   '                             a report to merge, and a summary for GitHub',
   '  --help                     show this help'
@@ -26,6 +28,7 @@ export const USAGE = [
 const FLAGS = Object.freeze({
   '--all': 'all',
   '--show': 'show',
+  '--fast': 'fast',
   '--ci': 'ci',
   '--help': 'help',
   '-h': 'help'
@@ -42,6 +45,7 @@ const emptyOptions = () => ({
   all: false,
   open: true,
   show: false,
+  fast: false,
   ci: false,
   help: false
 })

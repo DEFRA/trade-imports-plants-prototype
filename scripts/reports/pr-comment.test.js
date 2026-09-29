@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { COMMENT_MARKER, commentFor, fitCounts } from './pr-comment.js'
+import {
+  COMMENT_MARKER,
+  commentFor,
+  demoLink,
+  featuredCounts,
+  fitCounts,
+  testsLink
+} from './pr-comment.js'
 
 const REPORT_URL =
   'https://defra.github.io/trade-imports-plants-prototype/reports/pr-12/'
@@ -8,9 +15,9 @@ const RUN_URL =
   'https://github.com/DEFRA/trade-imports-plants-prototype/actions/runs/1'
 const SHA = '0123456789abcdef'
 
-const story = (title, setId, status, extra = {}) => ({
+const story = (title, setId, status, { extra = {}, tags = [] } = {}) => ({
   title,
-  tags: ['walkthrough', setId],
+  tags: ['walkthrough', setId, ...tags],
   tests: [
     {
       projectName: 'walkthroughs',
@@ -55,7 +62,9 @@ const green = {
       {
         title: 'The real journey (high-risk-plants)',
         specs: [
-          story('Submitted', 'high-risk-plants', 'expected'),
+          story('Submitted', 'high-risk-plants', 'expected', {
+            tags: ['featured']
+          }),
           story('Draft', 'high-risk-plants', 'expected')
         ]
       }
@@ -71,14 +80,20 @@ const someRed = {
       {
         title: 'Working release (plants-working)',
         specs: [
-          story('Submitted', 'plants-working', 'expected'),
+          story('Submitted', 'plants-working', 'expected', {
+            tags: ['featured']
+          }),
           story('Deleted draft', 'plants-working', 'unexpected', {
-            errors: [{ message: 'Error: the page said "Try again"' }],
-            steps: [{ title: '2. Delete | confirm', error: {} }]
+            extra: {
+              errors: [{ message: 'Error: the page said "Try again"' }],
+              steps: [{ title: '2. Delete | confirm', error: {} }]
+            }
           }),
           story('Amended', 'plants-working', 'unexpected', {
-            errors: [{ message: 'Error: stuck' }],
-            steps: [{ title: '5. Declaration', error: {} }]
+            extra: {
+              errors: [{ message: 'Error: stuck' }],
+              steps: [{ title: '5. Declaration', error: {} }]
+            }
           })
         ]
       }
@@ -88,7 +103,7 @@ const someRed = {
 }
 
 describe('commentFor', () => {
-  it('Should link the walkthroughs, each release and the whole report when all is green', () => {
+  it('Should lead with the demo page, then a row per release with how many are featured and how many walked to the end', () => {
     expect(
       commentFor(green, { reportUrl: REPORT_URL, runUrl: RUN_URL, sha: SHA })
     ).toBe(
@@ -96,13 +111,13 @@ describe('commentFor', () => {
         COMMENT_MARKER,
         '### The prototype, walked through',
         '',
-        `**[Watch the walkthroughs](${REPORT_URL}#?q=@walkthrough)**: every release on this branch, page by page, with a picture of each page, a video and a trace.`,
+        `**[Watch the main journeys](${REPORT_URL})**: short videos of the most important journeys, most important first — the link to send stakeholders.`,
         '',
-        '| Release | Stories | Walked to the end |',
+        '| Release | Featured on the demo page | Walked to the end |',
         '| --- | --- | --- |',
-        `| [The real journey (high-risk-plants)](${REPORT_URL}#?q=@high-risk-plants) | 2 | 2 |`,
+        `| [The real journey (high-risk-plants)](${demoLink(REPORT_URL, 'high-risk-plants')}) | 1 | 2 of 2 |`,
         '',
-        `FIT tests: 2 passed, 1 failed, 1 flaky. [The whole report](${REPORT_URL})`,
+        `For the development team: [every test and walkthrough, with traces](${REPORT_URL}tests/). FIT tests: 2 passed, 1 failed, 1 flaky.`,
         '',
         'Updated for 0123456. A new link can take a minute to appear while GitHub Pages publishes it.',
         ''
@@ -114,7 +129,25 @@ describe('commentFor', () => {
     const comment = commentFor(someRed, { reportUrl: REPORT_URL })
 
     expect(comment).toContain(
-      `| [Working release (plants-working)](${REPORT_URL}#?q=@plants-working) | 3 | 1: 'Deleted draft' stopped at '2. Delete \\| confirm': Error: the page said "Try again" (and 1 more) |`
+      `| [Working release (plants-working)](${demoLink(REPORT_URL, 'plants-working')}) | 1 | 1 of 3: 'Deleted draft' stopped at '2. Delete \\| confirm': Error: the page said "Try again" (and 1 more) |`
+    )
+  })
+
+  it('Should say 0 featured for a release with none tagged', () => {
+    const oneSet = {
+      suites: [
+        walkthroughSuite([
+          {
+            title: 'Working release (plants-working)',
+            specs: [story('Submitted', 'plants-working', 'expected')]
+          }
+        ])
+      ],
+      errors: []
+    }
+
+    expect(commentFor(oneSet, { reportUrl: REPORT_URL })).toContain(
+      `| [Working release (plants-working)](${demoLink(REPORT_URL, 'plants-working')}) | 0 | 1 of 1 |`
     )
   })
 
@@ -126,10 +159,14 @@ describe('commentFor', () => {
     })
 
     expect(comment).toContain(
-      `The report could not be published as a web page (GitHub Pages is not turned on for this repository yet). Download **prototype-playwright-report** from [this run](${RUN_URL}), unzip it and open \`playwright-report/index.html\`.`
+      `The report could not be published as a web page (GitHub Pages is not turned on for this repository yet). Download **prototype-playwright-report** from [this run](${RUN_URL}), unzip it and open \`site/index.html\`.`
     )
-    expect(comment).toContain('| The real journey (high-risk-plants) | 2 | 2 |')
-    expect(comment).toContain('FIT tests: 2 passed, 1 failed, 1 flaky.\n')
+    expect(comment).toContain(
+      '| The real journey (high-risk-plants) | 1 | 2 of 2 |'
+    )
+    expect(comment).toContain(
+      'For the development team: every test and walkthrough, with traces (see the FIT Tests and Walkthroughs checks). FIT tests: 2 passed, 1 failed, 1 flaky.'
+    )
     expect(comment).toContain('Updated for 0123456.\n')
     expect(comment).not.toContain('github.io')
   })
@@ -167,5 +204,31 @@ describe('fitCounts', () => {
       flaky: 1,
       skipped: 0
     })
+  })
+})
+
+describe('featuredCounts', () => {
+  it('Should count only the specs tagged @featured, per set', () => {
+    expect([...featuredCounts(green).entries()]).toEqual([
+      ['high-risk-plants', 1]
+    ])
+  })
+
+  it('Should give an empty map for a report with nothing featured', () => {
+    expect(featuredCounts(null).size).toBe(0)
+  })
+})
+
+describe('demoLink and testsLink', () => {
+  it('Should link a set’s own section on the demo page', () => {
+    expect(demoLink(REPORT_URL, 'plants-working')).toBe(
+      `${REPORT_URL}#set-plants-working`
+    )
+  })
+
+  it('Should link a tag’s specs in the technical report', () => {
+    expect(testsLink(REPORT_URL, 'plants-working')).toBe(
+      `${REPORT_URL}tests/#?q=@plants-working`
+    )
   })
 })

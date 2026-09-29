@@ -190,6 +190,42 @@ describe('the example grammar', () => {
     expect(untold.story).toBeNull()
   })
 
+  it('Should feature an example, with a headline that defaults to its label', () => {
+    const [example] = check([
+      {
+        label: 'Submitted',
+        slug: 'submitted',
+        fixture: 'latePotatoes',
+        featured: 1
+      }
+    ])
+
+    expect(example.featured).toBe(1)
+    expect(example.headline).toBe('Submitted')
+  })
+
+  it('Should use the given headline over the label', () => {
+    const [example] = check([
+      {
+        label: 'Submitted',
+        slug: 'submitted',
+        fixture: 'latePotatoes',
+        featured: 1,
+        headline: 'Send a notification from start to finish'
+      }
+    ])
+
+    expect(example.headline).toBe('Send a notification from start to finish')
+  })
+
+  it('Should leave an unfeatured example with no featured position', () => {
+    const [example] = check([
+      { label: 'Plain', slug: 'plain', fixture: 'latePotatoes' }
+    ])
+
+    expect(example.featured).toBeNull()
+  })
+
   it('Should add a field a page never sent to that page’s last step', () => {
     const { steps, problems } = applyAnswers(walk, {
       [DETAILS]: { potatoVariety: 'Maris Piper' }
@@ -322,5 +358,80 @@ describe('the example grammar, refusing examples written wrongly', () => {
 
   it('Should say where the examples came from', () => {
     expect(() => check({})).toThrow(`The examples in ${SOURCE} need fixing`)
+  })
+
+  it('Should refuse a featured position outside 1 to 4', () => {
+    expect(
+      problemsOf([
+        { label: 'Zero', slug: 'zero', fixture: 'latePotatoes', featured: 0 }
+      ])[0]
+    ).toContain(
+      'has a featured position that is not a whole number from 1 to 4'
+    )
+  })
+
+  it('Should refuse two examples that share one featured position', () => {
+    expect(
+      problemsOf([
+        {
+          label: 'First',
+          slug: 'first',
+          fixture: 'latePotatoes',
+          featured: 1
+        },
+        {
+          label: 'Second',
+          slug: 'second',
+          fixture: 'latePotatoes',
+          featured: 1
+        }
+      ])[0]
+    ).toContain("is featured at position 1, which 'First' already uses")
+  })
+
+  it('Should refuse more than 4 featured examples', () => {
+    const examples = [1, 2, 3, 4].map((featured) => ({
+      label: `Example ${featured}`,
+      slug: `example-${featured}`,
+      fixture: 'latePotatoes',
+      featured
+    }))
+    examples.push({
+      label: 'Fifth',
+      slug: 'fifth',
+      fixture: 'latePotatoes',
+      featured: 5
+    })
+
+    expect(problemsOf(examples)).toContainEqual(
+      'The examples feature 5: the demo page shows 4 at most, plus what happens when something is missing.'
+    )
+  })
+
+  it('Should refuse a headline without a featured position', () => {
+    expect(
+      problemsOf([
+        {
+          label: 'Told',
+          slug: 'told',
+          fixture: 'latePotatoes',
+          headline: 'A headline'
+        }
+      ])[0]
+    ).toContain('gives a headline but is not featured')
+  })
+
+  it('Should refuse a headline that is not text', () => {
+    expect(
+      problemsOf([
+        {
+          label: 'Told',
+          slug: 'told',
+          fixture: 'latePotatoes',
+          featured: 1,
+          headline: 42
+        }
+      ])[0]
+    ).toContain('has a headline that is not text')
   })
 })

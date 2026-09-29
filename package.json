@@ -56,6 +56,7 @@
     "designer:service": "node scripts/designer/service/cli.js",
     "designer:walkthrough": "node scripts/designer/walkthrough/cli.js",
     "reports:merge": "playwright merge-reports --config scripts/reports/merge.config.js",
+    "reports:demo": "node scripts/reports/demo/cli.js",
     "lighthouse": "run-s lighthouse:targets lighthouse:run",
     "lighthouse:targets": "node scripts/lighthouse/seed-audit-targets.js",
     "lighthouse:run": "node scripts/lighthouse/run-audit.js",

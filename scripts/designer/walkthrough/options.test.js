@@ -10,6 +10,7 @@ describe('parseWalkthroughArgs', () => {
         all: false,
         open: true,
         show: false,
+        fast: false,
         ci: false,
         help: false
       },
@@ -52,6 +53,12 @@ describe('parseWalkthroughArgs', () => {
     expect(
       parseWalkthroughArgs(['--no-open', '--show', '--all', '-h']).options
     ).toMatchObject({ open: false, show: true, all: true, help: true })
+  })
+
+  it('Should read --fast', () => {
+    expect(parseWalkthroughArgs(['--fast']).options).toMatchObject({
+      fast: true
+    })
   })
 
   it.each([

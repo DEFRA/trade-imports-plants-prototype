@@ -21,6 +21,7 @@ const REAL_HAPPY_PATH = fileURLToPath(
 const RELEASE = 'plants-release-test'
 const HIGH_RISK_PLANTS = 'high-risk-plants'
 const SAMPLE_JOURNEY = 'sample-journey'
+const DRAFT_MIDWAY = 'draft-midway'
 
 /** A throwaway tree shaped like the repo: a set with the real happy path,
  * an empty scenarios folder and an empty named-fixtures folder. */
@@ -82,7 +83,7 @@ describe('which examples a set has', () => {
           through: 'commodities/details'
         },
         {
-          slug: 'draft-midway',
+          slug: DRAFT_MIDWAY,
           status: 'draft',
           through: 'destinations/select'
         },
@@ -173,6 +174,47 @@ describe('which examples a set has', () => {
       expect(loadExamples(HIGH_RISK_PLANTS).map(({ slug }) => slug)).toEqual(
         highRiskPlantsExamples.map(({ slug }) => slug)
       )
+    })
+  })
+
+  describe('featured journeys', () => {
+    it('Should mark the default examples 1, 2 and 3, with a headline each', () => {
+      const defaults = loadExamples(RELEASE, scaffold())
+
+      expect(
+        defaults
+          .filter((example) => example.featured !== null)
+          .map(({ slug, featured, headline }) => ({ slug, featured, headline }))
+      ).toEqual([
+        {
+          slug: DRAFT_MIDWAY,
+          featured: 2,
+          headline: 'Save a notification and come back to it later'
+        },
+        {
+          slug: 'submitted',
+          featured: 1,
+          headline: 'Send a notification from start to finish'
+        },
+        {
+          slug: 'amended',
+          featured: 3,
+          headline: 'Change a notification after sending it'
+        }
+      ])
+    })
+
+    it('Should mark high-risk-plants’ own four featured examples', () => {
+      const featured = loadExamples(HIGH_RISK_PLANTS)
+        .filter((example) => example.featured !== null)
+        .map(({ slug, featured: position }) => ({ slug, featured: position }))
+
+      expect(featured).toEqual([
+        { slug: DRAFT_MIDWAY, featured: 2 },
+        { slug: 'submitted', featured: 1 },
+        { slug: 'amended', featured: 3 },
+        { slug: 'copied', featured: 4 }
+      ])
     })
   })
 })

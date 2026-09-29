@@ -67,6 +67,12 @@ yesterday sends the notification late.'` — leave it out and the walkthrough
 names the story after the fixture's use case instead. `story` is checked the
 same way as every other text key: it must not be empty.
 
+Add `featured: <position>` (1 to 4) to put an example first on the demo
+page's short list, and `headline` to give it its own title there (it
+defaults to `label`). At most 4 examples in a set may be featured, and the
+error-messages story is always featured last, one place after the highest
+number in use.
+
 ## After the edit
 
 ```

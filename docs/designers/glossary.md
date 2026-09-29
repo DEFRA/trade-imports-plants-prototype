@@ -46,6 +46,15 @@ What to say if Claude seems lost: "use the design skill", or just
 "design". Claude then works out what you want from your own words, splits it
 into parts and does each one. You never need to know any other name.
 
+## Demo page
+
+The web page built for stakeholders: short videos of the most important
+journeys, most important first, made automatically from a set's
+**featured journeys**. Published at
+`https://defra.github.io/trade-imports-plants-prototype/` for `main`, or
+`reports/pr-<n>/` for a pull request, and linked from the pull request's
+comment. The full **technical report** sits underneath it at `tests/`.
+
 ## Example
 
 A notification made in advance so there is something to look at: a draft,
@@ -60,6 +69,14 @@ A web address that always opens a particular example, for example
 `http://localhost:3103/examples/<set-id>/<example>`. It keeps working after
 the prototype restarts and after Reset, so it is safe to put in a research
 script or a pull request.
+
+## Featured journey
+
+An example given `featured: <position>` (1 to 4) and, usually, its own
+`headline`. It shows with a video and a summary near the top of the
+**demo page**, in that position. Every set's demo page also always shows
+one more journey after the featured ones, "What happens when something is
+missing", made automatically. See [Example data](example-data.md#choose-what-the-demo-page-shows-first).
 
 ## Gallery
 
@@ -115,15 +132,15 @@ team. This prototype is a copy of it. A file that "belongs to the real
 service" is one the real team changes, and the weekly update brings their
 changes in.
 
-## Report
+## Technical report
 
 The single web page every walkthrough and browser test makes together: a
-picture of each page, a video and a trace, filterable to one release
-(`#?q=@<release-id>`) or to just the walkthroughs (`#?q=@walkthrough`).
-Published to
-`https://defra.github.io/trade-imports-plants-prototype/reports/` on every
-pull request and every merge to `main`, and linked from the pull request's
-comment.
+picture of each page, a video and a trace for every test, filterable to one
+release or one kind of test. It sits at `tests/`, underneath the
+**demo page** — `https://defra.github.io/trade-imports-plants-prototype/tests/`
+for `main`, `reports/pr-<n>/tests/` for a pull request — and is linked from
+the demo page and the pull request's comment. An old `#?q=@<release-id>` or
+`#?q=@walkthrough` link still works: it forwards itself here.
 
 ## Research mode
 

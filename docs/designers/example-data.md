@@ -173,6 +173,54 @@ can also list every page itself with `steps`, in the same shape as the happy
 path. Never edit the happy path itself for an example: in `high-risk-plants` it
 belongs to the real service.
 
+## Choose what the demo page shows first
+
+The published report also builds a **demo page** for stakeholders: short
+videos of the most important journeys, most important first. Two more parts
+on an example choose what shows there:
+
+| Part       | What it does                                                                                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `featured` | A whole number, 1 to 4. Puts the example first on the demo page, in that position (1 = first). Leave it out and the example still shows in the full report, just not on the demo page. |
+| `headline` | The demo page's own title for it, for example `'Send a notification from start to finish'`. Defaults to `label` when left out.                                                         |
+
+At most 4 examples in a set may be featured, and no two may share a
+position. The demo page always adds one more journey after them, "What
+happens when something is missing" — made automatically from every page
+sent empty first, never one you write.
+
+```js
+{
+  label: 'Submitted (seed potatoes)',
+  slug: 'submitted',
+  fixture: 'seedPotatoes',
+  submit: true,
+  featured: 1,
+  headline: 'Send a notification from start to finish'
+}
+```
+
+Give `story` too (see "Writing an example" above): it becomes the demo
+page's summary paragraph under the headline, so write it for a stakeholder,
+not a developer — "A trader bringing in seed potatoes answers every
+question, checks their answers and sends the notification", not "happy path
+test".
+
+A design release copied from `high-risk-plants` inherits the same four
+featured journeys, with the same headlines, so there is nothing to write for
+a new release. To change what leads a release's own demo page — put another
+journey first, take one off, or give one a clearer headline — change its
+`featured` and `headline` values and check the order:
+
+```
+npm run designer:examples -- check <set-id>
+npm run designer:walkthrough -- --set <set-id> --fast --no-open
+```
+
+then open the demo page it names. `--fast` skips the human pacing, so this
+is a quick way to check the order and the headlines, not to watch the
+finished video.
+
 ## Example links
 
 Each example has a link that keeps working after the prototype restarts or is

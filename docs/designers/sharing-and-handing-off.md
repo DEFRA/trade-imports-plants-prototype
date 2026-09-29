@@ -44,7 +44,7 @@ anything to GitHub until you ask, and does it one of two ways — you choose:
 
 **Straight to `main` (the default when you're working on `main`).** Claude
 pushes your saved change directly to `main`. There is nothing to review and
-nothing more to do: the deployed prototype and its report at
+nothing more to do: the deployed prototype and its demo page at
 `https://defra.github.io/trade-imports-plants-prototype/` update once the
 pipeline runs, usually within about ten minutes. This is exactly how the old
 GB-notification-service prototype worked, where the designer committed
@@ -63,14 +63,16 @@ prototype's own repository. The pull request says:
 - any Welsh still needed and any design gaps,
 - how to make it real.
 
-Its checks publish a walkthrough of every release on that branch as a web
-page, at its own address (`reports/pr-<n>/`): a picture of each page, a
-video and a trace. A comment appears on the pull request with its link,
-usually within about ten minutes. Send that link to stakeholders — it is
-the shareable demo, live for as long as the pull request stays open. If the
-comment says GitHub Pages is not turned on yet, download the
-`prototype-playwright-report` artifact from the check's run instead and open
-its `index.html`.
+Its checks build a demo page for every release on that branch, at its own
+address (`reports/pr-<n>/`): short videos of the most important journeys,
+most important first, paced so they are watchable. A comment appears on the
+pull request with its link, usually within about ten minutes. Send that
+link to stakeholders — it is the shareable demo, live for as long as the
+pull request stays open. The full technical report, with every test, every
+walkthrough and every trace, sits alongside it at `reports/pr-<n>/tests/`.
+If the comment says GitHub Pages is not turned on yet, download the
+`prototype-playwright-report` artifact from the check's run instead: it
+holds both.
 
 Which way you chose — straight to `main`, or on a branch — sticks for the
 rest of your session: Claude will not offer the other way again unless you
@@ -78,9 +80,10 @@ change your mind. It still asks before each send.
 
 Something to send before a show and tell, with no web link yet? Say "record
 a walkthrough", then zip the folder
-`.cache/designer/walkthrough/report/` and send the zip. The person unzips it
-and opens `index.html` in their browser: every step, picture and video
-works. Only the trace needs the web link.
+`.cache/designer/walkthrough/site/` and send the zip. The person unzips it
+and opens `index.html` in their browser: the demo page, and every step,
+picture and video underneath it at `tests/`, all work. Only the trace needs
+the web link.
 
 No GitHub command line (`gh`) on your computer? Claude sends your branch and
 gives you a link that opens the pull request form in your browser, with the

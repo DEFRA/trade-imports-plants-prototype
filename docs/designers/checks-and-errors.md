@@ -119,11 +119,12 @@ printed, in full. Git ignores it.
 
 ## Walkthroughs
 
-Every pull request also publishes a **walkthrough**: a run through every
+Every pull request also builds a **walkthrough**: a run through every
 example in every release, page by page, with a picture, a video and a
-trace. It is documentation, not a check: **a red story is reported, but it
-never blocks the pull request.** Only a crash (the report never wrote, or
-nothing ran at all) fails the "Walkthroughs" check itself.
+trace. It is documentation, not a check: **a red story shows as a warning
+on the demo page, but it never blocks the pull request.** Only a crash (the
+report never wrote, or nothing ran at all) fails the "Walkthroughs" check
+itself.
 
 Three notes you may see on a red or unusual story:
 
@@ -141,7 +142,7 @@ Three notes you may see on a red or unusual story:
   `npm run designer:walkthrough` keeps a Mac awake while it runs; run it
   again, and if the same story runs out of time twice, look at its trace.
 
-See [Seeing your change](seeing-your-change.md#the-walkthrough-on-every-pull-request)
+See [Seeing your change](seeing-your-change.md#the-demo-page-and-the-technical-report)
 for where to watch a walkthrough, and how to run one yourself.
 
 ### The production boot check

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   BROKEN_STORY_NAME,
+  ERROR_STORY_HEADLINE,
   ERROR_STORY_NAME,
+  ERROR_STORY_SLUG,
+  FALLBACK_HEADLINE,
   onlySetsFrom,
   planWalkthroughs,
   readSets,
@@ -29,9 +32,14 @@ const example = (overrides) => ({
   delete: false,
   organisationId: null,
   story: null,
+  featured: null,
+  headline: null,
   ...overrides
 })
 
+// Featured 1, 2, 3, in file order, so the featured-first sort keeps the same
+// order as before featured existed: the tests below can still read top to
+// bottom as "in order" while proving the featured fields are carried too.
 const realJourney = {
   id: 'high-risk-plants',
   release: { kind: 'real-journey' },
@@ -43,13 +51,21 @@ const realJourney = {
       slug: 'draft-just-started',
       through: 'origin',
       submit: false,
-      steps: WALK.slice(0, 1)
+      steps: WALK.slice(0, 1),
+      featured: 1,
+      headline: 'Start a notification'
     }),
-    example({ story: 'A trader sends the notification.' }),
+    example({
+      story: 'A trader sends the notification.',
+      featured: 2,
+      headline: 'Send a notification from start to finish'
+    }),
     example({
       label: 'Another organisation’s',
       slug: 'another-organisation',
-      organisationId: 'example-organisation-b'
+      organisationId: 'example-organisation-b',
+      featured: 3,
+      headline: 'Another organisation’s'
     })
   ]
 }
@@ -173,11 +189,91 @@ describe('planWalkthroughs', () => {
       ]
     })
 
+    // Neither example is featured on purpose, so the first one falls back to
+    // featured 1 and sorts ahead of the second, with the error story between
+    // them (see "Should feature the first example when nothing is featured").
     expect(set.stories.map((story) => story.name)).toEqual([
       'Submitted (submitted)',
-      'Submitted (submitted-again)',
-      ERROR_STORY_NAME
+      ERROR_STORY_NAME,
+      'Submitted (submitted-again)'
     ])
+  })
+
+  it('Should feature the first example that submits when nothing is featured on purpose', () => {
+    const [set] = planWalkthroughs({
+      sets: [
+        {
+          ...release,
+          examples: [
+            example({ slug: 'a', label: 'A' }),
+            example({ slug: 'b', label: 'B' })
+          ]
+        }
+      ]
+    })
+
+    expect(set.stories[0]).toMatchObject({
+      slug: 'a',
+      featured: 1,
+      headline: FALLBACK_HEADLINE
+    })
+    expect(set.stories.find((story) => story.slug === 'b')).toMatchObject({
+      featured: null
+    })
+  })
+
+  it('Should default a featured example’s headline to its label', () => {
+    const [set] = planWalkthroughs({
+      sets: [
+        {
+          ...release,
+          examples: [example({ featured: 1, headline: null })]
+        }
+      ]
+    })
+
+    expect(set.stories[0].headline).toBe('Submitted')
+  })
+
+  it('Should put featured stories first, in position order, then the rest in file order', () => {
+    const [set] = planWalkthroughs({
+      sets: [
+        {
+          ...release,
+          examples: [
+            example({ slug: 'first-in-file', featured: null }),
+            example({ slug: 'featured-two', featured: 2 }),
+            example({ slug: 'second-in-file', featured: null }),
+            example({ slug: 'featured-one', featured: 1 })
+          ]
+        }
+      ]
+    })
+
+    expect(set.stories.map((story) => story.slug)).toEqual([
+      'featured-one',
+      'featured-two',
+      ERROR_STORY_SLUG,
+      'first-in-file',
+      'second-in-file'
+    ])
+  })
+
+  it('Should feature the error story one place after the highest featured position', () => {
+    const [set] = planWalkthroughs({
+      sets: [
+        {
+          ...release,
+          examples: [example({ featured: 3, headline: 'Third' })]
+        }
+      ]
+    })
+
+    const errors = set.stories.find((story) => story.kind === 'errors')
+    expect(errors).toMatchObject({
+      featured: 4,
+      headline: ERROR_STORY_HEADLINE
+    })
   })
 
   it('Should walk only the sets asked for', () => {

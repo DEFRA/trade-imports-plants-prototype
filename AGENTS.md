@@ -30,7 +30,9 @@ in a Claude Code session opened at the workspace root
    `docs/designers/` (start at `docs/designers/README.md`).
 7. Every set gets a **walkthrough**: a run through its examples, page by
    page, generated at run time from `fit/walkthroughs/` and published by CI
-   to `gh-pages`. See `PROTOTYPE.md`, "Walkthroughs".
+   to `gh-pages` as a stakeholder demo page (the most important journeys
+   first, chosen by `featured`/`headline` on an example) plus the full
+   report at `tests/`. See `PROTOTYPE.md`, "Walkthroughs".
 
 ## Load-bearing rules
 
@@ -83,8 +85,8 @@ in a Claude Code session opened at the workspace root
     The one spec, `fit/walkthroughs/walkthroughs.walkthrough.spec.js`, is
     prototype-owned and generates every set's stories at run time from its
     examples. Never write or commit a spec for one release: change its
-    examples (`label`, `story`) instead. A red walkthrough story is
-    reported, never a reason a pull request is blocked.
+    examples (`label`, `story`, `featured`, `headline`) instead. A red
+    walkthrough story is reported, never a reason a pull request is blocked.
 
 ## Branches
 

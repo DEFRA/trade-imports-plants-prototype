@@ -19,6 +19,7 @@ import {
   rmSync
 } from 'node:fs'
 import { createRequire } from 'node:module'
+import { availableParallelism } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -28,6 +29,7 @@ import { REAL_JOURNEY_SET, defaultSet } from '../lib/sets.js'
 import { REPO_ROOT } from '../lib/repo.js'
 import { buildClientAssets, needsClientBuild } from '../show/assets.js'
 import { findFreePort } from '../show/server.js'
+import { buildDemoSite } from '../../reports/demo/cli.js'
 import { planWalkthroughs, readSets, unknownSets } from './plan.js'
 import {
   exitCodeOf,
@@ -41,9 +43,13 @@ export const WALKTHROUGH_CACHE = path.join('.cache', 'designer', 'walkthrough')
 /** Where each kind of run writes its report and pictures. */
 export const OUTPUTS = Object.freeze({
   local: Object.freeze({
-    html: path.join(WALKTHROUGH_CACHE, 'report'),
+    // Playwright's html reporter writes straight into site/tests/, so a
+    // local run needs no copy step: what designer:walkthrough builds is
+    // exactly the shape CI publishes (index.html and tests/ side by side).
+    html: path.join(WALKTHROUGH_CACHE, 'site', 'tests'),
     json: path.join(WALKTHROUGH_CACHE, 'report.json'),
-    results: path.join(WALKTHROUGH_CACHE, 'test-results')
+    results: path.join(WALKTHROUGH_CACHE, 'test-results'),
+    site: path.join(WALKTHROUGH_CACHE, 'site')
   }),
   ci: Object.freeze({
     blob: 'blob-report',
@@ -54,7 +60,20 @@ export const OUTPUTS = Object.freeze({
 
 export const CI_PORT = 3054
 export const REPORT_PORT = 9323
-const CI_GLOBAL_TIMEOUT_MS = 25 * 60 * 1000
+// A person's pace takes far longer than the old fixed slowMo did (see
+// pace.js): a full walk of every set can run past the old 25-minute limit.
+const CI_GLOBAL_TIMEOUT_MS = 40 * 60 * 1000
+const CI_WORKERS = 4
+// Measured on the real journey at a person's pace: a story averages about
+// two minutes, and the longest (what each page says when something is
+// missing, or a cancelled amendment) about three, so no run is quicker.
+const SECONDS_PER_STORY_PER_WORKER = 120
+const LONGEST_STORY_MINUTES = 3
+
+/** How many workers a local run gets: Playwright's own default, half the
+ * logical processors, since the config sets none. */
+export const localWorkers = (processors = availableParallelism()) =>
+  Math.max(1, Math.floor(processors / 2))
 
 /** A problem the designer can fix, said in one or two plain sentences. */
 export class WalkthroughProblem extends Error {}
@@ -103,7 +122,8 @@ export const playwrightArgs = (options) =>
         '--project=walkthroughs',
         '--reporter=list,blob,json',
         `--output=${OUTPUTS.ci.results}`,
-        `--global-timeout=${CI_GLOBAL_TIMEOUT_MS}`
+        `--global-timeout=${CI_GLOBAL_TIMEOUT_MS}`,
+        `--workers=${CI_WORKERS}`
       ]
     : [
         'test',
@@ -114,7 +134,7 @@ export const playwrightArgs = (options) =>
 
 /**
  * The environment Playwright runs with: the walkthroughs project switched on,
- * the sets to walk, the port, and where each report goes.
+ * the sets to walk, the pace, the port, and where each report goes.
  *
  * @param {object} options - from parseWalkthroughArgs.
  * @param {{ root: string, port: number, setIds: string[]|null }} context
@@ -124,6 +144,7 @@ export const playwrightEnv = (options, { root, port, setIds }) => {
   const outputs = options.ci ? OUTPUTS.ci : OUTPUTS.local
   return {
     PROTOTYPE_WALKTHROUGHS: 'true',
+    WALKTHROUGH_PACE: options.fast ? 'fast' : 'human',
     PORT: String(port),
     PLAYWRIGHT_JSON_OUTPUT_FILE: path.join(root, outputs.json),
     ...(setIds ? { WALKTHROUGH_SETS: setIds.join(',') } : {}),
@@ -137,13 +158,42 @@ export const playwrightEnv = (options, { root, port, setIds }) => {
   }
 }
 
-/** The lines a local run ends with: where the report and pictures are. */
+/** The lines a local run ends with: where the demo page and the technical
+ * report are. */
 export const whereLines = () => [
   '',
-  `Report: ${path.join(OUTPUTS.local.html, 'index.html')}`,
-  `Pictures of every step: ${OUTPUTS.local.results}${path.sep}`,
+  `Demo page: ${path.join(OUTPUTS.local.site, 'index.html')}`,
+  `Technical report (every step, trace): ${path.join(OUTPUTS.local.site, 'tests', 'index.html')}`,
   'To watch it: npm run designer:walkthrough -- --show'
 ]
+
+/**
+ * About how long a human-paced walk takes: roughly two minutes per story,
+ * shared across however many workers ran it, and never less than the
+ * longest story takes on its own.
+ *
+ * @param {number} storyCount
+ * @param {number} workers
+ * @returns {number} whole minutes.
+ */
+export const paceEstimateMinutes = (storyCount, workers) =>
+  Math.max(
+    LONGEST_STORY_MINUTES,
+    Math.ceil((storyCount * SECONDS_PER_STORY_PER_WORKER) / workers / 60)
+  )
+
+/** The line said before Playwright starts walking. */
+export const walkingLine = (
+  setIds,
+  port,
+  { fast = false, ci = false, storyCount = 0, workers: local = 1 } = {}
+) => {
+  const workers = ci ? CI_WORKERS : local
+  const timing = fast
+    ? 'This is the quick check, so it should take a few minutes.'
+    : `At a person's pace this takes about ${paceEstimateMinutes(storyCount, workers)} minutes.`
+  return `Walking ${setIds.join(', ')} through, on port ${port}. ${timing} Your own prototype on 3103 is not touched.`
+}
 
 /** The summary for the GitHub Actions job page, as markdown. */
 export const stepSummary = (lines) =>
@@ -232,14 +282,16 @@ export const DEFAULT_DEPS = Object.freeze({
   removeFile: (file) => rmSync(file, { force: true }),
   exists: existsSync,
   serveReport,
-  appendSummary: (file, text) => appendFileSync(file, text)
+  appendSummary: (file, text) => appendFileSync(file, text),
+  buildDemoSite,
+  localWorkers: () => localWorkers()
 })
 
 export const NO_BROWSER =
   'The browser designer:walkthrough uses is not installed. Run: npm run playwright:install'
 
 const showLastReport = async ({ root, deps, say }) => {
-  const folder = path.join(root, OUTPUTS.local.html)
+  const folder = path.join(root, OUTPUTS.local.site)
   if (!deps.exists(path.join(folder, 'index.html'))) {
     throw new WalkthroughProblem(
       'There is no walkthrough report yet. Make one first: npm run designer:walkthrough'
@@ -280,9 +332,8 @@ export const runWalkthrough = async (
     sets,
     workingRelease: deps.workingRelease(root)
   })
-  const expectedSets = planWalkthroughs({ sets, only: setIds }).map(
-    (set) => set.setId
-  )
+  const plan = planWalkthroughs({ sets, only: setIds })
+  const expectedSets = plan.map((set) => set.setId)
   if (expectedSets.length === 0) {
     say('There is no set with examples to walk through.')
     return 0
@@ -300,8 +351,14 @@ export const runWalkthrough = async (
   const outputs = options.ci ? OUTPUTS.ci : OUTPUTS.local
   const jsonFile = path.join(root, outputs.json)
   deps.removeFile(jsonFile)
+  const storyCount = plan.reduce((total, set) => total + set.stories.length, 0)
   say(
-    `Walking ${expectedSets.join(', ')} through, on port ${port}. This takes a few minutes. Your own prototype on 3103 is not touched.`
+    walkingLine(expectedSets, port, {
+      fast: options.fast,
+      ci: options.ci,
+      storyCount,
+      workers: deps.localWorkers()
+    })
   )
   const letSleep = deps.keepAwake()
   try {
@@ -324,6 +381,12 @@ export const runWalkthrough = async (
     }
     return exitCodeOf(verdict)
   }
+  await deps.buildDemoSite({
+    root,
+    reportFile: jsonFile,
+    resultsDir: path.join(root, outputs.results),
+    siteDir: path.join(root, OUTPUTS.local.site)
+  })
   say(whereLines().join('\n'))
   if (options.open && !verdict.crashed) {
     await showLastReport({ root, deps, say })

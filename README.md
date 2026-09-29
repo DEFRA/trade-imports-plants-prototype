@@ -48,17 +48,21 @@ weekly sync pull requests.
   every participant's data. Ask the team not to merge anything from
   "before a demo or a research session" (PROTOTYPE.md, "Deploying and
   merging") until the session ends.
-- **Playwright reports.** Every pull request, and every push to `main`,
-  publishes a merged Playwright report — FIT tests plus the walkthroughs —
-  to the `gh-pages` branch: `reports/pr-<n>/` for a pull request, the site
-  root (`https://defra.github.io/trade-imports-plants-prototype/`) for
-  `main`, so the lasting link never depends on a pull request having
-  existed (`reports/main/` stays as a redirect to the root, for links made
-  before the move). The pull request gets a comment with its own link. A nightly job
-  (`.github/workflows/prune-reports.yml`) removes closed pull requests'
-  reports, so `gh-pages` stays small; the root report is never pruned. Each
-  run is also uploaded as the `prototype-playwright-report` Actions
-  artifact, so the checks are useful even before Pages is turned on.
+- **The demo page and the technical report.** Every pull request, and every
+  push to `main`, builds a stakeholder demo page — the most important
+  journeys first, each with a video, paced so it is watchable — plus the
+  full Playwright report (FIT tests plus every walkthrough, with traces) at
+  `tests/` underneath it. Both publish to the `gh-pages` branch together:
+  `reports/pr-<n>/` for a pull request, the site root
+  (`https://defra.github.io/trade-imports-plants-prototype/`) for `main`, so
+  the lasting link never depends on a pull request having existed
+  (`reports/main/` stays as a redirect to the root, for links made before
+  the move). The pull request gets a comment leading with the demo page
+  link. A nightly job (`.github/workflows/prune-reports.yml`) removes closed
+  pull requests' reports, so `gh-pages` stays small; the root demo page and
+  report are never pruned. Each run is also uploaded as the
+  `prototype-playwright-report` Actions artifact (the demo page plus
+  `tests/`), so the checks are useful even before Pages is turned on.
 
 Two things are still pending:
 
