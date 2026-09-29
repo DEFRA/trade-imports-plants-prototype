@@ -114,8 +114,8 @@ and
 ## Deploying, sharing and merging
 
 Once deployed, the maintainer puts its address here and in `deployedUrl` in
-`scripts/designer/prototype.json`. Like `npm run dev`, it uses stub sign-in:
-signed in automatically, on purpose, until CDP puts its own auth in front.
+`scripts/designer/prototype.json`. Like `npm run dev`, it uses stub sign-in,
+behind [one shared password](docs/designers/sharing-and-handing-off.md#the-prototype-password) when the maintainer sets one in CDP.
 
 `main` is not protected: "save my work" then "share this" pushes straight
 there. Say "make a pull request" to share work in progress on a branch

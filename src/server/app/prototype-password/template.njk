@@ -1,0 +1,33 @@
+{# Lives here, apart from its controller in src/server/prototype-password/, because src/config/nunjucks/nunjucks.js resolves Vision's view root at server/app. #}
+{% extends 'shared/layout.njk' %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  <h1 class="govuk-heading-l">{{ heading }}</h1>
+  <p class="govuk-body">This is a prototype used for research. It is not a real service.</p>
+  <p class="govuk-body">Only continue if you have been sent the password.</p>
+
+  <form method="post" action="/prototype-password" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="returnUrl" value="{{ returnUrl }}" />
+
+    {{ govukInput({
+      label: {
+        text: "Password",
+        classes: "govuk-label--s"
+      },
+      id: "password",
+      name: "password",
+      type: "password",
+      autocomplete: "current-password",
+      spellcheck: false,
+      classes: "govuk-!-width-one-half",
+      errorMessage: { text: errorMessage } if errorMessage else undefined
+    }) }}
+
+    {{ govukButton({ text: "Continue" }) }}
+  </form>
+{% endblock %}

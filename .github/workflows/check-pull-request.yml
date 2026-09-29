@@ -86,6 +86,8 @@ jobs:
     timeout-minutes: 15
     env:
       APP_PORT: 3103
+      PASSWORD_APP_PORT: 3104
+      BOOT_CHECK_PASSWORD: boot-check-throwaway-password
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -166,13 +168,85 @@ jobs:
             exit 1
           fi
 
+      # The same image again, the way CDP runs it once the PROTOTYPE_PASSWORD
+      # secret is set (src/server/prototype-password): /health stays open for
+      # the platform, every page sends a stranger to the password page, and a
+      # real form post (crumb and all) gets past it to the chooser. The
+      # password here is a throwaway, not the deployed one.
+      - name: Start the prototype with a password
+        run: |
+          docker run -d --name plants-prototype-password \
+            -p "${PASSWORD_APP_PORT}:${PASSWORD_APP_PORT}" \
+            -e NODE_ENV=production \
+            -e "PORT=${PASSWORD_APP_PORT}" \
+            -e STUB_MODE=true \
+            -e SESSION_COOKIE_SECURE=false \
+            -e "PROTOTYPE_PASSWORD=${BOOT_CHECK_PASSWORD}" \
+            trade-imports-plants-prototype
+
+      - name: Wait for the password-protected prototype to report healthy
+        run: |
+          for _ in $(seq 1 30); do
+            curl --fail --silent "http://localhost:${PASSWORD_APP_PORT}/health" && exit 0
+            sleep 2
+          done
+          echo "The password-protected prototype never became healthy" >&2
+          docker logs plants-prototype-password
+          exit 1
+
+      - name: Assert every page asks for the password first
+        run: |
+          for page in / /high-risk-plants /auth/sign-in /examples/high-risk-plants/submitted; do
+            redirect=$(curl --silent --output /dev/null --write-out '%{redirect_url}' "http://localhost:${PASSWORD_APP_PORT}${page}")
+            redirect_path="${redirect%%\?*}"
+            case "$redirect_path" in
+              http://*|https://*) redirect_path="/${redirect_path#*://*/}" ;;
+            esac
+            if [ "$redirect_path" != "/prototype-password" ]; then
+              echo "Expected ${page} to redirect to /prototype-password without the password, got: $redirect" >&2
+              exit 1
+            fi
+          done
+
+      - name: Enter the password and reach the chooser
+        run: |
+          jar="$RUNNER_TEMP/boot-check-password-cookies.txt"
+          base="http://localhost:${PASSWORD_APP_PORT}"
+
+          password_page=$(curl --silent --cookie-jar "$jar" --cookie "$jar" "${base}/prototype-password")
+          crumb=$(echo "$password_page" | sed -n 's/.*name="crumb" value="\([^"]*\)".*/\1/p' | head -n 1)
+          if [ -z "$crumb" ]; then
+            echo "The password page carried no CSRF crumb" >&2
+            exit 1
+          fi
+
+          wrong_status=$(curl --silent --cookie-jar "$jar" --cookie "$jar" --output /dev/null --write-out '%{http_code}' \
+            --data-urlencode "crumb=${crumb}" --data-urlencode "returnUrl=/" --data-urlencode "password=not-the-password" \
+            "${base}/prototype-password")
+          if [ "$wrong_status" != "400" ]; then
+            echo "Expected a wrong password to be refused with 400, got $wrong_status" >&2
+            exit 1
+          fi
+
+          chooser_page=$(curl --silent --cookie-jar "$jar" --cookie "$jar" --location \
+            --data-urlencode "crumb=${crumb}" --data-urlencode "returnUrl=/" --data-urlencode "password=${BOOT_CHECK_PASSWORD}" \
+            "${base}/prototype-password")
+          if ! echo "$chooser_page" | grep -q 'href="/high-risk-plants"'; then
+            echo "Did not land on the chooser after entering the password" >&2
+            exit 1
+          fi
+
       - name: Show container logs
         if: failure()
-        run: docker logs plants-prototype || true
+        run: |
+          docker logs plants-prototype || true
+          docker logs plants-prototype-password || true
 
       - name: Tear down
         if: always()
-        run: docker rm --force plants-prototype || true
+        run: |
+          docker rm --force plants-prototype || true
+          docker rm --force plants-prototype-password || true
 
   # Proves on every pull request — and every Monday, after the weekly update
   # from plants-frontend — that a designer can still make a design release
