@@ -284,30 +284,27 @@ describe('exampleLinks', () => {
 
 describe('walkthroughLink', () => {
   const prototype = {
-    reportsUrl:
-      'https://defra.github.io/trade-imports-plants-prototype/reports/'
+    siteUrl: 'https://defra.github.io/trade-imports-plants-prototype/'
   }
 
-  it('Should link the release’s walkthrough on main, saying when it shows', () => {
+  it('Should link the release’s walkthrough at the site root on main, saying when it shows', () => {
     expect(walkthroughLink(prototype, 'plants-working')).toEqual({
-      url: 'https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@plants-working',
-      line: 'See it walked through, page by page: https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@plants-working (this shows the saved version once the pull request is merged)'
+      url: 'https://defra.github.io/trade-imports-plants-prototype/#?q=@plants-working',
+      line: 'See it walked through, page by page: https://defra.github.io/trade-imports-plants-prototype/#?q=@plants-working (this shows the saved version once it is on main)'
     })
   })
 
   it('Should link a pull request’s own report before it is merged', () => {
     expect(
-      walkthroughLink(
-        { reportsUrl: 'https://example.test/reports' },
-        'plants-working',
-        { pullRequest: 12 }
-      ).line
+      walkthroughLink({ siteUrl: 'https://example.test/' }, 'plants-working', {
+        pullRequest: 12
+      }).line
     ).toBe(
       'See it walked through, page by page: https://example.test/reports/pr-12/#?q=@plants-working'
     )
   })
 
   it('Should give no link when no report is published', () => {
-    expect(walkthroughLink({ reportsUrl: null }, 'plants-working')).toBeNull()
+    expect(walkthroughLink({ siteUrl: null }, 'plants-working')).toBeNull()
   })
 })

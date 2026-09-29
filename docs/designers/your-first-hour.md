@@ -4,7 +4,7 @@ This guide takes you from nothing to a changed page you can show someone. It
 takes about an hour the first time, most of it waiting for installs.
 
 Before you install anything, you can see the whole prototype walked through,
-page by page: `https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`.
+page by page: `https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`.
 
 You can do every step by asking Claude Code in plain words. You never need
 to know the names of Claude's skills or commands: just say what you want. If
@@ -270,14 +270,17 @@ works from your very first change. Only a release you started yourself with
 
 ## 10. Save and share it
 
-Ask: **"Save my work"**. Claude puts your change on
-a branch of its own, writes the commit message from what changed, checks it,
-commits it and, when you say so, opens a pull request with the gallery in it.
+Ask: **"Save my work"**. Claude writes the commit message from what changed,
+checks it and commits it, on whatever branch you're already on — `main`
+included; you never need a branch of your own.
 
-The prototype maintainer reviews and merges it: send them the link. The
-deployed prototype only changes after the pull request is merged into
-`main`. See [Sharing and handing off](sharing-and-handing-off.md), "Getting
-it merged".
+Then ask: **"Share this"**. Claude pushes it straight to `main` — the
+deployed prototype and its report update once the pipeline runs. If you'd
+rather share it for review first, without it touching `main` yet, say "keep
+this off main" or "make a pull request": Claude then puts it on a
+`design/*` branch and opens a draft pull request with the gallery in it, for
+the prototype maintainer to review and merge. See
+[Sharing and handing off](sharing-and-handing-off.md).
 
 ## Next
 

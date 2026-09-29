@@ -65,9 +65,10 @@ tasks it lists come from `research-session.json` in your release.
    With errors off (research mode), the error story shows no error
    messages — that is expected, not a failure.
 
-2. **Merge the day before.** The deployed prototype only changes after your work
-   is merged to `main`. Share it ("save my work", then a pull request) and get it
-   merged in good time (see "Getting it merged" in
+2. **Share it the day before.** The deployed prototype only changes after
+   your work reaches `main`. Say "save my work", then "share this" to push
+   straight to `main` — or, if you'd rather it were reviewed first, "make a
+   pull request" and get that merged in good time (see
    [Saving, sharing, undoing and handing off](sharing-and-handing-off.md)).
    **Not deployed yet?** The prototype has no deployed address yet (see "The
    deployed prototype" in PROTOTYPE.md). Until it has, run the sessions from
@@ -109,7 +110,7 @@ working release, not the research release.
 
 Link the walkthrough report in your write-up of the round, so anyone who was
 not there can see what participants saw:
-`https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@<release-id>`
+`https://defra.github.io/trade-imports-plants-prototype/#?q=@<release-id>`
 once it is merged.
 
 ## Why research mode never ships

@@ -26,8 +26,9 @@ lands on a person as a `needs-person` pull request.
 The one exception is a **prototype-owned service folder**: a folder under
 `src/server/app/services/` that `overrides.json` lists on its own line in
 `ours`, as `src/server/app/services/<name>/**` (today `transporters`,
-`templates`, `ins-address-book` and `notification-search`). On a `design/*`
-branch you may make a new one only through the service scaffold
+`templates`, `ins-address-book` and `notification-search`). While working in
+a design release (on `main` or a `design/*` branch — a branch is never
+required) you may make a new one only through the service scaffold
 (`npm run designer:service -- new <name>`), and change an existing one in
 place through the workspace `prototype` skill's fake-a-service reference
 (the scaffold has no change verb). `designer:where` answers "Yours" for its
@@ -69,13 +70,14 @@ Exceptions:
 - On a `chore/*` branch (a maintainer's own change to this repo) you may
   edit these files, because that work is on the prototype itself, not a
   design release.
-- On a `design/*` branch you may edit a prototype-owned service folder
-  (above), and nothing else in `src/server/app/services/`.
+- While working in a design release (`main` or a `design/*` branch) you may
+  edit a prototype-owned service folder (above), and nothing else in
+  `src/server/app/services/`.
 - On a `handoff/*` branch (the upstream-bound route) you may edit the real
   journey and shared chrome, to make the patch the hand-off checks.
 - `fit/walkthroughs/**` (the walkthrough spec) is prototype-owned
-  throughout, editable only on a `chore/*` branch, and never needed on a
-  `design/*` branch: never add a spec there for one release.
+  throughout, editable only on a `chore/*` branch, and never needed in a
+  design release: never add a spec there for one release.
 
 Never change `overrides.json` to make a file "yours" so you can edit it. That
 hides the clash rather than avoiding it. A new prototype-owned service gets

@@ -344,11 +344,12 @@ const withTrailingSlash = (url) => (url.endsWith('/') ? url : `${url}/`)
 
 /**
  * The link to the set's walkthrough in the published Playwright report, from
- * `reportsUrl` in `scripts/designer/prototype.json`. With a pull request
- * number it is that pull request's report (`pr-<n>/`); without one it is the
- * report for `main`, which shows the release once the pull request is merged.
+ * `siteUrl` in `scripts/designer/prototype.json`. With a pull request number
+ * it is that pull request's report (`reports/pr-<n>/`); without one it is the
+ * report for main at the site root, which shows the release once it is on
+ * main (merged from a pull request or pushed straight there).
  *
- * @param {{ reportsUrl?: string|null }} prototype - the prototype's facts.
+ * @param {{ siteUrl?: string|null }} prototype - the prototype's facts.
  * @param {string} setId
  * @param {{ pullRequest?: number|string|null }} [options]
  * @returns {{ url: string, line: string }|null} the link and the story's line
@@ -359,15 +360,17 @@ export const walkthroughLink = (
   setId,
   { pullRequest = null } = {}
 ) => {
-  const reportsUrl = prototype?.reportsUrl
-  if (!reportsUrl) {
+  const siteUrl = prototype?.siteUrl
+  if (!siteUrl) {
     return null
   }
-  const folder = pullRequest ? `pr-${pullRequest}` : 'main'
-  const url = `${withTrailingSlash(reportsUrl)}${folder}/#?q=@${setId}`
+  const base = withTrailingSlash(siteUrl)
+  const url = pullRequest
+    ? `${base}reports/pr-${pullRequest}/#?q=@${setId}`
+    : `${base}#?q=@${setId}`
   const note = pullRequest
     ? ''
-    : ' (this shows the saved version once the pull request is merged)'
+    : ' (this shows the saved version once it is on main)'
   return { url, line: `See it walked through, page by page: ${url}${note}` }
 }
 

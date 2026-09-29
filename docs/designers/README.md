@@ -1,7 +1,7 @@
 # Designer documents
 
 See it before you install anything: every release, walked through page by
-page: `https://defra.github.io/trade-imports-plants-prototype/reports/main/#?q=@walkthrough`.
+page: `https://defra.github.io/trade-imports-plants-prototype/#?q=@walkthrough`.
 
 ## Just say what you want
 
