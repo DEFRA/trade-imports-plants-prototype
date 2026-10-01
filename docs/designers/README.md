@@ -13,7 +13,7 @@ words: "we've got a demo on Thursday, get it ready", "the dashboard should
 show which ones are overdue", "write this up as a story for the
 developers". Claude works out what that means, does each part, checks it,
 shows you pictures and tells you what to click. If Claude seems lost, say
-"use the design skill".
+"use the prototype skill".
 
 [PROTOTYPE.md](../../PROTOTYPE.md) has a table of things you can ask for.
 

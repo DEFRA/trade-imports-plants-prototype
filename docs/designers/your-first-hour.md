@@ -9,7 +9,7 @@ short videos of the most important journeys, most important first:
 
 You can do every step by asking Claude Code in plain words. You never need
 to know the names of Claude's skills or commands: just say what you want. If
-Claude seems lost, say "use the design skill". Each step says what to ask,
+Claude seems lost, say "use the prototype skill". Each step says what to ask,
 and the command it runs, so you can also do it yourself.
 
 ## Before you start

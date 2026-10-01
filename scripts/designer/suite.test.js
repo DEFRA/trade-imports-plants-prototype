@@ -183,7 +183,7 @@ describe('the designer suite', () => {
   test('PROTOTYPE.md stays a short guide that says how close it is to the real service', () => {
     expect(prototypeMd.split('\n').length).toBeLessThanOrEqual(130)
     expect(prototypeMd).toContain('## How close is this to the real service?')
-    expect(prototypeMd).toContain('use the design skill')
+    expect(prototypeMd).toContain('use the prototype skill')
   })
 
   test('each prototype-owned service has its own line in ours, and no real service folder does', () => {
