@@ -40,11 +40,11 @@ A release has one of three purposes:
 - **research release**: a release set up for a round of user research. It
   may have research mode on (see below).
 
-## Design skill
+## Prototype skill
 
-What to say if Claude seems lost: "use the design skill", or just
-"design". Claude then works out what you want from your own words, splits it
-into parts and does each one. You never need to know any other name.
+What to say if Claude seems lost: "use the prototype skill", or type
+`/prototype`. Claude then works out what you want from your own words, splits
+it into parts and does each one. You never need to know any other name.
 
 ## Demo page
 

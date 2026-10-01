@@ -38,7 +38,7 @@ no Jira access.
 Every change ends the same way: Claude checks it, shows it, and offers to
 hand it to the real team.
 
-**If Claude seems lost, say "use the design skill".** It then works out what
+**If Claude seems lost, say "use the prototype skill".** It then works out what
 you want from your words and splits it into parts.
 
 ## Getting started
