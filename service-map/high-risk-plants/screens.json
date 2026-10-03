@@ -1,0 +1,589 @@
+{
+  "dashboard": {
+    "picture": "../../tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg",
+    "errorPicture": null,
+    "heading": "Import notification service",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Draft, just started",
+        "headline": "Draft, just started"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "commodity-type": {
+    "picture": "../../tests/data/6b5a3b9644acf478a13946dfe1f159f69a49a7ae.jpg",
+    "errorPicture": "../../tests/data/318286927a4976d4442c93cfe0af43cab3e9509e.jpg",
+    "heading": "What are you importing?",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Draft, just started",
+        "headline": "Draft, just started"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "commodities": {
+    "picture": "../../tests/data/6d1bc59f34f23bc902e8d34f91d86f9f603615ed.jpg",
+    "errorPicture": null,
+    "heading": "Commodities in the consignment",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "commodity-details": {
+    "picture": "../../tests/data/5f66a7ec16d2b9b2a5596623f281fa3dd409c2fd.jpg",
+    "errorPicture": "../../tests/data/6102443ba97b78905dc10c6e81be1401b1f700ef.jpg",
+    "heading": "Commodity details",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Draft, just started",
+        "headline": "Draft, just started"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "origin": {
+    "picture": "../../tests/data/29cdefea4fdec8319918ba99352493a51ccb420e.jpg",
+    "errorPicture": "../../tests/data/e4b200d1534c6ef692dcf1e49d81db6d7cafa9bc.jpg",
+    "heading": "Origin of the import",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "arrival-status": {
+    "picture": "../../tests/data/191367e2dbe0b6336d44816afaff0ea81389f60e.jpg",
+    "errorPicture": null,
+    "heading": "Has the consignment arrived in Great Britain?",
+    "stories": [
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "arrival-details": {
+    "picture": "../../tests/data/4385fbfab5d1e5cea91c4a0c90073d4b4272451c.jpg",
+    "errorPicture": "../../tests/data/803ccb6e5b98cde3293c5fbfb10a8d83b8550cf6.jpg",
+    "heading": "Arrival details",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "place-of-destination": {
+    "picture": "../../tests/data/04c3ba49a26d82e2981609c5440d88df91c2a9ec.jpg",
+    "errorPicture": "../../tests/data/fa6644d65d7470718c5416988f6f7f59b2f95a4d.jpg",
+    "heading": "Place of destination",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Draft, part way through",
+        "headline": "Save a notification and come back to it later"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "consignor-select": {
+    "picture": "../../tests/data/4daabcd29d0f55150ed45ec78445237edbc29206.jpg",
+    "errorPicture": null,
+    "heading": "Consignor or exporter",
+    "stories": [
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "identification-numbers": {
+    "picture": "../../tests/data/47638861e1527ba59f321b05a7422a3f86c650ac.jpg",
+    "errorPicture": "../../tests/data/b4c2bc587e28aa1b9b27f34a6df983e0675752b5.jpg",
+    "heading": "Identification numbers",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "consignment-contact-select": {
+    "picture": "../../tests/data/42587ff3d8fa586e69a36956d672da90aa1383e0.jpg",
+    "errorPicture": null,
+    "heading": "Contact address for consignment",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "hub": {
+    "picture": "../../tests/data/bbe5e22748840ee7a9205512dec851888b598f6c.jpg",
+    "errorPicture": null,
+    "heading": "Overview",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "notification-view": {
+    "picture": "../../tests/data/0a19966c78b23d24ea2b11568c18253f86908557.jpg",
+    "errorPicture": null,
+    "heading": "Check your answers",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "A new draft copied from the submitted example, arriving at Felixstowe",
+        "headline": "Start a new notification from an earlier one"
+      },
+      {
+        "name": "What each page says when something is missing",
+        "headline": "What happens when something is missing"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Deleted draft",
+        "headline": "Deleted draft"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "declaration": {
+    "picture": "../../tests/data/369126a1757dadfa88b631d129c1aca4a7d12878.jpg",
+    "errorPicture": null,
+    "heading": "Declaration",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  },
+  "confirmation": {
+    "picture": "../../tests/data/0182aaae788b668e5b2ecf39fe58bfd85fae3147.jpg",
+    "errorPicture": null,
+    "heading": "Notification submitted",
+    "stories": [
+      {
+        "name": "Submitted",
+        "headline": "Send a notification from start to finish"
+      },
+      {
+        "name": "Submitted, then amended",
+        "headline": "Change a notification after sending it"
+      },
+      {
+        "name": "Amendment started, then cancelled",
+        "headline": "Amendment started, then cancelled"
+      },
+      {
+        "name": "Another organisation’s submitted notification",
+        "headline": "Another organisation’s submitted notification"
+      },
+      {
+        "name": "Submitted late (the potatoes arrived yesterday)",
+        "headline": "Submitted late (the potatoes arrived yesterday)"
+      }
+    ],
+    "warnings": [],
+    "note": null
+  }
+}
