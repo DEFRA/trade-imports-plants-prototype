@@ -23,52 +23,52 @@
   &__results {
     margin: 0;
   }
+}
 
-  &__sort-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: govuk-spacing(3);
-    min-width: 0;
+.notification-list__sort-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: govuk-spacing(3);
+  min-width: 0;
 
-    .govuk-form-group {
-      width: auto;
-      margin-bottom: 0;
-    }
-
-    .govuk-button {
-      margin-bottom: 0;
-    }
+  .govuk-form-group {
+    width: auto;
+    margin-bottom: 0;
   }
 
-  &__search-form {
-    .govuk-form-group {
-      margin-bottom: govuk-spacing(4);
-    }
+  .govuk-button {
+    margin-bottom: 0;
+  }
+}
 
-    .govuk-button {
-      margin-bottom: 0;
-    }
+.notification-list__search-form {
+  .govuk-form-group {
+    margin-bottom: govuk-spacing(4);
   }
 
-  &__card-row {
-    margin-top: 0;
-    margin-bottom: govuk-spacing(3);
+  .govuk-button {
+    margin-bottom: 0;
+  }
+}
 
-    &:last-child {
-      margin-bottom: 0;
-    }
+.notification-list__card-row {
+  margin-top: 0;
+  margin-bottom: govuk-spacing(3);
 
-    dt {
-      @include govuk-font($size: 16, $weight: bold);
-      margin-bottom: govuk-spacing(1);
-    }
+  &:last-child {
+    margin-bottom: 0;
+  }
 
-    dd {
-      @include govuk-font($size: 19);
-      @include govuk-text-break-word;
-      margin: 0;
-    }
+  dt {
+    @include govuk-font($size: 16, $weight: bold);
+    margin-bottom: govuk-spacing(1);
+  }
+
+  dd {
+    @include govuk-font($size: 19);
+    @include govuk-text-break-word;
+    margin: 0;
   }
 }
 
