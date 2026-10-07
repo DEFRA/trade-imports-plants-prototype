@@ -103,8 +103,8 @@ for the registered routes and tasks, and
 for real features to follow when extending the journey.
 
 Deployed end-to-end tests for this service live in the shared tests repository
-`trade-imports-animals-tests`, as a fourth Playwright project alongside `e2e`,
-`admin` and `ins`. See
+`trade-imports-ins-tests`, as its `plants` Playwright project alongside
+`animals`, `animals-admin` and `ins`. See
 [Cross-repo test ownership](src/server/app/docs/test-ownership.md).
 
 - [Requirements](#requirements)

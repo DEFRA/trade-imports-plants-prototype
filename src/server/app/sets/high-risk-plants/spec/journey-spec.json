@@ -352,7 +352,7 @@
       "id": "govuk-toolbox-only",
       "source": "live-animals",
       "status": "adopted",
-      "detail": "Stay in the govuk-frontend toolbox: Nunjucks macros from govuk-frontend 6.x and @ministryofjustice/frontend 10.x, govuk-* utility classes, the shipped accessible-autocomplete component; no hand-rolled components or custom CSS. Animals' bespoke classes (app-commodity-total*, notification-list__*, app-link-button, app-form-inline) and its custom hub totals panel are debt and are not copied; the plants dashboard cards and hub use govukSummaryCard and govukTaskList as-is. Source: live-animals OUTSIDE THE GOVUK TOOLBOX note; skeleton templates-and-nunjucks-roots; annex:6/non-functional/item:2 'Meets GDS standards'."
+      "detail": "Stay in the govuk-frontend toolbox: Nunjucks macros from govuk-frontend 6.x and @ministryofjustice/frontend 11.x, govuk-* utility classes, the shipped accessible-autocomplete component; no hand-rolled components or custom CSS. Animals' bespoke classes (app-commodity-total*, notification-list__*, app-link-button, app-form-inline) and its custom hub totals panel are debt and are not copied; the plants dashboard cards and hub use govukSummaryCard and govukTaskList as-is. Source: live-animals OUTSIDE THE GOVUK TOOLBOX note; skeleton templates-and-nunjucks-roots; annex:6/non-functional/item:2 'Meets GDS standards'."
     },
     {
       "id": "import-reason-purpose-service-unused",

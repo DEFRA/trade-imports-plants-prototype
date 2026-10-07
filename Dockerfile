@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 ARG PARENT_VERSION=2.10.1-node24.11.1
 ARG PORT=3103
+=======
+ARG PARENT_VERSION=3.2.3-node24.21.0
+ARG PORT=3003
+>>>>>>> upstream/main
 ARG PORT_DEBUG=9229
 
 FROM defradigital/node-development:${PARENT_VERSION} AS development

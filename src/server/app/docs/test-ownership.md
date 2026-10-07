@@ -26,11 +26,11 @@ bring the first spec with it, or this repository proves nothing in a browser.
 ## The tests repository owns the deployed E2E suite
 
 Deployed, multi-service end-to-end coverage for high-risk plants lives in
-[`DEFRA/trade-imports-animals-tests`](https://github.com/DEFRA/trade-imports-animals-tests),
-as a fourth Playwright project alongside the existing `e2e`, `admin` and `ins`
-projects. That repository is named for the animals journey only because it
-predates this one; it is the shared tests repository for the programme and is
-expected to be renamed. Do not stand up a second tests repository for plants.
+[`DEFRA/trade-imports-ins-tests`](https://github.com/DEFRA/trade-imports-ins-tests),
+as its `plants` Playwright project alongside `animals`, `animals-admin` and
+`ins`. It is the shared tests repository for the programme and replaces
+`trade-imports-animals-tests`. Do not stand up a second tests repository for
+plants.
 
 An E2E spec belongs there when it needs the published frontend image and the
 other running trade-imports services — the backend, MongoDB, the Defra ID stub
@@ -39,16 +39,12 @@ and the upstream stubs — brought up by the workspace stack in
 The workspace owns the stack, the reusable E2E workflow and the shared report
 link.
 
-## What is not wired yet
+## How the E2E check is wired
 
-This repository has no `.github/workflows/e2e-tests.yml`. The animals frontend
-delegates to the workspace's reusable `e2e-tests.yml`, passing its branch name
-and inheriting secrets, then reports the result back to the pull request. The
-plants frontend has to gain the same delegating workflow before a deployed E2E
-result can appear on a plants pull request.
-
-Until it does, `check-pull-request.yml` is the only check: unit, format, lint
-and coverage. Say so plainly on a pull request rather than implying E2E ran.
+`.github/workflows/e2e-tests.yml` delegates to the workspace's reusable
+`e2e-tests.yml`, passing its branch name and the `plants` project and
+inheriting secrets, then reports the result back to the pull request. It runs
+only the plants project's specs.
 
 Cross-repo branches must carry the **same branch name** in every affected
 repository, because the workspace stack probes each repository for a
@@ -80,7 +76,7 @@ For a change that affects both repositories:
    repository the change touches.
 
 The frontend pull request check remains the source for unit, format, lint and
-coverage results. Once the delegating workflow exists, the E2E check becomes the
-source for the deployed cross-repo result.
+coverage results. The E2E check is the source for the deployed cross-repo
+result.
 
 Keep both results visible on a change that crosses the boundary.
