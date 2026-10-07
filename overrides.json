@@ -67,6 +67,10 @@
       "why": "adds isStubDataMode(), which the four data seams below call: stub data in production too, where the prototype has no backend, address book or reference data. Also changes isStubMode() itself to honour STUB_MODE in production, by design (Sam's decision): the deployed prototype signs in exactly like a local `npm run dev` — stub sign-in, open to anyone who reaches it unless PROTOTYPE_PASSWORD puts the prototype's own shared password in front (src/server/prototype-password) — unless STUB_MODE=false restores plants-frontend's own Defra ID sign-in. Covered by src/server/prototype-sets/production-run.test.js"
     },
     {
+      "path": "src/server/common/services/mode.test.js",
+      "why": "expects isStubMode() to honour STUB_MODE in production, matching the mode.js patch"
+    },
+    {
       "path": "src/server/app/services/persistence/records/index.js",
       "why": "picks the stub records store with isStubDataMode() in place of isStubMode(), so production keeps stub records"
     },
@@ -88,7 +92,11 @@
     },
     {
       "path": "src/config/config.test.js",
-      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in; one describe block pinning the Defra ID redirect and sign-out redirect defaults to port 3103; and a test proving TRADE_IMPORTS_INS_FRONTEND_URL is ignored, so the address book link's dead default cannot be overridden"
+      "why": "expects the prototype's development auth cookie name, so a local prototype and a local plants-frontend do not overwrite each other's sign-in; expects the address book link's dead https://address-book.invalid default in place of upstream's 3002, plus a test proving TRADE_IMPORTS_INS_FRONTEND_URL is ignored, so that default cannot be overridden; and one describe block pinning the Defra ID redirect and sign-out redirect defaults to port 3103"
+    },
+    {
+      "path": "src/config/nunjucks/context/context.test.js",
+      "why": "expects the address book link's dead https://address-book.invalid default, matching config.js"
     },
     {
       "path": "src/server/router.js",
@@ -104,7 +112,7 @@
     },
     {
       "path": "README.md",
-      "why": "prototype identity and port 3103, plus a 'For maintainers' section under the first paragraph; Lighthouse, SonarCloud and workspace-stack sections trimmed; the AUTHENTICATION section notes that STUB_MODE is honoured in production too (Sam's decision), unlike plants-frontend, and describes the prototype's own password (PROTOTYPE_PASSWORD, a CDP secret) that keeps the deployed prototype from being open to anyone"
+      "why": "prototype identity and port 3103 throughout (title, nvm cd, dev port, docker tags and ports); the SonarCloud badges replaced by a pointer to PROTOTYPE.md; a 'For maintainers' section before 'Current state'; the Lighthouse and SonarCloud sections, their contents entries and the fit:start:workspace text removed; 'Local stack' rewritten to say the workspace stack never runs the prototype and the header's address book link is deliberately dead; the AUTHENTICATION section says the prototype is never on the workspace stack, that STUB_MODE is honoured in production too (Sam's decision), unlike plants-frontend, and describes the prototype's own password (PROTOTYPE_PASSWORD, a CDP secret) that keeps the deployed prototype from being open to anyone"
     },
     {
       "path": "Dockerfile",
@@ -112,11 +120,11 @@
     },
     {
       "path": "package.json",
-      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge, reports:demo and reports:service-map, which CI uses to merge the FIT and walkthrough reports and then build the stakeholder demo page and each release's service map (designer:service-map builds one locally) published to GitHub Pages; scripts and dependencies otherwise follow upstream"
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge, reports:demo and reports:service-map, which CI uses to merge the FIT and walkthrough reports and then build the stakeholder demo page and each release's service map (designer:service-map builds one locally) published to GitHub Pages; scripts and dependencies otherwise follow upstream, including upstream's check:workspace-stack, fit:start:workspace and lighthouse scripts and the @lhci/cli devDependency, kept on purpose to keep the patch and the lock small, although the files those scripts call are in 'deleted' so they fail if run in the prototype"
     },
     {
       "path": "package-lock.json",
-      "why": "the name lines only; take upstream's and regenerate with npm 11.6.2 --package-lock-only"
+      "why": "the two name lines only; take upstream's and regenerate with the npm version pinned in package.json's packageManager (npx --yes \"$(node scripts/npm-version.js)\" install --package-lock-only)"
     },
     {
       "path": "NOTICE",
@@ -136,7 +144,7 @@
     },
     {
       "path": "playwright.config.js",
-      "why": "the 'journeys' project's testMatch was broadened to admit the sets-chooser boot-check spec, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty; plus an opt-in 'walkthroughs' project (PROTOTYPE_WALKTHROUGHS=true) for fit/walkthroughs, and PLAYWRIGHT_RECORD_EVERYTHING=true turning video, trace and screenshots on for every project, for the published report. The walkthroughs project's slowMo now defaults to 0 (human pacing is explicit, in scripts/designer/walkthrough/pace.js and human-pace.js, not from slowMo), its timeout is 600 000ms (long enough for a human-paced walk of the longest story), and it alone runs with bypassCSP: true, because the human-pace cursor overlay's CSSOM style writes are inline styles under the prototype's CSP and every story failed on that without it"
+      "why": "the 'journeys' project's testMatch is broadened to every *.fit.spec.js under fit/, admitting the sets-chooser and designer-sets specs, and the web server sets PROTOTYPE_SEED=false so every spec's dashboard starts empty; PLAYWRIGHT_RECORD_EVERYTHING=true turns video, trace and screenshots on for every project, for the published report; and an opt-in 'walkthroughs' project (PROTOTYPE_WALKTHROUGHS=true) runs fit/walkthroughs at 1280x720 with a 600 000ms timeout (a human-paced walk of the longest story), slowMo 0 unless WALKTHROUGH_SLOWMO is set (pacing comes from scripts/designer/walkthrough/pace.js and human-pace.js), and bypassCSP: true for that project alone, because the human-pace cursor overlay's CSSOM style writes count as inline styles under the prototype's CSP"
     }
   ]
 }
