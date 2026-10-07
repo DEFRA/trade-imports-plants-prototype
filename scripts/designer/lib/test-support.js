@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -99,7 +105,10 @@ const writeJourneySet = (root, id) => {
  * Returns `{ root, write, cleanup }`.
  */
 export const makeFixtureRepo = ({ git = false } = {}) => {
-  const root = mkdtempSync(path.join(tmpdir(), 'designer-lib-'))
+  // The real path: on macOS tmpdir() is a symlink (/var -> /private/var), and
+  // vitest 5 can load one module twice under the two spellings, so the page
+  // objects flow.js imports are not the ones page.js exports to pagesOf.
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'designer-lib-')))
   writeFile(root, 'package.json', '{ "type": "module" }\n')
   writeFile(
     root,
