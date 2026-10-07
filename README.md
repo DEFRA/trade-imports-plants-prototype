@@ -74,7 +74,7 @@ weekly sync pull requests.
   `prototype-playwright-report` Actions artifact (the demo page plus
   `tests/`), so the checks are useful even before Pages is turned on.
 
-Two things are still pending:
+Three things are still pending:
 
 - `.claude/settings.json` is still plants-frontend's copy, so it wires up
   three Sonar hook scripts `overrides.json` deletes rather than the

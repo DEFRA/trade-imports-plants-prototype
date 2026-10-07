@@ -5,8 +5,14 @@
  * running.
  */
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const OUTPUT_TAIL_LINES = 20
+
+// The same rule as scripts/npm-version.js: Corepack allows a `+sha512...`
+// suffix, which npm itself rejects.
+const NPM_SPEC = /^npm@\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/
 
 const tail = (text) =>
   text.split('\n').slice(-OUTPUT_TAIL_LINES).join('\n').trim()
@@ -22,8 +28,34 @@ const runCommand = (name, command, args, cwd) => {
   }
 }
 
-export const runNpmCi = (cwd) =>
-  runCommand('npm ci', 'npx', ['--yes', 'npm@11.6.2', 'ci'], cwd)
+/**
+ * The command and arguments for a clean install with the npm that
+ * package.json's `packageManager` pins, so an upstream npm bump the merge
+ * brings in is the npm the check uses. Plain `npm ci` when it names no npm.
+ *
+ * @param {unknown} packageManager - the `packageManager` field, as read
+ * @returns {{ command: string, args: string[] }}
+ */
+export const npmCiCommandFor = (packageManager) => {
+  const [spec] = String(packageManager ?? '').split('+')
+  return NPM_SPEC.test(spec)
+    ? { command: 'npx', args: ['--yes', spec, 'ci'] }
+    : { command: 'npm', args: ['ci'] }
+}
+
+const readPackageManager = (cwd) => {
+  try {
+    return JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8'))
+      .packageManager
+  } catch {
+    return undefined
+  }
+}
+
+export const runNpmCi = (cwd) => {
+  const { command, args } = npmCiCommandFor(readPackageManager(cwd))
+  return runCommand('npm ci', command, args, cwd)
+}
 
 export const runLint = (cwd) => runCommand('lint', 'npm', ['run', 'lint'], cwd)
 
