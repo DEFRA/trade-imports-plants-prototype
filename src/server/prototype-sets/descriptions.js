@@ -10,7 +10,9 @@ const DESCRIPTIONS = {
   'high-risk-plants':
     'The real high-risk plants and plant products notification journey.',
   'sample-journey':
-    'A placeholder set, kept to prove the host can serve more than one prototype.'
+    'A placeholder set, kept to prove the host can serve more than one prototype.',
+  'plants-working':
+    'A working copy of the high-risk plants journey to try design changes in'
 }
 
 export const descriptionFor = (setId) => DESCRIPTIONS[setId]

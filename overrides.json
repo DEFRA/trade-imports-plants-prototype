@@ -53,7 +53,9 @@
     "fit/walkthroughs/**",
     "scripts/reports/**",
     ".github/workflows/prune-reports.yml",
-    "handoffs/**"
+    "handoffs/**",
+    "src/server/app/sets/plants-working/**",
+    "src/server/app/routes-plants-working.js"
   ],
   "patched": [
     {

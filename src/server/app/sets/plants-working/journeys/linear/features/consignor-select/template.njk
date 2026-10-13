@@ -1,0 +1,117 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/table/macro.njk" import govukTable %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ heading }}</h1>
+  <p class="govuk-body">{{ description }}</p>
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+    <input type="hidden" name="page" value="{{ picker.page }}" />
+    {% if picker.selected %}
+      <input type="hidden" name="selected" value="{{ picker.selected.id }}" />
+    {% endif %}
+
+    {{ govukInput({
+      id: "q",
+      name: "q",
+      classes: "govuk-!-width-two-thirds",
+      label: { text: copy.search.label, classes: "govuk-label--s" },
+      hint: { text: copy.search.hint },
+      value: picker.query
+    }) }}
+
+    {{ govukButton({
+      text: copy.search.button,
+      classes: "govuk-button--secondary",
+      name: "action",
+      value: "search"
+    }) }}
+
+    {% if picker.selected %}
+      {{ govukInsetText({ text: copy.selectedAddressPrefix + " " + picker.selected.name }) }}
+    {% endif %}
+
+    {% if picker.error %}
+      <p id="consignor-error" class="govuk-error-message">
+        <span class="govuk-visually-hidden">{{ copy.errorPrefix }}</span> {{ picker.error }}
+      </p>
+    {% endif %}
+
+    {% if picker.rows.length %}
+      {% set rows = [] %}
+      {% for row in picker.rows %}
+        {% set selectCell %}
+          {% set selectLabel %}<span class="govuk-visually-hidden">{{ copy.selectRowPrefix }} {{ row.name }}</span>{% endset %}
+          {{ govukRadios({
+            idPrefix: row.idPrefix,
+            name: "consignor",
+            classes: "govuk-radios--small",
+            items: [{
+              value: row.id,
+              html: selectLabel,
+              checked: row.checked
+            }]
+          }) }}
+        {% endset %}
+        {% set detailsCell %}
+          <details class="govuk-details">
+            <summary class="govuk-details__summary">
+              <span class="govuk-details__summary-text">{{ copy.viewDetails }}<span class="govuk-visually-hidden"> {{ copy.viewDetailsFor }} {{ row.name }}</span></span>
+            </summary>
+            <div class="govuk-details__text">
+              <ul class="govuk-list">
+                {% for line in row.detailLines %}
+                  <li>{{ line }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </details>
+        {% endset %}
+        {% set ignored = rows.push([
+          { html: selectCell },
+          { text: row.name },
+          { text: row.addressText },
+          { text: row.country },
+          { html: detailsCell }
+        ]) %}
+      {% endfor %}
+
+      {{ govukTable({
+        caption: picker.resultsCaption,
+        captionClasses: "govuk-table__caption--s",
+        head: [
+          { html: '<span class="govuk-visually-hidden">' + copy.table.selectHidden + '</span>' },
+          { text: copy.table.name },
+          { text: copy.table.address },
+          { text: copy.table.country },
+          { html: '<span class="govuk-visually-hidden">' + copy.table.actionsHidden + '</span>' }
+        ],
+        rows: rows
+      }) }}
+
+      {% if picker.pagination %}
+        {{ govukPagination(picker.pagination) }}
+      {% endif %}
+    {% else %}
+      <p class="govuk-body">{{ copy.noMatches }}</p>
+    {% endif %}
+
+    {{ saveActions(
+      hubHref,
+      { text: sharedCopy.saveActions.saveAndContinue, name: "action", value: "save" },
+      sharedCopy.saveActions
+    ) }}
+  </form>
+{% endblock %}

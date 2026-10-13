@@ -1,0 +1,38 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+
+    {% if hasLines %}
+      {{ govukWarningText({
+        text: copy.linesWarning,
+        iconFallbackText: copy.linesWarningIcon
+      }) }}
+    {% endif %}
+
+    {{ govukRadios({
+      name: "commodityType",
+      fieldset: {
+        legend: {
+          text: copy.legend,
+          isPageHeading: true,
+          classes: "govuk-fieldset__legend--l"
+        }
+      },
+      hint: { text: copy.hint },
+      errorMessage: errors.commodityType and { text: errors.commodityType },
+      items: typeOptions
+    }) }}
+
+    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+  </form>
+{% endblock %}

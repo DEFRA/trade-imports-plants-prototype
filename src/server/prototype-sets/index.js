@@ -1,5 +1,7 @@
 import { sampleJourney } from '../app/routes-sample-journey.js'
 import { SET_BASE as SAMPLE_JOURNEY_BASE } from '../app/sets/sample-journey/set.js'
+import { plantsWorking } from '../app/routes-plants-working.js'
+import { SET_BASE as PLANTS_WORKING_BASE } from '../app/sets/plants-working/set.js'
 import { setsIndex } from '../sets-index/index.js'
 import { adoptKnownJourneys } from '../prototype-seed/adopt-known-journeys.js'
 
@@ -19,6 +21,9 @@ export const prototypeSets = {
     async register(server) {
       await server.register(sampleJourney, {
         routes: { prefix: SAMPLE_JOURNEY_BASE }
+      })
+      await server.register(plantsWorking, {
+        routes: { prefix: PLANTS_WORKING_BASE }
       })
       await server.register([setsIndex, adoptKnownJourneys])
     }

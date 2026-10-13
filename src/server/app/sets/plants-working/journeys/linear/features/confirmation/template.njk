@@ -1,0 +1,21 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/panel/macro.njk" import govukPanel %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% set referenceHtml %}{{ copy.reference }}<br><strong>{{ reference }}</strong>{% endset %}
+  {{ sectionCaption(caption) }}
+  {{ govukPanel({ titleText: copy.title, html: referenceHtml }) }}
+  <p class="govuk-body">{{ copy.body }}</p>
+  <p class="govuk-body">{{ copy.dateOfNotification }} {{ notificationDate }}</p>
+  {% if late %}
+    {% set lateBody %}
+      <h2 class="govuk-notification-banner__heading">{{ copy.late.heading }}</h2>
+      <p class="govuk-body">{{ lateRule }} {{ copy.late.accepted }}</p>
+    {% endset %}
+    {{ govukNotificationBanner({ titleText: copy.late.title, html: lateBody }) }}
+  {% endif %}
+  <p class="govuk-body"><a class="govuk-link" href="{{ notificationHref }}">{{ copy.viewNotification }}</a></p>
+  <p class="govuk-body"><a class="govuk-link" href="{{ dashboardHref }}">{{ copy.returnToDashboard }}</a></p>
+{% endblock %}

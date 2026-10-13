@@ -1,0 +1,34 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "accessible-autocomplete/macro.njk" import appAccessibleAutocomplete %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.title }}</h1>
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+
+    {% for guidanceText in guidance %}
+      {{ govukInsetText({ text: guidanceText }) }}
+    {% endfor %}
+
+    {{ appAccessibleAutocomplete({
+      id: "countryOfOrigin",
+      name: "countryOfOrigin",
+      label: { text: copy.country.label, classes: "govuk-label--m" },
+      hint: { text: copy.country.hint },
+      value: values.countryOfOrigin,
+      errorMessage: errors.countryOfOrigin and { text: errors.countryOfOrigin },
+      items: countryItems,
+      autocomplete: { showAllValues: true, noResults: copy.country.noResults }
+    }) }}
+
+    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+  </form>
+{% endblock %}

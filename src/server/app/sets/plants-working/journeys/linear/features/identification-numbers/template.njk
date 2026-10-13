@@ -1,0 +1,23 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.title }}</h1>
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+    {% for name in fields %}
+      {{ govukInput({
+        id: name, name: name,
+        classes: "govuk-!-width-three-quarters" if name == "consignmentNumber" else "govuk-!-width-one-half",
+        label: { text: copy.fields[name].label, classes: "govuk-label--m" },
+        hint: { text: copy.fields[name].hint }, value: values[name],
+        errorMessage: errors[name] and { text: errors[name] }
+      }) }}
+    {% endfor %}
+    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+  </form>
+{% endblock %}
