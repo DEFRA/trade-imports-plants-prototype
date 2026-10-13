@@ -1,0 +1,57 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+{% from "shared/save-actions.njk" import saveActions %}
+
+{% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+
+{% block journeyContent %}
+  {% if amendmentCancelled %}
+    {{ govukNotificationBanner({
+      type: "success",
+      titleText: copy.cancelAmend.successTitle,
+      text: copy.cancelAmend.successBody,
+      role: "alert"
+    }) }}
+  {% endif %}
+  {% include "shared/error-summary.njk" %}
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.title }}</h1>
+  {% if cancelAmendHref %}
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ cancelAmendHref }}">{{ copy.cancelAmend.link }}</a>
+    </p>
+  {% endif %}
+  {% if lateNotification %}
+    {% set lateBody %}
+      <h2 class="govuk-notification-banner__heading">{{ copy.late.heading }}</h2>
+      <p class="govuk-body">{{ lateRule }} {{ copy.late.accepted }}</p>
+    {% endset %}
+    {{ govukNotificationBanner({ titleText: copy.late.title, html: lateBody }) }}
+  {% endif %}
+  {% for section in sections %}
+    <h2 class="govuk-heading-m">{{ section.heading }}</h2>
+    {% for card in section.cards %}
+      {{ govukSummaryList({
+        card: { title: { text: card.title, headingLevel: 3 }, actions: card.actions },
+        rows: card.rows
+      }) }}
+    {% endfor %}
+  {% endfor %}
+  {% if readOnly %}
+    {{ govukButton({ text: copy.delete, href: deleteHref, classes: "govuk-button--warning" }) }}
+  {% else %}
+    {% if lateWarning %}
+      {{ govukWarningText({ text: copy.late.warning(lateRule), iconFallbackText: copy.late.icon }) }}
+    {% endif %}
+    <h2 class="govuk-heading-m">{{ copy.submit.heading }}</h2>
+    <p class="govuk-body">{{ copy.submit.body }}</p>
+    <form method="post" novalidate>
+      <input type="hidden" name="crumb" value="{{ crumb }}" />
+      <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+      {{ saveActions(hubHref, primary = { text: copy.continue }, copy = sharedCopy.saveActions) }}
+    </form>
+  {% endif %}
+{% endblock %}

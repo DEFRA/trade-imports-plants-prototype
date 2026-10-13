@@ -1,0 +1,72 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "govuk/components/table/macro.njk" import govukTable %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {% if removedMessage %}
+    {{ govukNotificationBanner({
+      titleText: copy.removed.title,
+      text: removedMessage
+    }) }}
+  {% endif %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ copy.heading }}</h1>
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+
+    {% if rows.length %}
+      {% set tableRows = [] %}
+      {% for row in rows %}
+        {% set actionsHtml %}
+          <div class="govuk-button-group govuk-!-margin-bottom-0">
+            <a class="govuk-link" href="{{ row.changeHref }}">{{ copy.change }}<span class="govuk-visually-hidden"> {{ copy.changeHidden(row.position) }}</span></a>
+            {% set removeHtml %}{{ copy.remove }}<span class="govuk-visually-hidden"> {{ copy.removeHidden(row.position) }}</span>{% endset %}
+            {{ govukButton({
+              html: removeHtml,
+              classes: "govuk-button--secondary govuk-!-margin-bottom-0",
+              name: "action",
+              value: row.removeAction
+            }) }}
+          </div>
+        {% endset %}
+        {% set ignored = tableRows.push([
+          { text: row.category },
+          { text: row.genusOrVariety },
+          { text: row.quantity },
+          { html: actionsHtml }
+        ]) %}
+      {% endfor %}
+
+      {{ govukTable({
+        caption: copy.table.caption,
+        captionClasses: "govuk-visually-hidden",
+        head: [
+          { text: copy.table.category },
+          { text: copy.table.genusOrVariety },
+          { text: copy.table.quantity },
+          { html: '<span class="govuk-visually-hidden">' + copy.table.actionsHidden + '</span>' }
+        ],
+        rows: tableRows
+      }) }}
+    {% else %}
+      <p class="govuk-body">{{ copy.empty }}</p>
+    {% endif %}
+
+    {{ govukButton({
+      text: copy.addAnother,
+      href: addAnotherHref,
+      classes: "govuk-button--secondary",
+      attributes: { id: "commodityLines" }
+    }) }}
+
+    {{ saveActions(hubHref, null, sharedCopy.saveActions, false) }}
+  </form>
+{% endblock %}

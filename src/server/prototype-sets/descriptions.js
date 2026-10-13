@@ -12,7 +12,9 @@ const DESCRIPTIONS = {
   'sample-journey':
     'A placeholder set, kept to prove the host can serve more than one prototype.',
   'plants-working':
-    'A working copy of the high-risk plants journey to try design changes in'
+    'A working copy of the high-risk plants journey to try design changes in',
+  routing:
+    'Experiment: tell us what you are importing and get routed to the right service or notification, with as few questions as possible'
 }
 
 export const descriptionFor = (setId) => DESCRIPTIONS[setId]

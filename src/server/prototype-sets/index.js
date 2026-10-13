@@ -2,6 +2,8 @@ import { sampleJourney } from '../app/routes-sample-journey.js'
 import { SET_BASE as SAMPLE_JOURNEY_BASE } from '../app/sets/sample-journey/set.js'
 import { plantsWorking } from '../app/routes-plants-working.js'
 import { SET_BASE as PLANTS_WORKING_BASE } from '../app/sets/plants-working/set.js'
+import { routing } from '../app/routes-routing.js'
+import { SET_BASE as ROUTING_BASE } from '../app/sets/routing/set.js'
 import { setsIndex } from '../sets-index/index.js'
 import { adoptKnownJourneys } from '../prototype-seed/adopt-known-journeys.js'
 
@@ -24,6 +26,9 @@ export const prototypeSets = {
       })
       await server.register(plantsWorking, {
         routes: { prefix: PLANTS_WORKING_BASE }
+      })
+      await server.register(routing, {
+        routes: { prefix: ROUTING_BASE }
       })
       await server.register([setsIndex, adoptKnownJourneys])
     }

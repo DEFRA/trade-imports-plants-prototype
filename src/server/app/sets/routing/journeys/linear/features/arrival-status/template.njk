@@ -1,0 +1,29 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+
+    {{ govukRadios({
+      name: "arrivalStatus",
+      fieldset: {
+        legend: {
+          text: copy.legend,
+          isPageHeading: true,
+          classes: "govuk-fieldset__legend--l"
+        }
+      },
+      errorMessage: errors.arrivalStatus and { text: errors.arrivalStatus },
+      items: statusOptions
+    }) }}
+
+    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+  </form>
+{% endblock %}
