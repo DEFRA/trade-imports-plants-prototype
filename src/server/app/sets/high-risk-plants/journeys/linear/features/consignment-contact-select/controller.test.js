@@ -10,14 +10,15 @@ import {
 } from 'vitest'
 import { load } from 'cheerio'
 
-// Real-mode address-book fetches flow through toRecord → originLabel, which
-// self-loads via a countries fetch. Mock the countries reader so the fetch
-// stub only has to answer address-book URLs.
+// Real-mode address-book fetches flow through toRecord → addressBookCountryName,
+// which self-loads via a countries fetch. Mock the countries reader so the
+// fetch stub only has to answer address-book URLs.
 vi.mock('../../../../../../services/countries/index.js', () => {
   const LABELS = { BE: 'Belgium', GB: 'United Kingdom' }
   return {
     ensureLoaded: async () => {},
-    originLabel: async (code) => LABELS[code]
+    originLabel: async (code) => LABELS[code],
+    addressBookCountryName: async (code) => LABELS[code] ?? code
   }
 })
 
@@ -37,6 +38,7 @@ import { hubPath } from '../../../../../../shared/paths.js'
 import { SURFACES } from '../../../../../../shared/kit.js'
 import { PAGE_SIZE } from '../../../../../../services/address-book/index.js'
 import { STUB_BOOK } from '../../../../../../services/address-book/stub/index.js'
+import { answerForPickedParty } from '../../parties/picked-party.js'
 import { installHighRiskPlantsJourney } from '../../test-support.js'
 import { copy } from './copy/copy.en.js'
 import * as contact from './controller.js'
@@ -50,14 +52,13 @@ const PLANTS_FOR_PLANTING = 'plants-for-planting'
 // results and `ALPINE` on the last, so a test that needs a row the first page
 // does not show has one.
 const TECH_IMPORTS = 'tech-imports-ltd'
+const TECH_IMPORTS_NAME = 'Tech Imports Ltd'
 const IMPORT_CO = 'import-co-uk'
 const ALPINE = 'alpine-supplies-gmbh'
 const NOT_IN_THE_BOOK = 'no-such-address'
 const CONTACT_ADDRESS_SELECTOR = '#contactAddress'
 const STUB_BOOK_SIZE = 13
 const LAST_PAGE = 3
-
-const TECH_IMPORTS_RECORD = STUB_BOOK.find(({ id }) => id === TECH_IMPORTS)
 
 // The two records the stub book holds in Denmark — what a search for the
 // country narrows the results to.
@@ -69,6 +70,12 @@ const plants = (answers = {}) => ({
   commodityType: PLANTS_FOR_PLANTING,
   ...answers
 })
+
+const copied = (id) =>
+  answerForPickedParty(STUB_BOOK.find((record) => record.id === id))
+
+/** A copy whose source record the book no longer offers. */
+const pickedFrom = (id) => ({ ...copied(TECH_IMPORTS), pickedFromId: id })
 
 const installStubs = () => {
   configureRecords(SET_ID, recordsStub)
@@ -216,41 +223,35 @@ describe('GET contact — the address book it offers', () => {
     expect(result.view.context.picker.pagination).toBeNull()
   })
 
-  it('Should tick the address the notification already holds a copy of', async () => {
+  it('Should tick the record the copy was picked from', async () => {
     const result = await driveHandler(get, {
-      seed: plants({
-        contactAddress: {
-          addressId: TECH_IMPORTS,
-          name: TECH_IMPORTS_RECORD.name,
-          address: { ...TECH_IMPORTS_RECORD.address }
-        }
-      })
+      seed: plants({ contactAddress: copied(TECH_IMPORTS) })
     })
 
     expect(checkedId(result)).toBe(TECH_IMPORTS)
-    expect(result.view.context.picker.selected.name).toBe('Tech Imports Ltd')
+    expect(result.view.context.picker.tickedRecord.name).toBe(TECH_IMPORTS_NAME)
   })
 
   it('Should carry a selection the query string names over the stored one', async () => {
     // Paging carries the tick in the query string, so a row ticked on one page
     // is still ticked after moving to another and back.
     const result = await driveHandler(get, {
-      seed: plants({ contactAddress: { addressId: TECH_IMPORTS } }),
+      seed: plants({ contactAddress: copied(TECH_IMPORTS) }),
       query: { selected: IMPORT_CO }
     })
 
     expect(checkedId(result)).toBe(IMPORT_CO)
   })
 
-  it('Should show no selection for a stored addressId the book no longer holds', async () => {
+  it('Should show no selection for a record the book no longer holds', async () => {
     // The copy keeps the notification's answer, but the picker cannot tick a
     // row it has no record for, and the id must not travel as "Selected
     // address" or in the paging links either.
     const result = await driveHandler(get, {
-      seed: plants({ contactAddress: { addressId: NOT_IN_THE_BOOK } })
+      seed: plants({ contactAddress: pickedFrom(NOT_IN_THE_BOOK) })
     })
 
-    expect(result.view.context.picker.selected).toBeUndefined()
+    expect(result.view.context.picker.tickedRecord).toBeUndefined()
     expect(checkedId(result)).toBeUndefined()
   })
 })
@@ -401,8 +402,8 @@ describe('POST contact — the answers it refuses', () => {
     expect(errorSummary.errorList[0].href).toBe(`#${picker.rows[0].idPrefix}`)
   })
 
-  it('Should refuse a dangling stored addressId posted back, committing nothing', async () => {
-    const seed = plants({ contactAddress: { addressId: 'gone' } })
+  it('Should refuse a source record id posted back once the book no longer holds it, committing nothing', async () => {
+    const seed = plants({ contactAddress: pickedFrom('gone') })
 
     const result = await driveHandler(post, {
       seed,
@@ -457,10 +458,10 @@ describe('contact — a record the organisation has deleted', () => {
 
   it('Should show no selection for a contact deleted since it was chosen', async () => {
     const result = await driveHandler(get, {
-      seed: plants({ contactAddress: { addressId: DELETED_ID } })
+      seed: plants({ contactAddress: pickedFrom(DELETED_ID) })
     })
 
-    expect(result.view.context.picker.selected).toBeUndefined()
+    expect(result.view.context.picker.tickedRecord).toBeUndefined()
     expect(checkedId(result)).toBeUndefined()
   })
 
@@ -485,20 +486,24 @@ describe('POST contact — accepted answers', () => {
   beforeAll(installStubs)
   beforeEach(() => store.clear())
 
-  it('Should commit a copy of the record — its id, name and address', async () => {
+  it('Should commit a copy of the chosen record', async () => {
     const result = await driveHandler(post, {
       seed: plants(),
       payload: { action: 'save', contactAddress: TECH_IMPORTS }
     })
 
     expect(result.after.contactAddress).toEqual({
-      addressId: TECH_IMPORTS,
-      name: TECH_IMPORTS_RECORD.name,
-      address: TECH_IMPORTS_RECORD.address
+      pickedFromId: TECH_IMPORTS,
+      name: TECH_IMPORTS_NAME,
+      phone: '01632 960000',
+      email: 'tech-imports-ltd@example.com',
+      address: {
+        addressLine1: '18 Dockside Road',
+        townOrCity: 'London',
+        postcode: 'E14 9GE',
+        countryCode: 'GB'
+      }
     })
-    expect(result.after.contactAddress.address).not.toBe(
-      TECH_IMPORTS_RECORD.address
-    )
   })
 
   it('Should accept the row carried in the hidden field when no radio is posted', async () => {
@@ -510,7 +515,7 @@ describe('POST contact — accepted answers', () => {
       payload: { action: 'save', selected: ALPINE }
     })
 
-    expect(result.after.contactAddress).toMatchObject({ addressId: ALPINE })
+    expect(result.after.contactAddress).toEqual(copied(ALPINE))
   })
 
   it('Should redirect to the overview, the page after the contact section', async () => {
@@ -529,26 +534,39 @@ describe('POST contact — accepted answers', () => {
     })
 
     expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
-    expect(result.after.contactAddress).toMatchObject({
-      addressId: TECH_IMPORTS
-    })
+    expect(result.after.contactAddress).toEqual(copied(TECH_IMPORTS))
   })
 
   it('Should replace the copy already held rather than keeping both', async () => {
     const result = await driveHandler(post, {
-      seed: plants({
-        contactAddress: {
-          addressId: TECH_IMPORTS,
-          name: TECH_IMPORTS_RECORD.name,
-          address: { ...TECH_IMPORTS_RECORD.address }
-        }
-      }),
+      seed: plants({ contactAddress: copied(TECH_IMPORTS) }),
       payload: { action: 'save', contactAddress: IMPORT_CO }
     })
 
-    expect(result.after.contactAddress).toMatchObject({
-      addressId: IMPORT_CO,
-      name: 'Import Co UK'
+    expect(result.after.contactAddress).toEqual(copied(IMPORT_CO))
+  })
+
+  it('Should keep a copy already held when saved with nothing ticked', async () => {
+    const edited = { ...copied(TECH_IMPORTS), name: 'Tech Imports (UK) Ltd' }
+    delete edited.pickedFromId
+
+    const result = await driveHandler(post, {
+      seed: plants({ contactAddress: edited }),
+      payload: { action: 'save' }
+    })
+
+    expect(result.after.contactAddress).toEqual(edited)
+  })
+
+  it('Should show the copy held with a link to edit its details', async () => {
+    const result = await driveHandler(get, {
+      seed: plants({ contactAddress: copied(TECH_IMPORTS) })
+    })
+
+    expect(result.view.context.heldCopy).toMatchObject({
+      title: 'Current contact address',
+      name: TECH_IMPORTS_NAME,
+      editHref: `${hubPath(result.journeyId)}/consignment/contact/edit?return=consignment%2Fcontact%2Fselect`
     })
   })
 

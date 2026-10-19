@@ -9,6 +9,7 @@ import { signIn } from '../../../../../../../../../fit/sign-in.js'
 import { copy as sharedCopy } from '../../../../../../shared/copy.en.js'
 import { PAGE_SIZE } from '../../../../../../services/address-book/index.js'
 import { copy as captionCopy } from '../../flow/section-captions/copy/copy.en.js'
+import { copy as checkAnswersCopy } from '../check-answers/copy/copy.en.js'
 import { copy as commoditiesCopy } from '../commodities/copy/copy.en.js'
 import { copy as commodityTypeCopy } from '../commodity-type/copy/copy.en.js'
 import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
@@ -21,6 +22,7 @@ const COMMODITY_LIST_URL = /\/notifications\/[^/]+\/commodities$/
 const ORIGIN_URL = /\/notifications\/[^/]+\/origin$/
 const HUB_URL = /\/notifications\/[^/]+$/
 const PAGE_URL = /\/notifications\/[^/]+\/consignment\/contact\/select/
+const CHECK_ANSWERS_URL = /\/notifications\/[^/]+\/notification-view$/
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'
 
@@ -139,12 +141,24 @@ const saveOrigin = async (page, reference, country) => {
   await saveAndContinue(page).click()
 }
 
-// A wood notification with the prerequisite origin answered.
-const startAtContact = async (page) => {
+// A wood notification with the prerequisite origin answered, still inside the
+// opening run.
+const startInTheRunAtContact = async (page) => {
   const reference = await startNotification(page)
   await chooseCommodityType(page, WOOD_AND_CUT_TREES)
   await addLine(page, CUT_CONIFEROUS_TREES, WOOD_LINE_FIELDS)
   await saveOrigin(page, reference, FRANCE)
+  await page.goto(contactPathOf(reference))
+  await expect(page).toHaveURL(PAGE_URL)
+  return reference
+}
+
+// The same notification once the opening run is over: visiting the overview
+// completes the run, so a save here follows the section exit.
+const startAtContact = async (page) => {
+  const reference = await startInTheRunAtContact(page)
+  await page.goto(`${BASE}/notifications/${reference}`)
+  await expect(page).toHaveURL(HUB_URL)
   await page.goto(contactPathOf(reference))
   await expect(page).toHaveURL(PAGE_URL)
   return reference
@@ -411,6 +425,31 @@ test.describe('consignment-contact-select — saving an address', () => {
 
     await page.goto(contactPathOf(reference))
     await expect(rowRadio(page, TECH_IMPORTS)).not.toBeChecked()
+  })
+})
+
+test.describe('consignment-contact-select — the end of the opening run', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+  })
+
+  test('in the opening run, Continue goes to check your answers even though the notification is incomplete', async ({
+    page
+  }) => {
+    await startInTheRunAtContact(page)
+
+    await rowRadio(page, TECH_IMPORTS).check()
+    await saveAndContinue(page).click()
+
+    await expect(page).toHaveURL(CHECK_ANSWERS_URL)
+    await expect(
+      page.getByRole('heading', { name: checkAnswersCopy.title, level: 1 })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('alert').getByRole('link', {
+        name: checkAnswersCopy.errors.cards.arrivalDetails
+      })
+    ).toBeVisible()
   })
 })
 

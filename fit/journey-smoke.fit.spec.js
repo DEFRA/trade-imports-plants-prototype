@@ -51,7 +51,7 @@ const fillArrival = async (page, fields) => {
     await page
       .getByLabel(arrivalCopy.time.label, { exact: true })
       .fill(fields.arrivalTime)
-    await chooseOption(page, 'Port of Dover (GB DVR)')
+    await chooseOption(page, 'Port of Dover - GB DVR')
   }
 }
 
@@ -100,12 +100,6 @@ for (const [name, shape] of Object.entries(happyPaths)) {
       })
     }
 
-    await expect(page).toHaveURL(
-      new RegExp(`${BASE}/notifications/${reference}$`)
-    )
-    await page
-      .getByRole('link', { name: 'Check and submit', exact: true })
-      .click()
     await expect(page).toHaveURL(/\/notification-view$/)
     await expect(
       page.getByRole('heading', { name: reviewCopy.title, level: 1 })

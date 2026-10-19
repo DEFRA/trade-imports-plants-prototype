@@ -41,6 +41,7 @@ const FLIP_FIELD_MAX_LENGTH_MESSAGE = 'Code must be 5 characters or less'
 const COUNT_REQUIRED_MESSAGE = 'Enter the number of items'
 const COUNT_WHOLE_NUMBER_MESSAGE = 'Enter a whole number greater than 0'
 const NOT_A_DATE = 'not a date'
+const OUT_OF_DOMAIN = 'gold-plated'
 const BLOCKS_BLANK_WHITESPACE_AND_MISSING =
   'Should block blank, whitespace-only and missing values with the required message'
 
@@ -187,7 +188,7 @@ describe('#requiredOneOf — save-blocking value domain', () => {
   })
 
   it('Should reject a value outside the domain', () => {
-    expect(run(schema, { itemSelector: 'gold-plated' }).errors).toEqual({
+    expect(run(schema, { itemSelector: OUT_OF_DOMAIN }).errors).toEqual({
       itemSelector: SELECTOR_REQUIRED_MESSAGE
     })
   })
@@ -204,6 +205,25 @@ describe('#requiredOneOf — save-blocking value domain', () => {
     })
     expect(run(noDomain, { itemSelector: '' }).errors).toEqual({
       itemSelector: SELECTOR_REQUIRED_MESSAGE
+    })
+  })
+
+  it('Should tell a value outside the domain from a blank one when given two messages', () => {
+    const unknownMessage = 'Select a listed option'
+    const twoMessages = requiredOneOf(
+      'itemSelector',
+      [SELECTOR_ALPHA, SELECTOR_BRAVO],
+      { required: SELECTOR_REQUIRED_MESSAGE, unknown: unknownMessage }
+    )
+
+    expect(run(twoMessages, { itemSelector: '' }).errors).toEqual({
+      itemSelector: SELECTOR_REQUIRED_MESSAGE
+    })
+    expect(run(twoMessages, {}).errors).toEqual({
+      itemSelector: SELECTOR_REQUIRED_MESSAGE
+    })
+    expect(run(twoMessages, { itemSelector: OUT_OF_DOMAIN }).errors).toEqual({
+      itemSelector: unknownMessage
     })
   })
 })
@@ -691,5 +711,147 @@ describe('#compose + the Joi → GDS mapping', () => {
 
   it('Should return null errors when everything is valid', () => {
     expect(run(schema, { fullName: 'Alex', postcode: '' }).errors).toBeNull()
+  })
+})
+
+describe('#validate with allowMissing — the save-and-return reading', () => {
+  const REQUIRED = 'Answer is required'
+  const FORMAT = 'Answer is malformed'
+  const DOMAIN = [SELECTOR_ALPHA, SELECTOR_BRAVO]
+  const MAX_DATE = new Date(Date.UTC(2020, 0, 1))
+  const ALLOW = { allowMissing: true }
+
+  const requiredRules = {
+    requiredText: requiredText('answer', REQUIRED),
+    requiredMaxText: requiredMaxText('answer', 5, { required: REQUIRED }),
+    requiredOneOf: requiredOneOf('answer', DOMAIN, REQUIRED),
+    requiredDateText: requiredDateText('answer', { required: REQUIRED }),
+    requiredTime: requiredTime('answer', { required: REQUIRED }),
+    requiredIntegerInRange: requiredIntegerInRange('answer', {
+      min: 1,
+      max: 9,
+      messages: { required: REQUIRED }
+    }),
+    requiredExactDigits: requiredExactDigits('answer', 3, {
+      required: REQUIRED,
+      length: FORMAT,
+      digitsOnly: FORMAT
+    }),
+    requiredEmail: requiredEmail('answer', 50, {
+      required: REQUIRED,
+      format: FORMAT
+    })
+  }
+
+  describe.each(Object.entries(requiredRules))('%s', (_name, schema) => {
+    it('Should leave a blank value unreported when allowMissing is set', () => {
+      expect(validate(schema, { answer: '' }, ALLOW).errors).toBeNull()
+    })
+
+    it('Should leave an absent value unreported when allowMissing is set', () => {
+      expect(validate(schema, {}, ALLOW).errors).toBeNull()
+    })
+
+    it('Should still report a blank value without the option', () => {
+      expect(validate(schema, { answer: '' }).errors).toEqual({
+        answer: REQUIRED
+      })
+    })
+
+    it('Should still report an absent value without the option', () => {
+      expect(validate(schema, {}).errors).toEqual({ answer: REQUIRED })
+    })
+  })
+
+  it('Should leave a blank requiredDateTextInRange value unreported', () => {
+    const schema = requiredDateTextInRange('answer', {
+      max: MAX_DATE,
+      messages: { required: REQUIRED, range: FORMAT }
+    })
+    expect(validate(schema, { answer: '' }, ALLOW).errors).toBeNull()
+    expect(validate(schema, { answer: '' }).errors).toEqual({
+      answer: REQUIRED
+    })
+  })
+
+  describe('a value that breaks its own rule', () => {
+    it('Should still refuse a value outside a requiredOneOf domain', () => {
+      const schema = requiredOneOf('answer', DOMAIN, REQUIRED)
+      expect(validate(schema, { answer: OUT_OF_DOMAIN }, ALLOW).errors).toEqual(
+        { answer: REQUIRED }
+      )
+    })
+
+    it('Should still refuse a date that names no day', () => {
+      const schema = requiredDateText('answer', {
+        required: REQUIRED,
+        invalid: FORMAT
+      })
+      expect(validate(schema, { answer: '31/2/2026' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
+
+    it('Should still refuse a real date outside the range', () => {
+      const schema = requiredDateTextInRange('answer', {
+        max: MAX_DATE,
+        messages: { required: REQUIRED, range: FORMAT }
+      })
+      expect(validate(schema, { answer: '1/1/2026' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
+
+    it('Should still refuse a time off the 24-hour clock', () => {
+      const schema = requiredTime('answer', {
+        required: REQUIRED,
+        invalid: FORMAT
+      })
+      expect(validate(schema, { answer: '25:00' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
+
+    it('Should still refuse text over its maximum', () => {
+      const schema = requiredMaxText('answer', 5, {
+        required: REQUIRED,
+        maxLength: FORMAT
+      })
+      expect(validate(schema, { answer: 'abcdef' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
+
+    it('Should still refuse a number that is not whole', () => {
+      const schema = requiredIntegerInRange('answer', {
+        min: 1,
+        max: 9,
+        messages: { required: REQUIRED, invalid: FORMAT }
+      })
+      expect(validate(schema, { answer: '1.5' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
+
+    it('Should still refuse digits of the wrong length', () => {
+      const schema = requiredExactDigits('answer', 3, {
+        required: REQUIRED,
+        length: FORMAT,
+        digitsOnly: FORMAT
+      })
+      expect(validate(schema, { answer: '12' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
+
+    it('Should still refuse a malformed email', () => {
+      const schema = requiredEmail('answer', 50, {
+        required: REQUIRED,
+        format: FORMAT
+      })
+      expect(validate(schema, { answer: 'nope' }, ALLOW).errors).toEqual({
+        answer: FORMAT
+      })
+    })
   })
 })

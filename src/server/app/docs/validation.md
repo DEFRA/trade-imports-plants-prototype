@@ -43,6 +43,14 @@ scope and `requires` rules decide whether the journey is complete. These are
 separate checks: saving an optional blank is allowed, while submit readiness still
 reflects every in-scope mandatory obligation and group invariant.
 
+"Save and return to overview" saves what was entered without refusing the page for a
+missing required answer. A controller opts in by passing
+`{ allowMissing: kit.isHubExit(request) }` to `validate`, which drops the
+blank-or-absent errors and keeps every other one, so an answer that breaks its own
+rule is still refused. The address-book pickers do not use `validate`: they follow
+the same rule by leaving without a commit when nothing is ticked and
+`kit.isHubExit(request)` is true, and still refuse an id the book does not hold.
+
 [`src/server/app/flow/prerequisites.js`](../flow/prerequisites.js) adds the separate
 continue-time gate for configured fields that must be answered before later pages
 open.

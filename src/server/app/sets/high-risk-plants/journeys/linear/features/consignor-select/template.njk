@@ -15,12 +15,14 @@
   <h1 class="govuk-heading-l">{{ heading }}</h1>
   <p class="govuk-body">{{ description }}</p>
 
+  {% include "high-risk-plants/journeys/linear/features/address-book-picker/held-copy.njk" %}
+
   <form method="post" novalidate>
     <input type="hidden" name="crumb" value="{{ crumb }}" />
     <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
     <input type="hidden" name="page" value="{{ picker.page }}" />
-    {% if picker.selected %}
-      <input type="hidden" name="selected" value="{{ picker.selected.id }}" />
+    {% if picker.tickedRecord %}
+      <input type="hidden" name="selected" value="{{ picker.tickedRecord.id }}" />
     {% endif %}
 
     {{ govukInput({
@@ -39,8 +41,8 @@
       value: "search"
     }) }}
 
-    {% if picker.selected %}
-      {{ govukInsetText({ text: copy.selectedAddressPrefix + " " + picker.selected.name }) }}
+    {% if picker.tickedRecord %}
+      {{ govukInsetText({ text: copy.selectedAddressPrefix + " " + picker.tickedRecord.name }) }}
     {% endif %}
 
     {% if picker.error %}
@@ -111,7 +113,9 @@
     {{ saveActions(
       hubHref,
       { text: sharedCopy.saveActions.saveAndContinue, name: "action", value: "save" },
-      sharedCopy.saveActions
+      sharedCopy.saveActions,
+      amend = amend,
+      hubExitWhileAmending = false
     ) }}
   </form>
 {% endblock %}

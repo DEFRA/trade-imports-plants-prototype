@@ -45,7 +45,9 @@ describe('#errors', () => {
     })
 
     expect(result).toEqual(
-      expect.stringContaining('Page not found | Import notification service')
+      expect.stringContaining(
+        'Page not found - Import notification service - GOV.UK'
+      )
     )
     expect(statusCode).toBe(statusCodes.notFound)
   })
@@ -59,7 +61,7 @@ describe('#errors', () => {
     expect(statusCode).toBe(statusCodes.internalServerError)
     expect(result).toEqual(
       expect.stringContaining(
-        'Something went wrong | Import notification service'
+        'Something went wrong - Import notification service - GOV.UK'
       )
     )
     expect(result).toEqual(expect.stringContaining('>500</h1>'))
@@ -77,7 +79,7 @@ describe('#errors', () => {
     expect(statusCode).toBe(statusCodes.serviceUnavailable)
     expect(result).toEqual(
       expect.stringContaining(
-        'Something went wrong | Import notification service'
+        'Something went wrong - Import notification service - GOV.UK'
       )
     )
     expect(result).toEqual(expect.stringContaining('>503</h1>'))
@@ -190,6 +192,26 @@ describe('#catchAll', () => {
     expect(mockToolkitCode).toHaveBeenCalledWith(
       statusCodes.internalServerError
     )
+  })
+
+  test('Should log the cause a server error carries, so a reference data outage says why it happened', () => {
+    const cause = new Error('connect ECONNREFUSED')
+    const request = mockRequest(statusCodes.internalServerError)
+    request.response.data = { dataset: 'countries', cause }
+
+    catchAll(request, mockToolkit)
+
+    expect(mockErrorLogger).toHaveBeenCalledWith(mockStack)
+    expect(mockErrorLogger).toHaveBeenCalledWith(
+      { err: cause },
+      'Caused by: connect ECONNREFUSED'
+    )
+  })
+
+  test('Should log only the stack for a server error with no cause', () => {
+    catchAll(mockRequest(statusCodes.internalServerError), mockToolkit)
+
+    expect(mockErrorLogger).toHaveBeenCalledTimes(1)
   })
 
   test('Should leave non-Boom responses untouched', () => {

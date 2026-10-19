@@ -150,7 +150,7 @@ describe('dashboard notifications list', () => {
     )
   })
 
-  it('Should answer an empty list when the session carries no organisation', async () => {
+  it('Should still list known journeys when the session carries no organisation', async () => {
     const draft = await startDraft()
     const h = buildH()
 
@@ -162,7 +162,9 @@ describe('dashboard notifications list', () => {
       h
     )
 
-    expect(h.captured.view.context.notificationRows).toEqual([])
+    expect(
+      h.captured.view.context.notificationRows.map((row) => row.reference)
+    ).toEqual([draft.journeyId])
   })
 
   it('Should list ONLY session-known journeys — never the wider store', async () => {
@@ -396,7 +398,7 @@ describe('dashboard row actions', () => {
 
     const [row] = h.captured.view.context.notificationRows
     expect(row.status).toEqual({
-      text: 'Amending',
+      text: 'Amend',
       classes: 'govuk-tag--yellow'
     })
     expect(textOf(row)).toEqual([

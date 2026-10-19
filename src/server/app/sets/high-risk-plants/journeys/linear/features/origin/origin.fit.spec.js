@@ -9,10 +9,9 @@ import { expect, test } from '@playwright/test'
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
 import { copy as sharedCopy } from '../../../../../../shared/copy.en.js'
 // The service reader would try to load real reference data when called from
-// the FIT process (which does not set STUB_MODE); the browser-side test
-// only cares about the codes the server actually rendered, and the server
-// runs against the same stub in FIT mode. Read that source directly.
-import { COUNTRY_LABELS } from '../../../../../../services/countries/stub.js'
+// the FIT process (which does not set STUB_MODE); the server runs against the
+// captured fixtures in FIT mode, so the expected list is read from them.
+import { originPageCountryEntries } from '../../../../../../services/_capture/fixtures.js'
 import { copy as captionsCopy } from '../../flow/section-captions/copy/copy.en.js'
 import { copy as commoditiesCopy } from '../commodities/copy/copy.en.js'
 import { copy as commodityTypeCopy } from '../commodity-type/copy/copy.en.js'
@@ -155,16 +154,24 @@ test.describe('origin feature', () => {
     await expect(page).toHaveURL(ORIGIN_URL)
   })
 
-  test('offers a placeholder ahead of every country the service primes', async ({
+  test('offers a placeholder ahead of every country and territory the service primes, by name', async ({
     page
   }) => {
     await startAtOrigin(page)
 
     const rendered = await page
       .locator(`${COUNTRY_SELECT} option`)
-      .evaluateAll((options) => options.map((option) => option.value))
+      .evaluateAll((options) =>
+        options.map((option) => ({
+          code: option.value,
+          name: option.textContent
+        }))
+      )
 
-    expect(rendered).toEqual(['', ...Object.keys(COUNTRY_LABELS)])
+    expect(rendered).toEqual([
+      { code: '', name: copy.country.placeholder },
+      ...originPageCountryEntries()
+    ])
   })
 
   test('offers the three save controls', async ({ page }) => {
@@ -317,7 +324,7 @@ test.describe('country of origin type-ahead', () => {
       page.getByRole('option', { name: FRANCE, exact: true })
     ).toBeVisible()
     await expect(page.getByRole('option')).toHaveCount(
-      Object.keys(COUNTRY_LABELS).length
+      originPageCountryEntries().length
     )
   })
 

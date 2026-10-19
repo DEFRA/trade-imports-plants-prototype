@@ -354,6 +354,40 @@ export const config = convict({
       env: 'TRACING_HEADER'
     }
   },
+  metrics: {
+    namespace: {
+      doc: 'CloudWatch namespace the service publishes its own metrics to',
+      format: String,
+      default: 'trade-imports-plants-frontend',
+      env: 'AWS_EMF_NAMESPACE'
+    }
+  },
+  pageMaturityBanner: {
+    enabled: {
+      doc: 'Show each page’s maturity level (Exploring, Detailing, Agreed, Ready for live) in the phase banner',
+      format: STRICT_BOOLEAN,
+      default: true,
+      env: 'PAGE_MATURITY_BANNER_ENABLED'
+    }
+  },
+  callCounts: {
+    endpoint: {
+      enabled: {
+        doc: "Serve GET and DELETE /call-counts: each route's page requests and the backend calls, session resolutions and external calls they made",
+        format: STRICT_BOOLEAN,
+        default: isLocal,
+        env: 'CALL_COUNTS_ENDPOINT_ENABLED'
+      }
+    },
+    metrics: {
+      enabled: {
+        doc: 'Write one EMF document per page request with its backend calls and session resolutions',
+        format: STRICT_BOOLEAN,
+        default: isPlatform,
+        env: 'CALL_COUNTS_METRICS_ENABLED'
+      }
+    }
+  },
   tradeImportsPlantsBackendApi: {
     baseUrl: {
       doc: 'Trade Imports Plants Backend API base URL',

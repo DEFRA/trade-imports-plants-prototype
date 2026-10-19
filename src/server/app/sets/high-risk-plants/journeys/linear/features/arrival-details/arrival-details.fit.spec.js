@@ -50,7 +50,7 @@ const FRANCE = 'France'
 const A_DATE = '27/3/2026'
 const A_PAST_DATE = '1/1/2020'
 const A_TIME = '14:30'
-const DOVER = 'Port of Dover (GB DVR)'
+const DOVER = 'Port of Dover - GB DVR'
 
 const WARE_POTATO_LINE_FIELDS = {
   potatoVariety: 'Maris Piper',

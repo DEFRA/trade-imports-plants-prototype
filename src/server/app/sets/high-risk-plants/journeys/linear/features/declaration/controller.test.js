@@ -131,6 +131,24 @@ describe('declaration', () => {
     expect((await store.get(id)).status).toBe(state.DRAFT)
   })
 
+  it('Should send a copied address that breaks the address-book rules back to check answers, unsubmitted', async () => {
+    const seed = {
+      ...COMPLETE_NOTIFICATION,
+      placeOfDestination: {
+        ...COMPLETE_NOTIFICATION.placeOfDestination,
+        name: ''
+      }
+    }
+    const { request, h, id } = await setup(seed)
+    request.payload = { declaration: 'confirmed' }
+    expect(await post(request, h)).toEqual({
+      redirect: `${SET_BASE}/notifications/${id}/notification-view`
+    })
+    const saved = await store.get(id)
+    expect(saved.status).toBe(state.DRAFT)
+    expect(saved.answers).toEqual(seed)
+  })
+
   it('Should redirect submitted GET and POST without changing the original flag', async () => {
     const { request, h, id } = await setup({
       ...COMPLETE_NOTIFICATION,

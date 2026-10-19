@@ -9,5 +9,32 @@ const load = (file) =>
 // The single canned reference dataset — captured from real reference-data by
 // capture.js and committed under fixtures/. The service stubs seed from here so
 // stub data and the captured real data cannot drift.
+export const countries = load('countries.json')
 export const countriesOrigin = load('countries-origin.json')
 export const portsOfEntry = load('ports-of-entry.json')
+
+/** { code, name } rows for each SPS origin country in fixture order. */
+export const countriesOriginEntries = () =>
+  countriesOrigin.map(({ code, name }) => ({ code, name }))
+
+const countryPageEntries = (subdivisionName) => {
+  const subdivisions = countriesOrigin.flatMap((country) =>
+    (country.subDivisions ?? []).map((subDivision) => ({
+      code: subDivision.code,
+      name: subdivisionName(subDivision, country)
+    }))
+  )
+  return [...countriesOriginEntries(), ...subdivisions].sort((left, right) =>
+    left.name.localeCompare(right.name)
+  )
+}
+
+/** Flat { code, name } rows rendered on the origin page (countries + subdivisions, sorted by name). */
+export const originPageCountryEntries = () =>
+  countryPageEntries((subDivision) => subDivision.name)
+
+/** Flat { code, name } rows rendered on a destination country select (countries + subdivisions named with their country, sorted by name). */
+export const destinationPageCountryEntries = () =>
+  countryPageEntries(
+    (subDivision, country) => `${subDivision.name} (${country.name})`
+  )

@@ -61,6 +61,7 @@ const render = (h, current, values, options = {}) => {
   const errors = options.errors ?? {}
   return h.view(view, {
     ...kit.base(copy.title, {
+      request: h.request,
       backLink: hubPath(current.journey.journeyId),
       journey: current.journey,
       page,
@@ -84,7 +85,9 @@ const get = async (request, h) => {
 const post = async (request, h) => {
   const payload = request.payload ?? {}
   const values = { [ARRIVAL_STATUS]: payload[ARRIVAL_STATUS] ?? '' }
-  const { errors, value } = validate(fields(), payload)
+  const { errors, value } = validate(fields(), payload, {
+    allowMissing: kit.isHubExit(request)
+  })
   const current = await state.get(request, h)
   if (errors) {
     return render(h, current, values, { errors }).code(HTTP_STATUS_BAD_REQUEST)

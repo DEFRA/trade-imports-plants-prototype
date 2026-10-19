@@ -44,12 +44,23 @@ import {
   originConstraints,
   originCountriesFor
 } from '../services/commodities/index.js'
-import { originCountries } from '../../../services/countries/index.js'
+import {
+  originCountryOptions,
+  parentCountryCode
+} from '../../../services/countries/index.js'
 
 const CATEGORY = 'category'
 const QUANTITY = 'quantity'
 const SEED_POTATOES = 'seed-potatoes'
 const NON_MEMBER_STATES = ['IS', 'LI', 'NO', 'CH']
+
+// A territory on the origin page is held to its country's constraints, so the
+// constraints are compared with the countries the page's options belong to.
+const offeredCountries = async () => [
+  ...new Set(
+    (await originCountryOptions()).map(({ value }) => parentCountryCode(value))
+  )
+]
 
 const perLineObligations = obligations.filter(
   (obligation) => obligation.within === commodityLine
@@ -160,7 +171,7 @@ describe('the origin constraints stay inside the service vocabulary', () => {
   })
 
   it('Should name only countries the origin block primes', async () => {
-    const offered = (await originCountries()).map(({ value }) => value)
+    const offered = await offeredCountries()
     for (const constraint of originConstraints()) {
       expect(
         constraint.countries.filter((code) => !offered.includes(code)),
@@ -182,7 +193,7 @@ describe('the origin constraints stay inside the service vocabulary', () => {
     const euMemberStates = originConstraints().find(
       (constraint) => constraint.id === 'eu-member-states'
     )
-    const offered = (await originCountries()).map(({ value }) => value)
+    const offered = await offeredCountries()
 
     expect([...euMemberStates.countries].toSorted()).toEqual(
       offered.filter((code) => !NON_MEMBER_STATES.includes(code)).toSorted()

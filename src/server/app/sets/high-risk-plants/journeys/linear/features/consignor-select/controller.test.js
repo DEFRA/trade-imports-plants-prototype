@@ -10,14 +10,15 @@ import {
   vi
 } from 'vitest'
 
-// Real-mode address-book fetches flow through toRecord → originLabel, which
-// self-loads via a countries fetch. Mock the countries reader so the fetch
-// stub only has to answer address-book URLs.
+// Real-mode address-book fetches flow through toRecord → addressBookCountryName,
+// which self-loads via a countries fetch. Mock the countries reader so the
+// fetch stub only has to answer address-book URLs.
 vi.mock('../../../../../../services/countries/index.js', () => {
   const LABELS = { BE: 'Belgium', GB: 'United Kingdom' }
   return {
     ensureLoaded: async () => {},
-    originLabel: async (code) => LABELS[code]
+    originLabel: async (code) => LABELS[code],
+    addressBookCountryName: async (code) => LABELS[code] ?? code
   }
 })
 
@@ -36,6 +37,8 @@ import {
 import { hubPath } from '../../../../../../shared/paths.js'
 import { SURFACES } from '../../../../../../shared/kit.js'
 import { PAGE_SIZE } from '../../../../../../services/address-book/index.js'
+import { STUB_BOOK } from '../../../../../../services/address-book/stub/index.js'
+import { answerForPickedParty } from '../../parties/picked-party.js'
 import { installHighRiskPlantsJourney } from '../../test-support.js'
 import { copy } from './copy/copy.en.js'
 import * as consignor from './controller.js'
@@ -49,6 +52,7 @@ const PLANTS_FOR_PLANTING = 'plants-for-planting'
 // results and `ALPINE` on the last, so a test that needs a row the first page
 // does not show has one.
 const TECH_IMPORTS = 'tech-imports-ltd'
+const EDITED_NAME = 'Tech Imports (UK) Ltd'
 const IMPORT_CO = 'import-co-uk'
 const ALPINE = 'alpine-supplies-gmbh'
 const NOT_IN_THE_BOOK = 'no-such-address'
@@ -65,6 +69,12 @@ const plants = (answers = {}) => ({
   commodityType: PLANTS_FOR_PLANTING,
   ...answers
 })
+
+const copied = (id) =>
+  answerForPickedParty(STUB_BOOK.find((record) => record.id === id))
+
+/** A copy whose source record the book no longer offers. */
+const pickedFrom = (id) => ({ ...copied(TECH_IMPORTS), pickedFromId: id })
 
 const installStubs = () => {
   configureRecords(SET_ID, recordsStub)
@@ -209,34 +219,36 @@ describe('GET consignor-select — the address book it offers', () => {
     expect(result.view.context.picker.pagination).toBeNull()
   })
 
-  it('Should tick the address the notification already references', async () => {
+  it('Should tick the record the copy was picked from', async () => {
     const result = await driveHandler(get, {
-      seed: plants({ consignor: { addressId: TECH_IMPORTS } })
+      seed: plants({ consignor: copied(TECH_IMPORTS) })
     })
 
     expect(checkedId(result)).toBe(TECH_IMPORTS)
-    expect(result.view.context.picker.selected.name).toBe('Tech Imports Ltd')
+    expect(result.view.context.picker.tickedRecord.name).toBe(
+      'Tech Imports Ltd'
+    )
   })
 
   it('Should carry a selection the query string names over the stored one', async () => {
     // Paging carries the tick in the query string, so a row ticked on one page
     // is still ticked after moving to another and back.
     const result = await driveHandler(get, {
-      seed: plants({ consignor: { addressId: TECH_IMPORTS } }),
+      seed: plants({ consignor: copied(TECH_IMPORTS) }),
       query: { selected: IMPORT_CO }
     })
 
     expect(checkedId(result)).toBe(IMPORT_CO)
   })
 
-  it('Should show no selection for a reference the book no longer holds', async () => {
+  it('Should show no selection for a record the book no longer holds', async () => {
     // A record the organisation has deleted reads as never entered, so it must
     // not travel as "Selected address" or in the paging links either.
     const result = await driveHandler(get, {
-      seed: plants({ consignor: { addressId: NOT_IN_THE_BOOK } })
+      seed: plants({ consignor: pickedFrom(NOT_IN_THE_BOOK) })
     })
 
-    expect(result.view.context.picker.selected).toBeUndefined()
+    expect(result.view.context.picker.tickedRecord).toBeUndefined()
     expect(checkedId(result)).toBeUndefined()
   })
 })
@@ -394,10 +406,10 @@ describe('consignor-select — a consignor the organisation has deleted', () => 
 
   it('Should show no selection for a consignor deleted since it was chosen', async () => {
     const result = await driveHandler(get, {
-      seed: plants({ consignor: { addressId: DELETED_ID } })
+      seed: plants({ consignor: pickedFrom(DELETED_ID) })
     })
 
-    expect(result.view.context.picker.selected).toBeUndefined()
+    expect(result.view.context.picker.tickedRecord).toBeUndefined()
     expect(checkedId(result)).toBeUndefined()
   })
 
@@ -422,15 +434,13 @@ describe('POST consignor-select — accepted answers', () => {
   beforeAll(installStubs)
   beforeEach(() => store.clear())
 
-  it('Should commit the address-book id alone, never a copy of the address', async () => {
+  it('Should commit a copy of the chosen record', async () => {
     const result = await driveHandler(post, {
       seed: plants(),
       payload: { action: 'save', consignor: TECH_IMPORTS }
     })
 
-    expect(result.after.consignor).toEqual({
-      addressId: TECH_IMPORTS
-    })
+    expect(result.after.consignor).toEqual(copied(TECH_IMPORTS))
   })
 
   it('Should accept the row carried in the hidden field when no radio is posted', async () => {
@@ -442,7 +452,7 @@ describe('POST consignor-select — accepted answers', () => {
       payload: { action: 'save', selected: ALPINE }
     })
 
-    expect(result.after.consignor).toEqual({ addressId: ALPINE })
+    expect(result.after.consignor).toEqual(copied(ALPINE))
   })
 
   it('Should redirect to the overview, the page after the consignment parties section', async () => {
@@ -461,18 +471,77 @@ describe('POST consignor-select — accepted answers', () => {
     })
 
     expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
-    expect(result.after.consignor).toEqual({
-      addressId: TECH_IMPORTS
-    })
+    expect(result.after.consignor).toEqual(copied(TECH_IMPORTS))
   })
 
-  it('Should replace an address already referenced rather than keeping both', async () => {
+  it('Should honour Save and return to overview with nothing chosen, committing nothing', async () => {
     const result = await driveHandler(post, {
-      seed: plants({ consignor: { addressId: TECH_IMPORTS } }),
+      seed: plants(),
+      payload: { exit: 'hub' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.consignor).toBeUndefined()
+  })
+
+  it('Should still refuse an id the address book does not hold on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: plants(),
+      payload: { exit: 'hub', consignor: NOT_IN_THE_BOOK }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.after.consignor).toBeUndefined()
+  })
+
+  it('Should replace a copy already held rather than keeping both', async () => {
+    const result = await driveHandler(post, {
+      seed: plants({ consignor: copied(TECH_IMPORTS) }),
       payload: { action: 'save', consignor: IMPORT_CO }
     })
 
-    expect(result.after.consignor).toEqual({ addressId: IMPORT_CO })
+    expect(result.after.consignor).toEqual(copied(IMPORT_CO))
+  })
+
+  it('Should keep a copy already held when saved with nothing ticked', async () => {
+    const edited = { ...copied(TECH_IMPORTS), name: EDITED_NAME }
+    delete edited.pickedFromId
+
+    const result = await driveHandler(post, {
+      seed: plants({ consignor: edited }),
+      payload: { action: 'save' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.consignor).toEqual(edited)
+  })
+})
+
+describe('GET consignor-select — the address this notification holds', () => {
+  beforeAll(installStubs)
+  beforeEach(() => store.clear())
+
+  it('Should show the copy, as edited, with a link to edit its details', async () => {
+    const edited = { ...copied(TECH_IMPORTS), name: EDITED_NAME }
+
+    const result = await driveHandler(get, {
+      seed: plants({ consignor: edited }),
+      query: { change: '1' }
+    })
+
+    expect(result.view.context.heldCopy).toEqual({
+      title: 'Current consignor or exporter',
+      name: EDITED_NAME,
+      summary: '18 Dockside Road, London, E14 9GE, United Kingdom',
+      editDetails: 'Edit details',
+      editHref: `${hubPath(result.journeyId)}/consignors/edit?return=consignors%2Fselect&change=1`
+    })
+  })
+
+  it('Should show no current address before one is picked', async () => {
+    const result = await driveHandler(get, { seed: plants() })
+
+    expect(result.view.context.heldCopy).toBeNull()
   })
 })
 
@@ -545,7 +614,7 @@ describe('consignor scope', () => {
 
   it('Should purge the reference on switching to potatoes and not restore it on switching back', async () => {
     const changed = await driveHandler(postHandlerOf(commodityTypeController), {
-      seed: plants({ consignor: { addressId: TECH_IMPORTS } }),
+      seed: plants({ consignor: copied(TECH_IMPORTS) }),
       payload: { commodityType: 'potatoes' }
     })
     expect(changed.after.consignor).toBeUndefined()

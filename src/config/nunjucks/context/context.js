@@ -12,6 +12,8 @@ import {
   setIdForPath,
   withSetContext
 } from '../../../server/app/shared/set-context.js'
+import { countSessionResolution } from '../../../server/common/helpers/call-counts/call-counts.js'
+import { pageMaturityContext } from '../../../server/app/page-maturity/page-maturity.js'
 
 const logger = createLogger()
 const assetPath = config.get('assetPath')
@@ -40,6 +42,11 @@ export function activeNavigationItem(requestPath = '') {
   return inDashboardSection(requestPath) ? 'dashboard' : null
 }
 
+const resolveSession = (request, sessionId) => {
+  countSessionResolution(request)
+  return request.server.app.cache.get(sessionId)
+}
+
 const insAddressBookUrl = () =>
   `${config.get('tradeImportsInsFrontend.baseUrl').replace(/\/$/, '')}/address-book`
 
@@ -55,9 +62,7 @@ async function context(request) {
   // If the user is authenticated, add the user's details to the view context
   // This allows the view to display the user's session details and the ability to conditionally render content
   const sessionId = request.auth?.credentials?.sessionId
-  const authData = sessionId
-    ? await request.server.app.cache.get(sessionId)
-    : null
+  const authData = sessionId ? await resolveSession(request, sessionId) : null
 
   // Resolved from the path, not from an ambient context: the view is marshalled
   // after the handler has returned, so a set's own `enterWith` may already have
@@ -90,7 +95,8 @@ async function context(request) {
     getAssetPath(asset) {
       const webpackAssetPath = webpackManifest?.[asset]
       return `${assetPath}/${webpackAssetPath ?? asset}`
-    }
+    },
+    ...pageMaturityContext(request)
   }
 }
 

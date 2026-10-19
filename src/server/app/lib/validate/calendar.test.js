@@ -3,13 +3,44 @@ import { describe, expect, it } from 'vitest'
 import {
   addUtcDays,
   addUtcMonths,
+  formatCalendarDate,
   formatDateText,
+  formatMomentAsDay,
   parseDateText,
   startOfDayInZone,
   startOfUtcDay
 } from './calendar.js'
 
 const utc = (year, month, day) => new Date(Date.UTC(year, month - 1, day))
+
+describe('#formatCalendarDate', () => {
+  it('renders the day the user chose, read off its UTC components', () => {
+    expect(formatCalendarDate(new Date('2026-07-21T00:00:00.000Z'))).toBe(
+      '21 Jul 2026'
+    )
+  })
+
+  it('keeps the three-letter month date-fns produces', () => {
+    expect(formatCalendarDate(new Date('2026-09-29T00:00:00.000Z'))).toBe(
+      '29 Sep 2026'
+    )
+  })
+})
+
+describe('#formatMomentAsDay', () => {
+  it('renders the UK day it happened, not the UTC one', () => {
+    // 23:35 UTC on the 10th is 00:35 on the 11th in London during BST.
+    expect(formatMomentAsDay(new Date('2026-09-10T23:35:39.455Z'))).toBe(
+      '11 Sep 2026'
+    )
+  })
+
+  it('agrees with the UTC day outside British Summer Time', () => {
+    expect(formatMomentAsDay(new Date('2026-01-10T23:35:00.000Z'))).toBe(
+      '10 Jan 2026'
+    )
+  })
+})
 
 describe('#startOfUtcDay', () => {
   it('strips the time from an instant', () => {

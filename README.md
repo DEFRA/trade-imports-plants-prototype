@@ -103,7 +103,7 @@ for the registered routes and tasks, and
 for real features to follow when extending the journey.
 
 Deployed end-to-end tests for this service live in the shared tests repository
-`trade-imports-ins-tests`, as its `plants` Playwright project alongside
+`trade-imports-ins-tests`, as its `plants` domain (`tests/plants/`) alongside
 `animals`, `animals-admin` and `ins`. See
 [Cross-repo test ownership](src/server/app/docs/test-ownership.md).
 
@@ -145,6 +145,52 @@ the same Redis key-value store, similar to how services might have a database.
 All frontend services are given a namespaced prefix that matches the service
 name, so `my-service` has access to everything in Redis prefixed with
 `my-service`.
+
+## Call counts
+
+For every page request it handles, the service counts the calls that request
+made to its journey backend, the times it read the signed-in session record
+from the session store, and the calls it made to systems outside the INS
+boundary. A page request is every request except `GET /health`,
+`GET /favicon.ico`, the static asset route and `/call-counts` itself: form
+posts, redirects, rendered pages and the 404 page all count. A backend call is one `fetch` to the journey backend, made
+through `backendFetch`. A session resolution is one read of the session record
+by the auth plugin or by the view context; the session state yar loads is not
+counted.
+
+Running totals are kept per route and served at `GET /call-counts`. `DELETE
+/call-counts` clears them.
+
+```json
+{
+  "service": "trade-imports-plants-frontend",
+  "since": "2026-10-07T12:00:00.000Z",
+  "totals": {
+    "pageRequests": 2,
+    "backendCalls": 3,
+    "sessionResolutions": 4,
+    "externalCalls": {}
+  },
+  "routes": [
+    {
+      "method": "get",
+      "path": "/high-risk-plants/notifications/{id}/origin",
+      "pageRequests": 2,
+      "backendCalls": 3,
+      "sessionResolutions": 4,
+      "externalCalls": {}
+    }
+  ]
+}
+```
+
+| Variable                       | Default                        | Effect                                                                                                |
+| ------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `CALL_COUNTS_ENDPOINT_ENABLED` | `true` locally, `false` on CDP | Serves `GET` and `DELETE /call-counts`, which need no sign-in                                         |
+| `CALL_COUNTS_METRICS_ENABLED`  | `false` locally, `true` on CDP | Writes one EMF document per page request: `BackendCalls` and `SessionResolutions`, `RequestKind=page` |
+
+The performance-test suite reads these counts and reports the ratios; see Call
+ratios in the trade-imports-performance-tests README.
 
 ## Proxy
 

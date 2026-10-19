@@ -140,6 +140,44 @@ describe('alpha phase banner', () => {
   })
 })
 
+describe('journey strip', () => {
+  const status = { text: 'Amend', classes: 'govuk-tag--yellow' }
+  const cancelAmend = { href: '/x/cancel-amend', text: 'Cancel amend' }
+
+  it('Should show Cancel amend as a link beside the tag and reference while amending', () => {
+    const $ = load(
+      renderLayout(
+        { isAuthenticated: true },
+        { journeyStrip: { reference: 'R', status, cancelAmend } }
+      )
+    )
+    const link = $('.app-journey-strip a.govuk-link')
+
+    expect($('.app-journey-strip .govuk-tag').text().trim()).toBe('Amend')
+    expect($('.app-journey-strip').text()).toContain('R')
+    expect(link).toHaveLength(1)
+    expect(link.text()).toBe('Cancel amend')
+    expect(link.attr('href')).toBe('/x/cancel-amend')
+  })
+
+  it('Should show no link in the strip without a Cancel amend control', () => {
+    const $ = load(
+      renderLayout(
+        { isAuthenticated: true },
+        {
+          journeyStrip: {
+            reference: 'R',
+            status: { text: 'Draft', classes: 'govuk-tag--blue' }
+          }
+        }
+      )
+    )
+
+    expect($('.app-journey-strip')).toHaveLength(1)
+    expect($('.app-journey-strip a')).toHaveLength(0)
+  })
+})
+
 describe('breadcrumbs', () => {
   it('Should render no breadcrumb trail, as Design release 1 has none', () => {
     const html = renderLayout(
@@ -198,6 +236,32 @@ describe('kit surfaces', () => {
   it('Should reject an inherited Object property as a surface name', () => {
     expect(() => surfaceClass('constructor')).toThrow(
       /Unknown surface 'constructor'/
+    )
+  })
+})
+
+describe('page title', () => {
+  const titleOf = (html) => load(html)('head title').text()
+  const { serviceName, govukSuffix, errorTitlePrefix } = sharedCopy.layout
+
+  it('Should join the page name, the service name and GOV.UK with hyphens', () => {
+    expect(titleOf(renderLayout({ isAuthenticated: true }))).toBe(
+      `Create an import notification - ${serviceName} - ${govukSuffix}`
+    )
+  })
+
+  it('Should keep the error prefix in front of the whole title', () => {
+    const html = renderLayout(
+      { isAuthenticated: true },
+      {
+        errorSummary: [
+          { text: 'Select what you are importing', href: '#commodityType' }
+        ]
+      }
+    )
+
+    expect(titleOf(html)).toBe(
+      `${errorTitlePrefix}Create an import notification - ${serviceName} - ${govukSuffix}`
     )
   })
 })

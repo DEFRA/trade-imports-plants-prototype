@@ -13,6 +13,7 @@ import {
 import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { lateness, requestClock } from '../review/lateness.js'
+import { isReviewRefused } from '../check-answers/refusal.js'
 import { declarationPage as page } from './page.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
@@ -64,9 +65,14 @@ const get = async (request, h) => {
 }
 
 const post = async (request, h) => {
-  const { journey, answers } = await state.get(request, h)
+  const current = await state.get(request, h)
+  const { journey, answers } = current
   if (journey.status === state.SUBMITTED) {
     return h.redirect(pagePath(journey.journeyId, 'confirmation'))
+  }
+  // Review names what is wrong; the declaration only sends the trader back to it.
+  if (await isReviewRefused(current)) {
+    return h.redirect(pagePath(journey.journeyId, kit.CYA_SLUG))
   }
 
   const payload = request.payload ?? {}

@@ -10,7 +10,9 @@ import { session as sessionStub } from '../../../../../../../services/persistenc
 import { driveHandler } from '../../../../../../../engine/test-support.js'
 
 import * as checkAnswers from '../controller.js'
+import { REVIEW_CARDS } from '../view-model/incomplete-cards.js'
 import { copy } from './copy.en.js'
+import { copy as cy } from './copy.cy.js'
 
 import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
 
@@ -24,6 +26,14 @@ describe('checkAnswers copy module', () => {
     for (const { path, value } of leaves(copy)) {
       expect(isCopyLeaf(value), `${path} must be copy`).toBe(true)
     }
+  })
+
+  // The review names every unfinished card with its errors.cards entry, so a
+  // new card cannot reach the review page without one.
+  it('Should name an unfinished-card error for every review card, and no other', () => {
+    const ids = REVIEW_CARDS.map((card) => card.id)
+    expect(Object.keys(copy.errors.cards)).toEqual(ids)
+    expect(Object.keys(cy.errors.cards)).toEqual(ids)
   })
 })
 

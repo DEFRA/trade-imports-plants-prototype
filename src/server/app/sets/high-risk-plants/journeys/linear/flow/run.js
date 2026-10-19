@@ -9,6 +9,7 @@ import { originPage } from '../features/origin/page.js'
 import { arrivalStatusPage } from '../features/arrival-status/page.js'
 import { arrivalDetailsPage } from '../features/arrival-details/page.js'
 import { placeOfDestinationPage } from '../features/place-of-destination/page.js'
+import { notificationViewPage } from '../features/check-answers/page.js'
 
 const flowPageTarget = (page) => (scope, journeyId) =>
   pageGatePasses(page, scope) ? pagePath(journeyId, page.slug) : null
@@ -22,7 +23,8 @@ const flowPageTarget = (page) => (scope, journeyId) =>
  * step is skipped for potatoes, whose notification is never asked the
  * question. Arrival details and destination are asked of every commodity type;
  * the consignor step is skipped for potatoes, then every type reaches
- * identification numbers. */
+ * identification numbers. The run ends on check your answers, complete or not,
+ * once the commodity type and origin are answered. */
 export const RUN_STEPS = [
   { id: commodityTypePage.id, target: flowPageTarget(commodityTypePage) },
   { id: commoditiesPage.id, target: flowPageTarget(commoditiesPage) },
@@ -41,7 +43,8 @@ export const RUN_STEPS = [
   {
     id: consignmentContactSelectPage.id,
     target: flowPageTarget(consignmentContactSelectPage)
-  }
+  },
+  { id: notificationViewPage.id, target: flowPageTarget(notificationViewPage) }
 ]
 
 export const nextRunTarget = (stepId, scope, journeyId) => {

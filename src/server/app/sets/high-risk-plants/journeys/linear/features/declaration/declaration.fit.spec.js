@@ -70,7 +70,7 @@ const completeNotification = async (page, late = false) => {
   await page.getByLabel(arrivalCopy.time.label, { exact: true }).fill('14:30')
   await page.getByRole('combobox').fill('Dover')
   await page
-    .getByRole('option', { name: 'Port of Dover (GB DVR)', exact: true })
+    .getByRole('option', { name: 'Port of Dover - GB DVR', exact: true })
     .click()
   await save(page).click()
   await expect(page).toHaveURL(/\/destinations\/select$/)
@@ -96,14 +96,6 @@ const completeNotification = async (page, late = false) => {
     .getByRole('radio', { name: `Select ${contactName}`, exact: true })
     .check()
   await save(page).click()
-  // The opening run stops at the hub once every prerequisite section is
-  // answered but the review gate itself needs a manual visit.
-  await expect(page).toHaveURL(
-    new RegExp(`${BASE}/notifications/${reference}$`)
-  )
-  await page
-    .getByRole('link', { name: 'Check and submit', exact: true })
-    .click()
   await expect(page).toHaveURL(cyaUrl)
   await expect(
     page.getByRole('heading', { name: copy.submit.heading, level: 2 })

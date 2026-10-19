@@ -184,6 +184,28 @@ test.describe('consignor-select feature', () => {
     await expect(page).toHaveURL(PAGE_URL)
   })
 
+  test('opened from the overview, saves the chosen address and returns to the overview', async ({
+    page
+  }) => {
+    const reference = await startAtConsignor(page)
+    await page.goto(`${BASE}/notifications/${reference}`)
+    await page.getByRole('link', { name: hubCopy.rows.consignor.title }).click()
+    await expect(page).toHaveURL(PAGE_URL)
+
+    await rowRadio(page, TECH_IMPORTS).check()
+    await saveAndContinue(page).click()
+
+    await expect(page).toHaveURL(HUB_URL)
+    await expect(
+      page
+        .getByRole('listitem')
+        .filter({
+          has: page.getByRole('link', { name: hubCopy.rows.consignor.title })
+        })
+        .locator('.govuk-task-list__status')
+    ).toHaveText(hubCopy.statuses.completed)
+  })
+
   test('shows the first page of the organisation address book with its count', async ({
     page
   }) => {
@@ -325,6 +347,24 @@ test.describe('consignor-select — saving an address', () => {
 
     await page.goto(consignorPathOf(reference))
     await expect(rowRadio(page, TECH_IMPORTS)).toBeChecked()
+  })
+
+  test('Save and return to overview with nothing chosen reaches the overview without an error', async ({
+    page
+  }) => {
+    const reference = await startAtConsignor(page)
+
+    await page
+      .getByRole('button', {
+        name: sharedCopy.saveActions.saveAndReturnToHub
+      })
+      .click()
+
+    await expect(page).toHaveURL(HUB_URL)
+
+    await page.goto(consignorPathOf(reference))
+    await expect(rowRadio(page, TECH_IMPORTS)).not.toBeChecked()
+    await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
   test('Cancel and return to overview reaches the overview without saving', async ({

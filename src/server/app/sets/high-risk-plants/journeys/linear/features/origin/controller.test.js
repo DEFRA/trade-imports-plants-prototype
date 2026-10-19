@@ -35,6 +35,8 @@ const FRANCE = 'FR'
 const SPAIN = 'ES'
 const NORWAY = 'NO'
 const GERMANY = 'DE'
+const CANARY_ISLANDS = 'ES-CN'
+const MARTINIQUE = 'FR-MQ'
 const UNOFFERED_COUNTRY = 'ZZ'
 const POTATOES = 'potatoes'
 const PLANTS_FOR_PLANTING = 'plants-for-planting'
@@ -87,7 +89,7 @@ describe('GET origin', () => {
     expect(result.view.context.caption).toBe('About the consignment')
   })
 
-  it('Should offer a placeholder ahead of every country the service primes', async () => {
+  it('Should offer a placeholder ahead of every country and territory the service primes', async () => {
     const result = await driveHandler(get)
 
     expect(result.view.context.countryItems[0]).toEqual({
@@ -95,8 +97,12 @@ describe('GET origin', () => {
       text: copy.country.placeholder
     })
     expect(result.view.context.countryItems.slice(1)).toEqual(
-      await countries.originCountries()
+      await countries.originCountryOptions()
     )
+    expect(result.view.context.countryItems).toContainEqual({
+      value: CANARY_ISLANDS,
+      text: 'Canary Islands'
+    })
   })
 
   it('Should show no answer and no error on a notification with none', async () => {
@@ -317,6 +323,27 @@ describe('POST origin — the per-category narrowing', () => {
     expect(result.after.countryOfOrigin).toBe(SPAIN)
   })
 
+  it('Should hold a territory to its country’s constraints, accepting the Canary Islands where Spain is allowed', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(POTATOES, WARE_POTATO_LINE),
+      payload: { countryOfOrigin: CANARY_ISLANDS }
+    })
+
+    expect(result.after.countryOfOrigin).toBe(CANARY_ISLANDS)
+  })
+
+  it('Should refuse a territory whose country a constraint leaves out', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(POTATOES, WARE_POTATO_LINE),
+      payload: { countryOfOrigin: MARTINIQUE }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      copy.errors.narrowing[WARE_POTATOES]
+    )
+  })
+
   it('Should keep the guidance on the page it refuses', async () => {
     const result = await driveHandler(post, {
       seed: consignmentOf(POTATOES, WARE_POTATO_LINE),
@@ -363,6 +390,41 @@ describe('POST origin — an accepted answer', () => {
 
     expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
     expect(result.after).toEqual({ countryOfOrigin: FRANCE })
+  })
+
+  it('Should save no country and go to the overview on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(PLANTS_FOR_PLANTING, PLANTS_LINE),
+      payload: { countryOfOrigin: '', exit: 'hub' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.countryOfOrigin).toBe('')
+  })
+
+  it('Should still refuse a country the consignment may not name on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(PLANTS_FOR_PLANTING, PLANTS_LINE),
+      payload: { countryOfOrigin: NORWAY, exit: 'hub' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      copy.errors.narrowing[EU_MEMBER_STATES]
+    )
+    expect(result.after).toEqual(result.before)
+  })
+
+  it('Should keep refusing no country on Save and continue', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(PLANTS_FOR_PLANTING, PLANTS_LINE),
+      payload: { countryOfOrigin: '' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      copy.errors.countryRequired
+    )
   })
 })
 

@@ -25,7 +25,8 @@ flow section is a navigation sequence:
 }
 ```
 
-Array order is journey order. It controls `nextInSection()` and, through the
+Array order is journey order. It controls, within one task row, where Save and
+continue goes outside the opening run (`nextInTaskRow()`), and, through the
 section's place among the other sections, the strictly-earlier continue
 prerequisites.
 
@@ -33,7 +34,7 @@ A page reached from another page rather than by continuing past one needs a
 section of its own, which is why `commodityDetails` is separate. The
 commodities list page's Continue leaves the commodity section; the entry
 sub-page is opened from the list and sends the trader back to it. Had the two
-shared a section, `nextInSection` would send that Continue into the entry page
+shared a section, the save fallback would send that Continue into the entry page
 instead. Its own section still gives it the commodity-type prerequisite every
 page after the entry question carries.
 
@@ -74,6 +75,12 @@ is reachable and links it to the first of them whose gate passes
 to lead the row; the commodity entry sub-page is in its row because its data
 belongs to that task, not because the hub ever links there.
 
+Outside the opening run Save and continue moves on only to a later page of the
+same section that is also in the same task row — commodity type to the
+commodities list, arrival status to the arrival details — and otherwise returns
+to the hub, so consignor returns to the hub rather than going on to
+identification numbers, which has a row of its own.
+
 Row status defaults to the union of each page's `collects` — that is what
 `rowParts()` computes, and `rowStatus()` feeds to `statusOf()`. `parts` narrows
 a row to a collection facet. `conditional: true` lets the hub hide a row that is
@@ -90,14 +97,20 @@ landed with the hub increment.
 ## Opening run and entry guard
 
 [`run.js`](../journeys/linear/flow/run.js) owns the opening-run sequence. Its
-`RUN_STEPS` holds six steps, commodity-type, commodities, origin,
-arrival-status, arrival-details then place-of-destination: the opening run opens
-on the entry question, goes on to the consignment's commodities, asks where they
-come from, asks whether they have arrived, then when, and closes on where the
-consignment is going. Place-of-destination is asked of every commodity type —
-the `placeOfDestination` obligation carries no `applyTo` — and with no later step
-after it `nextRunTarget` falls through to the hub, whose GET marks the run
-complete. An unknown step id still returns `null`. The entry sub-page is not a
+`RUN_STEPS` holds nine answer steps, commodity-type, commodities, origin,
+arrival-status, arrival-details, place-of-destination, consignor-select,
+identification-numbers then consignment-contact-select, and then check your
+answers. The run opens on the entry question, goes on to the consignment's
+commodities, asks where they come from, asks whether they have arrived, then
+when, asks where the consignment is going, who sends it, its identification
+numbers and the contact address, and closes on check your answers. Check your
+answers carries its derived gate, so the run ends there, complete or not, once
+the commodity type and origin are answered; its GET marks the run complete (the
+hub's GET still does too), shows the unfinished notification and names every
+unfinished card. Continue there re-shows the page with those cards named while
+anything is outstanding, and only the declaration and confirmation wait for a
+complete notification. With no later step `nextRunTarget` falls through to the
+hub. An unknown step id still returns `null`. The entry sub-page is not a
 step — the list page sends a trader with no lines there and takes them back. The
 arrival-status step is skipped for potatoes, whose notification is never asked
 the question: its target is `null` while the answer is out of scope, and the run

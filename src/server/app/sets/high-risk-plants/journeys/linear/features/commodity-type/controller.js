@@ -81,6 +81,16 @@ const linesKeptBy = (lines, commodityType) => {
     .filter((entry) => allowed.includes(entry[CATEGORY]))
 }
 
+// A blank type only reaches here on 'Save and return to overview' with no type
+// ever saved, so there is nothing to reconcile and no line is dropped.
+const linesDroppedBy = (lines, commodityType) => {
+  if (!commodityType) {
+    return { kept: [], removed: 0 }
+  }
+  const kept = linesKeptBy(lines, commodityType)
+  return { kept, removed: lines.length - kept.length }
+}
+
 // Lines are reconciled by what identifies one to a trader, not by position: a
 // line they can still see keeps the rest of its answers.
 const keyOf = (entry) =>
@@ -90,6 +100,7 @@ const render = (h, current, values, options = {}) => {
   const errors = options.errors ?? {}
   return h.view(view, {
     ...kit.base(copy.title, {
+      request: h.request,
       backLink: backLinkFor(current.journey, current.answers),
       journey: current.journey,
       page,
@@ -114,15 +125,18 @@ const get = async (request, h) => {
 const post = async (request, h) => {
   const payload = request.payload ?? {}
   const values = { commodityType: payload.commodityType ?? '' }
-  const { errors, value } = validate(fields(), payload)
+  const { errors, value } = validate(fields(), payload, {
+    allowMissing: kit.isHubExit(request)
+  })
   const current = await state.get(request, h)
   if (errors) {
     return render(h, current, values, { errors }).code(HTTP_STATUS_BAD_REQUEST)
   }
 
-  const lines = linesOf(current)
-  const kept = linesKeptBy(lines, value.commodityType)
-  const removed = lines.length - kept.length
+  const { kept, removed } = linesDroppedBy(
+    linesOf(current),
+    value.commodityType
+  )
 
   let committed
   const { failure } = await kit.recoverableSave(

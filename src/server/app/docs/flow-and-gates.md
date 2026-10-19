@@ -48,10 +48,13 @@ configured section list through the journey-flow seam.
 ## Navigation and status
 
 [`src/server/app/flow/navigation.js`](../flow/navigation.js) finds the first
-gate-passing page in a section or task row. `nextInSection()` returns the next
-gate-passing page, or the hub when the section is finished. `rowGatePasses()`
+gate-passing page in a section or task row. `rowGatePasses()`
 opens a task row when ANY of its pages passes, so a row whose opening question
 is out of scope for this notification still opens on the page that follows it.
+`nextInTaskRow()` is where a save outside the opening run goes: the next
+gate-passing page of the section when it belongs to the same task row, otherwise
+the hub; a page in no task row keeps the section order. `kit.nextTarget` uses it
+after the opening run and the explicit exits.
 
 [`src/server/app/flow/section-status.js`](../flow/section-status.js) calculates
 section status from dispatch ownership. Submit readiness is the conjunction of the

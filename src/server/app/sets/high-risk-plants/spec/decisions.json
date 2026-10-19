@@ -1428,6 +1428,23 @@
       "supersededBy": null,
       "decidedAt": "2026-09-06",
       "status": "current"
+    },
+    {
+      "id": "d-085",
+      "subject": {
+        "kind": "behaviour",
+        "id": "opening-run"
+      },
+      "ruling": "adopt",
+      "resolution": "The opening run ends on check your answers instead of the hub: Continue on consignment-contact-select goes to check your answers even when the notification is incomplete, check your answers shows the unfinished notification and names every outstanding task, and its Continue re-shows the page with those errors rather than going to the hub. Only the declaration and confirmation wait for a complete notification. Supersedes d-069's 'landing on the hub' only; d-069's grouped hub, captions and declaration stand.",
+      "rationale": "ruling:sam-2026-10-09-pm p3-002, p3-009 and p3-014 (claims 43-45: plants takes the same change as the animals journey, in the same increment) and Design Release 2.1 app/routes.js:1523-1554, where the contact address step goes to review-notification whether or not the notification is complete.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-069",
+      "supersededBy": null,
+      "decidedAt": "2026-10-09",
+      "status": "current"
     }
   ]
 }

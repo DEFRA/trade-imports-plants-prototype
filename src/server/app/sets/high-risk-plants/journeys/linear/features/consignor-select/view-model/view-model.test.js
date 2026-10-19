@@ -39,10 +39,10 @@ const record = (id, name, address = {}) => ({
     addressLine2: LINE_2,
     townOrCity: TOWN,
     county: COUNTY,
-    postalOrZipCode: POSTCODE,
+    postcode: POSTCODE,
     country: COUNTRY,
-    telephoneNumber: TELEPHONE,
-    emailAddress: EMAIL,
+    phone: TELEPHONE,
+    email: EMAIL,
     ...address
   }
 })
@@ -63,7 +63,7 @@ describe('#addressText', () => {
         addressLine2: LINE_2,
         townOrCity: TOWN,
         county: COUNTY,
-        postalOrZipCode: POSTCODE,
+        postcode: POSTCODE,
         country: COUNTRY
       })
     ).toBe(ONE_LINE)

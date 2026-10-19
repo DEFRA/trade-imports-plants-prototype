@@ -76,6 +76,15 @@ describe('cancel amendment routes', () => {
     vi.unstubAllGlobals()
   })
 
+  it('Should show the Amend tag but offer no Cancel amend on the confirmation page itself', async () => {
+    const { journeyId } = await startAmend()
+
+    const response = await get(journeyRequest(journeyId), stubH())
+
+    expect(response.context.journeyStrip.status.text).toBe('Amend')
+    expect(response.context.journeyStrip.cancelAmend).toBeUndefined()
+  })
+
   it('Should render the confirmation for an amending journey with journey-scoped actions', async () => {
     const { journeyId } = await startAmend()
     const h = stubH()

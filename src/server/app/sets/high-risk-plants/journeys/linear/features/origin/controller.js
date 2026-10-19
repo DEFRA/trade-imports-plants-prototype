@@ -38,14 +38,14 @@ const copy = copyFor({ en, cy })
 const COUNTRY_FIELD = 'countryOfOrigin'
 
 const countryValues = async () =>
-  (await countries.originCountries()).map(({ value }) => value)
+  (await countries.originCountryOptions()).map(({ value }) => value)
 
 // The list feeds a type-ahead that enhances this select, so it carries only
 // the placeholder and the real countries — a scroll-only list would need a
 // divider rule under the placeholder, a searchable one does not.
 const countryItems = async () => [
   { value: '', text: copy.country.placeholder },
-  ...(await countries.originCountries())
+  ...(await countries.originCountryOptions())
 ]
 
 const categoriesOf = (current) =>
@@ -76,9 +76,12 @@ const membershipRule = async () =>
     )
   )
 
+// A territory is held to its country's constraints: the Canary Islands may
+// send what Spain may.
 const narrowingErrorFor = (constraints, country) => {
   const failing = constraints.find(
-    (constraint) => !constraint.countries.includes(country)
+    (constraint) =>
+      !constraint.countries.includes(countries.parentCountryCode(country))
   )
   return failing ? copy.errors.narrowing[failing.id] : undefined
 }
@@ -89,13 +92,25 @@ const narrowingErrorFor = (constraints, country) => {
  * @param {object} payload - the raw POST payload.
  * @param {readonly object[]} constraints - the origin constraints the
  * consignment's commodity lines put on it.
+ * @param {object} [options]
+ * @param {boolean} [options.allowMissing] - a blank country is not refused
+ * (the 'Save and return to overview' reading).
  * @returns {Promise<object|null>} the field errors, or null when the answer
  * stands.
  */
-const errorsFor = async (payload, constraints) => {
-  const { errors, value } = validate(await membershipRule(), payload)
+const errorsFor = async (
+  payload,
+  constraints,
+  { allowMissing = false } = {}
+) => {
+  const { errors, value } = validate(await membershipRule(), payload, {
+    allowMissing
+  })
   if (errors) {
     return errors
+  }
+  if (!value[COUNTRY_FIELD]) {
+    return null
   }
   const narrowing = narrowingErrorFor(constraints, value[COUNTRY_FIELD])
   return narrowing ? { [COUNTRY_FIELD]: narrowing } : null
@@ -115,6 +130,7 @@ const render = async (h, current, values, options = {}) => {
   const errors = options.errors ?? {}
   return h.view(view, {
     ...kit.base(copy.title, {
+      request: h.request,
       backLink: backLinkFor(current.journey, current.answers),
       journey: current.journey,
       page,
@@ -159,7 +175,9 @@ const post = async (request, h) => {
   const values = { [COUNTRY_FIELD]: payload[COUNTRY_FIELD] ?? '' }
   const current = await state.get(request, h)
   const constraints = constraintsOn(categoriesOf(current))
-  const errors = await errorsFor(payload, constraints)
+  const errors = await errorsFor(payload, constraints, {
+    allowMissing: kit.isHubExit(request)
+  })
   if (errors) {
     return (await render(h, current, values, { constraints, errors })).code(
       HTTP_STATUS_BAD_REQUEST

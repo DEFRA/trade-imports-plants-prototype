@@ -8,6 +8,7 @@ import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
 import { chosenFor, renderPicker } from '../address-book-picker/render.js'
+import { answerForPickedParty } from '../../parties/picked-party.js'
 import { consignmentContactSelectPage as page } from './page.js'
 import { CONTACT_ADDRESS } from './fields.js'
 import { pickerViewModel } from './view-model/index.js'
@@ -22,11 +23,10 @@ import { copy as cy } from './copy/copy.cy.js'
  * progressive enhancement adds a newly ticked row to those links before the
  * browser follows them.
  *
- * Two things set this picker apart from the destination and consignor pages.
- * The answer stored is a COPY of the record — its id, name and address — so
- * the notification carries the contact details as they were when chosen, and
- * a blank save is allowed: Save and continue with nothing ticked commits
- * nothing and moves on, leaving the task row not yet started.
+ * The answer stored is a copy of the chosen record, as on the destination and
+ * consignor pages. Unlike them, a blank save is allowed even before anything
+ * is chosen: Save and continue with nothing ticked commits nothing and moves
+ * on, leaving the task row not yet started.
  */
 export const meta = { ...page, collects: [CONTACT_ADDRESS] }
 
@@ -44,13 +44,7 @@ const parsePageNumber = (value) => {
 
 const isSearch = (payload) => payload.action === SEARCH_ACTION
 
-const committedId = (answers) => answers[CONTACT_ADDRESS]?.addressId
-
-const copyOf = (record) => ({
-  addressId: record.id,
-  name: record.name,
-  address: { ...record.address }
-})
+const committedId = (answers) => answers[CONTACT_ADDRESS]?.pickedFromId
 
 // The page asks one question in one voice, so the heading and the description
 // are the page's own copy rather than chosen per notification.
@@ -109,7 +103,7 @@ const post = async (request, h) => {
   const { failure } = await kit.recoverableSave(
     async () => {
       committed = await state.commit(request, h, {
-        [CONTACT_ADDRESS]: copyOf(chosen)
+        [CONTACT_ADDRESS]: answerForPickedParty(chosen)
       })
     },
     async () =>

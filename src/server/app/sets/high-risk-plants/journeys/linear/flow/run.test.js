@@ -11,6 +11,7 @@ import { originPage } from '../features/origin/page.js'
 import { arrivalStatusPage } from '../features/arrival-status/page.js'
 import { arrivalDetailsPage } from '../features/arrival-details/page.js'
 import { placeOfDestinationPage } from '../features/place-of-destination/page.js'
+import { notificationViewPage } from '../features/check-answers/page.js'
 import { RUN_STEPS, nextRunTarget } from './run.js'
 
 const JOURNEY_ID = 'HRP-0001'
@@ -54,7 +55,7 @@ const answering = (...names) => ({
 describe('#RUN_STEPS — the opening run', () => {
   beforeAll(() => installHighRiskPlantsJourney())
 
-  it('Should open on commodity-type, then commodities, origin, arrival status, arrival details and the destination', () => {
+  it('Should open on commodity-type and end on check your answers', () => {
     expect(RUN_STEPS.map((step) => step.id)).toEqual([
       commodityTypePage.id,
       commoditiesPage.id,
@@ -64,7 +65,8 @@ describe('#RUN_STEPS — the opening run', () => {
       placeOfDestinationPage.id,
       consignorPage.id,
       identificationNumbersPage.id,
-      consignmentContactSelectPage.id
+      consignmentContactSelectPage.id,
+      notificationViewPage.id
     ])
   })
 
@@ -224,14 +226,14 @@ describe('#nextRunTarget', () => {
     ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/destinations/select`)
   })
 
-  it("Should fall through to the overview after the run's last step", () => {
+  it('Should end the run on check your answers after the contact step, even with tasks outstanding', () => {
     expect(
       nextRunTarget(
         consignmentContactSelectPage.id,
         answering(...PLANTS_RUN),
         JOURNEY_ID
       )
-    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/notification-view`)
   })
 
   it('Should fall through to the overview when the last step is out of scope', () => {

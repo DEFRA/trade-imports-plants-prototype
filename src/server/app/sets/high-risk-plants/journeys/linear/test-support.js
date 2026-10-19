@@ -29,6 +29,21 @@ import { nextRunTarget } from './flow/run.js'
 import { entryGuardTarget } from './flow/entry-guard.js'
 import { sectionCaptionOf } from './flow/section-captions/index.js'
 
+/** The copy a picker commits for the stub book's `tech-imports-ltd` record:
+ * valid by the address-book rules. */
+export const TECH_IMPORTS_COPY = Object.freeze({
+  pickedFromId: 'tech-imports-ltd',
+  name: 'Tech Imports Ltd',
+  phone: '01632 960000',
+  email: 'tech-imports-ltd@example.com',
+  address: Object.freeze({
+    addressLine1: '18 Dockside Road',
+    townOrCity: 'London',
+    postcode: 'E14 9GE',
+    countryCode: 'GB'
+  })
+})
+
 /**
  * A notification whose commodity section is complete: a potato consignment
  * with one line carrying every field its category asks for. Several suites
@@ -57,28 +72,17 @@ export const COMPLETE_POTATO_CONSIGNMENT = Object.freeze({
  * They also carry no arrival status — reg 24A gives potatoes no post-arrival
  * branch — and do owe a time and a place of landing, so the arrival answers
  * here are the potato three, not the plants two.
- *
- * The destination id must be one the stub address book holds, or resolving it
- * in a test returns undefined and the section reads as unanswered.
  */
 export const COMPLETE_NOTIFICATION = Object.freeze({
   ...COMPLETE_POTATO_CONSIGNMENT,
-  contactAddress: Object.freeze({
-    addressId: 'tech-imports-ltd',
-    name: 'Tech Imports Ltd',
-    address: Object.freeze({
-      country: 'United Kingdom',
-      telephoneNumber: '01234567890',
-      emailAddress: 'contact@example.com'
-    })
-  }),
+  contactAddress: TECH_IMPORTS_COPY,
   producerIdentificationNumber: 'P123',
   cropIdentificationNumber: 'C123',
   countryOfOrigin: 'FR',
   arrivalDate: Object.freeze({ day: '27', month: '3', year: '2026' }),
   arrivalTime: '14:30',
   proposedPlaceOfLanding: 'GB DVR',
-  placeOfDestination: Object.freeze({ addressId: 'tech-imports-ltd' })
+  placeOfDestination: TECH_IMPORTS_COPY
 })
 
 export const installHighRiskPlantsJourney = () => {

@@ -5,7 +5,6 @@ import {
 } from './flow/journey-flow.js'
 import { readyForCheckYourAnswers } from './flow/section-status.js'
 import { configureReadyForCheckYourAnswers } from './bridge/readiness-config.js'
-import { configureAnswersForRead } from './bridge/answers-read.js'
 import {
   allRoutes,
   dispatchPages
@@ -22,7 +21,6 @@ import {
 import { sectionCaptionOf } from './sets/high-risk-plants/journeys/linear/flow/section-captions/index.js'
 import { nextRunTarget } from './sets/high-risk-plants/journeys/linear/flow/run.js'
 import { entryGuardTarget } from './sets/high-risk-plants/journeys/linear/flow/entry-guard.js'
-import { withoutUnresolvedPartyRefs } from './sets/high-risk-plants/journeys/linear/parties/index.js'
 import {
   LAYOUT,
   SESSION_COOKIE_NAMES
@@ -79,7 +77,6 @@ export const highRiskPlants = {
           layout: LAYOUT
         })
         configureReadyForCheckYourAnswers(SET_ID, readyForCheckYourAnswers)
-        configureAnswersForRead(SET_ID, withoutUnresolvedPartyRefs)
         assertObligationPurity()
         assertFulfilmentBindingCoverage()
         buildDispatch(SET_ID, dispatchPages)

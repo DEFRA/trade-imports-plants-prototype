@@ -15,8 +15,9 @@ export const copy = {
 
   title: 'Gwiriwch eich atebion',
   change: 'Newid',
+  editDetails: 'Golygu manylion',
+  errorPrefix: 'Gwall:',
   cancelAmend: {
-    link: 'Canslo’r diwygiad',
     successTitle: 'Llwyddiant',
     successBody:
       'Mae’r diwygiad wedi’i ganslo a’r fersiwn a gyflwynwyd wedi’i hadfer.'
@@ -25,8 +26,20 @@ export const copy = {
   continue: 'Parhau',
   errors: {
     parties: {
-      consignor: 'Dewiswch gyfeiriad ar gyfer yr anfonwr',
-      placeOfDestination: 'Dewiswch gyfeiriad ar gyfer y man cyrchfan'
+      consignor: 'Cywirwch fanylion y cyfeiriad ar gyfer yr anfonwr',
+      placeOfDestination:
+        'Cywirwch fanylion y cyfeiriad ar gyfer y man cyrchfan',
+      contactAddress:
+        'Cywirwch fanylion y cyfeiriad cyswllt ar gyfer y llwyth hwn'
+    },
+    cards: {
+      importDetails: 'Cwblhewch y manylion mewnforio',
+      commodities: 'Cwblhewch fanylion y nwydd',
+      arrivalDetails: 'Cwblhewch y manylion cyrraedd',
+      placeOfDestination: 'Cwblhewch y man cyrchfan',
+      consignor: 'Cwblhewch yr anfonwr neu’r allforiwr',
+      identificationNumbers: 'Cwblhewch y rhifau adnabod',
+      contact: 'Cwblhewch y cyswllt'
     }
   },
   submit: {
@@ -55,8 +68,8 @@ export const copy = {
     proposedPlaceOfLanding: 'Man glanio',
     name: 'Enw',
     address: 'Cyfeiriad',
-    telephoneNumber: 'Rhif ffôn',
-    emailAddress: 'Cyfeiriad e-bost',
+    phone: 'Rhif ffôn',
+    email: 'Cyfeiriad e-bost',
     genus: 'Genws',
     species: 'Rhywogaeth',
     commodityCode: 'Cod nwyddau',

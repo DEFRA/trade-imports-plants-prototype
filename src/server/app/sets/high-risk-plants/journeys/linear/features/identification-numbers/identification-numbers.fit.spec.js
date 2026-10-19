@@ -25,6 +25,7 @@ const COMMODITY_REMOVED_URL = setUrl(
 )
 const ORIGIN_URL = setUrl('/notifications/[^/]+/origin$')
 const HUB_URL = setUrl('/notifications/[^/]+$')
+const CHECK_ANSWERS_URL = setUrl('/notifications/[^/]+/notification-view$')
 const PAGE_URL = setUrl('/notifications/[^/]+/identification-numbers')
 
 const COUNTRY_INPUT = 'input#countryOfOrigin'
@@ -45,6 +46,14 @@ const backLink = (page) =>
 
 const saveAndContinue = (page) =>
   page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
+
+// The contact page ends the opening run on check your answers, so the overview
+// is opened from there.
+const openOverviewFromReview = async (page) => {
+  await expect(page).toHaveURL(CHECK_ANSWERS_URL)
+  await page.goto(page.url().replace(/\/notification-view$/, ''))
+  await expect(page).toHaveURL(HUB_URL)
+}
 
 const identificationPathOf = (reference) =>
   `${BASE}/notifications/${reference}/identification-numbers`
@@ -195,7 +204,7 @@ for (const [commodityType, fields] of branches) {
       await saveAndContinue(page).click()
       await expect(page).toHaveURL(/\/consignment\/contact\/select$/)
       await saveAndContinue(page).click()
-      await expect(page).toHaveURL(HUB_URL)
+      await openOverviewFromReview(page)
       await expect(
         page.getByRole('listitem').filter({
           has: page.getByRole('link', {
@@ -301,7 +310,7 @@ test('wood can leave the optional reference blank and the overview labels it Opt
   await saveAndContinue(page).click()
   await expect(page).toHaveURL(/\/consignment\/contact\/select$/)
   await saveAndContinue(page).click()
-  await expect(page).toHaveURL(HUB_URL)
+  await openOverviewFromReview(page)
   const row = page.getByRole('listitem').filter({
     has: page.getByRole('link', {
       name: hubCopy.rows.identificationNumbers.title
@@ -320,7 +329,7 @@ test('changing commodity type purges the supplier number and preserves the commo
   await saveAndContinue(page).click()
   await expect(page).toHaveURL(/\/consignment\/contact\/select$/)
   await saveAndContinue(page).click()
-  await expect(page).toHaveURL(HUB_URL)
+  await openOverviewFromReview(page)
   await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
   await chooseCommodityType(page, 'potatoes')
   await page.goto(identificationPathOf(reference))

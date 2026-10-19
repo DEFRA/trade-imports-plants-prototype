@@ -9,14 +9,15 @@ import {
   vi
 } from 'vitest'
 
-// Real-mode address-book fetches flow through toRecord → originLabel, which
-// self-loads via a countries fetch. Mock the countries reader so the fetch
-// stub only has to answer address-book URLs.
+// Real-mode address-book fetches flow through toRecord → addressBookCountryName,
+// which self-loads via a countries fetch. Mock the countries reader so the
+// fetch stub only has to answer address-book URLs.
 vi.mock('../../../../../../services/countries/index.js', () => {
   const LABELS = { BE: 'Belgium', GB: 'United Kingdom' }
   return {
     ensureLoaded: async () => {},
-    originLabel: async (code) => LABELS[code]
+    originLabel: async (code) => LABELS[code],
+    addressBookCountryName: async (code) => LABELS[code] ?? code
   }
 })
 
@@ -35,6 +36,8 @@ import {
 import { hubPath } from '../../../../../../shared/paths.js'
 import { SURFACES } from '../../../../../../shared/kit.js'
 import { PAGE_SIZE } from '../../../../../../services/address-book/index.js'
+import { STUB_BOOK } from '../../../../../../services/address-book/stub/index.js'
+import { answerForPickedParty } from '../../parties/picked-party.js'
 import { installHighRiskPlantsJourney } from '../../test-support.js'
 import { ALREADY_ARRIVED, NOT_YET_ARRIVED } from '../arrival-status/statuses.js'
 import { copy } from './copy/copy.en.js'
@@ -65,6 +68,12 @@ const DENMARK_ROWS = ['copenhagen-exports-aps', 'aarhus-trading-aps']
 const MATCHES_NOTHING = 'nothing matches this'
 
 const potatoes = (answers = {}) => ({ commodityType: POTATOES, ...answers })
+
+const copied = (id) =>
+  answerForPickedParty(STUB_BOOK.find((record) => record.id === id))
+
+/** A copy whose source record the book no longer offers. */
+const pickedFrom = (id) => ({ ...copied(TECH_IMPORTS), pickedFromId: id })
 
 const plants = (answers = {}) => ({
   commodityType: PLANTS_FOR_PLANTING,
@@ -246,34 +255,36 @@ describe('GET place-of-destination — the address book it offers', () => {
     expect(result.view.context.picker.pagination).toBeNull()
   })
 
-  it('Should tick the address the notification already references', async () => {
+  it('Should tick the record the copy was picked from', async () => {
     const result = await driveHandler(get, {
-      seed: potatoes({ placeOfDestination: { addressId: TECH_IMPORTS } })
+      seed: potatoes({ placeOfDestination: copied(TECH_IMPORTS) })
     })
 
     expect(checkedId(result)).toBe(TECH_IMPORTS)
-    expect(result.view.context.picker.selected.name).toBe('Tech Imports Ltd')
+    expect(result.view.context.picker.tickedRecord.name).toBe(
+      'Tech Imports Ltd'
+    )
   })
 
   it('Should carry a selection the query string names over the stored one', async () => {
     // Paging carries the tick in the query string, so a row ticked on one page
     // is still ticked after moving to another and back.
     const result = await driveHandler(get, {
-      seed: potatoes({ placeOfDestination: { addressId: TECH_IMPORTS } }),
+      seed: potatoes({ placeOfDestination: copied(TECH_IMPORTS) }),
       query: { selected: IMPORT_CO }
     })
 
     expect(checkedId(result)).toBe(IMPORT_CO)
   })
 
-  it('Should show no selection for a reference the book no longer holds', async () => {
+  it('Should show no selection for a record the book no longer holds', async () => {
     // A record the organisation has deleted reads as never entered, so it must
     // not travel as "Selected address" or in the paging links either.
     const result = await driveHandler(get, {
-      seed: potatoes({ placeOfDestination: { addressId: NOT_IN_THE_BOOK } })
+      seed: potatoes({ placeOfDestination: pickedFrom(NOT_IN_THE_BOOK) })
     })
 
-    expect(result.view.context.picker.selected).toBeUndefined()
+    expect(result.view.context.picker.tickedRecord).toBeUndefined()
     expect(checkedId(result)).toBeUndefined()
   })
 })
@@ -433,10 +444,10 @@ describe('place-of-destination — a destination the organisation has deleted', 
 
   it('Should show no selection for a destination deleted since it was chosen', async () => {
     const result = await driveHandler(get, {
-      seed: potatoes({ placeOfDestination: { addressId: DELETED_ID } })
+      seed: potatoes({ placeOfDestination: pickedFrom(DELETED_ID) })
     })
 
-    expect(result.view.context.picker.selected).toBeUndefined()
+    expect(result.view.context.picker.tickedRecord).toBeUndefined()
     expect(checkedId(result)).toBeUndefined()
   })
 
@@ -461,15 +472,13 @@ describe('POST place-of-destination — accepted answers', () => {
   beforeAll(installStubs)
   beforeEach(() => store.clear())
 
-  it('Should commit the address-book id alone, never a copy of the address', async () => {
+  it('Should commit a copy of the chosen record', async () => {
     const result = await driveHandler(post, {
       seed: potatoes(),
       payload: { action: 'save', placeOfDestination: TECH_IMPORTS }
     })
 
-    expect(result.after.placeOfDestination).toEqual({
-      addressId: TECH_IMPORTS
-    })
+    expect(result.after.placeOfDestination).toEqual(copied(TECH_IMPORTS))
   })
 
   it('Should accept the row carried in the hidden field when no radio is posted', async () => {
@@ -481,7 +490,7 @@ describe('POST place-of-destination — accepted answers', () => {
       payload: { action: 'save', selected: ALPINE }
     })
 
-    expect(result.after.placeOfDestination).toEqual({ addressId: ALPINE })
+    expect(result.after.placeOfDestination).toEqual(copied(ALPINE))
   })
 
   it('Should redirect to the overview, the page after the destination section', async () => {
@@ -500,18 +509,66 @@ describe('POST place-of-destination — accepted answers', () => {
     })
 
     expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
-    expect(result.after.placeOfDestination).toEqual({
-      addressId: TECH_IMPORTS
-    })
+    expect(result.after.placeOfDestination).toEqual(copied(TECH_IMPORTS))
   })
 
-  it('Should replace an address already referenced rather than keeping both', async () => {
+  it('Should honour Save and return to overview with nothing chosen, committing nothing', async () => {
     const result = await driveHandler(post, {
-      seed: potatoes({ placeOfDestination: { addressId: TECH_IMPORTS } }),
+      seed: potatoes(),
+      payload: { exit: 'hub' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.placeOfDestination).toBeUndefined()
+  })
+
+  it('Should still refuse an id the address book does not hold on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: potatoes(),
+      payload: { exit: 'hub', placeOfDestination: NOT_IN_THE_BOOK }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.after.placeOfDestination).toBeUndefined()
+  })
+
+  it('Should replace a copy already held rather than keeping both', async () => {
+    const result = await driveHandler(post, {
+      seed: potatoes({ placeOfDestination: copied(TECH_IMPORTS) }),
       payload: { action: 'save', placeOfDestination: IMPORT_CO }
     })
 
-    expect(result.after.placeOfDestination).toEqual({ addressId: IMPORT_CO })
+    expect(result.after.placeOfDestination).toEqual(copied(IMPORT_CO))
+  })
+
+  it('Should keep a copy already held when saved with nothing ticked', async () => {
+    const edited = { ...copied(TECH_IMPORTS), name: 'Tech Imports (UK) Ltd' }
+    delete edited.pickedFromId
+
+    const result = await driveHandler(post, {
+      seed: potatoes({ placeOfDestination: edited }),
+      payload: { action: 'save' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.placeOfDestination).toEqual(edited)
+  })
+})
+
+describe('GET place-of-destination — the address this notification holds', () => {
+  beforeAll(installStubs)
+  beforeEach(() => store.clear())
+
+  it('Should show the copy with a link to edit its details', async () => {
+    const result = await driveHandler(get, {
+      seed: potatoes({ placeOfDestination: copied(TECH_IMPORTS) })
+    })
+
+    expect(result.view.context.heldCopy).toMatchObject({
+      title: 'Current place of destination',
+      name: 'Tech Imports Ltd',
+      editHref: `${hubPath(result.journeyId)}/destinations/edit?return=destinations%2Fselect`
+    })
   })
 })
 

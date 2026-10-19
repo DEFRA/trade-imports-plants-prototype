@@ -15,6 +15,7 @@ import { SURFACES } from '../../../../../../shared/kit.js'
 import { RUN_ACTIVE, RUN_COMPLETE } from '../../../../../../flow/run-state.js'
 import {
   COMPLETE_POTATO_CONSIGNMENT,
+  TECH_IMPORTS_COPY,
   installHighRiskPlantsJourney
 } from '../../test-support.js'
 
@@ -425,7 +426,7 @@ describe('#hubGet — the destination row', () => {
     const { destinationRow } = await destinationRowIn({
       commodityType: POTATOES,
       countryOfOrigin: FRANCE,
-      placeOfDestination: { addressId: 'tech-imports-ltd' }
+      placeOfDestination: TECH_IMPORTS_COPY
     })
 
     expect(destinationRow.status).toEqual({
@@ -451,13 +452,13 @@ describe('#hubGet — consignor', () => {
     ).toEqual([copy.rows.identificationNumbers.title, copy.rows.contact.title])
   })
 
-  it('Should link plants and wood to the picker and complete a saved reference', async () => {
+  it('Should link plants and wood to the picker and complete a picked copy', async () => {
     for (const commodityType of [PLANTS_FOR_PLANTING, 'wood-and-cut-trees']) {
       const { journeyId, h } = await renderHub({
         seed: {
           commodityType,
           countryOfOrigin: FRANCE,
-          consignor: { addressId: 'tech-imports-ltd' }
+          consignor: TECH_IMPORTS_COPY
         }
       })
       const group = h.captured.view.context.groups.find(

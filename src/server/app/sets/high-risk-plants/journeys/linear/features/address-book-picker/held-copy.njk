@@ -1,0 +1,25 @@
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+
+{% if heldCopy %}
+  {{ govukSummaryList({
+    card: {
+      title: { text: heldCopy.title },
+      attributes: { role: "region", "aria-label": heldCopy.title }
+    },
+    rows: [
+      {
+        key: { text: heldCopy.name },
+        value: { text: heldCopy.summary },
+        actions: {
+          items: [
+            {
+              href: heldCopy.editHref,
+              text: heldCopy.editDetails,
+              visuallyHiddenText: heldCopy.title | lower
+            }
+          ]
+        }
+      }
+    ]
+  }) }}
+{% endif %}

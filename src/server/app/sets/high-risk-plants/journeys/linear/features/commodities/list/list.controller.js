@@ -57,6 +57,7 @@ const buildView = (request, h, model) => {
   const errors = model.errors ?? {}
   return h.view(view, {
     ...kit.base(copy.title, {
+      request,
       backLink: hubPath(model.journey.journeyId),
       journey: model.journey,
       page,

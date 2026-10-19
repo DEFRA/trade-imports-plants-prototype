@@ -74,6 +74,12 @@ test.describe('overview hub feature', () => {
       page.getByText(sharedCopy.journeyStrip.draft, { exact: true })
     ).toBeVisible()
     await expect(page.getByText(reference, { exact: true })).toBeVisible()
+    await expect(
+      page.locator('.app-journey-strip').getByRole('link', {
+        name: sharedCopy.journeyStrip.cancelAmend,
+        exact: true
+      })
+    ).toHaveCount(0)
   })
 
   test('offers Return to dashboard and a Back link, both to the dashboard', async ({

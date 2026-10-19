@@ -58,23 +58,22 @@ collide; `npm run test:fit:ci` does this for you.
 
 ## What the set exports, and what consumes it
 
-| File                                             | Exports                                           | Consumed by                                                 |
-| ------------------------------------------------ | ------------------------------------------------- | ----------------------------------------------------------- |
-| `obligations/index.js`                           | `obligations`, `groups`                           | `configureObligationSet`                                    |
-| `journeys/linear/config.js`                      | `TEMPLATES`, `LAYOUT`, `SESSION_COOKIE_NAMES`     | `configureJourneyFlow`, `configureSession`, set controllers |
-| `journeys/linear/features/index.js`              | `dispatchPages`, `allRoutes`                      | `buildDispatch`, `server.route`                             |
-| `journeys/linear/features/evaluation.js`         | `featureEvaluationBindings`                       | `configureFulfilmentRegistry`                               |
-| `journeys/linear/flow/flow.js`                   | `FLOW_ONLY_KEYS`, `sections`                      | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/task-rows.js`              | `taskRows`, `rowStatus`                           | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/section-captions/index.js` | `captionSections`, `sectionCaptionOf`             | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/run.js`                    | `nextRunTarget`                                   | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/entry-guard.js`            | `entryGuardTarget`                                | `server.ext('onPreHandler')`                                |
-| `journeys/linear/parties/index.js`               | `REFERENCE_PARTIES`, `withoutUnresolvedPartyRefs` | `configureAnswersForRead`                                   |
+| File                                             | Exports                                       | Consumed by                                                 |
+| ------------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
+| `obligations/index.js`                           | `obligations`, `groups`                       | `configureObligationSet`                                    |
+| `journeys/linear/config.js`                      | `TEMPLATES`, `LAYOUT`, `SESSION_COOKIE_NAMES` | `configureJourneyFlow`, `configureSession`, set controllers |
+| `journeys/linear/features/index.js`              | `dispatchPages`, `allRoutes`                  | `buildDispatch`, `server.route`                             |
+| `journeys/linear/features/evaluation.js`         | `featureEvaluationBindings`                   | `configureFulfilmentRegistry`                               |
+| `journeys/linear/flow/flow.js`                   | `FLOW_ONLY_KEYS`, `sections`                  | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/task-rows.js`              | `taskRows`, `rowStatus`                       | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/section-captions/index.js` | `captionSections`, `sectionCaptionOf`         | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/run.js`                    | `nextRunTarget`                               | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/entry-guard.js`            | `entryGuardTarget`                            | `server.ext('onPreHandler')`                                |
 
 This set's gateway,
 [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
 (the [`routes.js`](../../../routes.js) barrel only re-exports it), is the
-composition seam that wires all ten. The unit suite installs a synthetic journey-neutral fixture
+composition seam that wires all nine. The unit suite installs a synthetic journey-neutral fixture
 from `test/fixtures/` instead — the engine must not depend on the set.
 
 ## The served surface today
@@ -141,16 +140,6 @@ journey in this session, or `hasCommittedNotificationAnswers`. Anything
 else is redirected to `commodity-type`, so a journey URL alone no longer
 reaches a mid-journey page or bypasses the opening run. See
 [Journey flow and gates](journey-flow-and-gates.md).
-
-**`configureAnswersForRead` is wired — gate closed.**
-`parties/index.js` holds the set's sanitiser, and `routes-high-risk-plants.js` passes
-`withoutUnresolvedPartyRefs` to `configureAnswersForRead`. Every answer
-in `REFERENCE_PARTIES` holds an address-book `{ addressId }` and nothing
-more, so an id the book no longer resolves — a record deleted, or one
-that never existed — drops out of the answers on every read and the
-notification treats it as never entered. Each new party that is held as
-a reference joins that list; one held as a copy of the address does not,
-because a copy cannot dangle.
 
 **`sectionCaption` is wired — gate closed.**
 `flow/section-captions/index.js` holds the caption map with its

@@ -134,6 +134,26 @@ describe('identification numbers', () => {
     })
     expect(result.response.redirect).toBe(hubPath(result.journeyId))
   })
+  it('Should save a blank mandatory number and go to the overview on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: { commodityType: 'potatoes' },
+      payload: { exit: 'hub' }
+    })
+    expect(result.response.redirect).toBe(hubPath(result.journeyId))
+    expect(result.after.producerIdentificationNumber).toBe('')
+    expect(result.after.cropIdentificationNumber).toBe('')
+  })
+  it('Should still refuse an over-long number on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: { commodityType: 'potatoes' },
+      payload: { producerIdentificationNumber: 'x'.repeat(59), exit: 'hub' }
+    })
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.producerIdentificationNumber).toBe(
+      copy.errors.producerIdentificationNumber.maxLength
+    )
+    expect(result.after).toEqual(result.before)
+  })
   it('Should accept the maximum length for every field', async () => {
     for (const [commodityType, fields] of branches) {
       const result = await driveHandler(post, {

@@ -29,8 +29,9 @@ const resultRow = (idPrefix, from, selectedId) => (record, index) => ({
  * The bound function takes the notification reference; the page state, being
  * `query`, the search term the results were found with, `selectedId`, the
  * address-book id currently ticked, an optional `error` to render above the
- * table, `found`, one page of address-book results, and an optional `selected`,
- * the record the ticked id resolves to; and the page's resolved copy bundle.
+ * table, `found`, one page of address-book results, and an optional
+ * `tickedRecord`, the record the ticked id resolves to; and the page's resolved
+ * copy bundle.
  *
  * @param {object} binding
  * @param {string} binding.fieldName - the answer name the page collects.
@@ -40,14 +41,18 @@ const resultRow = (idPrefix, from, selectedId) => (record, index) => ({
 export const pickerViewModelFor = ({ fieldName, pagination }) => {
   const idPrefix = idPrefixFor(fieldName)
 
-  return (journeyId, { query, selectedId, error, found, selected }, copy) => {
+  return (
+    journeyId,
+    { query, selectedId, error, found, tickedRecord },
+    copy
+  ) => {
     const from = (found.page - 1) * found.pageSize
 
     return {
       query,
       page: found.page,
       error,
-      selected,
+      tickedRecord,
       resultsCaption: copy.resultsCaption(found.results.length, found.total),
       rows: found.results.map(resultRow(idPrefix, from, selectedId)),
       pagination: pagination(journeyId, {

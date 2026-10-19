@@ -8,6 +8,7 @@ import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
 import { chosenFor, renderPicker } from '../address-book-picker/render.js'
+import { answerForPickedParty } from '../../parties/picked-party.js'
 import {
   ALREADY_ARRIVED,
   ARRIVAL_STATUS,
@@ -26,10 +27,8 @@ import { copy as cy } from './copy/copy.cy.js'
  * submits, told apart by their `action` value, and paging is a link — so the
  * picker needs no client JavaScript at all.
  *
- * The answer stored is the address-book id and nothing else. The details are
- * resolved from the book on every read, so a record the trader later corrects
- * is corrected on the notification too, and a record they delete stops
- * resolving rather than leaving a stale copy behind.
+ * The answer stored is a copy of the chosen record, so a later edit or
+ * deletion in the address book does not change the notification.
  */
 export const meta = { ...page, collects: [PLACE_OF_DESTINATION] }
 
@@ -65,7 +64,15 @@ const destinationStateOf = (answers, scope) => {
     : NOT_YET_ARRIVED
 }
 
-const committedId = (answers) => answers[PLACE_OF_DESTINATION]?.addressId
+const committedId = (answers) => answers[PLACE_OF_DESTINATION]?.pickedFromId
+
+// An edited copy has no source record to tick, so a save with nothing ticked
+// must not lose it. 'Save and return to overview' with nothing ticked leaves
+// without refusing, as every other overview-linked page does
+// (docs/validation.md).
+const leavesUnchanged = (request, selectedId, answers) =>
+  !selectedId &&
+  (Boolean(answers[PLACE_OF_DESTINATION]) || kit.isHubExit(request))
 
 // The question means a different thing in each of the three states, so the
 // heading and the description are chosen per notification rather than fixed.
@@ -107,6 +114,10 @@ const post = async (request, h) => {
     })
   }
 
+  if (leavesUnchanged(request, selectedId, current.answers)) {
+    return h.redirect(await kit.nextTarget(request, page, current.scope))
+  }
+
   const chosen = await chosenFor(organisationIdOf(request), selectedId)
   if (!chosen) {
     return (
@@ -123,7 +134,7 @@ const post = async (request, h) => {
   const { failure } = await kit.recoverableSave(
     async () => {
       committed = await state.commit(request, h, {
-        [PLACE_OF_DESTINATION]: { addressId: chosen.id }
+        [PLACE_OF_DESTINATION]: answerForPickedParty(chosen)
       })
     },
     async () =>

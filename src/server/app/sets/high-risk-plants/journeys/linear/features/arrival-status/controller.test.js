@@ -224,6 +224,29 @@ describe('POST arrival-status — an accepted answer', () => {
     expect(result.after.arrivalStatus).toBe(NOT_YET_ARRIVED)
   })
 
+  it('Should save no choice and go to the overview on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: plants(),
+      payload: { exit: 'hub' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.arrivalStatus).toBeUndefined()
+  })
+
+  it('Should still refuse a status the page does not offer on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: plants(),
+      payload: { arrivalStatus: UNOFFERED_STATUS, exit: 'hub' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.arrivalStatus).toBe(
+      copy.errors.arrivalStatus
+    )
+    expect(result.after.arrivalStatus).toBeUndefined()
+  })
+
   it('Should keep no status on a potato notification, which is never asked', async () => {
     const result = await driveHandler(post, {
       seed: { commodityType: POTATOES },

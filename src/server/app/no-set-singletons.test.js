@@ -86,7 +86,6 @@ const callsOf = (source, name) => {
 const SEAMS = [
   'configureObligationSet',
   'configureFulfilmentRegistry',
-  'configureAnswersForRead',
   'configureReadyForCheckYourAnswers',
   'configureJourneyFlow',
   'buildDispatch',

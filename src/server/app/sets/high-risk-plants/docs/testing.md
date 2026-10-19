@@ -50,7 +50,7 @@ Run `PORT=3053 npm run test:fit:journeys` when the workspace stack is up.
 ## Deployed end-to-end tests
 
 Multi-service E2E coverage does not live here. It belongs in
-`trade-imports-ins-tests` as its `plants` Playwright project, run against the
+`trade-imports-ins-tests` as its `plants` domain (`tests/plants/`), run against the
 workspace stack. See
 [Cross-repo test ownership](../../../docs/test-ownership.md), which also
 describes how this repository's `e2e-tests.yml` check is wired.

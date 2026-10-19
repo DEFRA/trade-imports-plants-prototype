@@ -188,7 +188,9 @@ owner to silence coverage.
 Import the page identity into
 [`journeys/linear/flow/flow.js`](../journeys/linear/flow/flow.js). Put it in the
 right `sections` entry, or add the first section. Its position controls
-`nextInSection()` and strictly-earlier prerequisites.
+strictly-earlier prerequisites and where Save and continue goes outside the
+opening run (`nextInTaskRow()`: the next page of the section only when it is in
+the same task row).
 
 Import it into
 [`journeys/linear/flow/task-rows.js`](../journeys/linear/flow/task-rows.js). Put
@@ -336,6 +338,7 @@ Cover:
 - preservation of entered values on error
 - every error-summary link moving focus to its control
 - back, Save and return to overview, Cancel and Change navigation as applicable
+- on every page in a task row's `pages` (`journeys/linear/flow/task-rows.js`) and on every party picker, `amend = amend` on `saveActions`, so the page takes the amend ending (Save and return, Save and continue, Save and return to overview) while the notification is being amended. `kit.base()` supplies `amend` when the controller passes it the request (`request`, or `h.request` where the render has only the toolkit). The party pickers (consignor-select, place-of-destination, consignment-contact-select) also pass `hubExitWhileAmending = false`, so they show only Save and return and Save and continue while amending, and keep their three controls outside an amendment. A page reached from another page (`showReturnControls = false`, such as the commodities list) also passes `amend`, and shows only Save and return and Save and continue while amending. A collection-entry sub-page (commodities details) keeps its own write actions and passes no `amend`: it saves back to its list, which carries the row's amend ending. `features/amend-endings.test.js` renders every task-row page while amending and fails if one loses the ending.
 - conditional scope, skip and purge behaviour
 - the check-answers rows and Change links
 

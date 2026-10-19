@@ -126,6 +126,7 @@ const render = async (h, current, values, options = {}) => {
   const dateState = dateStateOf(current.answers, current.scope)
   return h.view(view, {
     ...kit.base(copy.title, {
+      request: h.request,
       backLink: hubPath(current.journey.journeyId),
       journey: current.journey,
       page,
@@ -187,7 +188,8 @@ const post = async (request, h) => {
   const bounds = boundsFor(current.answers, current.scope)
   const { errors, value } = validate(
     await fields(current.scope, bounds),
-    payload
+    payload,
+    { allowMissing: kit.isHubExit(request) }
   )
   if (errors) {
     return (await render(h, current, values, { bounds, errors })).code(

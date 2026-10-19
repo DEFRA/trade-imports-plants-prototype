@@ -67,6 +67,6 @@
       attributes: { id: "commodityLines" }
     }) }}
 
-    {{ saveActions(hubHref, null, sharedCopy.saveActions, false) }}
+    {{ saveActions(hubHref, copy = sharedCopy.saveActions, showReturnControls = false, amend = amend) }}
   </form>
 {% endblock %}
