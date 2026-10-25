@@ -10,6 +10,9 @@ import {
   readFeatureIndex,
   titleOfRoute
 } from './titles.js'
+import { allowRepoScaleWork } from '../../designer/lib/test-support.js'
+
+allowRepoScaleWork()
 
 const JOURNEY = path.join(
   REPO_ROOT,

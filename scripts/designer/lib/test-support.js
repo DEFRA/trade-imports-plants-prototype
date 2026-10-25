@@ -9,6 +9,8 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { vi } from 'vitest'
+
 import { gitEnv } from './git-env.js'
 
 export const FIXTURE_OVERRIDES = {
@@ -164,4 +166,12 @@ export const makeFixtureRepo = ({ git = false } = {}) => {
     write: (repoPath, content) => writeFile(root, repoPath, content),
     cleanup: () => rmSync(root, { recursive: true, force: true })
   }
+}
+
+/**
+ * Gives every test and hook in the calling file 30 seconds, for a file whose
+ * tests walk the whole repo, run git or start the server.
+ */
+export const allowRepoScaleWork = () => {
+  vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 })
 }

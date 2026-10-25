@@ -13,6 +13,9 @@ import { copySetFiles, planCopy } from '../../new-set/copy-set.js'
 import { REPO_ROOT } from '../../designer/lib/repo.js'
 import { buildGraph, serialiseGraph } from './graph.js'
 import { installSet } from './install-set.js'
+import { allowRepoScaleWork } from '../../designer/lib/test-support.js'
+
+allowRepoScaleWork()
 
 const APP = 'src/server/app'
 const REAL = 'high-risk-plants'

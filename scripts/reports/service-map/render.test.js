@@ -8,6 +8,9 @@ import {
   renderProblemPage,
   tagOf
 } from './render.js'
+import { allowRepoScaleWork } from '../../designer/lib/test-support.js'
+
+allowRepoScaleWork()
 
 describe('the service map page', () => {
   let graph

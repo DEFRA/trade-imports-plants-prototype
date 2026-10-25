@@ -10,6 +10,9 @@ import {
   changedSetIdsFrom,
   parseArgs
 } from './cli.js'
+import { allowRepoScaleWork } from '../../designer/lib/test-support.js'
+
+allowRepoScaleWork()
 
 const ROOT = '/prototype'
 
