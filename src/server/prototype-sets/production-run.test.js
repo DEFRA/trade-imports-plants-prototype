@@ -44,6 +44,9 @@ import {
   copySetFiles,
   planCopy
 } from '../../../scripts/new-set/copy-set.js'
+import { allowRepoScaleWork } from '../../../scripts/designer/lib/test-support.js'
+
+allowRepoScaleWork()
 
 vi.mock('../../auth/get-oidc-config.js', () => ({
   getOidcConfig: vi.fn(() => Promise.resolve(mockOidcConfig))

@@ -6,6 +6,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { ServiceMapProblem } from './install-set.js'
 import { buildServiceMaps, githubWarnings, mapPath, parseArgs } from './cli.js'
+import { allowRepoScaleWork } from '../../designer/lib/test-support.js'
+
+allowRepoScaleWork()
 
 describe('parseArgs', () => {
   it('Should need --site and read the rest as optional', () => {

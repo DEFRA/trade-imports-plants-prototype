@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { REPO_ROOT } from '../lib/repo.js'
 import { main, parseServiceMapArgs } from './cli.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 const io = () => {
   const said = []

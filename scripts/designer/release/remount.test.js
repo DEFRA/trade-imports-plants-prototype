@@ -6,6 +6,9 @@ import { scaffoldSet } from '../../new-set/index.js'
 import { git, runGit } from './git.js'
 import { MOUNT_FILES, remountReleases } from './remount.js'
 import { commitAll, makeTestRepo, readIn, removeTestRepo } from './test-repo.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 const NOW = new Date('2026-09-27T10:00:00.000Z')
 const IDENTITY = [
