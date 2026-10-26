@@ -1,13 +1,12 @@
 import { SET_BASE, SET_ID } from '../../../../set.js'
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import createFetchMock from 'vitest-fetch-mock'
 
 import {
   AMEND,
   configureRecords,
   DELETED,
-  DRAFT,
-  records,
-  SUBMITTED
+  records
 } from '../../../../../../engine/persistence/records.js'
 import {
   configureSession,
@@ -15,6 +14,7 @@ import {
   openingRunCookie
 } from '../../../../../../engine/persistence/session.js'
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
+import { records as recordsReal } from '../../../../../../services/persistence/records/real/index.js'
 import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import {
   createPath,
@@ -24,11 +24,14 @@ import {
 } from '../../../../../../shared/paths.js'
 import { CYA_SLUG, SURFACES } from '../../../../../../shared/kit.js'
 import { RUN_ACTIVE } from '../../../../../../flow/run-state.js'
-import { authenticatedCredentials } from '../../../../../../engine/test-support.js'
+import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
 import { commodityTypePage } from '../commodity-type/page.js'
 
 import { routes } from './controller.js'
 import { copy } from './copy/copy.en.js'
+
+const fetchMocker = createFetchMock(vi)
+fetchMocker.enableMocks()
 
 const CREATED_AT_ASCENDING_SORT = 'createdAt,asc'
 const DELETE_ACTION = 'Delete'
@@ -47,46 +50,6 @@ const startPost = routes.find(
   (route) => route.method === 'POST' && route.path === createRoutePath()
 ).handler
 
-const buildRequest = ({
-  knownJourneyIds = [],
-  journeyId,
-  query = {},
-  openingRun,
-  credentials = authenticatedCredentials
-} = {}) => ({
-  payload: {},
-  params: journeyId ? { journeyId } : {},
-  query,
-  state: {
-    [knownJourneysCookie()]: knownJourneyIds,
-    ...(openingRun ? { [openingRunCookie()]: openingRun } : {})
-  },
-  headers: {},
-  auth: { isAuthenticated: true, credentials },
-  app: {}
-})
-
-const buildH = () => {
-  const captured = { cookies: {} }
-  return {
-    view: (template, context) => {
-      captured.view = { template, context }
-      return captured.view
-    },
-    redirect: (to) => {
-      captured.redirect = to
-      return { redirect: to }
-    },
-    state: (name, value) => {
-      captured.cookies[name] = value
-    },
-    unstate: (name) => {
-      delete captured.cookies[name]
-    },
-    captured
-  }
-}
-
 const startDraft = async () => records.create()
 
 const startSubmitted = async () => {
@@ -104,6 +67,26 @@ const seedDrafts = async (count) => {
 
 const textOf = (row) => row.actions.map((action) => action.text)
 
+const renderListView = async (overrides = {}) => {
+  const request = journeyRequest(undefined, overrides)
+  const h = stubH(request)
+  await listGet(request, h)
+  return h.captured.view
+}
+
+const renderList = async (overrides = {}) =>
+  (await renderListView(overrides)).context
+
+const postAmend = async (journeyId, overrides = {}) => {
+  const request = journeyRequest(journeyId, overrides)
+  const h = stubH(request)
+  const response = await amendPost(request, h)
+  return { response, h }
+}
+
+const referencesOf = (context) =>
+  context.notificationRows.map((row) => row.reference)
+
 describe('dashboard notifications list', () => {
   beforeAll(() => {
     configureRecords(SET_ID, recordsStub)
@@ -112,14 +95,12 @@ describe('dashboard notifications list', () => {
   beforeEach(() => records.clear())
 
   it('Should render the display surface with the page copy and the caption key', async () => {
-    const h = buildH()
+    const view = await renderListView()
 
-    await listGet(buildRequest(), h)
-
-    expect(h.captured.view.template).toBe(
+    expect(view.view).toBe(
       'high-risk-plants/journeys/linear/features/dashboard/template'
     )
-    expect(h.captured.view.context).toMatchObject({
+    expect(view.context).toMatchObject({
       pageTitle: copy.title,
       copy,
       contentColumnClass: SURFACES.display,
@@ -127,64 +108,53 @@ describe('dashboard notifications list', () => {
       startAction: createPath(),
       listAction: SET_BASE
     })
-    expect(h.captured.view.context).toHaveProperty('caption')
-    expect(h.captured.view.context.hubHref).toBeUndefined()
+    expect(view.context).toHaveProperty('caption')
+    expect(view.context.hubHref).toBeUndefined()
   })
 
   it('Should supply no guidance URL, so the guidance sentence cannot render', async () => {
-    const h = buildH()
+    const context = await renderList()
 
-    await listGet(buildRequest(), h)
-
-    expect(h.captured.view.context).not.toHaveProperty('guidanceUrl')
+    expect(context).not.toHaveProperty('guidanceUrl')
   })
 
   it('Should show the empty state when the session knows no journeys', async () => {
-    const h = buildH()
+    const context = await renderList()
 
-    await listGet(buildRequest(), h)
-
-    expect(h.captured.view.context.notificationRows).toEqual([])
-    expect(h.captured.view.context.resultsLabel).toBe(
-      copy.pagination.results.none
-    )
+    expect(context.notificationRows).toEqual([])
+    expect(context.resultsLabel).toBe(copy.pagination.results.none)
   })
 
-  it('Should answer an empty list when the session carries no organisation', async () => {
+  it('Should still list known journeys when the session carries no organisation', async () => {
     const draft = await startDraft()
-    const h = buildH()
 
-    await listGet(
-      buildRequest({
-        knownJourneyIds: [draft.journeyId],
+    const context = await renderList({
+      knownJourneyIds: [draft.journeyId],
+      auth: {
+        isAuthenticated: true,
         credentials: { contactId: 1, name: 'No org' }
-      }),
-      h
-    )
+      }
+    })
 
-    expect(h.captured.view.context.notificationRows).toEqual([])
+    expect(referencesOf(context)).toEqual([draft.journeyId])
   })
 
   it('Should list ONLY session-known journeys — never the wider store', async () => {
     const known = await startDraft()
     await startDraft()
-    const h = buildH()
 
-    await listGet(buildRequest({ knownJourneyIds: [known.journeyId] }), h)
+    const context = await renderList({ knownJourneyIds: [known.journeyId] })
 
-    expect(
-      h.captured.view.context.notificationRows.map((row) => row.reference)
-    ).toEqual([known.journeyId])
+    expect(referencesOf(context)).toEqual([known.journeyId])
   })
 
   it('Should keep deleted journeys absent from the list', async () => {
     const deleted = await records.create()
     await records.softDelete(deleted.journeyId)
-    const h = buildH()
 
-    await listGet(buildRequest({ knownJourneyIds: [deleted.journeyId] }), h)
+    const context = await renderList({ knownJourneyIds: [deleted.journeyId] })
 
-    expect(h.captured.view.context.notificationRows).toEqual([])
+    expect(context.notificationRows).toEqual([])
     expect((await records.load({ journeyId: deleted.journeyId })).status).toBe(
       DELETED
     )
@@ -192,17 +162,13 @@ describe('dashboard notifications list', () => {
 
   it('Should default an unrecognised sort and an out-of-range page', async () => {
     const draft = await startDraft()
-    const h = buildH()
 
-    await listGet(
-      buildRequest({
-        knownJourneyIds: [draft.journeyId],
-        query: { page: '-4', sort: 'reference,sideways' }
-      }),
-      h
-    )
+    const context = await renderList({
+      knownJourneyIds: [draft.journeyId],
+      query: { page: '-4', sort: 'reference,sideways' }
+    })
 
-    expect(h.captured.view.context).toMatchObject({
+    expect(context).toMatchObject({
       currentPage: 1,
       sort: 'arrivalDate,desc',
       resultsLabel: copy.pagination.results.one
@@ -210,14 +176,11 @@ describe('dashboard notifications list', () => {
   })
 
   it('Should mark the selected sort option so the select renders it', async () => {
-    const h = buildH()
+    const context = await renderList({
+      query: { sort: CREATED_AT_ASCENDING_SORT }
+    })
 
-    await listGet(
-      buildRequest({ query: { sort: CREATED_AT_ASCENDING_SORT } }),
-      h
-    )
-
-    expect(h.captured.view.context.sortOptions).toEqual([
+    expect(context.sortOptions).toEqual([
       {
         value: 'arrivalDate,desc',
         text: copy.sort.options.arrivalNewest,
@@ -244,42 +207,32 @@ describe('dashboard notifications list', () => {
   it('Should trim a reference search, pass it to the list and preserve the sort', async () => {
     const first = await startDraft()
     const second = await startDraft()
-    const h = buildH()
 
-    await listGet(
-      buildRequest({
-        knownJourneyIds: [first.journeyId, second.journeyId],
-        query: {
-          sort: CREATED_AT_ASCENDING_SORT,
-          referenceNumber: `  ${second.journeyId}  `
-        }
-      }),
-      h
-    )
+    const context = await renderList({
+      knownJourneyIds: [first.journeyId, second.journeyId],
+      query: {
+        sort: CREATED_AT_ASCENDING_SORT,
+        referenceNumber: `  ${second.journeyId}  `
+      }
+    })
 
-    expect(h.captured.view.context).toMatchObject({
+    expect(context).toMatchObject({
       referenceNumber: second.journeyId,
       sort: CREATED_AT_ASCENDING_SORT,
       resultsLabel: copy.pagination.results.one
     })
-    expect(
-      h.captured.view.context.notificationRows.map((row) => row.reference)
-    ).toEqual([second.journeyId])
+    expect(referencesOf(context)).toEqual([second.journeyId])
   })
 
   it('Should swap in the no-results label when a search matches nothing', async () => {
     const draft = await startDraft()
-    const h = buildH()
 
-    await listGet(
-      buildRequest({
-        knownJourneyIds: [draft.journeyId],
-        query: { referenceNumber: '26-ZZZZZZ' }
-      }),
-      h
-    )
+    const context = await renderList({
+      knownJourneyIds: [draft.journeyId],
+      query: { referenceNumber: '26-ZZZZZZ' }
+    })
 
-    expect(h.captured.view.context).toMatchObject({
+    expect(context).toMatchObject({
       notificationRows: [],
       referenceNumber: '26-ZZZZZZ',
       resultsLabel: copy.search.noResults,
@@ -288,51 +241,42 @@ describe('dashboard notifications list', () => {
   })
 
   it('Should page at the twenty-row boundary and preserve the sort in both links', async () => {
-    const knownJourneyIds = await seedDrafts(OVER_ONE_PAGE)
-    const firstPage = buildH()
-    const secondPage = buildH()
+    const known = { knownJourneyIds: await seedDrafts(OVER_ONE_PAGE) }
 
-    await listGet(
-      buildRequest({
-        knownJourneyIds,
-        query: { sort: CREATED_AT_ASCENDING_SORT }
-      }),
-      firstPage
-    )
-    await listGet(
-      buildRequest({
-        knownJourneyIds,
-        query: { page: '2', sort: CREATED_AT_ASCENDING_SORT }
-      }),
-      secondPage
-    )
+    const firstPage = await renderList({
+      ...known,
+      query: { sort: CREATED_AT_ASCENDING_SORT }
+    })
+    const secondPage = await renderList({
+      ...known,
+      query: { page: '2', sort: CREATED_AT_ASCENDING_SORT }
+    })
 
-    expect(firstPage.captured.view.context).toMatchObject({
+    expect(firstPage).toMatchObject({
       currentPage: 1,
       resultsLabel: copy.pagination.results.many(1, PAGE_SIZE, OVER_ONE_PAGE)
     })
-    expect(firstPage.captured.view.context.pagination.next.href).toBe(
+    expect(firstPage.pagination.next.href).toBe(
       `${SET_BASE}?page=2&sort=createdAt%2Casc`
     )
-    expect(secondPage.captured.view.context).toMatchObject({
+    expect(secondPage).toMatchObject({
       currentPage: 2,
       resultsLabel: copy.pagination.results.oneOf(OVER_ONE_PAGE, OVER_ONE_PAGE)
     })
-    expect(secondPage.captured.view.context.pagination.previous.href).toBe(
+    expect(secondPage.pagination.previous.href).toBe(
       `${SET_BASE}?sort=createdAt%2Casc`
     )
-    expect(secondPage.captured.view.context.pagination.next).toBeUndefined()
+    expect(secondPage.pagination.next).toBeUndefined()
   })
 
   it('Should clamp a page number beyond the last page', async () => {
-    const knownJourneyIds = await seedDrafts(OVER_ONE_PAGE)
-    const h = buildH()
+    const known = { knownJourneyIds: await seedDrafts(OVER_ONE_PAGE) }
 
-    await listGet(buildRequest({ knownJourneyIds, query: { page: '9' } }), h)
+    const context = await renderList({ ...known, query: { page: '9' } })
 
-    expect(h.captured.view.context.currentPage).toBe(2)
-    expect(h.captured.view.context.notificationRows).toHaveLength(1)
-    expect(h.captured.view.context.resultsLabel).toBe(
+    expect(context.currentPage).toBe(2)
+    expect(context.notificationRows).toHaveLength(1)
+    expect(context.resultsLabel).toBe(
       copy.pagination.results.oneOf(OVER_ONE_PAGE, OVER_ONE_PAGE)
     )
   })
@@ -347,11 +291,10 @@ describe('dashboard row actions', () => {
 
   it('Should give a draft a Draft tag, its created date and Resume plus Delete', async () => {
     const draft = await startDraft()
-    const h = buildH()
 
-    await listGet(buildRequest({ knownJourneyIds: [draft.journeyId] }), h)
+    const context = await renderList({ knownJourneyIds: [draft.journeyId] })
 
-    const [row] = h.captured.view.context.notificationRows
+    const [row] = context.notificationRows
     expect(row.status).toEqual({ text: 'Draft', classes: 'govuk-tag--blue' })
     expect(row.created).toMatch(/^\d{1,2} \w{3} \d{4}$/)
     expect(row.submitted).toBe('')
@@ -362,11 +305,10 @@ describe('dashboard row actions', () => {
 
   it('Should give a submitted notification View, an Amend POST and Delete', async () => {
     const submitted = await startSubmitted()
-    const h = buildH()
 
-    await listGet(buildRequest({ knownJourneyIds: [submitted.journeyId] }), h)
+    const context = await renderList({ knownJourneyIds: [submitted.journeyId] })
 
-    const [row] = h.captured.view.context.notificationRows
+    const [row] = context.notificationRows
     expect(row.status).toEqual({
       text: 'Submitted',
       classes: 'govuk-tag--green'
@@ -383,20 +325,13 @@ describe('dashboard row actions', () => {
 
   it('Should give an amending notification Resume, Cancel amendment and Delete', async () => {
     const submitted = await startSubmitted()
-    await amendPost(
-      buildRequest({
-        knownJourneyIds: [submitted.journeyId],
-        journeyId: submitted.journeyId
-      }),
-      buildH()
-    )
-    const h = buildH()
+    await postAmend(submitted.journeyId)
 
-    await listGet(buildRequest({ knownJourneyIds: [submitted.journeyId] }), h)
+    const context = await renderList({ knownJourneyIds: [submitted.journeyId] })
 
-    const [row] = h.captured.view.context.notificationRows
+    const [row] = context.notificationRows
     expect(row.status).toEqual({
-      text: 'Amending',
+      text: 'Amend',
       classes: 'govuk-tag--yellow'
     })
     expect(textOf(row)).toEqual([
@@ -412,27 +347,22 @@ describe('dashboard row actions', () => {
   it('Should offer no Copy as new action on any status', async () => {
     const draft = await startDraft()
     const submitted = await startSubmitted()
-    const h = buildH()
 
-    await listGet(
-      buildRequest({
-        knownJourneyIds: [draft.journeyId, submitted.journeyId]
-      }),
-      h
-    )
+    const context = await renderList({
+      knownJourneyIds: [draft.journeyId, submitted.journeyId]
+    })
 
-    for (const row of h.captured.view.context.notificationRows) {
+    for (const row of context.notificationRows) {
       expect(textOf(row)).not.toContain('Copy as new')
     }
   })
 
   it('Should leave the card title to name the link actions and suffix only the button', async () => {
     const submitted = await startSubmitted()
-    const h = buildH()
 
-    await listGet(buildRequest({ knownJourneyIds: [submitted.journeyId] }), h)
+    const context = await renderList({ knownJourneyIds: [submitted.journeyId] })
 
-    const [row] = h.captured.view.context.notificationRows
+    const [row] = context.notificationRows
     expect(
       row.actions
         .filter((action) => action.href)
@@ -444,60 +374,60 @@ describe('dashboard row actions', () => {
   })
 })
 
-describe('dashboard rows the records port supplies', () => {
-  const listing = (rows) => ({
-    ...recordsStub,
-    list: async () => ({
-      rows,
+describe('dashboard rows the backend supplies', () => {
+  const backendRow = (referenceNumber, status, fields = {}) => ({
+    referenceNumber,
+    status,
+    created: '2026-07-14T09:00:00',
+    submittedAt: null,
+    ...fields
+  })
+
+  const backendListing = (content) =>
+    JSON.stringify({
       page: 1,
       size: PAGE_SIZE,
-      totalElements: rows.length,
-      totalPages: 1
+      totalElements: content.length,
+      totalPages: 1,
+      content
     })
+
+  beforeAll(() => {
+    configureRecords(SET_ID, recordsReal)
+    configureSession(SET_ID, sessionStub)
+  })
+  beforeEach(() => {
+    fetchMocker.mockClear()
   })
 
-  beforeAll(() => configureSession(SET_ID, sessionStub))
-  afterEach(() => configureRecords(SET_ID, recordsStub))
-
-  it('Should drop a DELETED row the port still returns', async () => {
-    configureRecords(
-      SET_ID,
-      listing([
-        { journeyId: '26-ABC123', reference: '26-ABC123', status: DELETED },
-        { journeyId: '26-DEF456', reference: '26-DEF456', status: DRAFT }
+  it('Should drop a DELETED row the backend still returns', async () => {
+    fetchMocker.mockResponse(
+      backendListing([
+        backendRow('26-ABC123', 'DELETED'),
+        backendRow('26-DEF456', 'DRAFT')
       ])
     )
-    const h = buildH()
 
-    await listGet(buildRequest(), h)
+    const context = await renderList()
 
-    expect(
-      h.captured.view.context.notificationRows.map((row) => row.reference)
-    ).toEqual(['26-DEF456'])
+    expect(referencesOf(context)).toEqual(['26-DEF456'])
   })
 
-  it('Should carry the display cells and the late flag through to the view', async () => {
-    configureRecords(
-      SET_ID,
-      listing([
-        {
-          journeyId: '26-DEF456',
-          reference: '26-DEF456',
-          status: DRAFT,
-          lateNotificationIndicator: true,
+  it('Should carry the display cells through to the view', async () => {
+    fetchMocker.mockResponse(
+      backendListing([
+        backendRow('26-DEF456', 'DRAFT', {
           commodity: { name: 'Potatoes' },
-          originCountryCode: 'FR',
-          arrivalDate: '2026-03-05',
-          consignorName: 'Acme Ltd'
-        }
+          origin: { countryCode: 'FR' },
+          transport: { arrivalDate: '2026-03-05' },
+          consignor: { name: 'Acme Ltd' }
+        })
       ])
     )
-    const h = buildH()
 
-    await listGet(buildRequest(), h)
+    const context = await renderList()
 
-    expect(h.captured.view.context.notificationRows[0]).toMatchObject({
-      late: true,
+    expect(context.notificationRows[0]).toMatchObject({
       commodity: 'Potatoes',
       origin: 'France',
       arrival: '5 Mar 2026',
@@ -514,22 +444,19 @@ describe('dashboard banners', () => {
   beforeEach(() => records.clear())
 
   it('Should raise the deleted banner only after a delete redirect', async () => {
-    const ordinary = buildH()
-    const deleted = buildH()
+    const ordinary = await renderList()
+    const deleted = await renderList({ query: { deleted: '1' } })
 
-    await listGet(buildRequest(), ordinary)
-    await listGet(buildRequest({ query: { deleted: '1' } }), deleted)
-
-    expect(ordinary.captured.view.context.deletionSucceeded).toBe(false)
-    expect(deleted.captured.view.context.deletionSucceeded).toBe(true)
+    expect(ordinary.deletionSucceeded).toBe(false)
+    expect(deleted.deletionSucceeded).toBe(true)
   })
 
-  it('Should leave the copied banner dormant', async () => {
-    const h = buildH()
+  it('Should raise the amend-refused banner only after a refused-amend redirect', async () => {
+    const ordinary = await renderList()
+    const refused = await renderList({ query: { amendRefused: '1' } })
 
-    await listGet(buildRequest({ query: { copied: '1' } }), h)
-
-    expect(h.captured.view.context).not.toHaveProperty('copySucceeded')
+    expect(ordinary.amendRefused).toBe(false)
+    expect(refused.amendRefused).toBe(true)
   })
 })
 
@@ -542,35 +469,38 @@ describe('dashboard amend POST', () => {
 
   it('Should unfreeze a known submitted notification and land on its hub', async () => {
     const submitted = await startSubmitted()
-    const h = buildH()
 
-    await amendPost(
-      buildRequest({
-        knownJourneyIds: [submitted.journeyId],
-        journeyId: submitted.journeyId
-      }),
-      h
-    )
+    const { response } = await postAmend(submitted.journeyId)
 
-    expect(h.captured.redirect).toBe(hubPath(submitted.journeyId))
+    expect(response.redirect).toBe(hubPath(submitted.journeyId))
     expect(
       (await records.load({ journeyId: submitted.journeyId })).status
     ).toBe(AMEND)
   })
 
-  it('Should bounce an amend the session does not know back to the dashboard', async () => {
+  it('Should open an amend for a submitted notification the session does not know at its hub and leave it amending', async () => {
     const submitted = await startSubmitted()
-    const h = buildH()
 
-    await amendPost(
-      buildRequest({ knownJourneyIds: [], journeyId: submitted.journeyId }),
-      h
-    )
+    const { response } = await postAmend(submitted.journeyId, {
+      knownJourneyIds: []
+    })
 
-    expect(h.captured.redirect).toBe(SET_BASE)
+    expect(response.redirect).toBe(hubPath(submitted.journeyId))
     expect(
       (await records.load({ journeyId: submitted.journeyId })).status
-    ).toBe(SUBMITTED)
+    ).toBe(AMEND)
+  })
+
+  it('Should send an amend for a deleted notification back to the dashboard carrying the amend-refused flag', async () => {
+    const deleted = await records.create()
+    await records.softDelete(deleted.journeyId)
+
+    const { response } = await postAmend(deleted.journeyId)
+
+    expect(response.redirect).toBe(`${SET_BASE}?amendRefused=1`)
+    expect((await records.load({ journeyId: deleted.journeyId })).status).toBe(
+      DELETED
+    )
   })
 })
 
@@ -582,26 +512,30 @@ describe('dashboard create POST', () => {
   beforeEach(() => records.clear())
 
   it('Should start a notification, begin its opening run and land on its first question', async () => {
-    const h = buildH()
+    const request = journeyRequest()
+    const h = stubH(request)
 
-    await startPost(buildRequest(), h)
+    const response = await startPost(request, h)
 
-    const newJourneyId = h.captured.cookies[knownJourneysCookie()].at(-1)
-    expect(h.captured.redirect).toBe(
+    const newJourneyId = h.cookies[knownJourneysCookie()].at(-1)
+    expect(response.redirect).toBe(
       pagePath(newJourneyId, commodityTypePage.slug)
     )
-    expect(h.captured.cookies[openingRunCookie()]).toEqual({
+    expect(h.cookies[openingRunCookie()]).toEqual({
       [newJourneyId]: RUN_ACTIVE
     })
   })
 
   it('Should keep an earlier notification listed alongside the new one', async () => {
     const oldDraft = await startDraft()
-    const h = buildH()
+    const request = journeyRequest(undefined, {
+      knownJourneyIds: [oldDraft.journeyId]
+    })
+    const h = stubH(request)
 
-    await startPost(buildRequest({ knownJourneyIds: [oldDraft.journeyId] }), h)
+    await startPost(request, h)
 
-    const knownJourneyIds = h.captured.cookies[knownJourneysCookie()]
+    const knownJourneyIds = h.cookies[knownJourneysCookie()]
     expect(knownJourneyIds).toHaveLength(2)
     expect(knownJourneyIds[0]).toBe(oldDraft.journeyId)
   })

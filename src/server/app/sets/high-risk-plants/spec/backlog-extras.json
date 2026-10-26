@@ -374,27 +374,15 @@
       }
     },
     {
-      "key": "restore-answers-read-sanitiser",
-      "type": "restore",
-      "repo": null,
-      "title": "Reinstate the answers-read sanitiser for address-book-backed parties",
-      "detail": "bridge/answers-read.js exposes configureAnswersForRead(sanitize) with an identity default and nothing calls it. With the first address-book party (placeOfDestination) built, add a set-owned sanitiser wired from routes.js so answers referencing a deleted address-book record (party() returns deleted: true) drop out of fulfilment and evaluation without the engine importing sets/**; CYA then renders Not provided and raises its party error. Tests in the set plus a fit case. Evidence: skeleton answers-read-sanitiser-unwired (bridge/answers-read.js:1-13; services/address-book/index.js:123-132); behaviour address-book-picker.",
-      "milestone": null,
-      "gate": null,
-      "anchor": {
-        "after": "page:place-of-destination"
-      }
-    },
-    {
       "key": "e2e-destination-section",
       "type": "e2e",
       "repo": "repos/trade-imports-ins-tests",
       "title": "Journey-level spec: destination section (picker, label by arrival status)",
-      "detail": "tests/e2e/features/plants/destination.spec.ts with the address-picker page object: search the org address book, paginate at 5, select and see the Selected address inset; heading reads Place of destination for pre-arrival and potatoes, Where is the consignment now for already-arrived; a deleted record renders Not provided on CYA; hub row Completed. Evidence: behaviours address-book-picker, restore-answers-read-sanitiser.",
+      "detail": "tests/e2e/features/plants/destination.spec.ts with the address-picker page object: search the org address book, paginate at 5, select and see the Selected address inset; heading reads Place of destination for pre-arrival and potatoes, Where is the consignment now for already-arrived; the picked address is copied onto the notification and an Edit details change applies to this notification only; hub row Completed. Evidence: behaviour address-book-picker.",
       "milestone": null,
       "gate": null,
       "anchor": {
-        "after": "key:restore-answers-read-sanitiser"
+        "after": "page:place-of-destination"
       }
     },
     {

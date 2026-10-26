@@ -8,7 +8,7 @@ The code uses three separate terms:
 - a **feature group** is a nested folder under `journeys/linear/features/` that
   owns related pages, copy and persistence bindings
 - a **flow section** is an entry in `journeys/linear/flow/flow.js`; it controls
-  page order and `nextInSection()`
+  page order and, within one task row, where Save and continue goes
 - a **task row** is an entry in `journeys/linear/flow/task-rows.js`; it is the
   item shown on the hub and it drives submit readiness
 
@@ -109,7 +109,6 @@ journeys/linear/features/<group>/
 │   ├── copy.en.js
 │   └── copy.test.js
 ├── fit/
-│   ├── axe.js
 │   ├── <first-page>.fit.spec.js
 │   └── <second-page>.fit.spec.js
 ├── <first-page>/
@@ -151,10 +150,13 @@ Follow [add-a-page.md](add-a-page.md) for each page. Each controller exports:
 - GET and POST handlers
 - `routes`, normally from `kit.pageRoutes(page, { get, post })`
 
-GET reads once through `state.get()`. POST validates raw input, returns 400 with
-raw values on error, commits cleaned values on success and redirects through
-`kit.nextTarget()`. Wrap every persistence write in `kit.recoverableSave()` and
-return the same form with status 500 for a marked failure.
+GET reads once through `state.get()`. POST validates raw input and, on error,
+returns 400 with the raw values and logs nothing for a user's own field errors
+(a refusal that is not the user's input error logs once through `kit.logRefusal`
+with the journey id); on success it commits cleaned values and redirects through
+`kit.nextTarget()`.
+Wrap every persistence write in `kit.recoverableSave(request, …)`, which logs a
+marked failure once, and return the same form with status 500 for it.
 
 Use `scope.has()` for conditional fields. Do not render, validate or commit a
 field that is out of scope. Let the evaluator purge a value when its obligation
@@ -207,8 +209,9 @@ to `sections`:
 }
 ```
 
-The array order is journey order. `nextInSection()` moves through the first
-gate-passing later page, then returns to the hub. The section's place among
+The array order is journey order. Outside the opening run, Save and continue
+moves to the first gate-passing later page of the section only when it belongs
+to the same task row, and otherwise returns to the hub. The section's place among
 other sections also controls strictly-earlier continue prerequisites.
 
 Normal page and section gates are derived from `meta.collects`, in-scope
@@ -217,8 +220,9 @@ a flow fact that those rules cannot express. Add focused navigation and gate
 tests for every conditional page or branch.
 
 Add these pages to [`journeys/linear/flow/run.js`](../journeys/linear/flow/run.js)
-— its empty `RUN_STEPS` — only if product behaviour puts them in the opening
-run. Update opening-run tests when you do.
+only if product behaviour puts them in the opening run. A page joining the run
+takes a `RUN_STEPS` entry with its `backCandidates`. Update opening-run tests
+when you do.
 
 ## 6. Add one task row and wire it to the hub
 
@@ -262,8 +266,8 @@ This set's gateway,
 [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
 (the [`routes.js`](../../../routes.js) barrel only re-exports it), already
 imports the journey's
-`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`,
-`entryGuardTarget`, `sectionCaptionOf` and `LAYOUT`. It passes them to
+`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `previousRunTarget`,
+`FLOW_ONLY_KEYS`, `entryGuardTarget`, `sectionCaptionOf` and `LAYOUT`. It passes them to
 [`configureJourneyFlow()`](../../../flow/journey-flow.js). Because it injects the
 whole exported arrays, adding a section or task row to the existing modules needs
 no new L1 import or configure call.
@@ -275,6 +279,7 @@ Registration work for the feature group is therefore limited to:
 3. add page identities to `sections` and `taskRows`
 4. add task-row ids and copy to the hub
 5. add pages to `run.js` only when they belong in the opening run
+6. place the task-row id on its check-answers card in `REVIEW_CARDS`
 
 Change `journeys/linear/config.js` or the `configureJourneyFlow()` call only when
 the journey's template identity, cookie identity or injected policy surface
@@ -285,8 +290,10 @@ argument in both `routes-high-risk-plants.js` and the test fixture at
 ## 7. Add check-answers output
 
 Add a section or cards for the feature under the check-answers feature's view
-model. Add English and Welsh headings, row labels and value labels to the
-check-answers copy bundles.
+model. Add English and Welsh headings and row labels to the check-answers copy
+bundles. A value label that the feature's own page already shows is read from
+that feature's label function, never copied into the check-answers copy. Value
+labels only the review shows go in the check-answers copy bundles.
 
 Pass obligation names to `row()` and `changeAction()` so Change links resolve
 through dispatch. Use `scope` to omit out-of-scope rows. Extend the
@@ -304,6 +311,15 @@ and [`copy/copy.cy.js`](../journeys/linear/features/check-answers/copy/copy.cy.j
 Extend
 [`check-answers.fit.spec.js`](../journeys/linear/features/check-answers/check-answers.fit.spec.js),
 which covers saved answers, scoped cards, Change navigation and accessibility.
+
+Place the task-row id on the card that shows its answers in `REVIEW_CARDS`
+([`view-model/incomplete-cards.js`](../journeys/linear/features/check-answers/view-model/incomplete-cards.js)),
+giving a new card an `id`, an `anchor` and the same `id` on the card its view
+model builds. Add a new card's message under `errors.cards`, keyed by that id —
+"Complete" and the card's title, lower-cased — in both check-answers
+`copy.en.js` and `copy.cy.js`. The review page names every unfinished card with
+it, linking to the card; `view-model/incomplete-cards.test.js` fails until every
+task row is on a card, and `copy/copy.test.js` until every card has a message.
 
 ## 8. Update downstream persistence when applicable
 
@@ -337,6 +353,46 @@ scope, redirects, marked recoverable failures and unexpected errors.
 Add focused tests for bindings, model gates, flow order, branch skipping,
 task-row status, hub rendering, check-answers rows and notification mapping.
 
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file:
+
+- controller tests:
+  [`engine/test-support.js`](../../../engine/test-support.js) — `driveHandler`
+  seeds a journey, runs one handler and returns the answers before and after
+  and the logger; `journeyRequest`, `stubH`, `recordingH`, `recordingLogger`,
+  `postHandlerOf` and `postHandlerEndingWith` build the request, toolkit,
+  logger and handler; `itHoldsCopyAtEveryLeaf` registers the copy-leaf test for
+  a locale pair
+- address-book picker tests:
+  [`address-book-picker/controller-test-support.js`](../journeys/linear/features/address-book-picker/controller-test-support.js)
+  — `describeAddressBookPickerController` registers the controller tests every
+  picker shares, and a picker's call also names the previous run step's slug and
+  the answers that make that step apply;
+  [`address-book-picker/test-support.js`](../journeys/linear/features/address-book-picker/test-support.js)
+  — `pickerViewModelSuites` builds the view model and paging test cases, and
+  `bookHoldingADeletedRecord` fakes an address book holding a deleted record,
+  with `DELETED_ID`, `NOT_IN_THE_BOOK` and `okJson`
+- the set's journey and seed data:
+  [`journeys/linear/test-support.js`](../journeys/linear/test-support.js) —
+  `installHighRiskPlantsJourney`, `COMPLETE_NOTIFICATION` and
+  `COMPLETE_POTATO_CONSIGNMENT`. A new section's answers join
+  `COMPLETE_NOTIFICATION`
+- browser tests:
+  [`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js)
+  — see [Shared browser-test helpers](testing.md#shared-browser-test-helpers).
+  A new section that the opening run reaches adds its step to
+  `completePotatoNotification`
+
+When a second test needs the same set-up, move it into one of these helpers in
+the same change and delete every local copy. Importing a sibling feature's test
+helper is fine.
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
+
 ## Playwright feature test
 
 Put the co-located specs in `journeys/linear/features/<group>/fit/`.
@@ -366,24 +422,13 @@ Add axe coverage for every new page in both states:
 - initial render
 - validation error state after the error summary appears
 
-Build axe with `AxeBuilder({ page })`, fail on every `serious` or `critical`
-violation, and filter only a proved component false positive. Do not spell the
-tag list out in each spec: put it in one helper the whole group calls.
+Call `expectNoSeriousOrCriticalViolations(page, subject)` from
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js).
+It is the one place the tag list and impact threshold are written, so every
+page is checked against the same rules. Do not build `AxeBuilder` in a spec.
 
 Add or extend the hub axe test when the new row or a new group heading changes
 the hub state.
-
-[`journeys/linear/features/commodities/fit/axe.js`](../journeys/linear/features/commodities/fit/axe.js)
-is that helper for the multi-page group, and
-[`list.fit.spec.js`](../journeys/linear/features/commodities/fit/list.fit.spec.js)
-and
-[`details.fit.spec.js`](../journeys/linear/features/commodities/fit/details.fit.spec.js)
-both call it. One helper beside the group's specs keeps the tag list and the
-impact threshold identical on every page of the group, so a second page cannot
-quietly be checked against a narrower set of rules than the first. Its tags are
-`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`: axe-core tags a rule
-by the WCAG version that introduced it, so a rule reachable only through the
-2.1 or 2.2 tags would never run on the two WCAG 2.0 tags alone.
 
 ## 11. Run every check
 

@@ -77,8 +77,8 @@ describe('#copy', () => {
 })
 
 it('Should title the consignor row in both locales', () => {
-  expect(copy.rows.consignor).toEqual({ title: 'Consignor or exporter' })
-  expect(cy.rows.consignor).toEqual({ title: 'Anfonwr neu allforiwr' })
+  expect(copy.rows.consignor).toEqual({ title: 'Consignor' })
+  expect(cy.rows.consignor).toEqual({ title: 'Anfonwr' })
 })
 
 it('Should title the contact row in both locales', () => {

@@ -50,6 +50,11 @@ through the records port. Flow-only values use the session port.
 Collection mutations use the same canonical pipeline. They do not bypass scope,
 purge, answer-key recognition or persistence.
 
+A collection is stored as an array in position order. The evaluator keeps no
+record of an instance: it infers instances from leaf paths, so an appended
+entry with no leaf value is not stored. Removing or reconciling entries leaves
+the purge of answers that no longer apply to the evaluator.
+
 [`src/server/app/engine/write/submit.js`](../engine/write/submit.js) checks recognised
 answer keys and `scope.readyForCheckYourAnswers` before calling `records.finalise`.
 Submit changes lifecycle state; it does not perform a separate fulfilment save.

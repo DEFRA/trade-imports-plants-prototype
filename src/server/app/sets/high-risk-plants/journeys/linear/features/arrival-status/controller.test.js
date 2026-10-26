@@ -1,27 +1,19 @@
-import { SET_ID } from '../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectBackLinkIsPage,
+  expectNoRefusalLogged,
+  postHandlerOf,
+  unavailableBackendError
 } from '../../../../../../engine/test-support.js'
 import { hubPath } from '../../../../../../shared/paths.js'
+import { RUN_ACTIVE } from '../../../../../../flow/run-state.js'
 import { PLANTS_WOOD_DAYS_AFTER_ARRIVAL } from '../timing-windows.js'
-import { installHighRiskPlantsJourney } from '../../test-support.js'
+import {
+  COMPLETE_PLANTS_NOTIFICATION,
+  useStubbedHighRiskPlantsJourney
+} from '../../test-support.js'
 import { copy } from './copy/copy.en.js'
 import {
   ALREADY_ARRIVED,
@@ -43,12 +35,6 @@ const plants = (answers = {}) => ({
   ...answers
 })
 
-const installStubs = () => {
-  configureRecords(SET_ID, recordsStub)
-  configureSession(SET_ID, sessionStub)
-  installHighRiskPlantsJourney()
-}
-
 describe('#meta', () => {
   it('Should own the arrivalStatus obligation on the arrival-status page', () => {
     expect(arrivalStatus.meta).toEqual({
@@ -60,8 +46,7 @@ describe('#meta', () => {
 })
 
 describe('GET arrival-status', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should render the question as the heading and caption the arrival section', async () => {
     const result = await driveHandler(get, { seed: plants() })
@@ -127,16 +112,35 @@ describe('GET arrival-status', () => {
     ).toBe(ALREADY_ARRIVED)
   })
 
-  it('Should send Back to the overview', async () => {
+  it('Should send Back to the overview when the page is opened from the overview', async () => {
     const result = await driveHandler(get, { seed: plants() })
 
     expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
   })
+
+  it('Should send Back to origin while the opening run is on', async () => {
+    const result = await driveHandler(get, {
+      seed: COMPLETE_PLANTS_NOTIFICATION,
+      openingRun: RUN_ACTIVE
+    })
+
+    expectBackLinkIsPage(result, 'origin')
+  })
+
+  it('Should keep Back on origin when the page is shown again after a refusal in the run', async () => {
+    const result = await driveHandler(post, {
+      seed: COMPLETE_PLANTS_NOTIFICATION,
+      payload: {},
+      openingRun: RUN_ACTIVE
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expectBackLinkIsPage(result, 'origin')
+  })
 })
 
 describe('POST arrival-status — the answers it refuses', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should refuse an empty choice and check nothing', async () => {
     const result = await driveHandler(post, {
@@ -150,6 +154,7 @@ describe('POST arrival-status — the answers it refuses', () => {
     )
     expect(result.view.context.values).toEqual({ arrivalStatus: '' })
     expect(result.after.arrivalStatus).toBeUndefined()
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should refuse a status the page does not offer', async () => {
@@ -181,8 +186,7 @@ describe('POST arrival-status — the answers it refuses', () => {
 })
 
 describe('POST arrival-status — an accepted answer', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should commit exactly the chosen status', async () => {
     const result = await driveHandler(post, {
@@ -224,6 +228,29 @@ describe('POST arrival-status — an accepted answer', () => {
     expect(result.after.arrivalStatus).toBe(NOT_YET_ARRIVED)
   })
 
+  it('Should save no choice and go to the overview on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: plants(),
+      payload: { exit: 'hub' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.arrivalStatus).toBeUndefined()
+  })
+
+  it('Should still refuse a status the page does not offer on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: plants(),
+      payload: { arrivalStatus: UNOFFERED_STATUS, exit: 'hub' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.arrivalStatus).toBe(
+      copy.errors.arrivalStatus
+    )
+    expect(result.after.arrivalStatus).toBeUndefined()
+  })
+
   it('Should keep no status on a potato notification, which is never asked', async () => {
     const result = await driveHandler(post, {
       seed: { commodityType: POTATOES },
@@ -235,45 +262,13 @@ describe('POST arrival-status — an accepted answer', () => {
 })
 
 describe('POST arrival-status — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner and the value', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       payload: { arrivalStatus: ALREADY_ARRIVED }
     })
 
@@ -285,12 +280,11 @@ describe('POST arrival-status — save failures', () => {
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
-    })
-
     await expect(
-      driveHandler(post, { payload: { arrivalStatus: ALREADY_ARRIVED } })
+      driveHandler(post, {
+        payload: { arrivalStatus: ALREADY_ARRIVED },
+        saveFailure: new TypeError('programming failure')
+      })
     ).rejects.toThrow(new TypeError('programming failure'))
   })
 })

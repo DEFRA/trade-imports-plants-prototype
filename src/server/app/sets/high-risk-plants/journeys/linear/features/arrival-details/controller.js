@@ -1,4 +1,3 @@
-import { hubPath } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
 import * as state from '../../../../../../engine/index.js'
 import {
@@ -31,16 +30,6 @@ import {
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
 
-/**
- * When the consignment arrives, and for potatoes what time and where.
- *
- * Every notification owes the date, so every commodity type is asked this page.
- * The time and the place of landing are potato matters — reg 24A(2)(a) and
- * (aa), which reg 26(2) has no counterpart to — so they are rendered and
- * validated only while `scope.has()` says they apply. A plants or wood notifier
- * never sees them, and a change of commodity type purges whatever a potato
- * notification had stored.
- */
 export const meta = {
   ...page,
   collects: [ARRIVAL_DATE, ARRIVAL_TIME, PROPOSED_PLACE_OF_LANDING]
@@ -50,17 +39,10 @@ const view = `${TEMPLATES}/features/arrival-details/template`
 
 const copy = copyFor({ en, cy })
 
+const QUESTION_LABEL_CLASSES = 'govuk-label--m'
+
 const asksForPotatoDetails = (scope) => scope.has(ARRIVAL_TIME)
 
-/**
- * Which of the three sentences the date question asks.
- *
- * Potatoes have no arrival status — reg 24A gives them no post-arrival branch —
- * so the commodity type answers for them. Plants and wood take the state from
- * the arrival-status page; a notifier who reaches this page without having
- * answered that question is asked the pre-arrival sentence, which is the one
- * the journey opens on.
- */
 const dateStateOf = (answers, scope) => {
   if (asksForPotatoDetails(scope)) {
     return POTATO_ARRIVAL
@@ -71,13 +53,10 @@ const dateStateOf = (answers, scope) => {
 }
 
 const portItems = async () => [
-  { value: '', text: copy.placeOfLanding.placeholder },
+  { value: '', text: copy.placeOfLanding.selectText },
   ...(await ports.portOptions())
 ]
 
-// Built inside POST rather than frozen in a module-level schema: the readers
-// self-load on first use, and a schema built at import time would hold
-// whatever the stub knew first.
 const portCodes = async () => (await ports.list()).map(({ code }) => code)
 
 const dateRule = (bounds) =>
@@ -105,8 +84,6 @@ const fields = async (scope, bounds) =>
     ...(asksForPotatoDetails(scope) ? await potatoRules() : [])
   )
 
-/** The fields the page shows, and only those — a hidden field is never read
- * back from the payload and never committed. */
 const valuesFrom = (source, scope) => ({
   [ARRIVAL_DATE]: source[ARRIVAL_DATE] ?? '',
   ...(asksForPotatoDetails(scope)
@@ -120,18 +97,20 @@ const valuesFrom = (source, scope) => ({
 const boundsFor = (answers, scope) =>
   arrivalBounds(dateStateOf(answers, scope) === ALREADY_ARRIVED)
 
-const render = async (h, current, values, options = {}) => {
+const render = async (request, h, current, values, options = {}) => {
   const errors = options.errors ?? {}
   const bounds = options.bounds ?? boundsFor(current.answers, current.scope)
   const dateState = dateStateOf(current.answers, current.scope)
   return h.view(view, {
     ...kit.base(copy.title, {
-      backLink: hubPath(current.journey.journeyId),
+      request,
+      backLink: await kit.runBackLink(request, page.id, current),
       journey: current.journey,
       page,
       recoverableError: options.recoverableError ?? false
     }),
     copy,
+    questionLabelClasses: QUESTION_LABEL_CLASSES,
     values,
     errors,
     errorSummary: kit.errorSummary(errors),
@@ -139,6 +118,7 @@ const render = async (h, current, values, options = {}) => {
     portItems: await portItems(),
     dateField: kit.dateField(ARRIVAL_DATE, {
       label: copy.dateLabels[dateState],
+      labelClasses: QUESTION_LABEL_CLASSES,
       hint: copy.dateHints[dateState],
       value: values[ARRIVAL_DATE],
       error: errors[ARRIVAL_DATE],
@@ -170,11 +150,9 @@ const get = async (request, h) => {
           copy.errors.proposedPlaceOfLandingNoLongerAvailable
       }
     : {}
-  return render(h, current, values, { errors })
+  return render(request, h, current, values, { errors })
 }
 
-// The picker is one text box, so the answer arrives as `d/m/yyyy` text and is
-// stored as the parts object every other date in the service uses.
 const committedValues = (cleaned, scope) => ({
   ...valuesFrom(cleaned, scope),
   [ARRIVAL_DATE]: kit.readDate(cleaned, ARRIVAL_DATE)
@@ -187,26 +165,24 @@ const post = async (request, h) => {
   const bounds = boundsFor(current.answers, current.scope)
   const { errors, value } = validate(
     await fields(current.scope, bounds),
-    payload
+    payload,
+    { allowMissing: kit.isHubExit(request) }
   )
   if (errors) {
-    return (await render(h, current, values, { bounds, errors })).code(
+    return (await render(request, h, current, values, { bounds, errors })).code(
       HTTP_STATUS_BAD_REQUEST
     )
   }
 
-  let committed
-  const { failure } = await kit.recoverableSave(
-    async () => {
-      committed = await state.commit(
-        request,
-        h,
-        committedValues(value, current.scope)
-      )
-    },
+  const { value: committed, failure } = await kit.recoverableSave(
+    request,
+    () => state.commit(request, h, committedValues(value, current.scope)),
     async () =>
       (
-        await render(h, current, values, { bounds, recoverableError: true })
+        await render(request, h, current, values, {
+          bounds,
+          recoverableError: true
+        })
       ).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
   )
   if (failure) {

@@ -12,6 +12,7 @@ seam. `configureJourneyFlow()` receives:
 - `taskRows`
 - `rowStatus`
 - `nextRunTarget`
+- `previousRunTarget`
 - `flowOnlyKeys`
 - `entryGuardTarget`
 - `layout`
@@ -48,10 +49,13 @@ configured section list through the journey-flow seam.
 ## Navigation and status
 
 [`src/server/app/flow/navigation.js`](../flow/navigation.js) finds the first
-gate-passing page in a section or task row. `nextInSection()` returns the next
-gate-passing page, or the hub when the section is finished. `rowGatePasses()`
+gate-passing page in a section or task row. `rowGatePasses()`
 opens a task row when ANY of its pages passes, so a row whose opening question
 is out of scope for this notification still opens on the page that follows it.
+`nextInTaskRow()` is where a save outside the opening run goes: the next
+gate-passing page of the section when it belongs to the same task row, otherwise
+the hub; a page in no task row keeps the section order. `kit.nextTarget` uses it
+after the opening run and the explicit exits.
 
 [`src/server/app/flow/section-status.js`](../flow/section-status.js) calculates
 section status from dispatch ownership. Submit readiness is the conjunction of the
@@ -62,7 +66,11 @@ ready.
 
 [`src/server/app/flow/run-state.js`](../flow/run-state.js) stores whether a journey is
 in its opening run through the injected session port. The journey supplies
-`nextRunTarget`; shared controller helpers call it through the journey-flow seam.
+`nextRunTarget` and `previousRunTarget`; shared controller helpers call them through
+the journey-flow seam. `kit.runBackLink()` answers a run step's Back link with
+`previousRunTarget` while the run is active, and with a fallback otherwise. The
+caller may pass `{ fallback }`; it defaults to the overview. `previousRunTarget`
+receives `(stepId, scope, journeyId)`.
 
 For the section order, task rows, authored gates and opening run this journey
 configures, see the

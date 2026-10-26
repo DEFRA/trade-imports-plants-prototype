@@ -1,26 +1,19 @@
-import { SET_ID } from '../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectBackLinkIsPage,
+  expectNoRefusalLogged,
+  postHandlerOf,
+  unavailableBackendError
 } from '../../../../../../engine/test-support.js'
 import { hubPath } from '../../../../../../shared/paths.js'
-import { installHighRiskPlantsJourney } from '../../test-support.js'
+import { RUN_ACTIVE } from '../../../../../../flow/run-state.js'
+import {
+  COMPLETE_NOTIFICATION,
+  COMPLETE_PLANTS_NOTIFICATION,
+  useStubbedHighRiskPlantsJourney
+} from '../../test-support.js'
 import { copy } from './copy/copy.en.js'
 import * as identificationNumbers from './controller.js'
 
@@ -50,12 +43,7 @@ const branches = [
 const payloadFor = (fields) =>
   Object.fromEntries(fields.map((name) => [name, 'ID_123']))
 describe('identification numbers', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
   it.each(branches)(
     'Should prefill only the fields in scope for %s',
     async (commodityType, fields) => {
@@ -69,6 +57,29 @@ describe('identification numbers', () => {
       expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
     }
   )
+  it('Should send Back to the consignor for plants or wood while the opening run is on', async () => {
+    const result = await driveHandler(get, {
+      seed: COMPLETE_PLANTS_NOTIFICATION,
+      openingRun: RUN_ACTIVE
+    })
+    expectBackLinkIsPage(result, 'consignors/select')
+  })
+  it('Should send Back to the place of destination for potatoes while the opening run is on', async () => {
+    const result = await driveHandler(get, {
+      seed: COMPLETE_NOTIFICATION,
+      openingRun: RUN_ACTIVE
+    })
+    expectBackLinkIsPage(result, 'destinations/select')
+  })
+  it('Should keep Back on the consignor when the page is shown again after a refusal in the run', async () => {
+    const result = await driveHandler(post, {
+      seed: COMPLETE_PLANTS_NOTIFICATION,
+      payload: { supplierIdentificationNumber: '' },
+      openingRun: RUN_ACTIVE
+    })
+    expect(result.response.statusCode).toBe(400)
+    expectBackLinkIsPage(result, 'consignors/select')
+  })
   it.each(branches)(
     'Should trim, persist and ignore hidden payload fields for %s',
     async (commodityType, fields) => {
@@ -108,6 +119,7 @@ describe('identification numbers', () => {
       expect(result.view.context.errors[name]).toBe(copy.errors[name][error])
       expect(result.view.context.values).toEqual(payload)
       expect(result.after).toEqual(result.before)
+      expectNoRefusalLogged(result.logger)
     })
   }
   it.each([
@@ -133,6 +145,26 @@ describe('identification numbers', () => {
       payload: {}
     })
     expect(result.response.redirect).toBe(hubPath(result.journeyId))
+  })
+  it('Should save a blank mandatory number and go to the overview on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: { commodityType: 'potatoes' },
+      payload: { exit: 'hub' }
+    })
+    expect(result.response.redirect).toBe(hubPath(result.journeyId))
+    expect(result.after.producerIdentificationNumber).toBe('')
+    expect(result.after.cropIdentificationNumber).toBe('')
+  })
+  it('Should still refuse an over-long number on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: { commodityType: 'potatoes' },
+      payload: { producerIdentificationNumber: 'x'.repeat(59), exit: 'hub' }
+    })
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.producerIdentificationNumber).toBe(
+      copy.errors.producerIdentificationNumber.maxLength
+    )
+    expect(result.after).toEqual(result.before)
   })
   it('Should accept the maximum length for every field', async () => {
     for (const [commodityType, fields] of branches) {
@@ -167,45 +199,13 @@ describe('identification numbers', () => {
   })
 })
 describe('POST identification-numbers — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner and the value', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       seed: { commodityType: WOOD_AND_CUT_TREES },
       payload: { consignmentNumber: 'REF' }
     })
@@ -216,12 +216,9 @@ describe('POST identification-numbers — save failures', () => {
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
-    })
-
     await expect(
       driveHandler(post, {
+        saveFailure: new TypeError('programming failure'),
         seed: { commodityType: WOOD_AND_CUT_TREES },
         payload: { consignmentNumber: 'REF' }
       })

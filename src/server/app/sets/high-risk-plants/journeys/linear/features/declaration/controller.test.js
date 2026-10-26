@@ -15,7 +15,12 @@ import { configureSession } from '../../../../../../engine/persistence/session.j
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
 import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
 import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
-import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
+import {
+  expectOneLogged,
+  expectNoRefusalLogged,
+  journeyRequest,
+  stubH
+} from '../../../../../../engine/test-support.js'
 import {
   COMPLETE_NOTIFICATION,
   installHighRiskPlantsJourney
@@ -23,7 +28,7 @@ import {
 import { lateNotificationIndicator } from '../../../../obligations/index.js'
 import { SYSTEM_POPULATED } from '../../../../../../bridge/obligation-source.js'
 import { copy } from './copy/copy.en.js'
-import { routes, meta } from './controller.js'
+import { DECLARATION_REFUSAL, routes, meta } from './controller.js'
 
 const get = routes.find(({ method }) => method === 'GET').handler
 const post = routes.find(({ method }) => method === 'POST').handler
@@ -75,6 +80,28 @@ describe('declaration', () => {
     expect(h.captured.view.context.caption).toBeUndefined()
   })
 
+  it('Should render no status strip on a draft', async () => {
+    const { request, h } = await setup()
+    await get(request, h)
+    expect(h.captured.view.context.journeyStrip).toBeNull()
+  })
+
+  it('Should carry the journey concurrency token to the form', async () => {
+    const { request, h, id } = await setup()
+    await get(request, h)
+    expect(h.captured.view.context.concurrencyToken).toBe(
+      (await store.get(id)).concurrencyToken
+    )
+  })
+
+  it('Should render no status strip on an amendment', async () => {
+    const { request, h, id } = await setup()
+    await store.submit(id)
+    await recordsStub.amend(id)
+    await get(request, h)
+    expect(h.captured.view.context.journeyStrip).toBeNull()
+  })
+
   it.each(['', 'no', ['confirmed', 'no']])(
     'Should refuse invalid declaration %j without writing and preserve the input',
     async (declaration) => {
@@ -87,6 +114,7 @@ describe('declaration', () => {
         { text: copy.errors.declarationRequired, href: '#declaration' }
       ])
       expect((await store.get(id)).answers).toEqual(COMPLETE_NOTIFICATION)
+      expectNoRefusalLogged(request.logger)
     }
   )
 
@@ -122,13 +150,40 @@ describe('declaration', () => {
     }
   )
 
-  it('Should return an incomplete submission to check answers', async () => {
+  it('Should return an incomplete submission to check answers and log the refusal', async () => {
     const { request, h, id } = await setup({ commodityType: 'potatoes' })
     request.payload = { declaration: 'confirmed' }
     expect(await post(request, h)).toEqual({
       redirect: `${SET_BASE}/notifications/${id}/notification-view`
     })
     expect((await store.get(id)).status).toBe(state.DRAFT)
+    expectOneLogged(request.logger, {
+      level: 'info',
+      fields: {
+        journeyId: id,
+        refusal: DECLARATION_REFUSAL.review,
+        concurrencyToken: expect.any(Number)
+      },
+      message: 'Declaration refused'
+    })
+  })
+
+  it('Should send a copied address that breaks the address-book rules back to check answers, unsubmitted', async () => {
+    const seed = {
+      ...COMPLETE_NOTIFICATION,
+      placeOfDestination: {
+        ...COMPLETE_NOTIFICATION.placeOfDestination,
+        name: ''
+      }
+    }
+    const { request, h, id } = await setup(seed)
+    request.payload = { declaration: 'confirmed' }
+    expect(await post(request, h)).toEqual({
+      redirect: `${SET_BASE}/notifications/${id}/notification-view`
+    })
+    const saved = await store.get(id)
+    expect(saved.status).toBe(state.DRAFT)
+    expect(saved.answers).toEqual(seed)
   })
 
   it('Should redirect submitted GET and POST without changing the original flag', async () => {

@@ -1,29 +1,20 @@
-import { SET_BASE, SET_ID } from '../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectBackLinkIsPage,
+  expectNoRefusalLogged,
+  postHandlerOf,
+  unavailableBackendError
 } from '../../../../../../engine/test-support.js'
 import { hubPath } from '../../../../../../shared/paths.js'
+import { RUN_ACTIVE } from '../../../../../../flow/run-state.js'
 import * as countries from '../../../../../../services/countries/index.js'
 import {
+  COMPLETE_NOTIFICATION,
   COMPLETE_POTATO_CONSIGNMENT,
-  installHighRiskPlantsJourney
+  itSendsBackToTheDashboardUntilCommodityTypeAnswered,
+  useStubbedHighRiskPlantsJourney
 } from '../../test-support.js'
 import { copy } from './copy/copy.en.js'
 import * as origin from './controller.js'
@@ -35,6 +26,8 @@ const FRANCE = 'FR'
 const SPAIN = 'ES'
 const NORWAY = 'NO'
 const GERMANY = 'DE'
+const CANARY_ISLANDS = 'ES-CN'
+const MARTINIQUE = 'FR-MQ'
 const UNOFFERED_COUNTRY = 'ZZ'
 const POTATOES = 'potatoes'
 const PLANTS_FOR_PLANTING = 'plants-for-planting'
@@ -60,12 +53,6 @@ const consignmentOf = (commodityType, ...lines) => ({
   commodityLines: lines
 })
 
-const installStubs = () => {
-  configureRecords(SET_ID, recordsStub)
-  configureSession(SET_ID, sessionStub)
-  installHighRiskPlantsJourney()
-}
-
 describe('#meta', () => {
   it('Should own the countryOfOrigin obligation on the origin page', () => {
     expect(origin.meta).toEqual({
@@ -77,8 +64,7 @@ describe('#meta', () => {
 })
 
 describe('GET origin', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should render the page title as the heading and caption the section', async () => {
     const result = await driveHandler(get)
@@ -87,16 +73,20 @@ describe('GET origin', () => {
     expect(result.view.context.caption).toBe('About the consignment')
   })
 
-  it('Should offer a placeholder ahead of every country the service primes', async () => {
+  it('Should offer the select text ahead of every country and territory the service primes', async () => {
     const result = await driveHandler(get)
 
     expect(result.view.context.countryItems[0]).toEqual({
       value: '',
-      text: copy.country.placeholder
+      text: copy.country.selectText
     })
     expect(result.view.context.countryItems.slice(1)).toEqual(
-      await countries.originCountries()
+      await countries.originCountryOptions()
     )
+    expect(result.view.context.countryItems).toContainEqual({
+      value: CANARY_ISLANDS,
+      text: 'Canary Islands'
+    })
   })
 
   it('Should show no answer and no error on a notification with none', async () => {
@@ -114,24 +104,31 @@ describe('GET origin', () => {
     expect(result.view.context.values).toEqual({ countryOfOrigin: FRANCE })
   })
 
-  it('Should send Back to the dashboard while nothing is committed', async () => {
-    const result = await driveHandler(get)
+  itSendsBackToTheDashboardUntilCommodityTypeAnswered(get)
 
-    expect(result.view.context.backLink).toBe(SET_BASE)
-  })
-
-  it('Should send Back to the overview once the notification has an answer', async () => {
+  it('Should send Back to the commodities list while the opening run is on', async () => {
     const result = await driveHandler(get, {
-      seed: { commodityType: POTATOES }
+      seed: COMPLETE_NOTIFICATION,
+      openingRun: RUN_ACTIVE
     })
 
-    expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
+    expectBackLinkIsPage(result, 'commodities')
+  })
+
+  it('Should keep Back on the commodities list when the page is shown again after a refusal in the run', async () => {
+    const result = await driveHandler(post, {
+      seed: COMPLETE_NOTIFICATION,
+      payload: { countryOfOrigin: UNOFFERED_COUNTRY },
+      openingRun: RUN_ACTIVE
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expectBackLinkIsPage(result, 'commodities')
   })
 })
 
 describe('GET origin — amend with a stored country the reader no longer offers', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should blank the country in values so the select renders unselected', async () => {
     const result = await driveHandler(get, {
@@ -171,8 +168,7 @@ describe('GET origin — amend with a stored country the reader no longer offers
 })
 
 describe('GET origin — the ware-potato scope guidance', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should show the guidance while the consignment holds a ware-potato line', async () => {
     const result = await driveHandler(get, {
@@ -200,8 +196,7 @@ describe('GET origin — the ware-potato scope guidance', () => {
 })
 
 describe('POST origin — a rejected answer', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should answer 400 for no country, committing nothing', async () => {
     const result = await driveHandler(post, {
@@ -213,6 +208,7 @@ describe('POST origin — a rejected answer', () => {
       copy.errors.countryRequired
     )
     expect(result.after).toEqual(result.before)
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should answer 400 for a country the origin block does not offer', async () => {
@@ -241,8 +237,7 @@ describe('POST origin — a rejected answer', () => {
 })
 
 describe('POST origin — the per-category narrowing', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should accept any primed country while every line is seed potatoes', async () => {
     const result = await driveHandler(post, {
@@ -264,6 +259,7 @@ describe('POST origin — the per-category narrowing', () => {
       copy.errors.narrowing[EU_MEMBER_STATES]
     )
     expect(result.after).toEqual(result.before)
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should refuse an EU country outside the four ware-potato countries', async () => {
@@ -317,6 +313,27 @@ describe('POST origin — the per-category narrowing', () => {
     expect(result.after.countryOfOrigin).toBe(SPAIN)
   })
 
+  it('Should hold a territory to its country’s constraints, accepting the Canary Islands where Spain is allowed', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(POTATOES, WARE_POTATO_LINE),
+      payload: { countryOfOrigin: CANARY_ISLANDS }
+    })
+
+    expect(result.after.countryOfOrigin).toBe(CANARY_ISLANDS)
+  })
+
+  it('Should refuse a territory whose country a constraint leaves out', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(POTATOES, WARE_POTATO_LINE),
+      payload: { countryOfOrigin: MARTINIQUE }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      copy.errors.narrowing[WARE_POTATOES]
+    )
+  })
+
   it('Should keep the guidance on the page it refuses', async () => {
     const result = await driveHandler(post, {
       seed: consignmentOf(POTATOES, WARE_POTATO_LINE),
@@ -337,8 +354,7 @@ describe('POST origin — the per-category narrowing', () => {
 })
 
 describe('POST origin — an accepted answer', () => {
-  beforeAll(installStubs)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should commit exactly the chosen country', async () => {
     const result = await driveHandler(post, {
@@ -364,48 +380,51 @@ describe('POST origin — an accepted answer', () => {
     expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
     expect(result.after).toEqual({ countryOfOrigin: FRANCE })
   })
+
+  it('Should save no country and go to the overview on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(PLANTS_FOR_PLANTING, PLANTS_LINE),
+      payload: { countryOfOrigin: '', exit: 'hub' }
+    })
+
+    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.after.countryOfOrigin).toBe('')
+  })
+
+  it('Should still refuse a country the consignment may not name on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(PLANTS_FOR_PLANTING, PLANTS_LINE),
+      payload: { countryOfOrigin: NORWAY, exit: 'hub' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      copy.errors.narrowing[EU_MEMBER_STATES]
+    )
+    expect(result.after).toEqual(result.before)
+  })
+
+  it('Should keep refusing no country on Save and continue', async () => {
+    const result = await driveHandler(post, {
+      seed: consignmentOf(PLANTS_FOR_PLANTING, PLANTS_LINE),
+      payload: { countryOfOrigin: '' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.countryOfOrigin).toBe(
+      copy.errors.countryRequired
+    )
+  })
 })
 
 describe('POST origin — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner and the value', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       payload: { countryOfOrigin: FRANCE }
     })
 
@@ -415,12 +434,11 @@ describe('POST origin — save failures', () => {
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
-    })
-
     await expect(
-      driveHandler(post, { payload: { countryOfOrigin: FRANCE } })
+      driveHandler(post, {
+        payload: { countryOfOrigin: FRANCE },
+        saveFailure: new TypeError('programming failure')
+      })
     ).rejects.toThrow(new TypeError('programming failure'))
   })
 })

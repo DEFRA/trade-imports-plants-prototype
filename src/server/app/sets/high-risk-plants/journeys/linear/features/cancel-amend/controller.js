@@ -15,7 +15,7 @@ import { copyFor } from '../../../../../../shared/copy.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
 
-const CANCEL_AMEND_SLUG = 'cancel-amend'
+const { CANCEL_AMEND_SLUG } = kit
 
 const view = `${TEMPLATES}/features/cancel-amend/template`
 const copy = copyFor({ en, cy })
@@ -28,17 +28,16 @@ const nonAmendTarget = (journey) =>
     ? cyaPath(journey.journeyId)
     : dashboardPath()
 
-// state.get adopts any journey id the records port can load into the caller's
-// session, which would satisfy cancelAmendJourney's own isKnownJourney guard.
-// Both handlers therefore check ownership before the first read.
-const owns = (request) => isKnownJourney(request, request.params.journeyId)
+const journeyBelongsToSession = (request) =>
+  isKnownJourney(request, request.params.journeyId)
 
-const render = (h, journey, recoverableError = false) =>
+const render = (h, journey, { recoverableError = false } = {}) =>
   h.view(view, {
     ...kit.base(copy.title, {
       backLink: cyaPath(journey.journeyId),
       journey,
-      recoverableError
+      recoverableError,
+      offerCancelAmend: false
     }),
     heading: copy.title,
     copy,
@@ -47,7 +46,7 @@ const render = (h, journey, recoverableError = false) =>
   })
 
 const get = async (request, h) => {
-  if (!(await owns(request))) {
+  if (!(await journeyBelongsToSession(request))) {
     return h.redirect(dashboardPath())
   }
   const { journey } = await state.get(request, h)
@@ -57,7 +56,7 @@ const get = async (request, h) => {
 }
 
 const post = async (request, h) => {
-  if (!(await owns(request))) {
+  if (!(await journeyBelongsToSession(request))) {
     return h.redirect(dashboardPath())
   }
   const { journey } = await state.get(request, h)
@@ -66,8 +65,12 @@ const post = async (request, h) => {
   }
 
   const { failure, value: restored } = await kit.recoverableSave(
+    request,
     () => cancelAmendJourney(request, h, request.params.journeyId),
-    () => render(h, journey, true).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+    () =>
+      render(h, journey, { recoverableError: true }).code(
+        HTTP_STATUS_INTERNAL_SERVER_ERROR
+      )
   )
   if (failure) {
     return failure

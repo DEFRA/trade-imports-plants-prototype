@@ -1,4 +1,3 @@
-// Provisional plants statements pending content review.
 // MACHINE-DRAFT Welsh — not reviewed by a translator. Do not ship user-facing without Welsh Language Standards sign-off.
 export const copy = {
   title: 'Datganiad',
@@ -9,6 +8,7 @@ export const copy = {
   ],
   declarationLabel:
     'Rwy’n cadarnhau fy mod wedi adolygu’r datganiad hwn a’m bod yn cydymffurfio ag ef, a bod yr wybodaeth a gyflwynwyd yn yr hysbysiad hwn yn wir ac yn gywir.',
+  declarationLegend: 'Cadarnhau’r datganiad',
   dateOfDeclaration: 'Dyddiad y datganiad:',
   continueButton: 'Parhau',
   errors: {

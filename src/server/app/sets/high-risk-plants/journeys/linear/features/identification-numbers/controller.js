@@ -1,4 +1,3 @@
-import { hubPath } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
 import * as state from '../../../../../../engine/index.js'
 import {
@@ -42,11 +41,12 @@ const fields = (scope) =>
         : [requiredMaxText(name, MAX_IDENTIFICATION_LENGTH, copy.errors[name])]
     )
   )
-const render = (h, current, values, options = {}) => {
+const render = async (request, h, current, values, options = {}) => {
   const errors = options.errors ?? {}
   return h.view(`${TEMPLATES}/features/identification-numbers/template`, {
     ...kit.base(copy.title, {
-      backLink: hubPath(current.journey.journeyId),
+      request,
+      backLink: await kit.runBackLink(request, page.id, current),
       journey: current.journey,
       page,
       recoverableError: options.recoverableError ?? false
@@ -60,17 +60,22 @@ const render = (h, current, values, options = {}) => {
 }
 const get = async (request, h) => {
   const current = await state.get(request, h)
-  return render(h, current, valuesFrom(current.answers, current.scope))
+  return render(request, h, current, valuesFrom(current.answers, current.scope))
 }
 const post = async (request, h) => {
   const current = await state.get(request, h)
   const values = valuesFrom(request.payload ?? {}, current.scope)
-  const { errors, value } = validate(fields(current.scope), values)
+  const { errors, value } = validate(fields(current.scope), values, {
+    allowMissing: kit.isHubExit(request)
+  })
   if (errors) {
-    return render(h, current, values, { errors }).code(HTTP_STATUS_BAD_REQUEST)
+    return (await render(request, h, current, values, { errors })).code(
+      HTTP_STATUS_BAD_REQUEST
+    )
   }
   let committed
   const { failure } = await kit.recoverableSave(
+    request,
     async () => {
       committed = await state.commit(
         request,
@@ -79,9 +84,9 @@ const post = async (request, h) => {
       )
     },
     async () =>
-      render(h, current, values, { recoverableError: true }).code(
-        HTTP_STATUS_INTERNAL_SERVER_ERROR
-      )
+      (
+        await render(request, h, current, values, { recoverableError: true })
+      ).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
   )
   if (failure) {
     return failure

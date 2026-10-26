@@ -1,30 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
 import { copy as hubEn } from '../../hub/copy/copy.en.js'
 import { copy as hubCy } from '../../hub/copy/copy.cy.js'
 import { DESTINATION_STATES } from '../fields.js'
 import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
-const SENTINEL_ROWS_SHOWN = 5
-const SENTINEL_ROWS_FOUND = 13
-
 const PAGE_NAME_EN = 'Place of destination'
 const PAGE_NAME_CY = 'Man cyrchfan'
 
 describe('#copy', () => {
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
   it.each([
     ['en', copy],
@@ -44,14 +31,12 @@ describe('#copy', () => {
     }
   )
 
-  it('Should carry the title the animals service already uses', () => {
+  it('Should title the page Place of destination in English and Welsh', () => {
     expect(copy.title).toBe(PAGE_NAME_EN)
     expect(cy.title).toBe(PAGE_NAME_CY)
   })
 
   it('Should call the page Place of destination until the consignment is here', () => {
-    // Potatoes are never asked whether the consignment has arrived, so they
-    // are asked the same question as a consignment still on its way.
     expect(copy.headings.potatoes).toBe(PAGE_NAME_EN)
     expect(copy.headings['not-yet-arrived']).toBe(PAGE_NAME_EN)
     expect(copy.descriptions.potatoes).toBe(
@@ -96,58 +81,12 @@ describe('#copy', () => {
   })
 
   it('Should tell a consignment still in transit to give its destination', () => {
-    // Reg 26(2)(b) asks a post-arrival notification for the current location,
-    // and a consignment that has landed but not reached its destination has
-    // to give the destination rather than the port.
     expect(copy.descriptions['already-arrived']).toContain(
       'still on its way to its intended destination'
     )
   })
 
-  it('Should carry the picker chrome the animals party picker uses', () => {
-    expect(copy.search).toEqual({
-      label: 'Search',
-      hint: 'Name, address or country',
-      button: 'Search'
-    })
-    expect(copy.table).toEqual({
-      selectHidden: 'Select',
-      name: 'Name',
-      address: 'Address',
-      country: 'Country',
-      actionsHidden: 'Actions'
-    })
-    expect(copy.selectedAddressPrefix).toBe('Selected address:')
-    expect(copy.noMatches).toBe('No addresses match your search.')
-  })
-
-  it('Should carry the Welsh picker chrome the animals party picker uses', () => {
-    // The English is byte-identical to the animals picker's, so the Welsh has
-    // to be its Welsh — copy-parity.test.js only proves cy differs from en.
-    expect(cy.search.button).toBe('Chwilio')
-    expect(cy.noMatches).toBe(
-      'Nid oes unrhyw gyfeiriadau’n cyfateb i’ch chwiliad.'
-    )
-    expect(cy.table.actionsHidden).toBe('Camau gweithredu')
-    expect(cy.selectRowPrefix).toBe('Dewis')
-    expect(cy.table.selectHidden).toBe('Dewis')
-  })
-
-  it('Should name the paging links rather than leave them in English', () => {
-    expect(copy.pagination).toEqual({ previous: 'Previous', next: 'Next' })
-    expect(cy.pagination).toEqual({ previous: 'Blaenorol', next: 'Nesaf' })
-  })
-
-  it('Should count the rows shown against the rows found', () => {
-    expect(copy.resultsCaption(SENTINEL_ROWS_SHOWN, SENTINEL_ROWS_FOUND)).toBe(
-      'Showing 5 of 13 addresses'
-    )
-    expect(cy.resultsCaption(SENTINEL_ROWS_SHOWN, SENTINEL_ROWS_FOUND)).toBe(
-      'Yn dangos 5 o 13 cyfeiriad'
-    )
-  })
-
-  it('Should carry the error sentence the animals picker already uses', () => {
+  it('Should carry the place-of-destination error sentence in English and Welsh', () => {
     expect(copy.errors.placeOfDestination).toBe(
       'Select a place of destination from the list'
     )

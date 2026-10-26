@@ -1,7 +1,3 @@
-// PROVISIONAL COPY, MACHINE-DRAFT Welsh — not reviewed by a translator. The
-// spec supplies the title, the start button and the four action labels; every
-// other string is a machine draft awaiting the copy pass. Do not ship
-// user-facing without Welsh Language Standards sign-off.
 export const copy = {
   title: 'Gwasanaeth hysbysu mewnforio',
   body:
@@ -59,6 +55,10 @@ export const copy = {
     amend: 'Diwygio',
     resume: 'Ailddechrau',
     cancelAmend: 'Canslo diwygiad'
+  },
+  amendRefused: {
+    title: 'Pwysig',
+    body: 'Nid oedd modd diwygio’r hysbysiad hwn.'
   },
   statusLate: 'Hwyr',
   actionHidden: (reference) => `hysbysiad ${reference}`,

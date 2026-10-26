@@ -1,4 +1,4 @@
-import Boom from '@hapi/boom'
+import { referenceDataUnavailable } from '../reference-data-unavailable.js'
 import { PORTS } from './stub.js'
 import { fetchPortsOfEntry } from './client.js'
 import { isStubDataMode } from '../../../common/services/mode.js'
@@ -7,13 +7,13 @@ import { withExtraPorts } from '../../../prototype-data/index.js'
 let ports = withExtraPorts([...PORTS])
 let loaded = false
 
-/** Load the port-of-entry list from the reference-data service, once. Called
- * implicitly by every reader — the readers self-load on first use rather than
- * relying on a startup priming step, so an MDM outage at boot no longer stops
- * the pod from serving. In stub mode the seeded PORTS list plays the role of
- * a loaded cache and this is a no-op. A prior failed load leaves `loaded`
- * false so the next reader retries; a success flips the flag and subsequent
- * calls short-circuit. */
+/**
+ * Loads the port-of-entry list from reference data unless it is already loaded
+ * or the service runs in stub mode.
+ *
+ * @throws {import('@hapi/boom').Boom} a 503 when the load fails; the next call
+ * tries again.
+ */
 export const ensureLoaded = async () => {
   if (isStubDataMode() || loaded) {
     return
@@ -22,10 +22,7 @@ export const ensureLoaded = async () => {
     ports = await fetchPortsOfEntry()
     loaded = true
   } catch (err) {
-    throw Boom.serverUnavailable('Reference data unavailable', {
-      dataset: 'ports',
-      cause: err
-    })
+    throw referenceDataUnavailable('ports', err)
   }
 }
 
@@ -34,7 +31,7 @@ export const list = async () => {
   return ports
 }
 
-const displayName = (port) => `${port.name} (${port.code})`
+const displayName = (port) => `${port.name} - ${port.code}`
 
 export const label = async (code) => {
   await ensureLoaded()

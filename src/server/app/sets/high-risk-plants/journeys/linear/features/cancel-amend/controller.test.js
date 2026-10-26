@@ -1,13 +1,5 @@
 import { SET_BASE, SET_ID } from '../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { pagePath } from '../../../../../../shared/paths.js'
 import { assembleFulfilments } from '../../../../../../bridge/assemble-fulfilments.js'
@@ -24,9 +16,13 @@ import {
   knownJourneysCookie
 } from '../../../../../../engine/persistence/session.js'
 import { store } from '../../../../../../engine/store.js'
-import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
+import {
+  expectOneSaveFallbackLogged,
+  journeyRequest,
+  stubH,
+  unavailableBackendError
+} from '../../../../../../engine/test-support.js'
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
 import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import * as cancelAmend from './controller.js'
 
@@ -73,7 +69,15 @@ describe('cancel amendment routes', () => {
 
   afterEach(() => {
     configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
+  })
+
+  it('Should show the Amend tag but offer no Cancel amend on the confirmation page itself', async () => {
+    const { journeyId } = await startAmend()
+
+    const response = await get(journeyRequest(journeyId), stubH())
+
+    expect(response.context.journeyStrip.status.text).toBe('Amend')
+    expect(response.context.journeyStrip.cancelAmend).toBeUndefined()
   })
 
   it('Should render the confirmation for an amending journey with journey-scoped actions', async () => {
@@ -166,27 +170,25 @@ describe('cancel amendment routes', () => {
   })
 
   it('Should re-render confirmation at 500 with the recoverable-save banner after a backend failure', async () => {
+    const failure = unavailableBackendError('cancel amend')
     configureRecords(SET_ID, {
       ...recordsStub,
-      cancelAmend: realRecords.cancelAmend
+      cancelAmend: async () => {
+        throw failure
+      }
     })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
     const { journeyId } = await startAmend()
     const h = stubH()
 
-    const response = await post(journeyRequest(journeyId), h)
+    const request = journeyRequest(journeyId)
+
+    const response = await post(request, h)
 
     expect(response.statusCode).toBe(500)
     expect(response.context.recoverableError).toBe(true)
     expect(response.view).toBe(
       'high-risk-plants/journeys/linear/features/cancel-amend/template'
     )
+    expectOneSaveFallbackLogged(request.logger, { journeyId, err: failure })
   })
 })

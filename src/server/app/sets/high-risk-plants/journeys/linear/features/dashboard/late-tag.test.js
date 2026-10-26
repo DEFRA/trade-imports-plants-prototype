@@ -14,10 +14,6 @@ import {
 } from '../../test-support.js'
 import { toRow } from './view-model/row/index.js'
 
-// The Late tag beside the card's status tag reads the stored
-// lateNotificationIndicator straight off the marshalled row (c-030/c-035). The
-// stored value is the string 'late' or 'on-time' — both truthy — so the marshal
-// has to narrow it before the row's `Boolean(...)` sees it.
 describe('dashboard late tag', () => {
   beforeAll(() => {
     installHighRiskPlantsJourney()

@@ -45,11 +45,10 @@ mounted and only surfaces when a second arrives, which is why each is pinned by
 **1. Every `configure*` seam takes the set id first.** Each stores its value
 per set behind `setKeyed`, and each read accessor resolves through
 `currentSetId()`. A seam that kept one module-level variable would let the
-second registration overwrite the first. The eight seams are
+second registration overwrite the first. The seven seams are
 `configureObligationSet`, `configureFulfilmentRegistry`,
-`configureAnswersForRead`, `configureReadyForCheckYourAnswers`,
-`configureJourneyFlow`, `buildDispatch`, `configureRecords` and
-`configureSession`.
+`configureReadyForCheckYourAnswers`, `configureJourneyFlow`, `buildDispatch`,
+`configureRecords` and `configureSession`.
 
 **2. A request resolves its set from the owning plugin realm, never from the
 URL.** Each gateway installs an `onPreAuth` extension that calls
@@ -186,6 +185,12 @@ session seam, so the cookies Hapi registers and the ones the set actually uses
 cannot drift apart. Call it inside the set context, after `registerSetMount`
 and `configureSession` — it throws if the session seam is not configured yet.
 
+The gateway ends its registration with the completeness check, which stops the
+server when a seam is unconfigured, because a seam's fallback otherwise answers
+at request time and some fallbacks answer silently. A second-set test fixture
+ends its registration the same way, so a seam it stops configuring fails the
+co-residency suite.
+
 ## 5. Mount it
 
 In [`../../router.js`](../../router.js):
@@ -218,7 +223,27 @@ production:
 - [`../co-residency.test.js`](../co-residency.test.js) boots the production
   router with a second set and checks that each set answers with its own
   configuration, that interleaved requests keep their own set, that cookies are
-  scoped per set, and that the server-wide surface stays unprefixed.
+  scoped per set, and that the server-wide surface stays unprefixed. In detail:
+  - a third realm counts every route its `onPreAuth` runs on, so an extension
+    registered without `{ sandbox: 'plugin' }` would tick on the other sets'
+    routes
+  - an unrouted path under a set's mount renders that set's 404 chrome: no
+    route ran, so the set comes from the path, and the sole-set fallback would
+    turn the 404 into a 500 once two sets are mounted
+  - each set's entry guard runs with that set's configuration. The guard is a
+    server `onPreHandler`, which `routeWithSetContext` does not wrap, so the
+    gateway re-enters its set around it
+  - interleaved requests start before any is awaited, so their
+    `AsyncLocalStorage` contexts overlap
+  - cookies are read through a jar that honours each cookie's `Path`, and the
+    suite proves a cookie is present in its own set before proving it is absent
+    from the other
+  - two sets wired to the same shipped stub store cannot list or load each
+    other's drafts, even by id
+  - the sign-in routes are registered by `server.js`, not the router, so the
+    suite also boots the real composition root; the real OIDC plugin is not
+    registered in stub mode, so the suite asks that plugin which routes it
+    declares
 
 The second set in those suites is `test/fixtures/second-set.js`, a fixture
 rather than a real journey. If you are adding a real set, the fixture stays:

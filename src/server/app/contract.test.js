@@ -208,12 +208,13 @@ describe('controller <-> model commit contract', () => {
 
   it('Should let Check your answers continue without committing any answers', async () => {
     expect(checkAnswers.meta.collects).toEqual([])
-    const seed = { commodityType: 'potatoes', countryOfOrigin: 'FR' }
-    const result = await driveHandler(postHandlerOf(checkAnswers), { seed })
-    expect(result.after).toEqual(seed)
+    const result = await driveHandler(postHandlerOf(checkAnswers), {
+      seed: COMPLETE_NOTIFICATION
+    })
+    expect(result.after).toEqual(COMPLETE_NOTIFICATION)
     expect(committedIds(result)).toEqual([])
     expect(result.response.redirect).toBe(
-      `${SET_BASE}/notifications/${result.journeyId}`
+      `${SET_BASE}/notifications/${result.journeyId}/declaration`
     )
   })
 

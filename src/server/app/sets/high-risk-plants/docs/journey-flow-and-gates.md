@@ -6,7 +6,7 @@ The platform consumes that policy through `configureJourneyFlow()`.
 
 Those exports hold the start, commodity, commodityDetails, origin, arrival and
 destination sections, the `commodities`, `origin`, `arrival` and `destination`
-task rows and the opening run's six steps — everything the journey has landed so
+task rows and the opening run's steps — everything the journey has landed so
 far.
 
 ## Flow sections
@@ -25,7 +25,8 @@ flow section is a navigation sequence:
 }
 ```
 
-Array order is journey order. It controls `nextInSection()` and, through the
+Array order is journey order. It controls, within one task row, where Save and
+continue goes outside the opening run (`nextInTaskRow()`), and, through the
 section's place among the other sections, the strictly-earlier continue
 prerequisites.
 
@@ -33,7 +34,7 @@ A page reached from another page rather than by continuing past one needs a
 section of its own, which is why `commodityDetails` is separate. The
 commodities list page's Continue leaves the commodity section; the entry
 sub-page is opened from the list and sends the trader back to it. Had the two
-shared a section, `nextInSection` would send that Continue into the entry page
+shared a section, the save fallback would send that Continue into the entry page
 instead. Its own section still gives it the commodity-type prerequisite every
 page after the entry question carries.
 
@@ -74,6 +75,12 @@ is reachable and links it to the first of them whose gate passes
 to lead the row; the commodity entry sub-page is in its row because its data
 belongs to that task, not because the hub ever links there.
 
+Outside the opening run Save and continue moves on only to a later page of the
+same section that is also in the same task row — commodity type to the
+commodities list, arrival status to the arrival details — and otherwise returns
+to the hub, so consignor returns to the hub rather than going on to
+identification numbers, which has a row of its own.
+
 Row status defaults to the union of each page's `collects` — that is what
 `rowParts()` computes, and `rowStatus()` feeds to `statusOf()`. `parts` narrows
 a row to a collection facet. `conditional: true` lets the hub hide a row that is
@@ -90,18 +97,42 @@ landed with the hub increment.
 ## Opening run and entry guard
 
 [`run.js`](../journeys/linear/flow/run.js) owns the opening-run sequence. Its
-`RUN_STEPS` holds six steps, commodity-type, commodities, origin,
-arrival-status, arrival-details then place-of-destination: the opening run opens
-on the entry question, goes on to the consignment's commodities, asks where they
-come from, asks whether they have arrived, then when, and closes on where the
-consignment is going. Place-of-destination is asked of every commodity type —
-the `placeOfDestination` obligation carries no `applyTo` — and with no later step
-after it `nextRunTarget` falls through to the hub, whose GET marks the run
-complete. An unknown step id still returns `null`. The entry sub-page is not a
+`RUN_STEPS` holds nine answer steps, commodity-type, commodities, origin,
+arrival-status, arrival-details, place-of-destination, consignor-select,
+identification-numbers then consignment-contact-select, and then check your
+answers. The run opens on the entry question, goes on to the consignment's
+commodities, asks where they come from, asks whether they have arrived, then
+when, asks where the consignment is going, who sends it, its identification
+numbers and the contact address, and closes on check your answers. Check your
+answers carries its derived gate, so the run ends there, complete or not, once
+the commodity type and origin are answered; its GET marks the run complete (the
+hub's GET still does too), shows the unfinished notification and names every
+unfinished card. Continue there re-shows the page with those cards named while
+anything is outstanding, and only the declaration and confirmation wait for a
+complete notification. With no later step `nextRunTarget` falls through to the
+hub. An unknown step id still returns `null`. The entry sub-page is not a
 step — the list page sends a trader with no lines there and takes them back. The
 arrival-status step is skipped for potatoes, whose notification is never asked
 the question: its target is `null` while the answer is out of scope, and the run
 goes straight on to arrival-details, which every commodity type answers.
+
+During the run, every step from commodities to consignment-contact-select has
+its Back link open the previous step rather than the overview. Check your
+answers is the exception: it takes its Back link from the notification's status,
+below. Following a run Back link does not end the run: a
+later Save and continue goes on to the next step. Each `RUN_STEPS` entry names the
+earlier steps its Back link may open, nearest first, and `previousRunTarget`
+returns the first whose gate passes, so a skipped step is skipped going back too.
+Arrival-details goes back to arrival-status, or to origin for potatoes;
+identification-numbers goes back to the consignor, or to the place of destination
+for potatoes. `kit.runBackLink()` falls back to the page's own Back link once the
+run is over: the overview, or for origin the dashboard until the notification
+holds an answer.
+
+Check your answers takes its Back link from the notification's status instead. A
+submitted notification, including the one shown after an amendment is cancelled,
+goes back to the notification list; a draft's review and an amendment in
+progress go back to the overview.
 
 The opening run should begin when the notification is created, from the
 dashboard's create POST — the single caller of `beginOpeningRun`. The journey
@@ -142,8 +173,8 @@ session sequences through `RUN_STEPS`.
 This set's gateway,
 [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
 (the [`routes.js`](../../../routes.js) barrel only re-exports it), imports
-`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`,
-`entryGuardTarget` and `sectionCaptionOf` (from
+`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `previousRunTarget`,
+`FLOW_ONLY_KEYS`, `entryGuardTarget` and `sectionCaptionOf` (from
 [`flow/section-captions/index.js`](../journeys/linear/flow/section-captions/index.js)),
 then passes them to
 [`configureJourneyFlow()`](../../../flow/journey-flow.js), along with the

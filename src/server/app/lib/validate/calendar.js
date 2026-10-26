@@ -1,4 +1,6 @@
-import { addDays, addMonths, isValid, parse } from 'date-fns'
+import { addDays, addMonths, format, isValid, parse } from 'date-fns'
+
+import { SERVICE_TIME_ZONE } from './service-time-zone.js'
 
 // Every Date here is midnight UTC, whatever the process timezone: the app runs
 // UTC, vitest forces TZ=UTC, but the Playwright drivers run on the developer's
@@ -6,10 +8,18 @@ import { addDays, addMonths, isValid, parse } from 'date-fns'
 // worse than useless. date-fns `addDays`/`addMonths` preserve wall-clock time,
 // so they hold that invariant and bring month-end clamping with them.
 // `startOfDay` and `format` do NOT — both normalise to local — so day starts
-// and formatting are done through the UTC accessors instead.
+// and formatting are done through the UTC accessors instead. The one exception
+// is the private `formatUtcComponents`, which uses `format` deliberately and
+// says why. Converting an instant to a civil day in another zone is a separate
+// step, done through `startOfDayInZone` — see `formatMomentAsDay`.
 const DATE_TEXT_FORMAT = 'd/M/yyyy'
 const DATE_TEXT_SHAPE = /^\d{1,2}\/\d{1,2}\/\d{4}$/
 const MONTHS_IN_YEAR = 12
+
+// Re-exported so callers keep importing the service zone from here; it lives
+// in `service-time-zone.js` only so that a test can substitute it. Calendar
+// dates do not go through it — see `formatCalendarDate` below.
+export { SERVICE_TIME_ZONE }
 
 /**
  * @param {number} year
@@ -108,3 +118,48 @@ export const parseDateText = (raw) => {
  */
 export const formatDateText = (date) =>
   `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`
+
+const DISPLAY_DATE_FORMAT = 'd MMM yyyy'
+
+/**
+ * Formats the calendar day a `Date` names in UTC, with no zone conversion.
+ *
+ * `format` on its own reads the ambient zone, so the day is taken from the UTC
+ * accessors and the components are handed back as plain local ones purely to
+ * get date-fns' month names. `Intl.DateTimeFormat` would be shorter but ICU's
+ * `en-GB` short month for September is `Sept`, four letters, which would
+ * reword every September date in the service.
+ * @param {Date} date
+ * @returns {string} e.g. `5 Mar 2026`.
+ */
+const formatUtcComponents = (date) =>
+  format(
+    new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    DISPLAY_DATE_FORMAT
+  )
+
+/**
+ * Renders a **calendar date** — a day the user chose, carried on the wire as
+ * `YYYY-MM-DD` and held in process as a `Date` whose UTC components are that
+ * day.
+ *
+ * Read straight off the UTC components, because the value already *is* the
+ * day: there is nothing to convert, and converting would only be safe while
+ * the target zone is at or east of UTC.
+ * @param {Date} date
+ * @returns {string} e.g. `21 Jul 2026` for the calendar date `2026-07-21`.
+ */
+export const formatCalendarDate = (date) => formatUtcComponents(date)
+
+/**
+ * Takes a **moment** — something that happened at an instant, such as when a
+ * notification was created or submitted — and renders the *day* it fell on in
+ * {@link SERVICE_TIME_ZONE}. The time is discarded, hence the name.
+ *
+ * A notification submitted at `2026-09-10T23:35:39.455Z` happened on
+ * 11 September in the UK, and showing the user 10 September would be wrong.
+ * @param {Date} date
+ * @returns {string} e.g. `11 Sep 2026` for `2026-09-10T23:35:39.455Z`.
+ */
+export const formatMomentAsDay = (date) =>
+  formatUtcComponents(startOfDayInZone(date, SERVICE_TIME_ZONE))

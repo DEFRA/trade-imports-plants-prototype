@@ -6,12 +6,6 @@
 {% from "govuk/components/service-navigation/macro.njk" import govukServiceNavigation %}
 {% from "govuk/components/tag/macro.njk" import govukTag %}
 
-{# `homeUrl` comes from the view model — kit.base() resolves it inside the
-   request's own set, so the chrome's home link carries that set's prefix. A
-   hardcoded "/" here sent every set's users to the default set's dashboard. #}
-{# Destination for the alpha phase banner's feedback link. A destination, not
-   copy, so it lives here beside the footer's meta links rather than in
-   copy.en.js/copy.cy.js — it is identical in both locales. #}
 {% set feedbackUrl = "mailto:APHAServiceDesk@apha.gov.uk" %}
 {% set signOutUrl = "/auth/sign-out" %}
 {% set manageAccountUrl = "#" %}
@@ -21,7 +15,7 @@
   <link href="{{ getAssetPath('stylesheets/application.scss') }}" rel="stylesheet">
 {% endblock %}
 
-{% block pageTitle %}{% if errorSummary %}{{ sharedCopy.layout.errorTitlePrefix }}{% endif %}{{ pageTitle }} | {{ sharedCopy.layout.serviceName }}{% endblock %}
+{% block pageTitle %}{% if errorSummary %}{{ sharedCopy.layout.errorTitlePrefix }}{% endif %}{{ pageTitle }} - {{ sharedCopy.layout.serviceName }} - {{ sharedCopy.layout.govukSuffix }}{% endblock %}
 
 {% block govukHeader %}
   {{ govukHeader({
@@ -64,13 +58,11 @@
 
 {% block beforeContent %}
   {% set phaseBannerHtml %}{{ sharedCopy.layout.phaseBanner.bodyPrefix }} <a class="govuk-link" href="{{ feedbackUrl }}">{{ sharedCopy.layout.phaseBanner.feedbackLinkText }}</a>.{% endset %}
-  {# Grey tag to match Design release 1; the GDS phase-banner example leaves the tag blue. #}
   {{ govukPhaseBanner({
     tag: { text: sharedCopy.layout.phaseBanner.tag, classes: "govuk-tag--grey" },
     html: phaseBannerHtml
   }) }}
-  {# No breadcrumbs: Design release 1 gives a page one route backwards — the
-     back link — and one route up, the service navigation. #}
+  {% include "page-maturity/banner.njk" %}
   {% if backLink %}
     {{ govukBackLink({ text: sharedCopy.layout.back, href: backLink }) }}
   {% endif %}
@@ -97,6 +89,7 @@
         <div class="app-journey-strip govuk-!-margin-bottom-4">
           {{ govukTag({ text: journeyStrip.status.text, classes: journeyStrip.status.classes }) }}
           <span class="govuk-body govuk-!-font-weight-bold">{{ journeyStrip.reference }}</span>
+          {% if journeyStrip.cancelAmend %}<a class="govuk-link govuk-!-font-size-19 govuk-!-margin-left-2" href="{{ journeyStrip.cancelAmend.href }}">{{ journeyStrip.cancelAmend.text }}</a>{% endif %}
         </div>
       {% endif %}
       {% block journeyContent %}{% endblock %}

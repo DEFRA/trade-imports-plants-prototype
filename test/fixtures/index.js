@@ -1,21 +1,3 @@
-/**
- * SYNTHETIC FIXTURE — owned by the tests, NOT journey content.
- *
- * The single entry point for the fixture obligation set. `installFixture()`
- * configures every journey-shaped port the engine reads through, so the
- * engine suite runs against a stable synthetic set rather than against
- * whichever set happens to be installed under `src/server/app/sets/`.
- *
- * The engine and the L2 obligation model are journey-agnostic by design.
- * Their tests must therefore declare their own manifest: an empty
- * installed set would otherwise fail every test that names an obligation,
- * and a populated one would couple generic behaviour to one journey's
- * domain. Nothing in this directory describes a real journey, and nothing
- * here should be copied into one.
- *
- * See `./obligations.js` for the shapes covered and the naming scheme.
- */
-
 import { configureFulfilmentRegistry } from '../../src/server/app/bridge/fulfilment-registry.js'
 import {
   ENFORCED_AT_CONTINUE,
@@ -36,6 +18,7 @@ import {
   FLOW_ONLY_KEYS,
   LAYOUT,
   nextRunTarget,
+  previousRunTarget,
   rowStatus,
   sectionCaptionOf,
   sections,
@@ -57,6 +40,7 @@ export {
   FLOW_ONLY_KEYS,
   LAYOUT,
   nextRunTarget,
+  previousRunTarget,
   rowParts,
   rowStatus,
   sectionCaptionOf,
@@ -65,29 +49,13 @@ export {
   taskRows
 } from './flow.js'
 
-/**
- * The value-linked write cap: `nestedCollection` may hold at most as many
- * entries as its parent entry's `itemCount` says. `appendEntryAt` rejects
- * at the cap.
- */
 export const fixtureMaxEntriesFrom = { nestedCollection: 'itemCount' }
 
 /** Obligations declared but presented by no page. */
 export const fixtureSystemPopulated = ['systemPopulatedField']
 
-/**
- * Obligations a later page may not be reached without. `scalarField` sits
- * on the first flow page and `itemSelector` inside the first collection,
- * so between them they gate everything downstream.
- */
 export const fixtureEnforcedAtContinue = ['scalarField', 'itemSelector']
 
-// `MAX_ENTRIES_FROM`, `SYSTEM_POPULATED` and `ENFORCED_AT_CONTINUE` are
-// set-owned declaration data that currently live as module constants in
-// the journey-agnostic bridge, so there is no configure* seam to pass
-// them through. Merging into them is idempotent and additive.
-// Replace this with a configure call once the bridge
-// reads them from the configured set.
 const mergeSetDeclarations = () => {
   Object.assign(MAX_ENTRIES_FROM, fixtureMaxEntriesFrom)
   for (const name of fixtureSystemPopulated) {
@@ -99,16 +67,10 @@ const mergeSetDeclarations = () => {
 }
 
 /**
- * Configure every journey-shaped port with the fixture set. Idempotent —
- * safe to call from the vitest global setup and again from any test that
- * reconfigures a port and wants to put the fixture back.
+ * Configure every journey-shaped port with the fixture set. Idempotent.
  */
 export const installFixture = () => {
   mergeSetDeclarations()
-  // Registering the mount is what lets `currentSetId()` fall back to the sole
-  // mounted set, so a unit test that never enters a request's set context
-  // still resolves. The fixture takes the installed set's id rather than one
-  // of its own, so the URLs these tests see are the URLs production serves.
   registerSetMount(SET_ID, SET_BASE)
   configureObligationSet(SET_ID, fixtureObligationSet)
   configureFulfilmentRegistry(SET_ID, featureEvaluationBindings)
@@ -117,6 +79,7 @@ export const installFixture = () => {
     taskRows,
     rowStatus,
     nextRunTarget,
+    previousRunTarget,
     flowOnlyKeys: FLOW_ONLY_KEYS,
     entryGuardTarget,
     sectionCaption: sectionCaptionOf,

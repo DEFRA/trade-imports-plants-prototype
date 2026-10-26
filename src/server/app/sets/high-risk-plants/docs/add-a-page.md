@@ -109,8 +109,12 @@ Use `collects: []` only when the page owns no obligation or edits a collection
 whose root another page already owns.
 
 Use one `render()` helper for GET and POST errors. Build the common view with
-`kit.base()`. Pass `journey` so the shared reference strip renders, and `page`
-so the section caption does. The normal back link is `hubPath(journey.journeyId)`.
+`kit.base()`. Pass `journey` so the shared reference strip renders. A page that
+shows no status strip still passes `journey`, with `showJourneyStrip: false`.
+Pass `page` so the section caption renders. The normal back link is `hubPath(journey.journeyId)`.
+A page that is a step of the opening run takes its back link from
+`kit.runBackLink()`, which opens the previous run step while the run is active
+and falls back to the overview.
 
 GET calls `state.get()` once and prefills from `answers`. POST:
 
@@ -120,9 +124,30 @@ GET calls `state.get()` once and prefills from `answers`. POST:
 4. commits cleaned values with `state.commit()`
 5. redirects through `await kit.nextTarget(request, page, committed.scope)`
 
-Wrap the write in `kit.recoverableSave()`. A marked persistence failure renders
-the same values with `recoverableError: true` and status 500. Unexpected errors
-must throw.
+Wrap the write in `kit.recoverableSave(request, …)`. A marked persistence
+failure is logged once by `recoverableSave`; render the same values with
+`recoverableError: true` and status 500. Unexpected errors must throw. When
+validation fails, render the page again with status 400 and log nothing: a user's
+own field errors shown back on the form are not logged. A refusal that is not the
+user's input error (a state refusal, a bare 400, another service refusing) logs
+once through `kit.logRefusal(request, { …details })` with the journey id.
+
+"Save and return to overview" posts `exit=hub`. When the page has a required
+rule, opt in to saving a blank answer on that exit by passing
+`{ allowMissing: kit.isHubExit(request) }` to `validate`, as
+[`journeys/linear/features/commodity-type/controller.js`](../journeys/linear/features/commodity-type/controller.js)
+does. Every other rule still refuses. An address-book picker does not call
+`validate`: it resolves the save through `resolveSelectionOnSave` in
+[`journeys/linear/features/address-book-picker/save-selection.js`](../journeys/linear/features/address-book-picker/save-selection.js),
+so a save with nothing ticked always leaves without a commit and an id the book
+does not hold is refused.
+
+These task-row pages offer no overview exit and stay strict on every submit:
+
+- the commodities list
+  ([`journeys/linear/features/commodities/list/list.controller.js`](../journeys/linear/features/commodities/list/list.controller.js))
+- commodity details
+  ([`journeys/linear/features/commodities/details/details.controller.js`](../journeys/linear/features/commodities/details/details.controller.js))
 
 Export the standard routes:
 
@@ -188,7 +213,9 @@ owner to silence coverage.
 Import the page identity into
 [`journeys/linear/flow/flow.js`](../journeys/linear/flow/flow.js). Put it in the
 right `sections` entry, or add the first section. Its position controls
-`nextInSection()` and strictly-earlier prerequisites.
+strictly-earlier prerequisites and where Save and continue goes outside the
+opening run (`nextInTaskRow()`: the next page of the section only when it is in
+the same task row).
 
 Import it into
 [`journeys/linear/flow/task-rows.js`](../journeys/linear/flow/task-rows.js). Put
@@ -208,15 +235,11 @@ If you add a task row, also:
 - update the hub's `copy/copy.test.js`, the hub feature spec and
   `journeys/linear/flow/task-rows.test.js`
 
-The hub feature is built, and it is the worked example for those bullets. It now
-renders four rows — commodities, origin, arrival and destination — so read it as
-a worked example of a row that already exists rather than as an empty consumer.
+The hub feature is the worked example for those bullets.
 
 - [`journeys/linear/features/hub/controller.js`](../journeys/linear/features/hub/controller.js)
-  holds `GROUPS` — the four numbered groups in the order the hub renders them.
-  The first two now name the landed rows (`['commodities', 'origin']` and
-  `['arrival', 'destination']`); consignment-parties and check-and-submit still hold an empty
-  `rows` list. It turns a row id into a task-list item: a row
+  holds `GROUPS` — the numbered groups in the order the hub renders them, each
+  naming its row ids. It turns a row id into a task-list item: a row
   whose gate passes gets its `rowEntry()` link and a status tag, a row whose
   gate fails gets the "Cannot start yet" status and no link, and a conditional
   row that is not applicable is dropped. A group with no items is not rendered.
@@ -226,9 +249,9 @@ a worked example of a row that already exists rather than as an empty consumer.
   hold the four group captions, the five statuses — completed, optional, in
   progress, not yet started and cannot start yet, whose presentation lives in
   the controller as three `govuk-tag` classes, plain text for optional and a
-  task-list status class for cannot start yet — and a `rows` map that now holds
-  the landed rows. Your row's `title` and `hint` join them under `rows` in both
-  locales.
+  task-list status class for cannot start yet — and a `rows` map with each
+  row's `title` and `hint`. Your row's `title` and `hint` join them under
+  `rows` in both locales.
 - [`journeys/linear/features/hub/copy/copy.test.js`](../journeys/linear/features/hub/copy/copy.test.js)
   checks the English bundle leaf by leaf, names the four groups in the design
   order in both locales, holds the controller and the captions to the same set
@@ -258,15 +281,24 @@ continue-enforced fields. Add an authored `gate` to the page identity only when
 that rule cannot express the page.
 
 Add the page to [`journeys/linear/flow/run.js`](../journeys/linear/flow/run.js)
-only when it belongs in the opening run — that is, add it to `RUN_STEPS`, which
-currently holds six steps: commodity-type, commodities, origin, arrival-status,
-arrival-details and place-of-destination, the arrival-status step skipped for
-potatoes by its derived gate. Update its run tests if you do.
+only when it belongs in the opening run — that is, add it to `RUN_STEPS` in
+journey order. A step whose derived gate fails is skipped, as arrival-status is
+for potatoes. A run step names its `backCandidates`, the earlier steps its Back
+link may open, nearest first. Inserting a step mid-run updates the following
+step's `backCandidates`. The controller's `render` takes its Back link from
+`kit.runBackLink(request, page.id, current, { fallback })`, where `fallback` is
+a named option that defaults to the overview. Update its run tests if you do.
 
 ## 7. Add check-answers and backend mapping when needed
 
-Add the page's fields to the matching check-answers card and both check-answers
-copy bundles. Pass each obligation name to `row()` or `changeAction()` so the
+Add the page's rows to the matching check-answers card and their row labels to
+both check-answers copy bundles. A stored code is shown through a copy lookup
+keyed by the stored value, as the review does with
+`copy.typeLabels[answers.commodityType]` and
+`copy.statusLabels[answers.arrivalStatus]`, never retyped into the row. Value
+labels only the review shows go in the check-answers copy bundles.
+
+Pass each obligation name to `row()` or `changeAction()` so the
 dispatch index builds the Change URL. Extend the check-answers feature spec.
 
 Canonical persistence is complete once the feature binding is registered. If the
@@ -316,6 +348,53 @@ In `controller.test.js`, cover:
 Add or update flow tests for section order, skip behaviour, task-row entry,
 status and opening-run behaviour.
 
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file:
+
+- controller tests:
+  [`engine/test-support.js`](../../../engine/test-support.js) exports:
+  - `driveHandler` seeds a journey, runs one handler and returns the answers
+    before and after and the logger; its `openingRun` option (`RUN_ACTIVE` or
+    `RUN_COMPLETE`) records that phase of the opening run, and `saveFailure`
+    makes every save the handler makes fail with the error it is given
+  - `postHandlerOf` and `postHandlerEndingWith` return a feature module's POST
+    handler
+  - `journeyRequest`, `stubH`, `recordingH` and `recordingLogger` build the
+    request, toolkit and logger
+  - `expectBackLinkIsPage` and `expectBackLinkIsPath` assert the Back link
+  - `expectOneRefusalLogged` asserts the logger holds exactly one refusal line
+  - `expectOneSaveFallbackLogged` asserts it holds exactly one save fallback line
+  - `unavailableBackendError` builds the error a save failure is given
+  - `itHoldsCopyAtEveryLeaf` registers the copy-leaf test for a locale pair
+- address-book picker tests:
+  [`address-book-picker/controller-test-support.js`](../journeys/linear/features/address-book-picker/controller-test-support.js)
+  — `describeAddressBookPickerController` registers the controller tests every
+  picker shares, and a picker's call also names the previous run step's slug and
+  the answers that make that step apply;
+  [`address-book-picker/test-support.js`](../journeys/linear/features/address-book-picker/test-support.js)
+  — `pickerViewModelSuites` builds the view model and paging test cases, and
+  `bookHoldingADeletedRecord` fakes an address book holding a deleted record,
+  with `DELETED_ID`, `NOT_IN_THE_BOOK` and `okJson`
+- the set's journey and seed data:
+  [`journeys/linear/test-support.js`](../journeys/linear/test-support.js) —
+  `installHighRiskPlantsJourney`, `useStubbedHighRiskPlantsJourney` (the stub
+  records, session and dispatch with a cleared store for a describe),
+  `COMPLETE_NOTIFICATION` and
+  `COMPLETE_POTATO_CONSIGNMENT`
+- browser tests:
+  [`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js)
+  — see [Shared browser-test helpers](testing.md#shared-browser-test-helpers)
+
+When a second test needs the same set-up, move it into one of these helpers in
+the same change and delete every local copy. Importing a sibling feature's test
+helper is fine.
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
+
 ## Playwright feature test
 
 Keep the spec with the feature. A small feature uses
@@ -336,6 +415,7 @@ Cover:
 - preservation of entered values on error
 - every error-summary link moving focus to its control
 - back, Save and return to overview, Cancel and Change navigation as applicable
+- on every page in a task row's `pages` (`journeys/linear/flow/task-rows.js`) and on every party picker, `amend: amend` in the object `saveActions` takes, so the page takes the amend ending (Save and return, Save and continue, Save and return to overview) while the notification is being amended. `kit.base()` supplies `amend` when the controller passes it the request (`request`, or `h.request` where the render has only the toolkit). The party pickers (consignor-select, place-of-destination, consignment-contact-select) also pass `hubExitWhileAmending: false`, so they show only Save and return and Save and continue while amending, and keep their three controls outside an amendment. A page reached from another page (`showReturnControls: false`, such as the commodities list) also passes `amend`, and shows only Save and return and Save and continue while amending. A collection-entry sub-page (commodities details) keeps its own write actions and passes no `amend`: it saves back to its list, which carries the row's amend ending. `features/amend-endings.test.js` renders every task-row page while amending and fails if one loses the ending.
 - conditional scope, skip and purge behaviour
 - the check-answers rows and Change links
 
@@ -343,9 +423,9 @@ Cover:
 
 Add one axe check for the initial render and one for the validation error state.
 
-Build axe with `AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa'])`. Fail if
-any result has `impact` equal to `serious` or `critical`. Only filter a known
-component false positive when the same component and condition apply.
+Call `expectNoSeriousOrCriticalViolations(page, subject)` from
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js).
+Do not build `AxeBuilder` in a spec.
 
 [`journeys/linear/features/commodity-type/commodity-type.fit.spec.js`](../journeys/linear/features/commodity-type/commodity-type.fit.spec.js)
 establishes that pattern for a validated field: one axe check on the initial

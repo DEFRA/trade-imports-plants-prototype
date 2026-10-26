@@ -1,4 +1,3 @@
-import { hubPath } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
 import * as state from '../../../../../../engine/index.js'
 import {
@@ -22,14 +21,6 @@ import {
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
 
-/**
- * Whether the consignment has already arrived in Great Britain.
- *
- * The answer decides what the rest of the arrival section asks for, so it is
- * put before the dates and the destination. A potato notification never
- * reaches the page: `arrivalStatus` is out of scope for potatoes, which makes
- * the derived page gate fail and the opening run skip the step.
- */
 export const meta = { ...page, collects: [ARRIVAL_STATUS] }
 
 const view = `${TEMPLATES}/features/arrival-status/template`
@@ -41,10 +32,7 @@ const fields = () =>
     requiredOneOf(ARRIVAL_STATUS, ARRIVAL_STATUSES, copy.errors.arrivalStatus)
   )
 
-// Only the post-arrival hint quotes the notification window. The day count is
-// the timing-windows constant, so the sentence lives in the copy bundle and
-// the number is named once here.
-const hintTextFor = (value) =>
+const statusHintOf = (value) =>
   value === ALREADY_ARRIVED
     ? copy.statusHints[value](PLANTS_WOOD_DAYS_AFTER_ARRIVAL)
     : copy.statusHints[value]
@@ -53,15 +41,16 @@ const statusOptions = (selected) =>
   ARRIVAL_STATUSES.map((value) => ({
     value,
     text: copy.statusLabels[value],
-    hint: { text: hintTextFor(value) },
+    hint: { text: statusHintOf(value) },
     checked: value === selected
   }))
 
-const render = (h, current, values, options = {}) => {
+const render = async (request, h, current, values, options = {}) => {
   const errors = options.errors ?? {}
   return h.view(view, {
     ...kit.base(copy.title, {
-      backLink: hubPath(current.journey.journeyId),
+      request,
+      backLink: await kit.runBackLink(request, page.id, current),
       journey: current.journey,
       page,
       recoverableError: options.recoverableError ?? false
@@ -76,7 +65,7 @@ const render = (h, current, values, options = {}) => {
 
 const get = async (request, h) => {
   const current = await state.get(request, h)
-  return render(h, current, {
+  return render(request, h, current, {
     [ARRIVAL_STATUS]: current.answers[ARRIVAL_STATUS] ?? ''
   })
 }
@@ -84,23 +73,28 @@ const get = async (request, h) => {
 const post = async (request, h) => {
   const payload = request.payload ?? {}
   const values = { [ARRIVAL_STATUS]: payload[ARRIVAL_STATUS] ?? '' }
-  const { errors, value } = validate(fields(), payload)
+  const { errors, value } = validate(fields(), payload, {
+    allowMissing: kit.isHubExit(request)
+  })
   const current = await state.get(request, h)
   if (errors) {
-    return render(h, current, values, { errors }).code(HTTP_STATUS_BAD_REQUEST)
+    return (await render(request, h, current, values, { errors })).code(
+      HTTP_STATUS_BAD_REQUEST
+    )
   }
 
   let committed
   const { failure } = await kit.recoverableSave(
+    request,
     async () => {
       committed = await state.commit(request, h, {
         [ARRIVAL_STATUS]: value[ARRIVAL_STATUS]
       })
     },
     async () =>
-      render(h, current, values, { recoverableError: true }).code(
-        HTTP_STATUS_INTERNAL_SERVER_ERROR
-      )
+      (
+        await render(request, h, current, values, { recoverableError: true })
+      ).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
   )
   if (failure) {
     return failure
