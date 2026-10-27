@@ -6,6 +6,7 @@ import * as contact from './consignment-contact-select/controller.js'
 import * as identificationNumbers from './identification-numbers/controller.js'
 import * as consignor from './consignor-select/controller.js'
 import * as dashboard from './dashboard/controller.js'
+import * as filterPlayground from './filter-playground/controller.js'
 import * as hub from './hub/controller.js'
 import * as deleteNotification from './delete-notification/controller.js'
 import * as commodityType from './commodity-type/controller.js'
@@ -43,6 +44,7 @@ export const allRoutes = [
   ...contact.routes,
   ...identificationNumbers.routes,
   ...dashboard.routes,
+  ...filterPlayground.routes,
   ...hub.routes,
   ...deleteNotification.routes,
   ...commodityType.routes,

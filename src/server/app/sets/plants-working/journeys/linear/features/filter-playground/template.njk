@@ -1,0 +1,103 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {{ sectionCaption(caption, "govuk-caption-xl") }}
+  <h1 class="govuk-heading-xl">{{ copy.title }}</h1>
+  <p class="govuk-body-l">{{ copy.intro }}</p>
+
+  <form method="get" action="{{ filterAction }}" novalidate>
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-two-thirds">
+        {{ govukInput({
+          id: "keyword",
+          name: "keyword",
+          type: "search",
+          value: keyword,
+          label: {
+            text: copy.search.label,
+            classes: "govuk-label--s"
+          },
+          hint: { text: copy.search.hint },
+          formGroup: {
+            afterInput: {
+              html: govukButton({
+                text: copy.search.button,
+                classes: "govuk-!-margin-bottom-0 govuk-!-margin-left-2"
+              })
+            }
+          }
+        }) }}
+      </div>
+    </div>
+
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-one-third">
+        <h2 class="govuk-heading-m">{{ copy.filter.heading }}</h2>
+
+        {{ govukCheckboxes({
+          idPrefix: "type",
+          name: "type",
+          classes: "govuk-checkboxes--small",
+          fieldset: {
+            legend: {
+              text: copy.types.legend,
+              classes: "govuk-fieldset__legend--s"
+            }
+          },
+          items: typeItems
+        }) }}
+
+        {{ govukCheckboxes({
+          idPrefix: "origin",
+          name: "origin",
+          classes: "govuk-checkboxes--small",
+          fieldset: {
+            legend: {
+              text: copy.origins.legend,
+              classes: "govuk-fieldset__legend--s"
+            }
+          },
+          items: originItems
+        }) }}
+
+        {{ govukButton({
+          text: copy.filter.apply,
+          classes: "govuk-button--secondary"
+        }) }}
+
+        {% if clearHref %}
+          <p class="govuk-body">
+            <a class="govuk-link govuk-link--no-visited-state" href="{{ clearHref }}">{{ copy.filter.clear }}</a>
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="govuk-grid-column-two-thirds">
+        <h2 class="govuk-heading-m">{{ resultsCount }}</h2>
+        <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+
+        {% if results | length %}
+          <ul class="govuk-list">
+            {% for result in results %}
+              <li>
+                <h3 class="govuk-heading-s govuk-!-margin-bottom-2">{{ result.commodity }}</h3>
+                <ul class="govuk-list govuk-body-s govuk-hint govuk-!-margin-bottom-0">
+                  <li>{{ copy.results.reference }} {{ result.reference }}</li>
+                  <li>{{ copy.results.type }} {{ result.type }}</li>
+                  <li>{{ copy.results.origin }} {{ result.origin }}</li>
+                </ul>
+                <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="govuk-body">{{ copy.results.noMatches }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+{% endblock %}
