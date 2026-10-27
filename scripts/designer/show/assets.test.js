@@ -67,6 +67,23 @@ describe('needsClientBuild', () => {
     expect(needsClientBuild(root)).toBe(false)
   })
 
+  it('Should build when a release’s own assets changed after the last build', () => {
+    const root = makeRoot()
+    writeAt(root, 'src/client/stylesheets/application.scss', 1000)
+    writeBuild(root, 2000)
+    writeAt(root, 'src/server/app/sets/plants-r3/assets/styles.scss', 3000)
+    expect(needsClientBuild(root)).toBe(true)
+  })
+
+  it('Should not build when the last build is newer than every release’s assets', () => {
+    const root = makeRoot()
+    writeAt(root, 'src/client/stylesheets/application.scss', 1000)
+    writeAt(root, 'src/server/app/sets/plants-r3/assets/styles.scss', 1000)
+    writeAt(root, 'src/server/app/sets/plants-r3/page.njk', 3000)
+    writeBuild(root, 2000)
+    expect(needsClientBuild(root)).toBe(false)
+  })
+
   it('Should build when the manifest names a file that is not there', () => {
     const root = makeRoot()
     writeAt(root, 'src/client/stylesheets/application.scss', 1000)

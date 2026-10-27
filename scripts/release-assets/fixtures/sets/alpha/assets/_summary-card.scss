@@ -1,0 +1,6 @@
+@use "govuk-frontend/dist/govuk/base" as *;
+
+.app-alpha-summary-card {
+  @include govuk-font($size: 19);
+  margin-bottom: govuk-spacing(4);
+}

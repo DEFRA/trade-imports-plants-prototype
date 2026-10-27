@@ -116,7 +116,8 @@ export const scaffoldSet = (
   copySetFiles(template.setDir, target.setDir, keep, {
     fromId: from,
     newId: setId,
-    uuidMap
+    uuidMap,
+    copiedOn: createdAt
   })
   copyRoutesFile(template.routesFile, target.routesFile, {
     fromId: from,

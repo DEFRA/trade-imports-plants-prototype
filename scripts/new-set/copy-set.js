@@ -6,6 +6,7 @@ import {
   writeFileSync
 } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
+import { longDate } from '../../src/server/prototype-sets/releases.js'
 import { transformContent, transformPath } from './transform.js'
 
 /** The template every other set started from. It carries no tests, so a
@@ -79,10 +80,10 @@ const skipReasonFor = (
   if (purpose !== 'research' && RESEARCH_ONLY.has(relativePath)) {
     return 'research only'
   }
-  if (!trimmed) {
+  const segments = relativePath.split('/')
+  if (!trimmed || segments[0] === 'assets') {
     return null
   }
-  const segments = relativePath.split('/')
   const rules = [
     [segments[0] === 'spec', 'spec'],
     [segments.includes('docs'), 'docs'],
@@ -105,7 +106,8 @@ const skipReasonFor = (
  * why. A design release made from the real journey does not carry the
  * journey's own tests, browser specs, docs or requirement digests: copied,
  * they fail by construction (see PROTOTYPE.md). Its example data fixture
- * (`journeys/linear/flow/fixtures/happy-path.json`) is kept.
+ * (`journeys/linear/flow/fixtures/happy-path.json`) is kept, and so is
+ * everything in its `assets/` folder, tests included.
  *
  * @returns {{ keep: string[], skipped: Array<{ path: string, reason: string }> }}
  */
@@ -131,24 +133,53 @@ export const planCopy = (sourceDir, { fromId, routesFile, purpose }) => {
 }
 
 /**
+ * A release's `patterns.md` with every entry marked as copied from `fromId`
+ * on `copiedOn`: a `- Copied from:` line opens each entry's field list, in
+ * place of any it already had.
+ *
+ * @param {string} content - the text of `patterns.md`.
+ * @param {{ fromId: string, copiedOn: string }} copy - copiedOn is an ISO date.
+ * @returns {string}
+ */
+export const markPatternsCopied = (content, { fromId, copiedOn }) => {
+  const copiedFrom = `- Copied from: ${fromId} on ${longDate(copiedOn)}`
+  const lines = content
+    .split('\n')
+    .filter((line) => !line.startsWith('- Copied from:'))
+  return lines
+    .map((line, index) =>
+      line.startsWith('- ') && (lines[index - 1] ?? '').trim() === ''
+        ? `${copiedFrom}\n${line}`
+        : line
+    )
+    .join('\n')
+}
+
+/**
  * Copies the planned files of a template set to the new set, transforming
  * every file's content and every path on the way — the filesystem shell
  * around `transform.js`'s pure rewrite. Hand in a shared `uuidMap` to learn
- * which obligation id became which.
+ * which obligation id became which. A `patterns.md` is also marked as copied
+ * on `copiedOn`.
  */
 export const copySetFiles = (
   sourceDir,
   destDir,
   files,
-  { fromId, newId, uuidMap }
+  { fromId, newId, uuidMap, copiedOn }
 ) => {
   for (const path of files) {
     const destPath = join(destDir, transformPath(path, { fromId, newId }))
     mkdirSync(dirname(destPath), { recursive: true })
-    const content = readFileSync(join(sourceDir, path), 'utf8')
+    const content = transformContent(
+      readFileSync(join(sourceDir, path), 'utf8'),
+      { fromId, newId, uuidMap }
+    )
     writeFileSync(
       destPath,
-      transformContent(content, { fromId, newId, uuidMap })
+      path === 'patterns.md'
+        ? markPatternsCopied(content, { fromId, copiedOn })
+        : content
     )
   }
 }
