@@ -239,6 +239,15 @@ describe('checkReleaseAssets', () => {
       ])
     })
 
+    it('Should not ask for a pattern built on the GOV.UK component base classes to be switched on', () => {
+      fixture.write(
+        `${DIR}/assets/commodity-search.js`,
+        "import { Component, ConfigurableComponent } from 'govuk-frontend'\n\nexport class CommoditySearch extends Component {\n  static moduleName = 'app-plants-working-commodity-search'\n}\n\nexport class CommodityFilter extends ConfigurableComponent {\n  static moduleName = 'app-plants-working-commodity-search__results'\n}\n"
+      )
+
+      expect(messages()).toEqual([])
+    })
+
     it('Should refuse initAll, which switches on everything unrecorded', () => {
       fixture.write(
         `${DIR}/assets/scripts.js`,

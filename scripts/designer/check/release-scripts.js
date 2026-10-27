@@ -30,7 +30,8 @@ const sourceOf = (statement) =>
  * @param {string} source - the script's text.
  * @returns {{ imports: string[], components: string[], switchesOnAll: boolean, onlySwitchesOn: boolean, namesChrome: boolean, parseError?: string }}
  * `components` holds each GOV.UK or MoJ component imported, as
- * `componentKey` writes it; `switchesOnAll` is true when it imports
+ * `componentKey` writes it, leaving out the `Component` and
+ * `ConfigurableComponent` base classes a pattern extends; `switchesOnAll` is true when it imports
  * `initAll`; `onlySwitchesOn` is true when it does nothing but import and
  * call `createAll`.
  */
@@ -55,6 +56,7 @@ export const readReleaseScript = (source) => {
     ['govuk-frontend', 'govuk'],
     ['@ministryofjustice/frontend', 'moj']
   ])
+  const baseClasses = new Set(['Component', 'ConfigurableComponent'])
   const imports = program.body.map(sourceOf).filter(Boolean)
   const fromLibraries = program.body
     .filter(
@@ -71,7 +73,7 @@ export const readReleaseScript = (source) => {
   return {
     imports,
     components: fromLibraries
-      .filter(({ name }) => /^[A-Z]/.test(name))
+      .filter(({ name }) => /^[A-Z]/.test(name) && !baseClasses.has(name))
       .map(({ library, name }) => componentKey(library, name)),
     switchesOnAll: fromLibraries.some(({ name }) => name === 'initAll'),
     onlySwitchesOn: program.body.every(
