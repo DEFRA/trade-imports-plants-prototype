@@ -14,9 +14,12 @@ paths:
   - 'webpack.config.js'
   - 'vitest.config.js'
   - 'fit/**'
+  - 'webpack.prototype.config.js'
+  - 'scripts/release-assets/**'
+  - 'scripts/designer/mandate/**'
 ---
 
-# Stop: this file belongs to the real plants service, unless it is a prototype-owned service
+# This file belongs to the real plants service, unless the prototype owns it
 
 The file you are about to change is almost always a copy of a file in the
 real plants service (plants-frontend). Every Monday the weekly update merges
@@ -45,6 +48,17 @@ release ever gets a spec of its own. A designer never needs to touch it
 a `chore/*` branch. `scripts/reports/demo/` is the same kind of
 prototype-owned tooling, alongside it: it builds the stakeholder demo page
 from the walkthrough report, and needs no release-specific content either.
+
+A third exception is **the release-assets build**:
+`webpack.prototype.config.js`, `scripts/release-assets/**` and
+`scripts/designer/mandate/**`. They are prototype files, listed in
+`ours`. A maintainer changes them on a `chore/*` branch only. They
+build each release's own styles and scripts and record a designer's
+mandate.
+
+`src/client/**` and `webpack.config.js` stay the real service's. A
+release's own styles and scripts go in `src/server/app/sets/<release>/assets/`
+instead, as the prototype's `.claude/rules/templates.md` explains.
 
 Before any edit:
 

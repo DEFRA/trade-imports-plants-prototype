@@ -34,21 +34,21 @@ your own design release, never in the real journey.
 
 ## What you can have
 
-| You want                                                                  | What you get                                                                                        | Needs a real service?                    |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| Search saved transporters, pick one, add a new one                        | A transporter picker page, built like the address book picker, with 7 made-up transporters to start | Yes: transporters                        |
-| Save a notification as a template, start a new one from it                | A "Save as template" action on each dashboard card, a templates page, "Use this template"           | Yes: templates                           |
-| Something else the real service cannot do (a saved vehicle, a new lookup) | A new stand-in service with made-up rows, and the pages that use it                                 | Yes: a new one, named for what it holds  |
-| Filters on the dashboard                                                  | Status, commodity, late only and arrival dates, in a panel beside the list                          | Yes: the backend cannot filter yet       |
-| Tabs on the dashboard                                                     | A link per tab with its count, for example "Drafts (3)"                                             | Yes, and a design gap (see below)        |
-| Counts on the dashboard                                                   | How many in each status, each tab and late                                                          | Yes                                      |
-| A green "done" message after an action                                    | A success banner, like the one after deleting a notification                                        | No                                       |
-| "Are you sure?" before deleting                                           | A check page with a red button, like "delete notification"                                          | No, but what it deletes may be           |
-| Go off to add something and come back                                     | Back to the list with the new thing ticked, or back to check your answers                           | No                                       |
-| A home page across plants, animals and products                           | A small set of its own with a card per commodity                                                    | It belongs to another service: see below |
-| Address book pages: add an address by hand, change or delete one          | A list, an add page and an "are you sure?" page; the journey's pickers see the change               | It belongs to another service: see below |
-| Address categories ("what is this address used for")                      | A checkbox question on the add page, shown on the list                                              | Yes, and a design question (see below)   |
-| "Copy as new" on the dashboard                                            | An action on each card, a check page, and the new draft's task list with a banner                   | No: the backend can copy already         |
+| You want                                                                  | What you get                                                                                        | Needs a real service?                            |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Search saved transporters, pick one, add a new one                        | A transporter picker page, built like the address book picker, with 7 made-up transporters to start | Yes: transporters                                |
+| Save a notification as a template, start a new one from it                | A "Save as template" action on each dashboard card, a templates page, "Use this template"           | Yes: templates                                   |
+| Something else the real service cannot do (a saved vehicle, a new lookup) | A new stand-in service with made-up rows, and the pages that use it                                 | Yes: a new one, named for what it holds          |
+| Filters on the dashboard                                                  | Status, commodity, late only and arrival dates, in a panel beside the list                          | Yes: the backend cannot filter yet               |
+| Tabs on the dashboard                                                     | A link per tab with its count, for example "Drafts (3)"                                             | Yes, and a design gap or a switch-on (see below) |
+| Counts on the dashboard                                                   | How many in each status, each tab and late                                                          | Yes                                              |
+| A green "done" message after an action                                    | A success banner, like the one after deleting a notification                                        | No                                               |
+| "Are you sure?" before deleting                                           | A check page with a red button, like "delete notification"                                          | No, but what it deletes may be                   |
+| Go off to add something and come back                                     | Back to the list with the new thing ticked, or back to check your answers                           | No                                               |
+| A home page across plants, animals and products                           | A small set of its own with a card per commodity                                                    | It belongs to another service: see below         |
+| Address book pages: add an address by hand, change or delete one          | A list, an add page and an "are you sure?" page; the journey's pickers see the change               | It belongs to another service: see below         |
+| Address categories ("what is this address used for")                      | A checkbox question on the add page, shown on the list                                              | Yes, and a design question (see below)           |
+| "Copy as new" on the dashboard                                            | An action on each card, a check page, and the new draft's task list with a banner                   | No: the backend can copy already                 |
 
 **See one working.** Open `http://localhost:3103/sample-journey/transporters`
 while the prototype is running. It is a small example: search the saved
@@ -97,6 +97,12 @@ Two pieces of the design system are not switched on in this service:
 
 Each goes in your release's `design-gaps.md`, so the real team knows what the
 design wanted.
+
+If your research needs the real thing, ask, for example "can the dashboard
+tabs actually work?". Claude switches the GOV.UK Tabs script or the MoJ
+filter on in your release only, and records it as a
+[release pattern](gov-uk/release-patterns.md). The version above stays the
+default.
 
 ## Needs a real service
 

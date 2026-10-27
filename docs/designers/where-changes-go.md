@@ -69,6 +69,7 @@ it, so trust `designer:where` over this picture.
 ├── package.json, package-lock.json         [shared on purpose]
 ├── .gitignore, playwright.config.js        [shared on purpose]
 ├── webpack.config.js, vitest.config.js     [real service]
+├── webpack.prototype.config.js             [prototype, maintainer]  builds each release's own styles and scripts
 ├── .claude/
 │   ├── settings.json                       [real service, for now]
 │   └── rules/                              [yours]
@@ -105,7 +106,14 @@ it, so trust `designer:where` over this picture.
                 ├── high-risk-plants/       [real service]  the real journey
                 ├── sample-journey/         [yours]  a placeholder
                 └── <your release>/         [yours]  unless it is frozen
+                    ├── assets/             [yours]  your release's own styles and scripts
+                    ├── layout.njk          [yours]  loads them on your release's pages
+                    ├── patterns.md         [yours]  one entry per release pattern
+                    └── mandates.md         [yours]  your words, recorded by Claude
 ```
+
+A release's own styles and scripts go in its `assets/` folder, never in
+`src/client`. See [release patterns](gov-uk/release-patterns.md).
 
 ## Prototype-owned services
 
@@ -128,8 +136,8 @@ service already uses. See [Services and dashboards](services-and-dashboards.md).
 
 `shared/layout.njk` (the header, footer and navigation) belongs to the real
 service and is shared by every set. A change to the header or navigation is a
-design gap: write it down in your release's `design-gaps.md` so it travels
-with the hand-off.
+design gap, even as a release pattern: write it down in your release's
+`design-gaps.md` so it travels with the hand-off.
 
 The header's "Address book" link is deliberately dead. The address book
 belongs to the Import Notification Service, a separate service this
@@ -186,7 +194,8 @@ as a story for the developers"). Claude writes a hand-off folder under
 before and after pictures, a table of changed words, and a patch the
 plants-frontend team can apply. The brief also lists what cannot ship as it
 is: Welsh still needed, prototype-owned services, design gaps and
-research-only rules.
+research-only rules. Each release pattern goes as a request with its
+evidence: the patch never carries your release's styles or scripts.
 
 The real team, or a developer, applies the patch there and raises the pull
 request. Once it is merged into the real service, the next weekly update

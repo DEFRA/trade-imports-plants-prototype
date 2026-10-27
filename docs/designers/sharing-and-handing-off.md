@@ -60,7 +60,7 @@ prototype's own repository. The pull request says:
 - which pages changed, with links,
 - what the screenshots show, and what the accessibility check found,
 - whose files they are,
-- any Welsh still needed and any design gaps,
+- any Welsh still needed, any design gaps and any release patterns,
 - how to make it real.
 
 Its checks build a demo page for every release on that branch, at its own
@@ -198,8 +198,14 @@ The brief lists each of them so nobody is surprised:
   first. The brief includes the pretend data as a starting point for that
   conversation.
 - **Welsh needed.** Words marked `[Welsh needed]` still need a translator.
-- **Design gaps.** Anything the GOV.UK toolbox could not build, from your
-  release's `design-gaps.md`.
+- **Design gaps.** Anything that was not built, from your release's
+  `design-gaps.md`.
+- **Release patterns.** Anything you had built that GOV.UK and MoJ do not
+  have, from your release's `patterns.md`. Each goes in the brief as a
+  pattern request with its evidence, never as code, and the plants team
+  build it properly. Choose between any `Option` entries first. Once the
+  real service has it, Claude closes the entry. See
+  [release patterns](gov-uk/release-patterns.md).
 - **Research mode.** Rules you switched off for a research session. Switch
   research mode off before handing off if you can.
 

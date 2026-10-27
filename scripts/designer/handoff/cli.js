@@ -52,7 +52,8 @@
  *   --from <id>           what the release was made from, if it has no
  *                         release.json (default high-risk-plants)
  *   --gaps-from <id>      with --set high-risk-plants: the release whose
- *                         design gaps and research rules travel with it
+ *                         design gaps, patterns and research rules travel
+ *                         with it
  *   --gallery <dir>       a designer:show folder to take screenshots from
  *                         (default .cache/designer/show/<set>/latest)
  *   --no-screenshots      leave screenshots out
@@ -642,6 +643,7 @@ export const summaryLines = ({ report, dir, shots, story, meta }, root) => {
     (row) => !isContentNote(row)
   )
   const contentNotes = report.cannotShip.designGaps.length - designGaps.length
+  const patternRequests = report.cannotShip.patternRequests ?? []
   const services = report.servicesToBuild ?? []
   const lines = [
     `Hand-off written to ${relativeDir}/`,
@@ -655,6 +657,11 @@ export const summaryLines = ({ report, dir, shots, story, meta }, root) => {
     ...(contentNotes > 0
       ? [
           `- ${plural(contentNotes, 'content note')} for a content designer (they do not stop it shipping).`
+        ]
+      : []),
+    ...(patternRequests.length > 0
+      ? [
+          `- ${plural(patternRequests.length, 'release pattern')} for the real team to build from the request and evidence in the brief, never from the prototype's code.`
         ]
       : []),
     `- ${plural(report.leftOut.length, 'file')} left out of the patch.`

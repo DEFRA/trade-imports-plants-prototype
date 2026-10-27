@@ -9,6 +9,7 @@ import {
   matchingRemovedVocabulary,
   ownedServicesFrom,
   parseDesignGaps,
+  parsePatternRequests,
   parseResearchRules,
   relativeImportsOf,
   removalVocabularyFrom,
@@ -291,6 +292,60 @@ describe('parseDesignGaps', () => {
 
   it('Should give nothing for a release with no file', () => {
     expect(parseDesignGaps(null)).toEqual([])
+  })
+})
+
+describe('parsePatternRequests', () => {
+  const PATTERNS = [
+    '# Release patterns',
+    '',
+    '## Commodity search',
+    '',
+    '- Kind: Custom',
+    '- Pages: commodity-search',
+    '- Classes: app-plants-r3-commodity-search',
+    '- Files: assets/styles.scss',
+    '- Why not GOV.UK or MoJ:',
+    '  - GOV.UK: Select with autocomplete. No results list.',
+    '  - MoJ: Search. No results list.',
+    '- Need or hypothesis: traders find a code faster by typing part of the plant name.',
+    '- Research round: Round 3 (12 Nov 2026)',
+    '- Findings: none yet',
+    '- Asked by: "build the commodity search as designed" (m-2026-10-27-1)',
+    '- Status: Open',
+    '',
+    '## Tabs on the dashboard',
+    '',
+    '- Kind: Switch on',
+    '- Components: govuk Tabs',
+    '- Pages: dashboard',
+    '- Files: assets/scripts.js',
+    '- Asked by: "can the dashboard tabs actually work?" (m-2026-10-27-2)',
+    '- Status: Closed: in the real service since 3 Nov 2026, govuk Tabs'
+  ].join('\n')
+
+  it('Should give each open pattern with its evidence, and leave closed ones out', () => {
+    expect(parsePatternRequests(PATTERNS)).toEqual([
+      {
+        name: 'Commodity search',
+        kind: 'Custom',
+        pages: 'commodity-search',
+        components: '',
+        whyNot: [
+          'GOV.UK: Select with autocomplete. No results list.',
+          'MoJ: Search. No results list.'
+        ],
+        need: 'traders find a code faster by typing part of the plant name.',
+        round: 'Round 3 (12 Nov 2026)',
+        findings: 'none yet',
+        askedBy: ['"build the commodity search as designed" (m-2026-10-27-1)'],
+        status: 'Open'
+      }
+    ])
+  })
+
+  it('Should give nothing for a release with no file', () => {
+    expect(parsePatternRequests(null)).toEqual([])
   })
 })
 

@@ -29,8 +29,10 @@ Of the MoJ (Ministry of Justice) components, only the date picker works. The
 filter layout, sub navigation, badge, timeline, button menu and the rest
 render as plain, unstyled HTML.
 
-Switching any of these on is a change to the real service. Ask for it as a
-design gap (see [design gaps](design-gaps.md)).
+You can have any of these switched on in your own release by asking, for
+example "can the dashboard tabs actually work?". See
+[release patterns](release-patterns.md). Otherwise Claude logs it as a
+[design gap](design-gaps.md).
 
 ## Page furniture
 

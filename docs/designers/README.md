@@ -40,7 +40,7 @@ to the real team.
 | 1. Whose file is it?           | [Where your changes go](where-changes-go.md)                           | What is yours, what belongs to the real service, and what the weekly update does                    |
 | 2. Have your own copy          | [Design releases](design-releases.md)                                  | Working, frozen and research releases; freeze, carry and retire                                     |
 | 3. Change the words            | [Wording and Welsh](wording-and-welsh.md)                              | Where words live, Welsh and the `[Welsh needed]` marker, the Welsh report                           |
-| 3. Change the look             | [GOV.UK design in this prototype](gov-uk/README.md)                    | Components, patterns, styles, accessibility and design gaps                                         |
+| 3. Change the look             | [GOV.UK design in this prototype](gov-uk/README.md)                    | Components, patterns, styles, accessibility, design gaps and release patterns                       |
 | 3. Change the flow             | [Journey recipes](recipes/README.md)                                   | Branches, moving pages, guidance pages, the task list, check your answers, confirmation, validation |
 | 3. Change the data             | [Example data](example-data.md)                                        | Example notifications, stable example links, extra parties, ports and countries                     |
 | 3. Add what the real one lacks | [Services and dashboards](services-and-dashboards.md)                  | Prototype-owned services: transporters, templates, dashboard filters, tabs and counts               |
@@ -62,6 +62,7 @@ exact files. These pages cover only what is different in this prototype:
 - [Accessibility in this prototype](gov-uk/accessibility.md)
 - [Templates in this prototype](gov-uk/templates-in-this-prototype.md)
 - [Design gaps](gov-uk/design-gaps.md)
+- [Release patterns](gov-uk/release-patterns.md)
 
 ## Journey recipes, one by one
 

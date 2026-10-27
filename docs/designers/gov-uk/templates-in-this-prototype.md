@@ -110,8 +110,13 @@ into a template: put them in the copy files, in English and Welsh.
 
 - Add a `style` attribute or a `<style>` or `<script>` block. The service's
   security settings block them, so they do nothing.
-- Use classes that are not GOV.UK's. There is no custom Sass.
 - Change the header, navigation, phase banner or footer.
 
 When a design needs one of these, it goes in your release's design gaps log.
 See [design gaps](design-gaps.md).
+
+A template uses GOV.UK's classes. The one addition is a
+[release pattern](release-patterns.md) you asked for: its `app-<release>-`
+classes come from your release's own `assets/`, with an entry in
+`patterns.md`. A page that uses one starts with
+`{% extends "<release>/layout.njk" %}` instead of the shared layout.

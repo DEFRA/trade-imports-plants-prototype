@@ -55,6 +55,7 @@ import {
   matchingRemovedVocabulary,
   ownedServicesFrom,
   parseDesignGaps,
+  parsePatternRequests,
   parseResearchRules,
   relativeImportsOf,
   removalVocabularyFrom,
@@ -94,6 +95,10 @@ export const RECIPES = [
 const PROTOTYPE_ONLY = [
   /^release\.json$/,
   /^design-gaps\.md$/,
+  /^patterns\.md$/,
+  /^mandates\.md$/,
+  /^layout\.njk$/,
+  /^assets\//,
   /^research-mode\.md$/,
   /^docs\//,
   /^spec\//
@@ -1051,6 +1056,11 @@ export const buildHandoff = (options) => {
       designGaps: gapsSet
         ? parseDesignGaps(
             readIfExists(root, `${setDirOf(gapsSet)}/design-gaps.md`)
+          )
+        : [],
+      patternRequests: gapsSet
+        ? parsePatternRequests(
+            readIfExists(root, `${setDirOf(gapsSet)}/patterns.md`)
           )
         : [],
       researchRules: gapsSet

@@ -113,6 +113,11 @@ If you share what you found, Claude can turn it into a list of changes for your
 next working release, each with the skill that makes it. Findings go into a
 working release, not the research release.
 
+If the release has [release patterns](gov-uk/release-patterns.md), each one
+names the round that tests it. After the round, Claude adds a link to the
+findings to each pattern's entry in `patterns.md`. That evidence is what
+the real team builds the pattern from.
+
 Link the demo page in your write-up of the round, so anyone who was not
 there can see what participants saw:
 `https://defra.github.io/trade-imports-plants-prototype/#set-<release-id>`

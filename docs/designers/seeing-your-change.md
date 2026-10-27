@@ -105,7 +105,8 @@ version takes a little longer; later runs reuse it.
 A release you have never saved has no "before" yet. The gallery says so.
 
 The before pictures use today's styles and scripts. That makes no difference
-unless someone changed `src/client/`, which belongs to the real service.
+unless someone changed `src/client/`, which belongs to the real service, or
+your release's own `assets/`.
 
 Every run makes its example notifications afresh, with new reference
 numbers. So that before and after match, the pictures show each reference
