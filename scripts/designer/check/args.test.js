@@ -9,8 +9,47 @@ describe('parseCheckArgs', () => {
       tier: 'quick',
       json: false,
       help: false,
+      since: undefined,
+      noNewPatterns: false,
       errors: []
     })
+  })
+
+  it('Should read --since and --no-new-patterns together', () => {
+    expect(
+      parseCheckArgs(['--set', 'a', '--since', 'abc123', '--no-new-patterns'])
+    ).toMatchObject({ since: 'abc123', noNewPatterns: true, errors: [] })
+    expect(parseCheckArgs(['--since=abc123']).since).toBe('abc123')
+  })
+
+  it('Should refuse --no-new-patterns without the commit the run started from', () => {
+    expect(parseCheckArgs(['--set', 'a', '--no-new-patterns']).errors).toEqual([
+      '--no-new-patterns needs the commit the run started from: add --since <commit>.'
+    ])
+  })
+
+  it('Should read --mandate with --since', () => {
+    expect(
+      parseCheckArgs(['--set', 'a', '--since', 'abc123', '--mandate', 'm-1'])
+    ).toMatchObject({ since: 'abc123', mandate: 'm-1', errors: [] })
+  })
+
+  it('Should refuse --mandate without --since, or beside --no-new-patterns', () => {
+    expect(parseCheckArgs(['--mandate', 'm-1']).errors).toEqual([
+      '--mandate needs the commit the run started from: add --since <commit>.'
+    ])
+    expect(
+      parseCheckArgs(['--since', 'a', '--mandate', 'm-1', '--no-new-patterns'])
+        .errors
+    ).toEqual([
+      'Choose --no-new-patterns for a run with no mandate, or --mandate for a run with one, not both.'
+    ])
+  })
+
+  it('Should explain a --since with nothing after it', () => {
+    expect(parseCheckArgs(['--since', '--full']).errors).toEqual([
+      '--since needs a commit after it, for example --since 1a2b3c4: the commit the run started from.'
+    ])
   })
 
   it.each([

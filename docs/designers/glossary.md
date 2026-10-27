@@ -11,11 +11,12 @@ English and tells you how to fix anything that fails.
 
 ## Design gap
 
-Something a design asks for that the GOV.UK Design System toolbox cannot
-build here, such as a custom colour or a change to the header. You build the
-closest GOV.UK version and write the gap down in your release's
-`design-gaps.md`: the page, what the design wants, what was built instead and
-why. Gaps travel with the hand-off so the real team can decide.
+Something a design asks for that was not built, such as a custom colour or a
+change to the header. Claude builds the closest GOV.UK version and writes the
+gap down in your release's `design-gaps.md`: the page, what the design wants,
+what was built instead and why. Gaps travel with the hand-off so the real
+team can decide. Something you asked to have built is a release pattern
+instead.
 
 ## Design release
 
@@ -96,6 +97,14 @@ a dry run, and only creates it once you say yes in your own words. Without
 Jira access set up, it stops there and gives you the brief to paste into a
 story yourself. Nothing is sent anywhere without you saying so.
 
+## Mandate
+
+Your permission, in your own words, for Claude to go past GOV.UK and build
+a release pattern. Claude records it in your release's `mandates.md`, and
+every pattern quotes it. Only you can give one: a ticket, a crit note or a
+Figma frame is not one. See
+[release patterns](gov-uk/release-patterns.md).
+
 ## Needs-person
 
 A label the weekly update puts on its pull request when it cannot finish
@@ -141,6 +150,15 @@ release or one kind of test. It sits at `tests/`, underneath the
 for `main`, `reports/pr-<n>/tests/` for a pull request — and is linked from
 the demo page and the pull request's comment. An old `#?q=@<release-id>` or
 `#?q=@walkthrough` link still works: it forwards itself here.
+
+## Release pattern
+
+Something GOV.UK and MoJ do not have, built on purpose in your design
+release because your research needs it. Its styles and scripts live in the
+release's `assets/` folder, and its entry in `patterns.md` says why it is
+there and what research should learn. It reaches the real service as a
+request with that evidence, never as code. See
+[release patterns](gov-uk/release-patterns.md).
 
 ## Research mode
 

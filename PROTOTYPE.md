@@ -72,9 +72,9 @@ Very close, with these differences. All of them are known.
   as saved transporters, templates and dashboard filters, are built here with
   made-up data, flagged "needs a real service". See
   [Where your changes go](docs/designers/where-changes-go.md).
-- **Design gaps.** Only GOV.UK Frontend components and classes are
-  available. What they cannot do is logged in your release's
-  `design-gaps.md` and travels with the hand-off.
+- **GOV.UK first, then MoJ.** Ask for something custom, saying what research
+  should learn, and it is built in your release (`patterns.md`). Otherwise it
+  is a design gap. Both reach the real team as requests, never as code.
 - **The "Address book" link in the header is deliberately dead.** The
   address book belongs to the Import Notification Service, which this
   prototype does not include. You never need it to see a change here.
@@ -93,7 +93,7 @@ Very close, with these differences. All of them are known.
 - **It is not deployed yet.** Every pull request proves its `Dockerfile`
   boots, but the CDP environment is not stood up. Until it is, run demos
   and research from a laptop with `npm run dev`.
-- **No custom styles or scripts yet**, as above: they are design gaps.
+- **Release patterns stay in your release.** See [Release patterns](docs/designers/gov-uk/release-patterns.md).
 
 ## Walkthroughs: the demo page and the technical report
 

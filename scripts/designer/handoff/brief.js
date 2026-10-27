@@ -865,6 +865,7 @@ export const briefOutline = (report, meta) => {
   }
 
   addCannotShip(add, report)
+  addPatternRequests(add, report)
 
   add('heading', { text: 'Recipe used' })
   add('para', { text: recipeLine(report) })
@@ -987,6 +988,32 @@ const addCannotShip = (add, report) => {
           text: 'Nothing. No new services, prototype-only data, Welsh gaps, design gaps or research-mode rules.'
         }
   )
+}
+
+const patternRequestText = (request) =>
+  [
+    `${request.name} (${request.kind}), on ${request.pages}.`,
+    request.components ? `Components: ${request.components}.` : '',
+    ...request.whyNot.map((line) => `Why not ${line}`),
+    request.need ? `Need or hypothesis: ${request.need}` : '',
+    request.round ? `Research round: ${request.round}.` : '',
+    request.findings ? `Findings: ${request.findings}.` : '',
+    ...request.askedBy.map((quote) => `Asked by: ${quote}.`),
+    `Status: ${request.status}.`
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+const addPatternRequests = (add, report) => {
+  const requests = report.cannotShip.patternRequests ?? []
+  if (!requests.length) {
+    return
+  }
+  add('heading', { text: 'Pattern requests' })
+  add('para', {
+    text: 'The designer built these in their release, because GOV.UK and MoJ had nothing that did the job. Their code stays in the prototype. Build each one in the real service from its evidence, to the real service’s standards.'
+  })
+  add('list', { items: requests.map(patternRequestText) })
 }
 
 const addDrift = (add, report) => {

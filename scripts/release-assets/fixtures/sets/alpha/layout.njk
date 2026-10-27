@@ -1,0 +1,11 @@
+{% extends "shared/layout.njk" %}
+
+{% block head %}
+  {{ super() }}
+  <link href="{{ getAssetPath('release-alpha.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block bodyEnd %}
+  {{ super() }}
+  <script type="module" src="{{ getAssetPath('release-alpha.js') }}"></script>
+{% endblock %}

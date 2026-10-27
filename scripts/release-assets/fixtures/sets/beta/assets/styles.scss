@@ -1,0 +1,5 @@
+@use "govuk-frontend/dist/govuk/base" as *;
+
+.app-beta-highlight {
+  background-color: govuk-colour("yellow");
+}

@@ -356,6 +356,75 @@ describe('new:set --from another release', () => {
     })
     expect(setFiles('plants-research-2')).toContain('research-session.json')
   })
+
+  it('Should keep a release’s own styles, scripts, layout, patterns and mandates, renamed to the new release', () => {
+    scaffoldSet(
+      { setId: 'plants-r3', from: REAL_JOURNEY, purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+    const releaseDir = path.join(repoRoot, 'src/server/app/sets/plants-r3')
+    const releaseFiles = {
+      'assets/styles.scss': '@use "callout";\n',
+      'assets/_callout.scss': '.app-plants-r3-callout {\n  margin: 0;\n}\n',
+      'assets/scripts.js': "import './callout.js'\n",
+      'assets/callout.js':
+        'export const callout = \'[data-module="app-plants-r3-callout"]\'\n',
+      'assets/callout.test.js': "import { callout } from './callout.js'\n",
+      'layout.njk':
+        '{% extends "shared/layout.njk" %}\n<link href="{{ getAssetPath(\'release-plants-r3.css\') }}" rel="stylesheet">\n',
+      'patterns.md':
+        '# Release patterns\n\n## Callout\n\n- Kind: Custom\n- Classes: app-plants-r3-callout\n- Status: Open\n',
+      'mandates.md': '# Mandates\n\n## m-2026-09-27-1\n\n- Words: "build it"\n'
+    }
+    for (const [file, content] of Object.entries(releaseFiles)) {
+      mkdirSync(path.dirname(path.join(releaseDir, file)), { recursive: true })
+      writeFileSync(path.join(releaseDir, file), content)
+    }
+
+    scaffoldSet(
+      { setId: 'plants-r4', from: 'plants-r3', purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+
+    expect(setFiles('plants-r4')).toEqual(
+      expect.arrayContaining(Object.keys(releaseFiles))
+    )
+    const copied = (file) => read(`src/server/app/sets/plants-r4/${file}`)
+    expect(copied('assets/_callout.scss')).toContain('.app-plants-r4-callout')
+    expect(copied('assets/callout.js')).toContain('app-plants-r4-callout')
+    expect(copied('layout.njk')).toContain(
+      "getAssetPath('release-plants-r4.css')"
+    )
+    expect(copied('mandates.md')).toBe(
+      '# Mandates\n\n## m-2026-09-27-1\n\n- Copied from: plants-r3 on 27 September 2026\n- Words: "build it"\n'
+    )
+    expect(copied('patterns.md')).toBe(
+      '# Release patterns\n\n## Callout\n\n- Copied from: plants-r3 on 27 September 2026\n- Kind: Custom\n- Classes: app-plants-r4-callout\n- Status: Open\n'
+    )
+  })
+
+  it('Should name only the newest copy in a pattern’s Copied from line', () => {
+    scaffoldSet(
+      { setId: 'plants-r3', from: REAL_JOURNEY, purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+    writeFileSync(
+      path.join(repoRoot, 'src/server/app/sets/plants-r3/patterns.md'),
+      '## Callout\n\n- Kind: Custom\n- Why not GOV.UK or MoJ:\n  - GOV.UK: Inset text. No icon.\n- Status: Open\n'
+    )
+    scaffoldSet(
+      { setId: 'plants-r4', from: 'plants-r3', purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+    scaffoldSet(
+      { setId: 'plants-r5', from: 'plants-r4', purpose: 'working' },
+      { repoRoot, now: NOW }
+    )
+
+    expect(read('src/server/app/sets/plants-r5/patterns.md')).toBe(
+      '## Callout\n\n- Copied from: plants-r4 on 27 September 2026\n- Kind: Custom\n- Why not GOV.UK or MoJ:\n  - GOV.UK: Inset text. No icon.\n- Status: Open\n'
+    )
+  })
 })
 
 describe('new:set from sample-journey', () => {

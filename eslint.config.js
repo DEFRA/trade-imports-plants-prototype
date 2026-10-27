@@ -110,5 +110,19 @@ export default [
     rules: {
       'designer-rules/service-barrel-imports': 'error'
     }
+  },
+  {
+    files: ['src/server/app/sets/*/assets/**/*.js'],
+    languageOptions: {
+      globals: neostandard({
+        env: ['browser'],
+        noJsx: true,
+        noStyle: true
+      }).find(({ name }) => name === 'neostandard/globals').languageOptions
+        .globals
+    },
+    rules: {
+      'no-magic-numbers': 'off'
+    }
   }
 ]

@@ -620,6 +620,37 @@ describe('the Detail', () => {
     )
   })
 
+  it('Should list each release pattern as a request with its evidence', () => {
+    const brief = markdownOf({
+      ...REPORT,
+      cannotShip: {
+        ...REPORT.cannotShip,
+        patternRequests: [
+          {
+            name: 'Commodity search',
+            kind: 'Custom',
+            pages: 'commodity-search',
+            components: '',
+            whyNot: ['GOV.UK: Select. No results list.', 'MoJ: Search. None.'],
+            need: 'traders find a code faster by typing.',
+            round: 'Round 3 (12 Nov 2026)',
+            findings: 'none yet',
+            askedBy: ['"build it as designed" (m-2026-10-27-1)'],
+            status: 'Open'
+          }
+        ]
+      }
+    })
+
+    expect(brief).toContain(
+      '- Commodity search (Custom), on commodity-search. Why not GOV.UK: Select. No results list. Why not MoJ: Search. None. Need or hypothesis: traders find a code faster by typing. Research round: Round 3 (12 Nov 2026). Findings: none yet. Asked by: "build it as designed" (m-2026-10-27-1). Status: Open.'
+    )
+  })
+
+  it('Should leave out the pattern requests when the release has none', () => {
+    expect(markdown).not.toContain('## Pattern requests')
+  })
+
   it('Should name what cannot ship and what was left out', () => {
     expect(markdown).toContain(
       'imports `../../../../../../../prototype-data/index.js`, the prototype’s extra example data.'

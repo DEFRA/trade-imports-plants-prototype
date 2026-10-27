@@ -1,7 +1,8 @@
 /**
  * Which steps each tier runs, and which tier a change needs.
  *
- * quick: tidy, ownership, copy shape, templates, code rules (ESLint) on the
+ * quick: tidy, ownership, copy shape, templates, the release's own styles
+ *        and scripts, code rules (ESLint) on the
  *        changed code files, the prototype checks (and
  *        the real journey's own unit tests when the set is high-risk-plants).
  * full:  quick, then exactly what .husky/pre-commit runs
@@ -18,6 +19,7 @@ export const STEP_TITLES = Object.freeze({
   copy: 'English and Welsh words',
   'copy-usage': 'Copy a template reads',
   templates: 'Page templates',
+  'release-assets': 'Release styles and scripts',
   'code-rules': 'Code rules in the files you changed',
   'service-conformance': 'Prototype-owned services',
   'gds-wording': 'GOV.UK wording notes',
@@ -35,6 +37,7 @@ const QUICK = [
   'copy',
   'copy-usage',
   'templates',
+  'release-assets',
   'code-rules',
   'service-conformance',
   'gds-wording',

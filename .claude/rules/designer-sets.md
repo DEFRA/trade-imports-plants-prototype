@@ -46,7 +46,18 @@ releases are sets. Keep them working with these rules.
    `'[Welsh needed] <English>'`.
 7. **No tests are copied into a release.** Do not add `*.test.js` or
    `*.fit.spec.js` files to a design release. Prove a change with
-   `npm run designer:check -- --set <set-id>` instead.
+   `npm run designer:check -- --set <set-id>` instead. The one exception is
+   a release pattern's own test, `assets/<name>.test.js` (rule 8).
+8. **A release's own styles and scripts live in `assets/`.** It holds only
+   Sass and script files, and their tests. Every class a release adds is
+   `app-<release>-<block>`, and every pattern has an entry in the release's
+   `patterns.md`. Only a designer's mandate, recorded in `mandates.md` by
+   `designer:mandate`, adds to `assets/`, `layout.njk` or
+   `patterns.md`. `mandates.md` only ever gains entries. An agent a
+   designer's workflow started adds each pattern as an `Option`, citing only
+   the mandate its brief quotes. Without a mandate,
+   build the nearest GOV.UK option and log a row in `design-gaps.md`. The
+   prototype's `.claude/rules/templates.md` has the full ladder.
 
 After a change, run `npm run designer:check -- --set <set-id>` and
 `npm run designer:show -- --set <set-id>`.

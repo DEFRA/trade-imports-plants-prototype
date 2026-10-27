@@ -40,17 +40,21 @@ puts it beside the new page.
   `docs/fidelity-<page>.md`. Each thing on the old page is marked:
   - **matched**: the same thing, built with GOV.UK components
   - **nearest**: the closest GOV.UK option, visibly different
-  - **gap**: nothing could be built, usually custom styles or scripts
+  - **gap**: not built, such as a change to the shared header, or custom styles you have not asked for
+  - **pattern**: rebuilt as a release pattern, because you asked for it
 - **Design gaps**: every "nearest" or "gap" you can see on screen is logged
   in your release's `design-gaps.md`, so it travels with a hand-off.
 
 ## What is different from the old page
 
-The old prototype had its own styles and scripts. This prototype only has
-what the real service loads, so:
+The old prototype had its own styles and scripts. This prototype starts
+with what the real service loads, so:
 
 - custom colours, spacing and layouts become the nearest GOV.UK option, or a
   design gap
+- a custom piece your research needs can be rebuilt as a
+  [release pattern](gov-uk/release-patterns.md) when you ask. It is rebuilt
+  on GOV.UK's styles, never copied from the old prototype
 - a page that searched or picked from a list (transporters, say) is built on
   a pretend service, flagged "needs a real service" (see
   [Services and dashboards](services-and-dashboards.md))

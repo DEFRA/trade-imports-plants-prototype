@@ -38,6 +38,11 @@ another release. The copy:
   wherever they say `high-risk-plants`
 - gets a `release.json` saying what it was copied from, when, and what it is
   for
+- keeps the release patterns of a release it came from: its `assets/`,
+  `layout.njk`, `patterns.md` and `mandates.md`. Each copied pattern is
+  marked `Copied from`. You can keep using it in research, but ask for it
+  again in the new release before you hand it off. See
+  [release patterns](gov-uk/release-patterns.md)
 
 ### What is inside a release
 

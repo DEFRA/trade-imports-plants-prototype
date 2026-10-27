@@ -23,27 +23,51 @@ file belongs to the real service (for example anything in
 design release, or the workspace `prototype` skill's hand-off reference,
 instead.
 
-## Build with the GOV.UK toolbox
+## Build with GOV.UK first
 
-- Use a Nunjucks macro before raw HTML. Import it at the top of the file, for
-  example `{% from "govuk/components/tag/macro.njk" import govukTag %}`. The
-  list of what is installed is in the workspace `prototype` skill's
-  match-the-design reference for components we have.
-- Never add a `style` attribute or an inline `<style>` or `<script>`. The
-  content security policy (`styleSrc: ['self']`) blocks them, so they do
-  nothing in the browser and only mislead.
-- Use only `govuk-*` classes: the grid (`govuk-grid-row`,
-  `govuk-grid-column-*`), typography (`govuk-heading-*`, `govuk-body-*`,
-  `govuk-caption-*`) and the override classes (`govuk-!-margin-*`,
-  `govuk-!-padding-*`, `govuk-!-width-*`, `govuk-!-font-weight-*`,
-  `govuk-!-text-align-*`).
-- `moj-*` markup renders only for the MoJ date picker, through the
-  `mojDatePicker` macro. No other MoJ component has its styles loaded.
-- Never invent an `app-*` class. None is styled for set pages, and new Sass is
-  out of bounds. Record what the design wants in the release's design-gaps.md
-  file instead.
-- Do not add Sass, client JavaScript or webpack entries. `src/client/**` and
-  `webpack.config.js` belong to the real service.
+Climb this ladder and stop at the first rung that does the job. Tell the
+designer, in one line per rung, what you checked.
+
+1. **GOV.UK Frontend.** A Nunjucks macro before raw HTML, and `govuk-*`
+   classes for the grid, type and spacing. The list of what is installed is
+   in the workspace `prototype` skill's components-we-have reference.
+2. **MoJ Frontend, then other departmental libraries.** Every MoJ macro
+   renders here. Only the date picker is styled and running. Another MoJ
+   component, or a GOV.UK script the service leaves off (such as Tabs),
+   is switched on in the release's `assets/`.
+3. **A release pattern.** Your own `app-<release>-` classes, styled and
+   scripted in the release's `assets/`.
+
+Anything in `assets/` needs a designer's mandate, recorded with
+`designer:mandate` from the designer's own words. Record each pattern in
+the release's `patterns.md`, quoting that mandate. Switching a component on
+needs only the designer asking. A custom pattern also says what research
+should learn from it. With no mandate, build the nearest option and add a
+row to `design-gaps.md`.
+
+An agent started by a designer's workflow works under that designer's
+mandate when its brief quotes the recorded entry and its id. It still tries
+rungs 1 and 2 first. Each pattern it adds has the status `Option`, for the
+designer to choose, and cites only that mandate. It never records a mandate
+of its own. The workflow's check refuses anything else. It does not check the
+mandate's scope: the agent keeps to the pages the mandate names.
+
+To change a pattern the release already has, work under the mandate its
+entry already cites. With no mandate at all, a run leaves every pattern as
+it is.
+
+Release Sass uses GOV.UK Frontend's settings and mixins, never raw colours.
+A release script only enhances a page that already works without it.
+
+Some things stay out of reach, because the browser or the weekly update
+would undo them:
+
+- A `style` attribute or an inline `<style>` or `<script>`. The content
+  security policy blocks them. The release's bundle is served from the
+  same site, so it is not affected.
+- `src/client/**` and `webpack.config.js`, which belong to the real service.
+- The header, service navigation, phase banner and footer, which every set
+  shares.
 
 ## Keep the words in copy
 
@@ -57,7 +81,9 @@ instead.
 ## Keep the page's plumbing
 
 - Keep `{% extends "shared/layout.njk" %}` and the `{% block journeyContent %}`
-  block.
+  block. A page that uses a release pattern starts with
+  `{% extends "<release>/layout.njk" %}` instead. That layout extends the
+  shared one and only adds the release's styles and script.
 - Keep `{% include "shared/error-summary.njk" %}` as the first thing in the
   block on any page with a form.
 - Keep `<input type="hidden" name="crumb" value="{{ crumb }}" />` in every

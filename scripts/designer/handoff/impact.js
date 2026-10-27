@@ -1,11 +1,12 @@
 /**
  * What a hand-off means for the real team, worked out from file contents:
  * strings their tests still pin, imports of prototype-only services, Welsh
- * still to translate, and the design gaps and research-mode rules a release
- * records. Pure functions over strings.
+ * still to translate, and the design gaps, patterns and research-mode rules
+ * a release records. Pure functions over strings.
  */
 import path from 'node:path'
 
+import { fieldOf, parseEntries } from '../lib/release-records.js'
 import { copyLeaves } from './copy-table.js'
 
 export const WELSH_MARKER = '[Welsh needed]'
@@ -261,6 +262,29 @@ export const parseDesignGaps = (markdown) => {
   }
   return listItems(markdown).map((gap) => ({ gap }))
 }
+
+const CLOSED_STATUS = /^closed\b/i
+
+/**
+ * The patterns a release's `patterns.md` asks the real team to build, one
+ * per entry that is not closed, with the evidence each carries. A pattern
+ * travels as a request, never as code.
+ */
+export const parsePatternRequests = (markdown) =>
+  parseEntries(markdown ?? '')
+    .filter((entry) => !CLOSED_STATUS.test(fieldOf(entry, 'Status')))
+    .map((entry) => ({
+      name: entry.name,
+      kind: fieldOf(entry, 'Kind'),
+      pages: fieldOf(entry, 'Pages'),
+      components: fieldOf(entry, 'Components'),
+      whyNot: entry.lists['Why not GOV.UK or MoJ'] ?? [],
+      need: fieldOf(entry, 'Need or hypothesis'),
+      round: fieldOf(entry, 'Research round'),
+      findings: fieldOf(entry, 'Findings'),
+      askedBy: entry.fields['Asked by'] ?? [],
+      status: fieldOf(entry, 'Status')
+    }))
 
 const REMOVAL_TRIGGER = /\b(removed|unused|no longer used)\b/i
 const SERVICE_TOKEN_BEFORE = /([a-z][a-z/-]*)\s+services?\b/gi

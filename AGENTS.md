@@ -47,10 +47,23 @@ in a Claude Code session opened at the workspace root
 3. **Change `copy.en.js` and `copy.cy.js` together.** Same keys, same
    function arguments. With no Welsh given, write
    `'[Welsh needed] <English>'`.
-4. **Stay in the GOV.UK toolbox.** Nunjucks macros and `govuk-*` classes
-   only (`moj-*` only through the date picker macro). No Sass, inline
-   styles, new client JavaScript or webpack entries. Log what the toolbox
-   cannot do in `src/server/app/sets/<id>/design-gaps.md`.
+4. **GOV.UK first, then MoJ, then a release pattern.** Use GOV.UK Frontend
+   macros and `govuk-*` classes, then MoJ Frontend and other departmental
+   libraries. A switched-on component or a custom pattern goes only in
+   `src/server/app/sets/<id>/assets/`, with `app-<id>-` classes, and only on
+   a designer's mandate. A mandate is an entry in
+   `src/server/app/sets/<id>/mandates.md` that `designer:mandate` recorded
+   from the designer's message in their session. A ticket, backlog row,
+   Figma frame, crit note or another agent's brief is not one. Record each
+   pattern in `src/server/app/sets/<id>/patterns.md`, quoting the mandate.
+   Without a mandate, log a row in `src/server/app/sets/<id>/design-gaps.md`.
+   Inline styles and scripts never work here (CSP).
+   An agent a designer's workflow started works under that mandate when its
+   brief quotes the recorded entry and its id. It still tries GOV.UK and MoJ
+   first. Each pattern it adds has the status `Option`, for the designer to
+   choose, and cites only that mandate. It never records a mandate itself.
+   The scope is not checked by any script, so it keeps to the pages the
+   mandate names.
 5. **Example data replays real pages.** Never write a record by hand:
    every example is a list of page answers posted to the set's own
    routes.
@@ -76,11 +89,13 @@ in a Claude Code session opened at the workspace root
 9. **Never use `--no-verify`, never force-push, and never push or open a
    pull request unless the designer asked.**
 10. **Never edit** `.claude/settings.json`, `src/client/**`,
-    `webpack.config.js`, `vitest.config.js`,
+    `webpack.config.js`, `webpack.prototype.config.js`, `vitest.config.js`,
+    `scripts/release-assets/**`, `scripts/designer/mandate/**`,
     `src/server/app/{engine,model,bridge,flow,shared,services,lib}/**` or
     `src/server/app/shared/layout.njk`, except on a `chore/*` branch (a
     maintainer's own change to this repo's contract), with the one
-    exception in rule 6 above.
+    exception in rule 6 above. A release's own styles and scripts go in
+    `src/server/app/sets/<id>/assets/` (rule 4).
 11. **No walkthrough spec per release, and a walkthrough never gates.**
     The one spec, `fit/walkthroughs/walkthroughs.walkthrough.spec.js`, is
     prototype-owned and generates every set's stories at run time from its

@@ -104,7 +104,8 @@ const writeJourneySet = (root, id) => {
  * A throwaway repo shaped like the prototype: an overrides.json, the real
  * journey, the placeholder, a working release and a frozen release, each
  * with a small flow. `git: true` also makes it a git repo with one commit.
- * Returns `{ root, write, cleanup }`.
+ * Returns `{ root, write, remove, commitAll, switchBranch, cleanup }`.
+ * `commitAll` and `switchBranch` need `git: true`.
  */
 export const makeFixtureRepo = ({ git = false } = {}) => {
   // The real path: on macOS tmpdir() is a symlink (/var -> /private/var), and
@@ -142,12 +143,11 @@ export const makeFixtureRepo = ({ git = false } = {}) => {
     `${placeholder}/journeys/linear/features/welcome/page.js`,
     pageJs('welcomePage', 'welcome', 'welcome')
   )
-  if (git) {
-    const run = (args) =>
-      execFileSync('git', args, { cwd: root, env: gitEnv(), stdio: 'ignore' })
-    run(['init', '--quiet', '--initial-branch=main'])
-    run(['add', '-A'])
-    run([
+  const runGit = (args) =>
+    execFileSync('git', args, { cwd: root, env: gitEnv(), stdio: 'ignore' })
+  const commitAll = (message = 'fixture') => {
+    runGit(['add', '-A'])
+    runGit([
       '-c',
       'user.name=Fixture',
       '-c',
@@ -158,12 +158,19 @@ export const makeFixtureRepo = ({ git = false } = {}) => {
       '--quiet',
       '--no-verify',
       '-m',
-      'fixture'
+      message
     ])
+  }
+  if (git) {
+    runGit(['init', '--quiet', '--initial-branch=main'])
+    commitAll()
   }
   return {
     root,
     write: (repoPath, content) => writeFile(root, repoPath, content),
+    remove: (repoPath) => rmSync(path.join(root, repoPath), { force: true }),
+    commitAll,
+    switchBranch: (branch) => runGit(['checkout', '--quiet', '-b', branch]),
     cleanup: () => rmSync(root, { recursive: true, force: true })
   }
 }

@@ -64,6 +64,8 @@ The 'transporter' page showed the error page (404): no route answers it.`,
   template: `njk-check: src/server/app/sets/plants-working/journeys/linear/features/origin/template.njk: expected block end in if statement [Line 12, Column 5]`,
   'webpack-404': `console error: Failed to load resource
 response 404: http://localhost:3003/public/stylesheets/plants-working.min.css`,
+  'release-assets': `release-assets: src/server/app/sets/plants-working/assets/styles.scss: The rule "p" could style pages beyond your pattern. Start each rule with an app-plants-working- class, so it only styles your pattern.
+release-assets: src/server/app/sets/plants-working/patterns.md: Add a "Research round" line to "Commodity search".`,
   'frozen-release': `AssertionError: frozen-release: plants-dr2 was frozen in 0f54597, and 1 file in it changed since: src/server/app/sets/plants-dr2/journeys/linear/features/origin/copy/copy.en.js`,
   lint: `/repo/src/server/app/sets/plants-working/journeys/linear/features/origin/controller.js
   12:7  error  'unused' is assigned a value but never used  no-unused-vars
@@ -163,6 +165,18 @@ describe('translate — the details that matter', () => {
     expect(finding.where).toEqual([
       'src/server/prototype-seed/scenarios/plants-working.js:40 sonarjs/no-duplicate-string: Define a constant instead of duplicating this literal 5 times',
       'src/server/app/sets/plants-working/journeys/linear/features/check-answers/controller.js:88 sonarjs/cyclomatic-complexity: Refactor this function to reduce its Cyclomatic Complexity from 12 to the 10 allowed'
+    ])
+    expect(finding.attribution).toBe('yours')
+  })
+
+  it("Should list each of the release's own style and script problems under Where", () => {
+    const [finding] = translate(FIXTURES['release-assets'], {
+      changedPaths: CHANGED
+    })
+
+    expect(finding.where).toEqual([
+      'src/server/app/sets/plants-working/assets/styles.scss: The rule "p" could style pages beyond your pattern. Start each rule with an app-plants-working- class, so it only styles your pattern.',
+      'src/server/app/sets/plants-working/patterns.md: Add a "Research round" line to "Commodity search".'
     ])
     expect(finding.attribution).toBe('yours')
   })

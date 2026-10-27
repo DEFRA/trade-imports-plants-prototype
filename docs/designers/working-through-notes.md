@@ -12,6 +12,18 @@ changes. Give Claude the whole list at once.
 Name the design release if you have more than one. Claude uses your working
 release, and starts `plants-working` for you when you have none.
 
+## Letting the session build something custom
+
+By default the session builds with GOV.UK and MoJ, and logs a design gap
+for anything they cannot do. To let it go further, say so in the same
+message, with why. For example: "you can build something custom if GOV.UK
+doesn't fit, because round 3 tests whether traders find codes faster".
+
+Claude records your words, and every agent in the session works under them.
+Each still tries GOV.UK and MoJ first. Custom designs come back as options
+for you to choose, never picked for you. See
+[release patterns](gov-uk/release-patterns.md).
+
 ## What happens
 
 Claude runs a design session (the `design-session` workflow):

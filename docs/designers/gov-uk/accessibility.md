@@ -29,3 +29,6 @@ checks below are about your page, not the components.
 The GOV.UK components avoid all of these. If a design needs one of them, log
 it as a design gap (see [design gaps](design-gaps.md)) and talk to the team
 before research.
+
+A [release pattern](release-patterns.md) meets the same bar as any other
+page. It works fully with JavaScript off, and meets WCAG 2.2 AA.

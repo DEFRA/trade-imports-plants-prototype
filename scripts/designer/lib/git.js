@@ -86,3 +86,62 @@ export const lastCommitTime = (pathspec, options) => {
   )
   return output ? Number(output) : null
 }
+
+/**
+ * A file's text at a commit, or null when the file was not there. Throws for
+ * any other git failure.
+ */
+export const fileAt = (ref, repoPath, options) => {
+  const noSuchPath = 128
+  try {
+    return runGit(['show', `${ref}:${repoPath}`], options)
+  } catch (error) {
+    if (error.status === noSuchPath) {
+      return null
+    }
+    throw error
+  }
+}
+
+/**
+ * Every path under `pathspec` that differs from `ref` in the working tree,
+ * staged or not, plus every untracked file under it.
+ */
+export const pathsChangedSince = (ref, pathspec, options) => [
+  ...new Set([
+    ...runGit(['diff', '--name-only', '-z', ref, '--', pathspec], options)
+      .split('\0')
+      .filter(Boolean),
+    ...runGit(
+      ['ls-files', '--others', '--exclude-standard', '-z', '--', pathspec],
+      options
+    )
+      .split('\0')
+      .filter(Boolean)
+  ])
+]
+
+/**
+ * Every text matching the extended regular expression `pattern` in the files
+ * under `pathspec` at `ref`, each listed once.
+ */
+export const matchesAt = (ref, pattern, pathspec, options) => {
+  const noMatch = 1
+  try {
+    return [
+      ...new Set(
+        runGit(
+          ['grep', '-h', '-o', '-E', pattern, ref, '--', pathspec],
+          options
+        )
+          .split('\n')
+          .filter(Boolean)
+      )
+    ]
+  } catch (error) {
+    if (error.status === noMatch) {
+      return []
+    }
+    throw error
+  }
+}

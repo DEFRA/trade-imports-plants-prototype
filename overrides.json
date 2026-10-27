@@ -34,6 +34,8 @@
     ".github/workflows/sync-upstream.yml",
     "src/server/prototype-seed/**",
     "scripts/new-set/**",
+    "webpack.prototype.config.js",
+    "scripts/release-assets/**",
     "PROTOTYPE.md",
     "CLAUDE.md",
     "AGENTS.md",
@@ -120,7 +122,7 @@
     },
     {
       "path": "package.json",
-      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge, reports:demo and reports:service-map, which CI uses to merge the FIT and walkthrough reports and then build the stakeholder demo page and each release's service map (designer:service-map builds one locally) published to GitHub Pages; scripts and dependencies otherwise follow upstream, including upstream's check:workspace-stack, fit:start:workspace and lighthouse scripts and the @lhci/cli devDependency, kept on purpose to keep the patch and the lock small, although the files those scripts call are in 'deleted' so they fail if run in the prototype"
+      "why": "name is prototype identity, plus the sync:upstream and new:set scripts and one block of designer:* scripts straight after new:set (a prefix upstream never uses, so the block never collides), ending with reports:merge, reports:demo and reports:service-map, which CI uses to merge the FIT and walkthrough reports and then build the stakeholder demo page and each release's service map (designer:service-map builds one locally) published to GitHub Pages; scripts and dependencies otherwise follow upstream, including upstream's check:workspace-stack, fit:start:workspace and lighthouse scripts and the @lhci/cli devDependency, kept on purpose to keep the patch and the lock small, although the files those scripts call are in 'deleted' so they fail if run in the prototype. build:frontend and frontend:watch also pass --config webpack.prototype.config.js, which adds each design release's own styles and scripts to the build: an upstream edit to either line conflicts, and the resolution must keep the flag (scripts/release-assets/webpack-callers.test.js fails on any webpack caller without it). The designer:* block includes designer:mandate, which records a designer's permission for release patterns. server:watch and server:debug also pass --ignore 'src/server/app/sets/*/assets/**', so saving a release's own styles or scripts rebuilds the bundle without restarting the server and signing the designer out: an upstream edit to either line conflicts, and the resolution must keep the flag"
     },
     {
       "path": "package-lock.json",
@@ -140,7 +142,7 @@
     },
     {
       "path": "eslint.config.js",
-      "why": "one import of scripts/designer/eslint-rules and three blocks appended at the end of the array: route-params-validated over src/server/app/sets/**, post-handler-validates over design-release add/edit/controller files (never high-risk-plants), and service-barrel-imports over services/*/index.js and client.js. The house conventions a designer's change must meet, checked by lint"
+      "why": "one import of scripts/designer/eslint-rules and three blocks appended at the end of the array: route-params-validated over src/server/app/sets/**, post-handler-validates over design-release add/edit/controller files (never high-risk-plants), and service-barrel-imports over services/*/index.js and client.js. The house conventions a designer's change must meet, checked by lint. A fourth appended block, for a design release's own scripts (src/server/app/sets/*/assets/**/*.js), gives them browser globals and turns off no-magic-numbers (the server-only rule src/client never had), because they run in the browser"
     },
     {
       "path": "playwright.config.js",

@@ -1,7 +1,7 @@
 /**
- * The prototype's styles and scripts (built from src/client into .public).
- * designer:show builds them only when .public is missing, incomplete or
- * older than src/client. A running `npm run dev` keeps .public up to date
+ * The prototype's styles and scripts (built from src/client and each set's
+ * own assets/ into .public). designer:show builds them only when .public is
+ * missing, incomplete or older than those sources. A running `npm run dev` keeps .public up to date
  * itself, so a show run next to it does not rebuild.
  */
 import { spawn } from 'node:child_process'
@@ -51,19 +51,34 @@ export const missingBuiltFiles = (root) => {
   )
 }
 
+const newestReleaseAssetsTime = (root) => {
+  const setsDir = path.join(root, 'src/server/app/sets')
+  if (!existsSync(setsDir)) {
+    return 0
+  }
+  return Math.max(
+    0,
+    ...readdirSync(setsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map(({ name }) => newestModifiedTime(path.join(setsDir, name, 'assets')))
+  )
+}
+
 /**
  * Whether the styles and scripts need building: .public has no manifest, the
- * manifest names files that are missing, or something in src/client changed
- * after it was written.
+ * manifest names files that are missing, or something in src/client or in a
+ * set's own `assets/` changed after it was written.
  */
 export const needsClientBuild = (root) => {
   const marker = path.join(root, BUILT_MARKER)
   if (!existsSync(marker) || missingBuiltFiles(root).length > 0) {
     return true
   }
-  return (
-    newestModifiedTime(path.join(root, 'src/client')) > statSync(marker).mtimeMs
+  const newestSource = Math.max(
+    newestModifiedTime(path.join(root, 'src/client')),
+    newestReleaseAssetsTime(root)
   )
+  return newestSource > statSync(marker).mtimeMs
 }
 
 /** Runs `npm run build:frontend`, logging to `logFile`. */

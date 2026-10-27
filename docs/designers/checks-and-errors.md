@@ -49,15 +49,20 @@ If you ran the quick check but changed how pages work, the check ends with a
    breaks the link.
 4. **Page templates.** Every `.njk` file in your set compiles, and every file
    it extends, includes or imports exists.
-5. **Code rules in the files you changed.** ESLint on every `.js` file you
+5. **Release styles and scripts.** Your release's own `assets/`, `layout.njk`,
+   `patterns.md` and `mandates.md` keep to the rules that hold them inside
+   your release. Every class a release adds starts with `app-<release>-`, and
+   no page has an inline style or script. See
+   [A problem with your release's own styles or scripts](#a-problem-with-your-releases-own-styles-or-scripts).
+6. **Code rules in the files you changed.** ESLint on every `.js` file you
    changed, the same rules the pre-commit hook runs, so a broken rule shows
    now and not only when you save. Each error is named with its file, line
    and rule.
-6. **Pages open (prototype checks).** The prototype starts in the background,
+7. **Pages open (prototype checks).** The prototype starts in the background,
    starts a notification, walks the set's example journey and opens every page
    the set's `flow.js` lists. Each page must open, or send you somewhere else
    in the same set. None may show the error page.
-7. **Real journey unit tests.** Only when you check `high-risk-plants`.
+8. **Real journey unit tests.** Only when you check `high-risk-plants`.
 
 ### What the pre-commit hook runs
 
@@ -372,10 +377,52 @@ visitor outside the set`.
 assets-manifest.json not found`, or `Module not found`.
 - It means: the prototype's styles or scripts were not built, or a page asks
   for one that does not exist.
-- Fix: run `npm run build:frontend` (`npm run dev` does this for you). Never
-  add webpack entries or client scripts: if a page needs one, log it in your
-  release's `design-gaps.md` and tell the maintainer.
+- Fix: run `npm run build:frontend` (`npm run dev` does this for you). If the
+  missing file is your release's own, check the file names in its `assets/`
+  folder, then restart `npm run dev`. A release's own styles and scripts live
+  in `src/server/app/sets/<release>/assets/`. Never edit `webpack.config.js`
+  or `src/client`.
 - Skill: `run-the-prototype`
+
+### A problem with your release's own styles or scripts
+
+- You see: `release-assets:`, then a file and what to change.
+- It means: your release's styles, scripts or pattern records break a rule
+  that keeps them inside your release. Or a page has a style or script the
+  browser would block.
+- Fix: each line names the file and says what to change. The lines you may
+  see:
+
+| The check says                                                     | What to do                                                                                                                                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Your release's assets hold only Sass and script files              | Move the file out of `assets/`.                                                                                                                                |
+| Add `<name>.test.js`                                               | Add a test showing the page works without the script, and that the script attaches.                                                                            |
+| Add `<file>` to the Files line                                     | Name the file on the `Files` line of its pattern in `patterns.md`.                                                                                             |
+| Your release switches on `<component>`                             | Name it on the `Components` line of a `Switch on` entry.                                                                                                       |
+| Add a `<field>` line                                               | Give the entry every field its kind needs. A custom pattern needs a reason and a research round.                                                               |
+| Does not say which GOV.UK and which MoJ component                  | Under `Why not GOV.UK or MoJ`, add a `GOV.UK:` line and an `MoJ:` line.                                                                                        |
+| Not a whole mandate, or a whole sentence of one                    | `Asked by` must quote all the designer's recorded words, or one whole sentence of them, then the mandate id. A copied pattern quotes a mandate copied with it. |
+| Every page already switches on `<component>`                       | Take it out of your release's script. Every page has it working already.                                                                                       |
+| `mandates.md` only gains entries                                   | Put the changed or removed entry back.                                                                                                                         |
+| Rename `<class>`                                                   | Start the class with `app-<release>-`, so it cannot clash with the real service.                                                                               |
+| Add `<class>` to the Classes line                                  | Name the class on the `Classes` line of its pattern.                                                                                                           |
+| Could style pages beyond your pattern                              | Start each Sass rule with an `app-<release>-` class.                                                                                                           |
+| Writes a colour by hand                                            | Use `govuk-colour()` or a GOV.UK functional colour.                                                                                                            |
+| Styles the shared chrome                                           | The header, navigation, phase banner and footer are shared. Log what you want in `design-gaps.md`.                                                             |
+| It loads `<path>`                                                  | Load only GOV.UK Frontend, MoJ Frontend and files in your `assets/`.                                                                                           |
+| Your release layout can only add your styles and script            | Keep to the `head` and `bodyEnd` blocks, each with `{{ super() }}`.                                                                                            |
+| Your release layout can load only its own                          | Load only `release-<release>.css` and `release-<release>.js`, through `getAssetPath`.                                                                          |
+| It extends `<layout>`                                              | Extend `shared/layout.njk` or your release's own `layout.njk`.                                                                                                 |
+| The security settings block inline styles and scripts              | Move the style or script into your release's `assets/`.                                                                                                        |
+| It belongs to the real service                                     | Undo the change to `src/client`, `webpack.config.js` or the shared layout.                                                                                     |
+| It belongs to the prototype, a maintainer changes it               | Undo the change to `webpack.prototype.config.js` or `scripts/release-assets/`.                                                                                 |
+| This run has no designer's mandate, so it cannot add a pattern     | Build the nearest GOV.UK option and log a design gap. Or ask in your own words, saying what research should learn, and it can be built.                        |
+| It changes a release pattern this release already has              | Say you want that pattern changed. It is changed under the mandate its entry already cites.                                                                    |
+| A run under the designer's mandate cannot record one               | Take the new mandate out. Only your own session records one.                                                                                                   |
+| This run works under the designer's mandate, so cite only that one | A pattern a workflow adds or changes cites the mandate the workflow was given.                                                                                 |
+| Is new, so its status is Option                                    | A pattern a workflow adds stays an `Option` until you choose it.                                                                                               |
+
+- Skill: `match-the-design`
 
 ### A frozen release was changed
 
