@@ -40,7 +40,7 @@ puts it beside the new page.
   `docs/fidelity-<page>.md`. Each thing on the old page is marked:
   - **matched**: the same thing, built with GOV.UK components
   - **nearest**: the closest GOV.UK option, visibly different
-  - **gap**: nothing could be built, usually custom styles or scripts
+  - **gap**: not built, such as a change to the shared header, or custom styles you have not asked for
   - **pattern**: rebuilt as a release pattern, because you asked for it
 - **Design gaps**: every "nearest" or "gap" you can see on screen is logged
   in your release's `design-gaps.md`, so it travels with a hand-off.

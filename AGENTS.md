@@ -60,8 +60,10 @@ in a Claude Code session opened at the workspace root
    Inline styles and scripts never work here (CSP).
    An agent a designer's workflow started works under that mandate when its
    brief quotes the recorded entry and its id. It still tries GOV.UK and MoJ
-   first, and offers each custom design as an option for the designer to
-   choose.
+   first. Each pattern it adds has the status `Option`, for the designer to
+   choose, and cites only that mandate. It never records a mandate itself.
+   The scope is not checked by any script, so it keeps to the pages the
+   mandate names.
 5. **Example data replays real pages.** Never write a record by hand:
    every example is a list of page answers posted to the set's own
    routes.

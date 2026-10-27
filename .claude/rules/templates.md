@@ -47,8 +47,14 @@ row to `design-gaps.md`.
 
 An agent started by a designer's workflow works under that designer's
 mandate when its brief quotes the recorded entry and its id. It still tries
-rungs 1 and 2 first, and offers each custom design as an option for the
-designer to choose.
+rungs 1 and 2 first. Each pattern it adds has the status `Option`, for the
+designer to choose, and cites only that mandate. It never records a mandate
+of its own. The workflow's check refuses anything else. It does not check the
+mandate's scope: the agent keeps to the pages the mandate names.
+
+To change a pattern the release already has, work under the mandate its
+entry already cites. With no mandate at all, a run leaves every pattern as
+it is.
 
 Release Sass uses GOV.UK Frontend's settings and mixins, never raw colours.
 A release script only enhances a page that already works without it.

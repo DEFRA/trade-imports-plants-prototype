@@ -1,15 +1,32 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 
 import webpack from 'webpack'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import baseConfig from '../../webpack.config.js'
-import { findReleaseAssets } from './releases.js'
+import prototypeConfig from '../../webpack.prototype.config.js'
+import { findReleaseAssets, releaseEntryName } from './releases.js'
 import { withReleaseAssets } from './with-release-assets.js'
 
+const repoRoot = path.join(import.meta.dirname, '../..')
 const fixtureSets = path.join(import.meta.dirname, 'fixtures/sets')
+
+describe('webpack.prototype.config.js', () => {
+  it('Should add one entry for each release in src/server/app/sets that carries styles or scripts', () => {
+    const releaseEntries = Object.keys(prototypeConfig.entry).filter((name) =>
+      name.startsWith('release-')
+    )
+
+    expect(releaseEntries).toEqual(
+      findReleaseAssets(path.join(repoRoot, 'src/server/app/sets')).map(
+        ({ id }) => releaseEntryName(id)
+      )
+    )
+  })
+})
 
 const compile = (config) =>
   new Promise((resolve, reject) => {
@@ -27,11 +44,14 @@ const compile = (config) =>
 describe('a build of the real webpack config with two fixture releases', () => {
   let outputPath
   let manifest
+  let startedIn
 
   const builtFile = (key) =>
     readFileSync(path.join(outputPath, manifest[key]), 'utf8')
 
   beforeAll(async () => {
+    startedIn = process.cwd()
+    process.chdir(repoRoot)
     outputPath = mkdtempSync(path.join(tmpdir(), 'release-assets-'))
     const config = withReleaseAssets(baseConfig, findReleaseAssets(fixtureSets))
     await compile({ ...config, output: { ...config.output, path: outputPath } })
@@ -41,6 +61,7 @@ describe('a build of the real webpack config with two fixture releases', () => {
   }, 120_000)
 
   afterAll(() => {
+    process.chdir(startedIn)
     rmSync(outputPath, { recursive: true, force: true })
   })
 

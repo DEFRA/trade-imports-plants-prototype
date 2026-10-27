@@ -4,23 +4,37 @@ import nunjucks from 'nunjucks'
 import { describe, expect, it } from 'vitest'
 
 import * as globals from '../../src/config/nunjucks/globals/globals.js'
+import { nunjucksConfig } from '../../src/config/nunjucks/nunjucks.js'
 
 const repoRoot = path.join(import.meta.dirname, '../..')
 const fixtureSets = path.join(import.meta.dirname, 'fixtures/sets')
 
+const appEnvironment = nunjucksConfig.options.compileOptions.environment
+const appSearchPaths = appEnvironment.loaders.flatMap(
+  (loader) => loader.searchPaths ?? []
+)
+
 const environment = new nunjucks.Environment(
-  new nunjucks.FileSystemLoader([
-    path.join(repoRoot, 'node_modules/govuk-frontend/dist/'),
-    path.join(repoRoot, 'node_modules/@ministryofjustice/frontend/'),
-    path.join(repoRoot, 'src/server/common/components'),
-    path.join(repoRoot, 'src/server/app'),
-    fixtureSets
-  ]),
-  { autoescape: true, trimBlocks: true, lstripBlocks: true }
+  new nunjucks.FileSystemLoader(
+    [...appSearchPaths, fixtureSets].map((searchPath) =>
+      path.resolve(repoRoot, searchPath)
+    )
+  ),
+  {
+    autoescape: appEnvironment.opts.autoescape,
+    trimBlocks: appEnvironment.opts.trimBlocks,
+    lstripBlocks: appEnvironment.opts.lstripBlocks
+  }
 )
 for (const [name, global] of Object.entries(globals)) {
   environment.addGlobal(name, global)
 }
+
+describe("the app's template search paths", () => {
+  it('Should find a release layout by its set id, under src/server/app/sets', () => {
+    expect(appSearchPaths).toContain(path.join(repoRoot, 'src/server/app/sets'))
+  })
+})
 
 const render = (page) =>
   environment.render(page, { getAssetPath: (asset) => `/public/${asset}` })

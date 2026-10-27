@@ -53,7 +53,9 @@ releases are sets. Keep them working with these rules.
    `app-<release>-<block>`, and every pattern has an entry in the release's
    `patterns.md`. Only a designer's mandate, recorded in `mandates.md` by
    `designer:mandate`, adds to `assets/`, `layout.njk` or
-   `patterns.md`. `mandates.md` only ever gains entries. Without a mandate,
+   `patterns.md`. `mandates.md` only ever gains entries. An agent a
+   designer's workflow started adds each pattern as an `Option`, citing only
+   the mandate its brief quotes. Without a mandate,
    build the nearest GOV.UK option and log a row in `design-gaps.md`. The
    prototype's `.claude/rules/templates.md` has the full ladder.
 
