@@ -133,15 +133,15 @@ export const planCopy = (sourceDir, { fromId, routesFile, purpose }) => {
 }
 
 /**
- * A release's `patterns.md` with every entry marked as copied from `fromId`
- * on `copiedOn`: a `- Copied from:` line opens each entry's field list, in
- * place of any it already had.
+ * A release's `patterns.md` or `mandates.md` with every entry marked as
+ * copied from `fromId` on `copiedOn`: a `- Copied from:` line opens each
+ * entry's field list, in place of any it already had.
  *
- * @param {string} content - the text of `patterns.md`.
+ * @param {string} content - the file's text.
  * @param {{ fromId: string, copiedOn: string }} copy - copiedOn is an ISO date.
  * @returns {string}
  */
-export const markPatternsCopied = (content, { fromId, copiedOn }) => {
+export const markEntriesCopied = (content, { fromId, copiedOn }) => {
   const copiedFrom = `- Copied from: ${fromId} on ${longDate(copiedOn)}`
   const lines = content
     .split('\n')
@@ -159,8 +159,8 @@ export const markPatternsCopied = (content, { fromId, copiedOn }) => {
  * Copies the planned files of a template set to the new set, transforming
  * every file's content and every path on the way — the filesystem shell
  * around `transform.js`'s pure rewrite. Hand in a shared `uuidMap` to learn
- * which obligation id became which. A `patterns.md` is also marked as copied
- * on `copiedOn`.
+ * which obligation id became which. A `patterns.md` and a `mandates.md` are
+ * also marked as copied on `copiedOn`.
  */
 export const copySetFiles = (
   sourceDir,
@@ -168,6 +168,7 @@ export const copySetFiles = (
   files,
   { fromId, newId, uuidMap, copiedOn }
 ) => {
+  const copiedRecords = new Set(['patterns.md', 'mandates.md'])
   for (const path of files) {
     const destPath = join(destDir, transformPath(path, { fromId, newId }))
     mkdirSync(dirname(destPath), { recursive: true })
@@ -177,8 +178,8 @@ export const copySetFiles = (
     )
     writeFileSync(
       destPath,
-      path === 'patterns.md'
-        ? markPatternsCopied(content, { fromId, copiedOn })
+      copiedRecords.has(path)
+        ? markEntriesCopied(content, { fromId, copiedOn })
         : content
     )
   }

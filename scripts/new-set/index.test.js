@@ -395,7 +395,9 @@ describe('new:set --from another release', () => {
     expect(copied('layout.njk')).toContain(
       "getAssetPath('release-plants-r4.css')"
     )
-    expect(copied('mandates.md')).toBe(releaseFiles['mandates.md'])
+    expect(copied('mandates.md')).toBe(
+      '# Mandates\n\n## m-2026-09-27-1\n\n- Copied from: plants-r3 on 27 September 2026\n- Words: "build it"\n'
+    )
     expect(copied('patterns.md')).toBe(
       '# Release patterns\n\n## Callout\n\n- Copied from: plants-r3 on 27 September 2026\n- Kind: Custom\n- Classes: app-plants-r4-callout\n- Status: Open\n'
     )
