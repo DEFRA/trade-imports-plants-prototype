@@ -19,6 +19,8 @@ const NOT_RUN = 'Not run: fix the problems above first.'
  * @param {string} [options.since] - the commit the run started from.
  * @param {boolean} [options.noNewPatterns] - with `since`, refuse any new
  * release pattern made since that commit.
+ * @param {string} [options.mandate] - with `since`, the designer's mandate
+ * the run works under.
  * @param {object} [options.runners] - the step runners (tests replace them).
  * @param {(id: string, title: string) => void} [options.onStep] - called as
  * each step starts.
@@ -34,6 +36,7 @@ export const runCheck = async ({
   runCommand,
   since,
   noNewPatterns = false,
+  mandate,
   runners = STEP_RUNNERS,
   onStep = () => {},
   onOutput = () => {}
@@ -54,7 +57,8 @@ export const runCheck = async ({
       changedPaths,
       runCommand,
       since,
-      noNewPatterns
+      noNewPatterns,
+      mandate
     })
     onOutput(title, outcome.output ?? '')
     steps.push({ id, title, details: [], ...outcome })

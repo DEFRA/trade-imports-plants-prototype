@@ -21,6 +21,7 @@ import {
 import { SETS_DIR, releaseInfo, setDir } from '../lib/sets.js'
 import {
   mandateHistoryProblems,
+  mandateRunProblems,
   patternEntryProblems
 } from './release-entries.js'
 import { classifyLoad, componentKey } from './release-loads.js'
@@ -295,6 +296,29 @@ const componentProblems = (context) => {
     )
 }
 
+const componentsEveryPageSwitchesOn = (root) => {
+  const application = path.join(root, 'src/client/javascripts/application.js')
+  return existsSync(application)
+    ? new Set(readReleaseScript(readFileSync(application, 'utf8')).components)
+    : new Set()
+}
+
+const doubleSwitchOnProblems = (context) => {
+  const everyPage = componentsEveryPageSwitchesOn(context.root)
+  return context.assets
+    .filter(({ file }) => file.endsWith('.js') && !isTestFile(file))
+    .flatMap(({ repoPath, text }) =>
+      [...new Set(readReleaseScript(text).components)]
+        .filter((component) => everyPage.has(component))
+        .map((component) =>
+          problem(
+            repoPath,
+            `Every page already switches on ${component}. Switching it on again breaks it on your release's pages. Take it out of your script.`
+          )
+        )
+    )
+}
+
 const listedClasses = (patterns) =>
   new Set(
     patterns.flatMap((entry) =>
@@ -359,7 +383,23 @@ const layoutProblems = (context) => {
       )
     }
   }
+  found.push(...layoutLoadProblems(context, layout.text))
   return found.map((message) => problem(layout.repoPath, message))
+}
+
+const layoutLoadProblems = (context, text) => {
+  const ownBundle = new RegExp(
+    String.raw`^{{\s*getAssetPath\(\s*['"]release-${context.setId}\.(?:css|js)['"]\s*\)\s*}}$`
+  )
+  return [...text.matchAll(/\s(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)]
+    .map(([, doubleQuoted, singleQuoted]) =>
+      (doubleQuoted ?? singleQuoted).trim()
+    )
+    .filter((loaded) => !ownBundle.test(loaded))
+    .map(
+      (loaded) =>
+        `It loads "${loaded}". Your release layout can load only its own release-${context.setId}.css and release-${context.setId}.js, through getAssetPath.`
+    )
 }
 
 const templateProblems = (context) => {
@@ -399,25 +439,30 @@ const templateProblems = (context) => {
 }
 
 const sharedFileProblems = (context) => {
-  const maintainerBranch = /^(?:chore|handoff)\//
-  if (!context.isRelease || maintainerBranch.test(context.branch ?? '')) {
+  if (!context.isRelease || /^handoff\//.test(context.branch ?? '')) {
     return []
   }
+  const realService = 'It belongs to the real service and holds'
+  const prototype =
+    'It belongs to the prototype, a maintainer changes it, and it holds'
   const sharedFiles = [
-    [/^src\/client\//, 'styles and scripts every set loads'],
-    [/^webpack\.config\.js$/, 'the build every set uses'],
+    [/^src\/client\//, realService, 'styles and scripts every set loads'],
+    [/^webpack\.config\.js$/, realService, 'the build every set uses'],
     [
       /^src\/server\/app\/shared\/layout\.njk$/,
+      realService,
       'the header, navigation and footer'
-    ]
+    ],
+    [/^webpack\.prototype\.config\.js$/, prototype, 'the build every set uses'],
+    [/^scripts\/release-assets\//, prototype, 'the build every set uses']
   ]
   return context.changedPaths.flatMap((repoPath) =>
     sharedFiles
       .filter(([pattern]) => pattern.test(repoPath))
-      .map(([, what]) =>
+      .map(([, owner, what]) =>
         problem(
           repoPath,
-          `It belongs to the real service and holds ${what}. Undo the change, then put your release's own styles and scripts in ${context.setRepoDir}/${ASSETS_DIR}/, or log what you need in design-gaps.md.`
+          `${owner} ${what}. Undo the change, then put your release's own styles and scripts in ${context.setRepoDir}/${ASSETS_DIR}/, or log what you need in design-gaps.md.`
         )
       )
   )
@@ -458,9 +503,16 @@ const noNewPatternProblems = (context) => {
         )
         .map((token) => ({ repoPath, token }))
     )
+  const editFix =
+    'It changes a release pattern this release already has, and this run has no designer’s mandate. Say you want that pattern changed, and it can be changed under the mandate its entry already cites.'
+  const existedBefore = (repoPath) =>
+    fileAt(context.since, repoPath, options) !== null
   return [
     ...touchedPatternFiles.map((repoPath) =>
-      problem(repoPath, `It changed. ${noMandateFix}`)
+      problem(
+        repoPath,
+        existedBefore(repoPath) ? editFix : `It is new. ${noMandateFix}`
+      )
     ),
     ...newTokens.map(({ repoPath, token }) =>
       problem(repoPath, `It adds the class ${token}. ${noMandateFix}`)
@@ -482,6 +534,21 @@ const mandateProblems = (context) => {
   return mandateHistoryProblems(earlier, context.mandates, context)
 }
 
+const underMandateProblems = (context, mandateId) => {
+  const earlierFile = (file) =>
+    fileAt(context.since, `${context.setRepoDir}/${file}`, {
+      root: context.root
+    })
+  return mandateRunProblems(
+    {
+      patterns: earlierFile(PATTERNS_FILE),
+      mandates: earlierFile(MANDATES_FILE)
+    },
+    context,
+    { setRepoDir: context.setRepoDir, mandateId }
+  )
+}
+
 /**
  * Runs every release-assets check on one set.
  *
@@ -495,20 +562,35 @@ const mandateProblems = (context) => {
  * @param {boolean} [options.noNewPatterns] - refuse, with `since`, any
  * change since that commit to the release's assets, layout, patterns or
  * mandates, and any new `app-` class.
+ * @param {string} [options.mandate] - with `since`, the id of the designer's
+ * mandate the run works under: the run records no mandate, and every
+ * pattern it adds or changes cites this one.
  * @returns {{ problems: Array<{ file: string, message: string }>, patterns: number, assets: number }}
  */
 export const checkReleaseAssets = (
   setId,
-  { root, changedPaths = [], branch = null, since, noNewPatterns = false }
+  {
+    root,
+    changedPaths = [],
+    branch = null,
+    since,
+    noNewPatterns = false,
+    mandate
+  }
 ) => {
   const refused = (message) => ({
     problems: [problem('--since', message)],
     patterns: 0,
     assets: 0
   })
-  if (noNewPatterns && !since) {
+  if ((noNewPatterns || mandate) && !since) {
     return refused(
-      'Refusing new patterns needs the commit the run started from. Add --since <commit>.'
+      'Checking a run needs the commit the run started from. Add --since <commit>.'
+    )
+  }
+  if (noNewPatterns && mandate) {
+    return refused(
+      'Choose --no-new-patterns for a run with no mandate, or --mandate for a run with one, not both.'
     )
   }
   if (since && !revParse(since, { root })) {
@@ -527,13 +609,15 @@ export const checkReleaseAssets = (
       .flatMap((asset) => scriptFileProblems(context, asset)),
     ...sassOutsideAssets(context),
     ...componentProblems(context),
+    ...doubleSwitchOnProblems(context),
     ...patternEntryProblems(context.patterns, context.mandates, context),
     ...mandateProblems(context),
     ...classProblems(context),
     ...layoutProblems(context),
     ...templateProblems(context),
     ...sharedFileProblems(context),
-    ...(noNewPatterns ? noNewPatternProblems(context) : [])
+    ...(noNewPatterns ? noNewPatternProblems(context) : []),
+    ...(mandate ? underMandateProblems(context, mandate) : [])
   ]
   return {
     problems,

@@ -248,6 +248,30 @@ describe('checkReleaseAssets', () => {
       expect(messages()).toEqual([])
     })
 
+    it('Should refuse a component every page already switches on', () => {
+      fixture.write(
+        'src/client/javascripts/application.js',
+        "import { createAll, Radios } from 'govuk-frontend'\n\ncreateAll(Radios)\n"
+      )
+      fixture.write(
+        `${DIR}/assets/scripts.js`,
+        SCRIPTS.replace('Tabs }', 'Tabs, Radios }').concat(
+          'createAll(Radios)\n'
+        )
+      )
+      fixture.write(
+        PATTERNS,
+        PATTERNS_TEXT.replace(
+          '- Components: govuk Tabs, moj Filter',
+          '- Components: govuk Tabs, govuk Radios, moj Filter'
+        )
+      )
+
+      expect(messages()).toEqual([
+        `${DIR}/assets/scripts.js: Every page already switches on govuk radios. Switching it on again breaks it on your release's pages. Take it out of your script.`
+      ])
+    })
+
     it('Should refuse initAll, which switches on everything unrecorded', () => {
       fixture.write(
         `${DIR}/assets/scripts.js`,
@@ -339,7 +363,7 @@ describe('checkReleaseAssets', () => {
       )
 
       expect(messages()).toEqual([
-        `${PATTERNS}: "Commodity search" is asked for by "build whatever you like" (m-2026-10-27-1), which is not word for word in a mandate in mandates.md. Asked by must quote a recorded mandate, then its id in brackets. Ask the designer, then run designer:mandate record.`
+        `${PATTERNS}: "Commodity search" is asked for by "build whatever you like" (m-2026-10-27-1), which is not a whole mandate, or a whole sentence of one, recorded in mandates.md. Asked by must quote a recorded mandate, then its id in brackets. Ask the designer, then run designer:mandate record.`
       ])
     })
 
@@ -350,11 +374,63 @@ describe('checkReleaseAssets', () => {
       )
 
       expect(messages()).toEqual([
-        expect.stringContaining('is not word for word in a mandate')
+        expect.stringContaining('is not a whole mandate')
       ])
     })
 
-    it('Should leave a copied entry to trace to the release it came from', () => {
+    it('Should refuse a quote that is only a fragment of the mandate it cites', () => {
+      fixture.write(
+        MANDATES,
+        MANDATES_TEXT.replace(
+          MANDATE_WORDS,
+          "don't build new components, keep to GOV.UK"
+        )
+      )
+      fixture.commitAll('a mandate that says no')
+      fixture.write(
+        PATTERNS,
+        PATTERNS_TEXT.replace(`"${MANDATE_WORDS}"`, '"build new components"')
+      )
+
+      expect(messages()).toEqual([
+        expect.stringContaining(
+          'is asked for by "build new components" (m-2026-10-27-1), which is not a whole mandate'
+        )
+      ])
+    })
+
+    it('Should accept a quote that is one whole sentence of the mandate it cites', () => {
+      fixture.write(
+        MANDATES,
+        MANDATES_TEXT.replace(
+          MANDATE_WORDS,
+          `give me 3 options for this page; ${MANDATE_WORDS}.`
+        )
+      )
+      fixture.commitAll('a mandate of two sentences')
+
+      expect(messages()).toEqual([])
+    })
+
+    it("Should trace a copied entry's quote to the mandate copied with it", () => {
+      const copied = '- Copied from: plants-dr2 on 27 October 2026\n'
+      fixture.write(
+        MANDATES,
+        MANDATES_TEXT.replace(
+          '- Date: 2026-10-27\n',
+          `${copied}- Date: 2026-10-27\n`
+        )
+      )
+      fixture.commitAll('mandates copied with the release')
+      fixture.write(
+        PATTERNS,
+        PATTERNS_TEXT.replace('- Kind: Custom\n', `${copied}- Kind: Custom\n`)
+      )
+
+      expect(messages()).toEqual([])
+    })
+
+    it('Should refuse a copied entry whose quote no mandate here holds', () => {
       fixture.write(
         PATTERNS,
         PATTERNS_TEXT.replace(
@@ -362,14 +438,18 @@ describe('checkReleaseAssets', () => {
           '"words from the first release"'
         ).replace(
           '- Status: Open\n\n',
-          '- Copied from: plants-dr2 on 2026-10-27\n- Status: Open\n\n'
+          '- Copied from: plants-dr2 on 27 October 2026\n- Status: Open\n\n'
         )
       )
 
-      expect(messages()).toEqual([])
+      expect(messages()).toEqual([
+        expect.stringContaining(
+          'is asked for by "words from the first release" (m-2026-10-27-1), which is not a whole mandate'
+        )
+      ])
     })
 
-    it('Should not ask a closed entry to trace its quote', () => {
+    it("Should trace a closed entry's quote as well", () => {
       fixture.write(
         PATTERNS,
         PATTERNS_TEXT.replace(
@@ -381,7 +461,11 @@ describe('checkReleaseAssets', () => {
         )
       )
 
-      expect(messages()).toEqual([])
+      expect(messages()).toEqual([
+        expect.stringContaining(
+          'is asked for by "words since lost" (m-2026-10-27-1), which is not a whole mandate'
+        )
+      ])
     })
   })
 
@@ -402,7 +486,7 @@ describe('checkReleaseAssets', () => {
       )
 
       expect(messages()).toEqual([
-        expect.stringContaining('is not word for word in a mandate'),
+        expect.stringContaining('is not a whole mandate'),
         `${MANDATES}: The mandate m-2026-10-27-1 was changed or removed. mandates.md only gains entries. Put the old entry back.`
       ])
     })
@@ -486,6 +570,48 @@ describe('checkReleaseAssets', () => {
       ])
     })
 
+    it.each([
+      ['.govuk-button:not(.app-plants-working-commodity-search)'],
+      ['.govuk-body:has(.app-plants-working-commodity-search)'],
+      [':is(.app-plants-working-commodity-search) .govuk-link'],
+      ['.govuk-list .app-plants-working-commodity-search']
+    ])(
+      'Should refuse "%s", whose first part holds no release class',
+      (selector) => {
+        fixture.write(
+          `${DIR}/assets/_commodity-search.scss`,
+          `${COMMODITY_SEARCH_SASS}\n${selector} {\n  margin: 0;\n}\n`
+        )
+
+        expect(messages()).toEqual([
+          `${DIR}/assets/_commodity-search.scss: The rule "${selector}" could style pages beyond your pattern. Start each rule with an app-plants-working- class, so it only styles your pattern.`
+        ])
+      }
+    )
+
+    it.each([
+      ['@at-root { .govuk-link { margin: 0; } }', '.govuk-link'],
+      ['@at-root .govuk-button { margin: 0; }', '.govuk-button']
+    ])('Should refuse "%s" inside a prefixed rule', (atRoot, selector) => {
+      fixture.write(
+        `${DIR}/assets/_commodity-search.scss`,
+        `${COMMODITY_SEARCH_SASS}\n.app-plants-working-commodity-search {\n  ${atRoot}\n}\n`
+      )
+
+      expect(messages()).toEqual([
+        expect.stringContaining(`The rule "${selector}" could style pages`)
+      ])
+    })
+
+    it('Should accept an @at-root rule that keeps the release class', () => {
+      fixture.write(
+        `${DIR}/assets/_commodity-search.scss`,
+        `${COMMODITY_SEARCH_SASS}\n.app-plants-working-commodity-search {\n  @at-root { &__footer { margin: 0; } }\n}\n`
+      )
+
+      expect(messages()).toEqual([])
+    })
+
     it('Should refuse a colour written by hand', () => {
       fixture.write(
         `${DIR}/assets/_commodity-search.scss`,
@@ -560,11 +686,36 @@ describe('checkReleaseAssets', () => {
       }
     )
 
-    it("Should leave a maintainer's change on a chore branch to the ownership step", () => {
+    it.each([
+      'webpack.prototype.config.js',
+      'scripts/release-assets/releases.js'
+    ])(
+      "Should refuse a change to the prototype's release build file %s while working in a design release",
+      (repoPath) => {
+        expect(messages({ changedPaths: [repoPath], branch: 'main' })).toEqual([
+          `${repoPath}: It belongs to the prototype, a maintainer changes it, and it holds the build every set uses. Undo the change, then put your release's own styles and scripts in ${DIR}/assets/, or log what you need in design-gaps.md.`
+        ])
+      }
+    )
+
+    it('Should refuse a change to src/client on a chore branch too', () => {
       expect(
         messages({
           changedPaths: ['src/client/javascripts/application.js'],
           branch: 'chore/NO_JIRA-tidy'
+        })
+      ).toEqual([
+        expect.stringMatching(
+          /^src\/client\/javascripts\/application\.js: It belongs to the real service/
+        )
+      ])
+    })
+
+    it('Should leave the shared layout to the hand-off on a handoff branch', () => {
+      expect(
+        messages({
+          changedPaths: ['src/server/app/shared/layout.njk'],
+          branch: 'handoff/new-header'
         })
       ).toEqual([])
     })
@@ -601,6 +752,34 @@ describe('checkReleaseAssets', () => {
 
       expect(messages()).toEqual([
         `${DIR}/layout.njk: It must extend "shared/layout.njk". Your release layout can only add your styles and script. The header and footer stay shared.`
+      ])
+    })
+
+    it('Should refuse a layout that loads another release’s bundle', () => {
+      fixture.write(
+        `${DIR}/layout.njk`,
+        LAYOUT.replace(
+          `getAssetPath('release-${SET}.css')`,
+          "getAssetPath('release-plants-dr2.css')"
+        )
+      )
+
+      expect(messages()).toEqual([
+        `${DIR}/layout.njk: It loads "{{ getAssetPath('release-plants-dr2.css') }}". Your release layout can load only its own release-${SET}.css and release-${SET}.js, through getAssetPath.`
+      ])
+    })
+
+    it('Should refuse a layout that loads a script from another site', () => {
+      fixture.write(
+        `${DIR}/layout.njk`,
+        LAYOUT.replace(
+          `{{ getAssetPath('release-${SET}.js') }}`,
+          'https://example.com/widget.js'
+        )
+      )
+
+      expect(messages()).toEqual([
+        expect.stringContaining('It loads "https://example.com/widget.js".')
       ])
     })
 
@@ -643,7 +822,7 @@ describe('checkReleaseAssets', () => {
       expect(messages({ since, noNewPatterns: true })).toEqual([])
     })
 
-    it('Should refuse a change to the assets, even one that is recorded', () => {
+    it('Should refuse a change to an existing pattern, saying how to ask for it', () => {
       const since = start()
       fixture.write(
         `${DIR}/assets/_commodity-search.scss`,
@@ -651,8 +830,20 @@ describe('checkReleaseAssets', () => {
       )
 
       expect(messages({ since, noNewPatterns: true })).toEqual([
-        `${DIR}/assets/_commodity-search.scss: It changed. This run has no designer’s mandate, so it cannot add a pattern. Build the nearest option and log a design gap.`
+        `${DIR}/assets/_commodity-search.scss: It changes a release pattern this release already has, and this run has no designer’s mandate. Say you want that pattern changed, and it can be changed under the mandate its entry already cites.`
       ])
+    })
+
+    it('Should refuse a new asset file as a new pattern', () => {
+      const since = start()
+      fixture.write(
+        `${DIR}/assets/_summary-card.scss`,
+        '.app-plants-working-commodity-search { margin: 0; }\n'
+      )
+
+      expect(messages({ since, noNewPatterns: true })).toContain(
+        `${DIR}/assets/_summary-card.scss: It is new. This run has no designer’s mandate, so it cannot add a pattern. Build the nearest option and log a design gap.`
+      )
     })
 
     it('Should refuse a change to patterns.md, layout.njk or mandates.md', () => {
@@ -686,13 +877,107 @@ describe('checkReleaseAssets', () => {
 
     it('Should refuse a run with no commit to compare with', () => {
       expect(messages({ noNewPatterns: true })).toEqual([
-        '--since: Refusing new patterns needs the commit the run started from. Add --since <commit>.'
+        '--since: Checking a run needs the commit the run started from. Add --since <commit>.'
       ])
     })
 
     it('Should refuse a commit that does not exist', () => {
       expect(messages({ since: 'no-such-commit' })).toEqual([
         '--since: There is no commit "no-such-commit". Pass the commit this run started from.'
+      ])
+    })
+  })
+
+  describe("a run under a designer's mandate", () => {
+    const start = () => revParse('HEAD', { root: fixture.root })
+    const mandate = 'm-2026-10-27-2'
+    const SUMMARY_CARD = `## Summary card
+
+- Kind: Custom
+- Pages: dashboard
+- Classes: app-plants-working-commodity-search
+- Files: assets/styles.scss
+- Why not GOV.UK or MoJ:
+  - GOV.UK: Summary card. No status colour.
+  - MoJ: Badge. Not a card.
+- Need or hypothesis: (proposed: confirm) traders spot late notifications faster.
+- Research round: Round 3 (12 Nov 2026)
+- Findings: none yet
+- Asked by: "can the dashboard tabs and the filter actually work?" (${mandate})
+- Status: Option
+`
+
+    it('Should pass a new Option that cites the mandate', () => {
+      const since = start()
+      fixture.write(PATTERNS, `${PATTERNS_TEXT}\n${SUMMARY_CARD}`)
+
+      expect(messages({ since, mandate })).toEqual([])
+    })
+
+    it('Should refuse a new pattern that is not an Option', () => {
+      const since = start()
+      fixture.write(
+        PATTERNS,
+        `${PATTERNS_TEXT}\n${SUMMARY_CARD.replace('Status: Option', 'Status: Open')}`
+      )
+
+      expect(messages({ since, mandate })).toEqual([
+        `${PATTERNS}: "Summary card" is new, so its status is Option until the designer chooses it.`
+      ])
+    })
+
+    it('Should refuse a pattern that cites another mandate', () => {
+      const since = start()
+      fixture.write(
+        PATTERNS,
+        `${PATTERNS_TEXT}\n${SUMMARY_CARD.replace(
+          `"can the dashboard tabs and the filter actually work?" (${mandate})`,
+          `"${MANDATE_WORDS}" (m-2026-10-27-1)`
+        )}`
+      )
+
+      expect(messages({ since, mandate })).toEqual([
+        `${PATTERNS}: "Summary card" is asked for by "${MANDATE_WORDS}" (m-2026-10-27-1). This run works under the designer's mandate ${mandate}, so cite only that one.`,
+        `${PATTERNS}: "Summary card" changed but does not cite the designer's mandate ${mandate}. Add an "Asked by" line quoting it.`
+      ])
+    })
+
+    it('Should refuse a mandate the run recorded itself', () => {
+      const since = start()
+      fixture.write(
+        MANDATES,
+        `${MANDATES_TEXT}\n## m-2026-10-27-3\n\n- Date: 2026-10-27\n- Words: build anything\n- Scope: everything\n`
+      )
+
+      expect(messages({ since, mandate })).toEqual([
+        `${MANDATES}: It adds the mandate m-2026-10-27-3. A run under the designer's mandate ${mandate} cannot record one: only the designer's own session can. Take m-2026-10-27-3 out.`
+      ])
+    })
+
+    it('Should let an existing pattern change under the mandate it already cites', () => {
+      const since = start()
+      fixture.write(
+        PATTERNS,
+        PATTERNS_TEXT.replace(
+          '- Findings: none yet',
+          '- Findings: round 3 notes'
+        )
+      )
+
+      expect(messages({ since, mandate: 'm-2026-10-27-1' })).toEqual([])
+    })
+
+    it('Should refuse a mandate that was not recorded before the run', () => {
+      const since = start()
+
+      expect(messages({ since, mandate: 'm-2026-10-27-9' })).toEqual([
+        `${MANDATES}: There is no mandate m-2026-10-27-9 from before this run. Run with a mandate the designer recorded first.`
+      ])
+    })
+
+    it('Should refuse a mandate with no commit to compare with', () => {
+      expect(messages({ mandate })).toEqual([
+        '--since: Checking a run needs the commit the run started from. Add --since <commit>.'
       ])
     })
   })

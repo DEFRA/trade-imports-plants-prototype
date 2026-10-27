@@ -393,27 +393,34 @@ assets-manifest.json not found`, or `Module not found`.
 - Fix: each line names the file and says what to change. The lines you may
   see:
 
-| The check says                                          | What to do                                                                                                                              |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Your release's assets hold only Sass and script files   | Move the file out of `assets/`.                                                                                                         |
-| Add `<name>.test.js`                                    | Add a test showing the page works without the script, and that the script attaches.                                                     |
-| Add `<file>` to the Files line                          | Name the file on the `Files` line of its pattern in `patterns.md`.                                                                      |
-| Your release switches on `<component>`                  | Name it on the `Components` line of a `Switch on` entry.                                                                                |
-| Add a `<field>` line                                    | Give the entry every field its kind needs. A custom pattern needs a reason and a research round.                                        |
-| Does not say which GOV.UK and which MoJ component       | Under `Why not GOV.UK or MoJ`, add a `GOV.UK:` line and an `MoJ:` line.                                                                 |
-| Not word for word in a mandate                          | `Asked by` must quote the designer's recorded words, then the mandate id.                                                               |
-| `mandates.md` only gains entries                        | Put the changed or removed entry back.                                                                                                  |
-| Rename `<class>`                                        | Start the class with `app-<release>-`, so it cannot clash with the real service.                                                        |
-| Add `<class>` to the Classes line                       | Name the class on the `Classes` line of its pattern.                                                                                    |
-| Could style pages beyond your pattern                   | Start each Sass rule with an `app-<release>-` class.                                                                                    |
-| Writes a colour by hand                                 | Use `govuk-colour()` or a GOV.UK functional colour.                                                                                     |
-| Styles the shared chrome                                | The header, navigation, phase banner and footer are shared. Log what you want in `design-gaps.md`.                                      |
-| It loads `<path>`                                       | Load only GOV.UK Frontend, MoJ Frontend and files in your `assets/`.                                                                    |
-| Your release layout can only add your styles and script | Keep to the `head` and `bodyEnd` blocks, each with `{{ super() }}`.                                                                     |
-| It extends `<layout>`                                   | Extend `shared/layout.njk` or your release's own `layout.njk`.                                                                          |
-| The security settings block inline styles and scripts   | Move the style or script into your release's `assets/`.                                                                                 |
-| It belongs to the real service                          | Undo the change to `src/client`, `webpack.config.js` or the shared layout.                                                              |
-| This run has no designer's mandate                      | Build the nearest GOV.UK option and log a design gap. Or ask in your own words, saying what research should learn, and it can be built. |
+| The check says                                                     | What to do                                                                                                                                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Your release's assets hold only Sass and script files              | Move the file out of `assets/`.                                                                                                                                |
+| Add `<name>.test.js`                                               | Add a test showing the page works without the script, and that the script attaches.                                                                            |
+| Add `<file>` to the Files line                                     | Name the file on the `Files` line of its pattern in `patterns.md`.                                                                                             |
+| Your release switches on `<component>`                             | Name it on the `Components` line of a `Switch on` entry.                                                                                                       |
+| Add a `<field>` line                                               | Give the entry every field its kind needs. A custom pattern needs a reason and a research round.                                                               |
+| Does not say which GOV.UK and which MoJ component                  | Under `Why not GOV.UK or MoJ`, add a `GOV.UK:` line and an `MoJ:` line.                                                                                        |
+| Not a whole mandate, or a whole sentence of one                    | `Asked by` must quote all the designer's recorded words, or one whole sentence of them, then the mandate id. A copied pattern quotes a mandate copied with it. |
+| Every page already switches on `<component>`                       | Take it out of your release's script. Every page has it working already.                                                                                       |
+| `mandates.md` only gains entries                                   | Put the changed or removed entry back.                                                                                                                         |
+| Rename `<class>`                                                   | Start the class with `app-<release>-`, so it cannot clash with the real service.                                                                               |
+| Add `<class>` to the Classes line                                  | Name the class on the `Classes` line of its pattern.                                                                                                           |
+| Could style pages beyond your pattern                              | Start each Sass rule with an `app-<release>-` class.                                                                                                           |
+| Writes a colour by hand                                            | Use `govuk-colour()` or a GOV.UK functional colour.                                                                                                            |
+| Styles the shared chrome                                           | The header, navigation, phase banner and footer are shared. Log what you want in `design-gaps.md`.                                                             |
+| It loads `<path>`                                                  | Load only GOV.UK Frontend, MoJ Frontend and files in your `assets/`.                                                                                           |
+| Your release layout can only add your styles and script            | Keep to the `head` and `bodyEnd` blocks, each with `{{ super() }}`.                                                                                            |
+| Your release layout can load only its own                          | Load only `release-<release>.css` and `release-<release>.js`, through `getAssetPath`.                                                                          |
+| It extends `<layout>`                                              | Extend `shared/layout.njk` or your release's own `layout.njk`.                                                                                                 |
+| The security settings block inline styles and scripts              | Move the style or script into your release's `assets/`.                                                                                                        |
+| It belongs to the real service                                     | Undo the change to `src/client`, `webpack.config.js` or the shared layout.                                                                                     |
+| It belongs to the prototype, a maintainer changes it               | Undo the change to `webpack.prototype.config.js` or `scripts/release-assets/`.                                                                                 |
+| This run has no designer's mandate, so it cannot add a pattern     | Build the nearest GOV.UK option and log a design gap. Or ask in your own words, saying what research should learn, and it can be built.                        |
+| It changes a release pattern this release already has              | Say you want that pattern changed. It is changed under the mandate its entry already cites.                                                                    |
+| A run under the designer's mandate cannot record one               | Take the new mandate out. Only your own session records one.                                                                                                   |
+| This run works under the designer's mandate, so cite only that one | A pattern a workflow adds or changes cites the mandate the workflow was given.                                                                                 |
+| Is new, so its status is Option                                    | A pattern a workflow adds stays an `Option` until you choose it.                                                                                               |
 
 - Skill: `match-the-design`
 

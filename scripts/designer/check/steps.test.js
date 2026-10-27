@@ -147,10 +147,10 @@ describe('the release-assets step', () => {
       status: 'fail',
       summary: "1 problem with your release's own styles and scripts.",
       details: [
-        '--since: Refusing new patterns needs the commit the run started from. Add --since <commit>.'
+        '--since: Checking a run needs the commit the run started from. Add --since <commit>.'
       ],
       output:
-        'release-assets: --since: Refusing new patterns needs the commit the run started from. Add --since <commit>.'
+        'release-assets: --since: Checking a run needs the commit the run started from. Add --since <commit>.'
     })
   })
 })

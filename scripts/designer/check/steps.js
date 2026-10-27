@@ -240,7 +240,14 @@ const templates = ({ root, setId }) => {
   return result('pass', `${plural(checked.templates, 'template')} compile.`)
 }
 
-const releaseAssets = ({ root, setId, changedPaths, since, noNewPatterns }) => {
+const releaseAssets = ({
+  root,
+  setId,
+  changedPaths,
+  since,
+  noNewPatterns,
+  mandate
+}) => {
   if (setId === REAL_JOURNEY_SET) {
     return result(
       'pass',
@@ -252,7 +259,8 @@ const releaseAssets = ({ root, setId, changedPaths, since, noNewPatterns }) => {
     changedPaths,
     branch: currentBranch({ root }),
     since,
-    noNewPatterns
+    noNewPatterns,
+    mandate
   })
   const lines = checked.problems.map(
     ({ file, message }) => `${file}: ${message}`

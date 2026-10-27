@@ -78,6 +78,36 @@ export const listFieldOf = (entry, name) =>
     .map((value) => value.trim())
     .filter(Boolean)
 
+/**
+ * Each `Asked by` line of a pattern, split into the quoted words and the
+ * mandate id in brackets after them. A line not in that shape has empty
+ * `quote` and `id`.
+ */
+export const askedByOf = (entry) =>
+  (entry.fields['Asked by'] ?? [])
+    .filter((line) => line !== '')
+    .map((line) => {
+      const quoted = /^["“](.+)["”]\s*\(([^)]+)\)$/.exec(line)
+      return {
+        line,
+        quote: quoted?.[1] ?? '',
+        id: quoted?.[2].trim() ?? ''
+      }
+    })
+
+/**
+ * Whether a pattern cites a mandate that was recorded in this release, not
+ * copied with it from another.
+ */
+export const hasFreshMandate = (entry, mandates) => {
+  const fresh = new Set(
+    mandates
+      .filter((mandate) => fieldOf(mandate, 'Copied from') === '')
+      .map((mandate) => mandate.name)
+  )
+  return askedByOf(entry).some(({ id }) => fresh.has(id))
+}
+
 const readEntriesIn = (setFolder, file) => {
   const full = path.join(setFolder, file)
   return existsSync(full) ? parseEntries(readFileSync(full, 'utf8')) : []

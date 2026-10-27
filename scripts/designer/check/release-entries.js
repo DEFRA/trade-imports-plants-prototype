@@ -5,6 +5,7 @@
  * mandate, and no recorded mandate changed.
  */
 import {
+  askedByOf,
   fieldOf,
   MANDATES_FILE,
   parseEntries,
@@ -74,27 +75,29 @@ const rungProblems = (entry) => {
       ]
 }
 
+const comparable = (text) =>
+  normalised(text.replaceAll(/[‘’]/g, "'")).replace(/[.!?;,]+$/, '')
+
+const quotesWhole = (quote, words) => {
+  const sentences = normalised(words)
+    .split(/(?<=[.!?;])\s+/)
+    .map(comparable)
+  const quoted = comparable(quote)
+  return (
+    quoted !== '' &&
+    (quoted === comparable(words) || sentences.includes(quoted))
+  )
+}
+
 const quoteProblems = (entry, mandates) => {
-  const tracedStatuses = new Set(['Open', 'Option'])
-  if (
-    !tracedStatuses.has(fieldOf(entry, 'Status')) ||
-    fieldOf(entry, 'Copied from') !== ''
-  ) {
-    return []
-  }
   const wordsById = new Map(
     mandates.map((mandate) => [mandate.name, fieldOf(mandate, 'Words')])
   )
-  const traces = (askedBy) => {
-    const quoted = /^["“](.+)["”]\s*\(([^)]+)\)$/.exec(askedBy)
-    const words = quoted ? (wordsById.get(quoted[2]) ?? '') : ''
-    return words !== '' && normalised(words).includes(normalised(quoted[1]))
-  }
-  return (entry.fields['Asked by'] ?? [])
-    .filter((askedBy) => askedBy !== '' && !traces(askedBy))
+  return askedByOf(entry)
+    .filter(({ quote, id }) => !quotesWhole(quote, wordsById.get(id) ?? ''))
     .map(
-      (askedBy) =>
-        `"${entry.name}" is asked for by ${askedBy}, which is not word for word in a mandate in ${MANDATES_FILE}. Asked by must quote a recorded mandate, then its id in brackets. Ask the designer, then run designer:mandate record.`
+      ({ line }) =>
+        `"${entry.name}" is asked for by ${line}, which is not a whole mandate, or a whole sentence of one, recorded in ${MANDATES_FILE}. Asked by must quote a recorded mandate, then its id in brackets. Ask the designer, then run designer:mandate record.`
     )
 }
 
@@ -141,4 +144,87 @@ export const mandateHistoryProblems = (earlier, mandates, { setRepoDir }) => {
         `The mandate ${mandate.name} was changed or removed. ${MANDATES_FILE} only gains entries. Put the old entry back.`
       )
     )
+}
+
+const newMandateProblems = (earlierMandates, mandates, mandateId) => {
+  const earlierIds = new Set(earlierMandates.map((mandate) => mandate.name))
+  return mandates
+    .filter((mandate) => !earlierIds.has(mandate.name))
+    .map(
+      (mandate) =>
+        `It adds the mandate ${mandate.name}. A run under the designer's mandate ${mandateId} cannot record one: only the designer's own session can. Take ${mandate.name} out.`
+    )
+}
+
+const patternUnderMandateProblems = (entry, earlier, mandateId) => {
+  const earlierLines = new Set(earlier?.fields['Asked by'] ?? [])
+  const askedBy = askedByOf(entry)
+  const found = askedBy
+    .filter(({ line, id }) => !earlierLines.has(line) && id !== mandateId)
+    .map(
+      ({ line }) =>
+        `"${entry.name}" is asked for by ${line}. This run works under the designer's mandate ${mandateId}, so cite only that one.`
+    )
+  if (!askedBy.some(({ id }) => id === mandateId)) {
+    found.push(
+      `"${entry.name}" changed but does not cite the designer's mandate ${mandateId}. Add an "Asked by" line quoting it.`
+    )
+  }
+  if (!earlier && fieldOf(entry, 'Status') !== 'Option') {
+    found.push(
+      `"${entry.name}" is new, so its status is Option until the designer chooses it.`
+    )
+  }
+  return found
+}
+
+/**
+ * The problems with a run made under one designer's mandate: the mandate
+ * must exist from before the run, the run must record no mandate of its
+ * own, and every pattern it adds or changes must cite that mandate. A
+ * pattern it adds is an Option.
+ *
+ * @param {{ patterns: string|null, mandates: string|null }} earlier -
+ * patterns.md and mandates.md at the commit the run started from, or null
+ * where a file did not exist then.
+ * @param {{ patterns: Array<object>, mandates: Array<object> }} now - the
+ * entries now.
+ * @param {{ setRepoDir: string, mandateId: string }} options
+ * @returns {Array<{ file: string, message: string }>}
+ */
+export const mandateRunProblems = (
+  earlier,
+  { patterns, mandates },
+  { setRepoDir, mandateId }
+) => {
+  const mandatesFile = `${setRepoDir}/${MANDATES_FILE}`
+  const patternsFile = `${setRepoDir}/${PATTERNS_FILE}`
+  const earlierMandates = parseEntries(earlier.mandates ?? '')
+  if (!earlierMandates.some((mandate) => mandate.name === mandateId)) {
+    return [
+      problem(
+        mandatesFile,
+        `There is no mandate ${mandateId} from before this run. Run with a mandate the designer recorded first.`
+      )
+    ]
+  }
+  const earlierByName = new Map(
+    parseEntries(earlier.patterns ?? '').map((entry) => [entry.name, entry])
+  )
+  const touched = patterns.filter(
+    (entry) =>
+      earlierByName.get(entry.name)?.text.join('\n') !== entry.text.join('\n')
+  )
+  return [
+    ...newMandateProblems(earlierMandates, mandates, mandateId).map((message) =>
+      problem(mandatesFile, message)
+    ),
+    ...touched.flatMap((entry) =>
+      patternUnderMandateProblems(
+        entry,
+        earlierByName.get(entry.name),
+        mandateId
+      ).map((message) => problem(patternsFile, message))
+    )
+  ]
 }

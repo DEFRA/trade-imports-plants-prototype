@@ -8,20 +8,58 @@ import postcssScss from 'postcss-scss'
 
 import { CHROME_CLASS } from './release-chrome.js'
 
-const isInsideRuleOrDefinition = (node) => {
-  const definitions = new Set(['mixin', 'function'])
+const isAtRoot = (node) => node.type === 'atrule' && node.name === 'at-root'
+
+const isDefinition = (node) =>
+  node.type === 'atrule' && ['mixin', 'function'].includes(node.name)
+
+const isInsideDefinition = (node) => {
   for (let parent = node.parent; parent; parent = parent.parent) {
-    if (parent.type === 'rule') {
-      return true
-    }
-    if (parent.type === 'atrule' && definitions.has(parent.name)) {
+    if (isDefinition(parent)) {
       return true
     }
   }
   return false
 }
 
+const isInsideRuleOrDefinition = (node) => {
+  for (let parent = node.parent; parent; parent = parent.parent) {
+    if (isAtRoot(parent)) {
+      return parent.params.trim() !== ''
+    }
+    if (parent.type === 'rule' || isDefinition(parent)) {
+      return true
+    }
+  }
+  return false
+}
+
+const enclosingRuleSelector = (node) => {
+  for (let parent = node.parent; parent; parent = parent.parent) {
+    if (parent.type === 'rule') {
+      return parent.selectors[0]
+    }
+  }
+  return ''
+}
+
 const isPlaceholder = (selector) => selector.startsWith('%')
+
+const withoutBracketedArguments = (selector) => {
+  let stripped = selector
+  while (/\([^()]*\)/.test(stripped)) {
+    stripped = stripped.replaceAll(/\([^()]*\)/g, '')
+  }
+  return stripped
+}
+
+const firstCompound = (selector) =>
+  withoutBracketedArguments(selector)
+    .trim()
+    .split(/\s*[\s>+~]\s*/)[0]
+
+const isScopedTo = (selector, classPrefix) =>
+  isPlaceholder(selector) || firstCompound(selector).includes(`.${classPrefix}`)
 
 /**
  * @param {string} source - the Sass text.
@@ -29,7 +67,8 @@ const isPlaceholder = (selector) => selector.startsWith('%')
  * `app-<release>-`.
  * @returns {{ loads: string[], strayRules: string[], rawColours: string[], chromeSelectors: string[] }}
  * `loads` is every `@use`, `@forward` and `@import` path; `strayRules` every
- * top-level selector without the release's prefix; `rawColours` every value
+ * top-level or `@at-root` selector whose first part, outside any brackets,
+ * holds no class with the release's prefix; `rawColours` every value
  * holding a hex, rgb() or hsl() colour; `chromeSelectors` every selector
  * naming shared chrome.
  */
@@ -42,25 +81,35 @@ export const readReleaseSass = (source, { classPrefix }) => {
   const rawColours = []
   const chromeSelectors = []
 
+  const strayIn = (node, selectors) => {
+    const outer = enclosingRuleSelector(node)
+    return selectors
+      .map((selector) => selector.replaceAll('&', outer))
+      .filter((selector) => !isScopedTo(selector, classPrefix))
+  }
+
   sheet.walkAtRules((rule) => {
     const loaded =
       loadRules.has(rule.name) && /["']([^"']+)["']/.exec(rule.params)
     if (loaded) {
       loads.push(loaded[1])
     }
+    if (isAtRoot(rule) && rule.params.trim() !== '') {
+      const selectors = rule.params
+        .split(',')
+        .map((selector) => selector.trim())
+      chromeSelectors.push(...selectors.filter((s) => CHROME_CLASS.test(s)))
+      if (!isInsideDefinition(rule)) {
+        strayRules.push(...strayIn(rule, selectors))
+      }
+    }
   })
   sheet.walkRules((rule) => {
     const selectors = rule.selectors.map((selector) => selector.trim())
     chromeSelectors.push(...selectors.filter((s) => CHROME_CLASS.test(s)))
-    if (isInsideRuleOrDefinition(rule)) {
-      return
+    if (!isInsideRuleOrDefinition(rule)) {
+      strayRules.push(...strayIn(rule, selectors))
     }
-    strayRules.push(
-      ...selectors.filter(
-        (selector) =>
-          !isPlaceholder(selector) && !selector.includes(`.${classPrefix}`)
-      )
-    )
   })
   sheet.walkDecls((declaration) => {
     if (rawColour.test(declaration.value)) {

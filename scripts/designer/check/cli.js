@@ -1,6 +1,6 @@
 /**
  * `npm run designer:check -- --set <id> [--quick|--full|--walk] [--json]
- * [--since <commit> [--no-new-patterns]]`
+ * [--since <commit> [--no-new-patterns | --mandate <id>]]`
  *
  * "Did I break anything?" for designers: a plain pass or fail table, each
  * failure explained with its fix, and the raw log in
@@ -87,6 +87,7 @@ export const main = async (
     runCommand,
     since: args.since,
     noNewPatterns: args.noNewPatterns,
+    mandate: args.mandate,
     onStep: (_id, title) => {
       if (!args.json) {
         stderr.write(`Checking: ${title}...\n`)

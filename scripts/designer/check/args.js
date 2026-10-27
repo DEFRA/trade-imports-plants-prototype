@@ -23,7 +23,12 @@ export const USAGE = [
   '  --no-new-patterns',
   '           with --since: fail on any change since that commit to the',
   "           release's assets, layout.njk, patterns.md or mandates.md, and on",
-  '           any new app- class. For a run with no designer’s mandate.'
+  '           any new app- class. For a run with no designer’s mandate.',
+  '  --mandate <id>',
+  "           with --since: the designer's mandate the run works under. Fail",
+  '           on any mandate the run recorded, and on any pattern it added or',
+  '           changed that does not cite this one. A new pattern must be an',
+  '           Option. The scope is not checked.'
 ].join('\n')
 
 const TIER_FLAGS = new Map(TIERS.map((tier) => [`--${tier}`, tier]))
@@ -31,7 +36,9 @@ const TIER_FLAGS = new Map(TIERS.map((tier) => [`--${tier}`, tier]))
 const MISSING_VALUE = {
   '--set': '--set needs a set id after it, for example --set plants-working.',
   '--since':
-    '--since needs a commit after it, for example --since 1a2b3c4: the commit the run started from.'
+    '--since needs a commit after it, for example --since 1a2b3c4: the commit the run started from.',
+  '--mandate':
+    '--mandate needs a mandate id after it, for example --mandate m-2026-10-27-1.'
 }
 
 const readValue = (flag, argv, index, errors) => {
@@ -45,25 +52,28 @@ const readValue = (flag, argv, index, errors) => {
 
 /**
  * @param {string[]} argv - the arguments after `--`.
- * @returns {{set: string|undefined, tier: string, json: boolean, help: boolean, since: string|undefined, noNewPatterns: boolean, errors: string[]}}
+ * @returns {{set: string|undefined, tier: string, json: boolean, help: boolean, since: string|undefined, noNewPatterns: boolean, mandate: string|undefined, errors: string[]}}
  */
 export const parseCheckArgs = (argv) => {
   const errors = []
   const tiers = []
   let set
   let since
+  let mandate
   let json = false
   let help = false
   let noNewPatterns = false
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
-    if (arg === '--set' || arg === '--since') {
+    if (arg === '--set' || arg === '--since' || arg === '--mandate') {
       const value = readValue(arg, argv, index, errors)
       if (arg === '--set') {
         set = value ?? set
-      } else {
+      } else if (arg === '--since') {
         since = value ?? since
+      } else {
+        mandate = value ?? mandate
       }
       index += 1
     } else if (arg.startsWith('--set=')) {
@@ -95,6 +105,18 @@ export const parseCheckArgs = (argv) => {
     )
   }
 
+  if (mandate !== undefined && since === undefined) {
+    errors.push(
+      '--mandate needs the commit the run started from: add --since <commit>.'
+    )
+  }
+
+  if (mandate !== undefined && noNewPatterns) {
+    errors.push(
+      'Choose --no-new-patterns for a run with no mandate, or --mandate for a run with one, not both.'
+    )
+  }
+
   return {
     set,
     tier: tiers[0] ?? 'quick',
@@ -102,6 +124,7 @@ export const parseCheckArgs = (argv) => {
     help,
     since,
     noNewPatterns,
+    mandate,
     errors
   }
 }
