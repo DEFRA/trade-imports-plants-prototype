@@ -160,6 +160,10 @@ describe('copy usage — every design release', () => {
     (setId) => setId !== REAL_JOURNEY_SET
   )
 
+  it('Should find the sets on disk', () => {
+    expect(setIdsOnDisk()).toContain(REAL_JOURNEY_SET)
+  })
+
   it.each(releases)('Should give %s no copy-usage problems', async (setId) => {
     const { problems } = await checkCopyUsage(setFolderOf(setId))
 

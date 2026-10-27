@@ -9,8 +9,29 @@ describe('parseCheckArgs', () => {
       tier: 'quick',
       json: false,
       help: false,
+      since: undefined,
+      noNewPatterns: false,
       errors: []
     })
+  })
+
+  it('Should read --since and --no-new-patterns together', () => {
+    expect(
+      parseCheckArgs(['--set', 'a', '--since', 'abc123', '--no-new-patterns'])
+    ).toMatchObject({ since: 'abc123', noNewPatterns: true, errors: [] })
+    expect(parseCheckArgs(['--since=abc123']).since).toBe('abc123')
+  })
+
+  it('Should refuse --no-new-patterns without the commit the run started from', () => {
+    expect(parseCheckArgs(['--set', 'a', '--no-new-patterns']).errors).toEqual([
+      '--no-new-patterns needs the commit the run started from: add --since <commit>.'
+    ])
+  })
+
+  it('Should explain a --since with nothing after it', () => {
+    expect(parseCheckArgs(['--since', '--full']).errors).toEqual([
+      '--since needs a commit after it, for example --since 1a2b3c4: the commit the run started from.'
+    ])
   })
 
   it.each([

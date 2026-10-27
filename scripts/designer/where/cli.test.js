@@ -39,6 +39,15 @@ describe('designer:where', () => {
     )
   })
 
+  it("Should answer yours for a release's own styles, and count them as yours", () => {
+    const styles = 'src/server/app/sets/plants-working/assets/styles.scss'
+    expect(run([styles, 'src/client/javascripts/application.js'], options()))
+      .toBe(`${styles} - ${SENTENCES['release-pattern']}
+src/client/javascripts/application.js - ${SENTENCES['real-service-styles']}
+
+1 yours, 1 belong to the real service.`)
+  })
+
   it('Should give every verdict, then a count', () => {
     const output = run(
       [

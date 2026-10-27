@@ -16,17 +16,28 @@ export const USAGE = [
   '           npm run format:check, npm run lint and npm test.',
   '  --walk   the full check, then npm run test:fit:journeys, which walks every',
   '           journey in a real browser.',
-  '  --json   print the result as JSON instead of a table.'
+  '  --json   print the result as JSON instead of a table.',
+  '  --since <commit>',
+  '           the commit this run started from. A recorded mandate must not',
+  '           have changed since it.',
+  '  --no-new-patterns',
+  '           with --since: fail on any change since that commit to the',
+  "           release's assets, layout.njk, patterns.md or mandates.md, and on",
+  '           any new app- class. For a run with no designer’s mandate.'
 ].join('\n')
 
 const TIER_FLAGS = new Map(TIERS.map((tier) => [`--${tier}`, tier]))
 
-const readSetValue = (argv, index, errors) => {
+const MISSING_VALUE = {
+  '--set': '--set needs a set id after it, for example --set plants-working.',
+  '--since':
+    '--since needs a commit after it, for example --since 1a2b3c4: the commit the run started from.'
+}
+
+const readValue = (flag, argv, index, errors) => {
   const value = argv[index + 1]
   if (!value || value.startsWith('--')) {
-    errors.push(
-      '--set needs a set id after it, for example --set plants-working.'
-    )
+    errors.push(MISSING_VALUE[flag])
     return undefined
   }
   return value
@@ -34,22 +45,33 @@ const readSetValue = (argv, index, errors) => {
 
 /**
  * @param {string[]} argv - the arguments after `--`.
- * @returns {{set: string|undefined, tier: string, json: boolean, help: boolean, errors: string[]}}
+ * @returns {{set: string|undefined, tier: string, json: boolean, help: boolean, since: string|undefined, noNewPatterns: boolean, errors: string[]}}
  */
 export const parseCheckArgs = (argv) => {
   const errors = []
   const tiers = []
   let set
+  let since
   let json = false
   let help = false
+  let noNewPatterns = false
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
-    if (arg === '--set') {
-      set = readSetValue(argv, index, errors) ?? set
+    if (arg === '--set' || arg === '--since') {
+      const value = readValue(arg, argv, index, errors)
+      if (arg === '--set') {
+        set = value ?? set
+      } else {
+        since = value ?? since
+      }
       index += 1
     } else if (arg.startsWith('--set=')) {
       set = arg.slice('--set='.length) || set
+    } else if (arg.startsWith('--since=')) {
+      since = arg.slice('--since='.length) || since
+    } else if (arg === '--no-new-patterns') {
+      noNewPatterns = true
     } else if (TIER_FLAGS.has(arg)) {
       tiers.push(TIER_FLAGS.get(arg))
     } else if (arg === '--json') {
@@ -67,5 +89,19 @@ export const parseCheckArgs = (argv) => {
     errors.push('Choose one of --quick, --full or --walk, not several.')
   }
 
-  return { set, tier: tiers[0] ?? 'quick', json, help, errors }
+  if (noNewPatterns && since === undefined) {
+    errors.push(
+      '--no-new-patterns needs the commit the run started from: add --since <commit>.'
+    )
+  }
+
+  return {
+    set,
+    tier: tiers[0] ?? 'quick',
+    json,
+    help,
+    since,
+    noNewPatterns,
+    errors
+  }
 }

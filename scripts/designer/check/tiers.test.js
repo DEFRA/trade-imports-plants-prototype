@@ -13,6 +13,7 @@ describe('stepsFor', () => {
       'copy',
       'copy-usage',
       'templates',
+      'release-assets',
       'code-rules',
       'service-conformance',
       'gds-wording',

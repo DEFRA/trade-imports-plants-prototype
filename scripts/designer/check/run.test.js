@@ -27,6 +27,7 @@ const fakeRunners = (overrides = {}) => ({
   copy: vi.fn(async () => passing()),
   'copy-usage': vi.fn(async () => passing()),
   templates: vi.fn(async () => passing()),
+  'release-assets': vi.fn(async () => passing()),
   'code-rules': vi.fn(async () => passing()),
   'service-conformance': vi.fn(async () => passing()),
   'gds-wording': vi.fn(async () => passing()),
@@ -55,8 +56,25 @@ describe('runCheck with stand-in steps', () => {
     expect(result.ok).toBe(true)
     expect(result.findings).toEqual([])
     expect(result.steps.map((step) => step.status)).toEqual(
-      Array(9).fill('pass')
+      Array(10).fill('pass')
     )
+  })
+
+  it('Should hand the commit the run started from, and the no-new-patterns flag, to every step', async () => {
+    const runners = fakeRunners({
+      'release-assets': async ({ since, noNewPatterns }) =>
+        passing(`Since ${since}, new patterns refused: ${noNewPatterns}.`)
+    })
+
+    const result = await runCheck({
+      ...options(runners),
+      since: 'abc123',
+      noNewPatterns: true
+    })
+
+    expect(
+      result.steps.find((step) => step.id === 'release-assets').summary
+    ).toBe('Since abc123, new patterns refused: true.')
   })
 
   it('Should run the pre-commit steps for the full check', async () => {

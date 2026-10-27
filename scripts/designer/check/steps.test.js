@@ -108,3 +108,49 @@ describe('the copy and templates steps on sample-journey', () => {
     expect((await STEP_RUNNERS.templates(context)).status).toBe('pass')
   })
 })
+
+describe('the release-assets step', () => {
+  it('Should pass sample-journey, which has no styles or scripts of its own', async () => {
+    const outcome = await STEP_RUNNERS['release-assets']({
+      root: REPO_ROOT,
+      setId: 'sample-journey',
+      changedPaths: []
+    })
+
+    expect(outcome).toMatchObject({
+      status: 'pass',
+      summary: 'No inline styles or scripts, and no release styles or scripts.'
+    })
+  })
+
+  it('Should leave high-risk-plants to the real service', async () => {
+    const outcome = await STEP_RUNNERS['release-assets']({
+      root: REPO_ROOT,
+      setId: 'high-risk-plants',
+      changedPaths: []
+    })
+
+    expect(outcome.summary).toBe(
+      'high-risk-plants takes its styles and scripts from the real service.'
+    )
+  })
+
+  it('Should fail with each problem on its own line, for the translation', async () => {
+    const outcome = await STEP_RUNNERS['release-assets']({
+      root: REPO_ROOT,
+      setId: 'sample-journey',
+      changedPaths: [],
+      noNewPatterns: true
+    })
+
+    expect(outcome).toMatchObject({
+      status: 'fail',
+      summary: "1 problem with your release's own styles and scripts.",
+      details: [
+        '--since: Refusing new patterns needs the commit the run started from. Add --since <commit>.'
+      ],
+      output:
+        'release-assets: --since: Refusing new patterns needs the commit the run started from. Add --since <commit>.'
+    })
+  })
+})

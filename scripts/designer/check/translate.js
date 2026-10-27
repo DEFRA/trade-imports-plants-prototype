@@ -237,8 +237,21 @@ export const SIGNATURES = [
       /response 404: \S*\/public\/\S*|Webpack assets-manifest\.json not found|Module not found: Error: Can't resolve[^\n]*/,
     cause:
       "The prototype's styles or scripts were not built, or a page asks for one that does not exist.",
-    fix: 'Run `npm run build:frontend` (npm run dev does this for you). Never add webpack entries or client scripts: if a page needs one, log it in design-gaps.md and tell the maintainer.',
+    fix: "Run `npm run build:frontend` (npm run dev does this for you). If the missing file is your release's own, check the file names in its assets/ folder, then restart npm run dev. A release's own styles and scripts live in src/server/app/sets/<release>/assets/: never edit webpack.config.js or src/client.",
     skill: 'run-the-prototype'
+  },
+  {
+    id: 'release-assets',
+    title: "A problem with your release's own styles or scripts",
+    pattern: /release-assets: [^\n]*/,
+    cause:
+      "Your release's own styles, scripts or pattern records do not follow the rules that keep them inside your release, or a page uses a style or script the browser would block.",
+    fix: 'Each line under "Where" names the file and says what to change. Every file in assets/ needs a pattern in patterns.md that says why it exists, and every class starts with app-<release>-.',
+    skill: 'match-the-design',
+    where: (text) =>
+      [...String(text).matchAll(/release-assets: ([^\n]+)/g)]
+        .map(([, line]) => line)
+        .slice(0, MAX_WHERE)
   },
   {
     id: 'frozen-release',

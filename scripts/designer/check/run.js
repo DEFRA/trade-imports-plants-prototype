@@ -16,6 +16,9 @@ const NOT_RUN = 'Not run: fix the problems above first.'
  * @param {string} options.root - the repo root.
  * @param {string[]} options.changedPaths - what git status lists.
  * @param {Function} options.runCommand - see process.js.
+ * @param {string} [options.since] - the commit the run started from.
+ * @param {boolean} [options.noNewPatterns] - with `since`, refuse any new
+ * release pattern made since that commit.
  * @param {object} [options.runners] - the step runners (tests replace them).
  * @param {(id: string, title: string) => void} [options.onStep] - called as
  * each step starts.
@@ -29,6 +32,8 @@ export const runCheck = async ({
   root,
   changedPaths,
   runCommand,
+  since,
+  noNewPatterns = false,
   runners = STEP_RUNNERS,
   onStep = () => {},
   onOutput = () => {}
@@ -43,7 +48,14 @@ export const runCheck = async ({
       continue
     }
     onStep(id, title)
-    const outcome = await runners[id]({ setId, root, changedPaths, runCommand })
+    const outcome = await runners[id]({
+      setId,
+      root,
+      changedPaths,
+      runCommand,
+      since,
+      noNewPatterns
+    })
     onOutput(title, outcome.output ?? '')
     steps.push({ id, title, details: [], ...outcome })
     failedSoFar = failedSoFar || outcome.status === 'fail'

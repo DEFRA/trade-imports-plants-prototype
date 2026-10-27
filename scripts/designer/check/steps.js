@@ -14,6 +14,7 @@ import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 import * as prettier from 'prettier'
 
+import { currentBranch } from '../lib/git.js'
 import { ownershipOf } from '../lib/ownership.js'
 import { readOverrides } from '../lib/repo.js'
 import { SETS_DIR, setDir } from '../lib/sets.js'
@@ -37,6 +38,7 @@ import {
   serviceFolderOf
 } from '../../../src/server/prototype-support/contracts.js'
 import { leaves } from '../../../src/server/app/shared/copy-leaves.js'
+import { checkReleaseAssets } from './release-assets.js'
 import { checkSetTemplates } from './templates.js'
 
 const PRETTIER_EXTENSIONS = new Set(['.js', '.cjs', '.md', '.json'])
@@ -238,6 +240,41 @@ const templates = ({ root, setId }) => {
   return result('pass', `${plural(checked.templates, 'template')} compile.`)
 }
 
+const releaseAssets = ({ root, setId, changedPaths, since, noNewPatterns }) => {
+  if (setId === REAL_JOURNEY_SET) {
+    return result(
+      'pass',
+      'high-risk-plants takes its styles and scripts from the real service.'
+    )
+  }
+  const checked = checkReleaseAssets(setId, {
+    root,
+    changedPaths,
+    branch: currentBranch({ root }),
+    since,
+    noNewPatterns
+  })
+  const lines = checked.problems.map(
+    ({ file, message }) => `${file}: ${message}`
+  )
+  if (lines.length > 0) {
+    return result(
+      'fail',
+      `${plural(lines.length, 'problem')} with your release's own styles and scripts.`,
+      {
+        details: lines,
+        output: lines.map((line) => `release-assets: ${line}`).join('\n')
+      }
+    )
+  }
+  return result(
+    'pass',
+    checked.assets === 0
+      ? 'No inline styles or scripts, and no release styles or scripts.'
+      : `${plural(checked.assets, 'asset file')}, each recorded in ${plural(checked.patterns, 'pattern')}.`
+  )
+}
+
 const serviceConformance = ({ root }) => {
   // A folder overrides.json lists but that is not on disk at all is a
   // different problem (a fixture, or a service mid-retirement): not this
@@ -402,6 +439,7 @@ export const STEP_RUNNERS = {
   copy,
   'copy-usage': copyUsage,
   templates,
+  'release-assets': releaseAssets,
   'code-rules': codeRulesOnChanged,
   'service-conformance': serviceConformance,
   'gds-wording': gdsWording,

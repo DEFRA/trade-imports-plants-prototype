@@ -4,8 +4,11 @@ import {
   changedAndUntrackedPaths,
   changedPaths,
   currentBranch,
+  fileAt,
   lastCommitTime,
+  matchesAt,
   parseStatus,
+  pathsChangedSince,
   revParse,
   untrackedPaths
 } from './git.js'
@@ -57,5 +60,39 @@ describe('git in a real repo', () => {
   it('Should give the time of the last commit touching a path', () => {
     expect(lastCommitTime('overrides.json', options())).toBeGreaterThan(0)
     expect(lastCommitTime('never-committed.txt', options())).toBeNull()
+  })
+
+  it('Should read a file at a commit, and answer null for one not there', () => {
+    expect(fileAt('HEAD', 'package.json', options())).toBe(
+      '{ "type": "module" }\n'
+    )
+    expect(fileAt('HEAD', 'never-committed.txt', options())).toBeNull()
+  })
+
+  it('Should list the paths changed and added under a folder since a commit', () => {
+    fixture.write('src/server/app/sets/plants-working/set.js', 'changed\n')
+    fixture.write('src/server/app/sets/plants-working/assets/new.scss', '')
+    fixture.write('overrides.json', '{}\n')
+
+    expect(
+      pathsChangedSince('HEAD', 'src/server/app/sets/plants-working', options())
+    ).toEqual([
+      'src/server/app/sets/plants-working/set.js',
+      'src/server/app/sets/plants-working/assets/new.scss'
+    ])
+  })
+
+  it('Should list each text matching a pattern at a commit, or none', () => {
+    expect(
+      matchesAt(
+        'HEAD',
+        'SET_[A-Z]+',
+        'src/server/app/sets/plants-working',
+        options()
+      )
+    ).toEqual(['SET_ID', 'SET_BASE'])
+    expect(
+      matchesAt('HEAD', 'app-[a-z]+', 'src/server/app/sets', options())
+    ).toEqual([])
   })
 })

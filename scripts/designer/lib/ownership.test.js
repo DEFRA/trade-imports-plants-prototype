@@ -163,6 +163,59 @@ describe('explainOwner', () => {
     expect(explainOwner(filePath, { root: fixture.root })).toBe(sentence)
   })
 
+  it.each([
+    'src/server/app/sets/plants-working/assets/styles.scss',
+    'src/server/app/sets/plants-working/assets/commodity-search.js',
+    'src/server/app/sets/plants-working/layout.njk',
+    'src/server/app/sets/plants-working/patterns.md'
+  ])("Should call %s yours, as the release's own pattern", (filePath) => {
+    expect(ownershipOf(filePath, { root: fixture.root })).toMatchObject({
+      owner: OWNERS.yours,
+      sentence: SENTENCES['release-pattern']
+    })
+    expect(SENTENCES['release-pattern']).toMatch(/^Yours: /)
+  })
+
+  it("Should call a release's mandates yours, to add to and never change", () => {
+    expect(
+      explainOwner('src/server/app/sets/plants-working/mandates.md', {
+        root: fixture.root
+      })
+    ).toBe(SENTENCES['release-mandate'])
+  })
+
+  it("Should keep a frozen release's assets frozen", () => {
+    expect(
+      explainOwner('src/server/app/sets/plants-dr2/assets/styles.scss', {
+        root: fixture.root
+      })
+    ).toBe(SENTENCES.frozen)
+  })
+
+  it.each([
+    'src/client/stylesheets/application.scss',
+    'src/client/javascripts/application.js',
+    'webpack.config.js'
+  ])(
+    "Should send a change to %s to the release's own assets instead",
+    (filePath) => {
+      expect(explainOwner(filePath, { root: fixture.root })).toBe(
+        SENTENCES['real-service-styles']
+      )
+      expect(SENTENCES['real-service-styles']).toContain(
+        'src/server/app/sets/<release>/assets/'
+      )
+    }
+  )
+
+  it("Should leave the real journey's assets with the real service", () => {
+    expect(
+      explainOwner('src/server/app/sets/high-risk-plants/assets/styles.scss', {
+        root: fixture.root
+      })
+    ).toBe(SENTENCES['real-service'])
+  })
+
   it('Should offer the two safe routes for a real-service file', () => {
     expect(SENTENCES['real-service']).toContain(
       'Make it in your design release'

@@ -11,8 +11,14 @@
  * - removed: in overrides.json `deleted`. The weekly update deletes it.
  */
 import { classifyPath, matchesAnyGlob } from '../../sync-upstream/rules.js'
+import {
+  ASSETS_DIR,
+  MANDATES_FILE,
+  PATTERNS_FILE,
+  RELEASE_LAYOUT
+} from './release-records.js'
 import { REPO_ROOT, readOverrides, toRepoPath } from './repo.js'
-import { releaseInfo, setOfPath } from './sets.js'
+import { releaseInfo, SETS_DIR, setOfPath } from './sets.js'
 
 export const OWNERS = Object.freeze({
   yours: 'yours',
@@ -28,6 +34,12 @@ export const SENTENCES = Object.freeze({
   'real-service':
     'Belongs to the real service: the weekly update will clash with your change. Make it in your design release, or hand it to the real team.',
   removed: 'Removed by the weekly update: never edit.',
+  'release-pattern':
+    "Yours: your design release's own styles, scripts and pattern records. The weekly update never touches them. Add a pattern only when the designer asks for one, and record it in patterns.md.",
+  'release-mandate':
+    "Yours: the designer's own words, recorded for your design release. Only add an entry: never change or remove one.",
+  'real-service-styles':
+    "Belongs to the real service: the weekly update will clash with your change. Put your release's own styles and scripts in src/server/app/sets/<release>/assets/, or hand it to the real team.",
   frozen: 'This is a frozen release. Start a working release from it instead.',
   outside: 'Outside this prototype: the weekly update does not cover it.'
 })
@@ -44,6 +56,35 @@ const ownerFromOverrides = (repoPath, overrides) => {
   return matchesAnyGlob(declaredPatched, repoPath)
     ? OWNERS.sharedOnPurpose
     : OWNERS.realService
+}
+
+const releasePatternSentence = (repoPath, setId) => {
+  const inSet = repoPath.slice(`${SETS_DIR}/${setId}/`.length)
+  if (inSet === MANDATES_FILE) {
+    return SENTENCES['release-mandate']
+  }
+  return inSet.startsWith(`${ASSETS_DIR}/`) ||
+    inSet === RELEASE_LAYOUT ||
+    inSet === PATTERNS_FILE
+    ? SENTENCES['release-pattern']
+    : undefined
+}
+
+const sentenceFor = ({ repoPath, owner, setId, isRelease, frozen }) => {
+  if (frozen) {
+    return SENTENCES.frozen
+  }
+  const inRelease =
+    owner === OWNERS.yours &&
+    isRelease &&
+    repoPath.startsWith(`${SETS_DIR}/${setId}/`)
+  if (inRelease) {
+    return releasePatternSentence(repoPath, setId) ?? SENTENCES.yours
+  }
+  return owner === OWNERS.realService &&
+    /^(?:src\/client\/|webpack\.config\.js$)/.test(repoPath)
+    ? SENTENCES['real-service-styles']
+    : SENTENCES[owner]
 }
 
 /**
@@ -97,7 +138,7 @@ export const ownershipOf = (
     setId,
     isRelease,
     frozen,
-    sentence: frozen ? SENTENCES.frozen : SENTENCES[owner]
+    sentence: sentenceFor({ repoPath, owner, setId, isRelease, frozen })
   }
 }
 
