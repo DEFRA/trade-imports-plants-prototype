@@ -61,6 +61,13 @@ import {
   removalVocabularyFrom,
   removedLiterals
 } from './impact.js'
+import {
+  releaseClassesIn,
+  releaseCodeAddedBy,
+  unsettledPatterns,
+  withSharedLayout
+} from './release-code.js'
+import { parseEntries } from '../lib/release-records.js'
 import { copyChanges, isCopyFile, isWelshCopyFile } from './copy-table.js'
 import { describeService } from './contract.js'
 import { gateChangesOf, validationRowsFor } from './flow.js'
@@ -278,13 +285,14 @@ const releaseChanges = (root, setId, hops) => {
   const setDir = setDirOf(setId)
   const baseRef = copiedFromRef(root, hops)
   const present = new Set(walk(path.join(root, setDir)))
+  const releaseIds = hops.map((hop) => hop.releaseId)
   const changes = []
   for (const relative of present) {
     if (!isPrototypeOnly(relative)) {
       const releasePath = `${setDir}/${relative}`
       const realPath = reversePathThroughChain(releasePath, hops)
       const after = reverseThroughChain(
-        readIfExists(root, releasePath) ?? '',
+        withSharedLayout(readIfExists(root, releasePath) ?? '', releaseIds),
         hops
       )
       const before = showFile(root, baseRef, realPath)
@@ -905,6 +913,52 @@ const patchAndChecks = (root, patchChanges, applyRef, briefOnly) => {
   return { patch, applyCheck, upstreamApplyCheck }
 }
 
+const refuseUnsettledPatterns = (root, gapsSet) => {
+  if (!gapsSet) {
+    return
+  }
+  const entriesIn = (file) =>
+    parseEntries(readIfExists(root, `${setDirOf(gapsSet)}/${file}`) ?? '')
+  const unsettled = unsettledPatterns(
+    entriesIn('patterns.md'),
+    entriesIn('mandates.md')
+  )
+  if (unsettled.length > 0) {
+    throw new HandoffError(
+      [
+        `${gapsSet} has release patterns to settle in patterns.md before it can be handed over:`,
+        ...unsettled.map((line) => `- ${line}`)
+      ].join('\n')
+    )
+  }
+}
+
+const splitReleaseCode = (changes, releaseIds) => {
+  const withClasses = changes.map((change) => ({
+    change,
+    classes: change.after ? releaseClassesIn(change.after, releaseIds) : []
+  }))
+  return {
+    withReleaseCode: withClasses.filter(({ classes }) => classes.length > 0),
+    withoutReleaseCode: withClasses
+      .filter(({ classes }) => classes.length === 0)
+      .map(({ change }) => change)
+  }
+}
+
+const refuseReleaseCodeIn = (patch, releaseIds) => {
+  const leaked = releaseCodeAddedBy(patch, releaseIds)
+  if (leaked.length > 0) {
+    throw new HandoffError(
+      [
+        'The patch still carries release pattern code, which never goes to the real service:',
+        ...leaked.map((line) => `- ${line.trim()}`),
+        'Take the release classes and layout out of these files, or leave the files out of the hand-off.'
+      ].join('\n')
+    )
+  }
+}
+
 /**
  * Builds the hand-off report for a set. Options:
  * `{ root, set, features, all, base, from, gapsFrom, recipes, briefOnly,
@@ -936,15 +990,26 @@ export const buildHandoff = (options) => {
     found = releaseChanges(root, set, hops)
   }
   const { changes: allChanges, baseRef } = found
+  const gapsSet = realMode ? options.gapsFrom : set
+  refuseUnsettledPatterns(root, gapsSet)
+  const releaseIds = [
+    set,
+    options.gapsFrom,
+    ...hops.flatMap((hop) => [hop.releaseId, hop.fromId])
+  ].filter(Boolean)
 
   const since = changedSince(root, set, options.since)
   const { inScope, outOfScope } = splitByScope(allChanges, options, since)
   if (inScope.length === 0) {
     throw new HandoffError(nothingToHandOver(set, allChanges, options))
   }
+  const { withReleaseCode, withoutReleaseCode } = splitReleaseCode(
+    inScope,
+    releaseIds
+  )
   const owned = ownedServicesFrom(readOverrides(root))
   const { prototypeOnly, shippable, needsService, serviceUsers } = sortChanges(
-    inScope,
+    withoutReleaseCode,
     owned
   )
   const dependents = leaveOutDependents(shippable, needsService)
@@ -969,7 +1034,7 @@ export const buildHandoff = (options) => {
     applyRef,
     briefOnly
   )
-  const gapsSet = realMode ? options.gapsFrom : set
+  refuseReleaseCodeIn(patch, releaseIds)
   const patchPaths = new Set(patchChanges.map((change) => change.path))
   const pages = groupPages(root, set, shippable)
   const openspecDir = workspaceSpecDir(root, options.openspecDir)
@@ -1012,6 +1077,10 @@ export const buildHandoff = (options) => {
         )
       : [],
     leftOut: [
+      ...withReleaseCode.map(({ change, classes }) => ({
+        path: change.releasePath,
+        reason: `It uses the release pattern classes ${classes.join(', ')}. The pattern goes to the real team as a request in the brief, never as code, so they build this page their own way.`
+      })),
       ...outOfScope.map((change) => ({
         path: change.releasePath,
         reason: since

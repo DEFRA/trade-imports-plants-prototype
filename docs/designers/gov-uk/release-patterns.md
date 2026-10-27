@@ -56,8 +56,11 @@ it. If you do not give one, Claude asks once. A hypothesis your next round
 will test is enough. Findings can follow.
 
 When you ask a workflow for several options, the agents it starts work
-under your words. Each custom design comes back marked `Option`, for you to
-choose. Claude never picks for you.
+under your words. Each pattern they add comes back marked `Option`, for you
+to choose. Claude never picks for you.
+
+To change a pattern you already have, say so. Claude works under the
+mandate the pattern's entry already cites.
 
 Without your permission, Claude builds the nearest GOV.UK option, logs a
 [design gap](design-gaps.md), and offers once to build the real thing.
@@ -147,8 +150,14 @@ as a pattern request: its pages, why GOV.UK and MoJ did not fit, the need
 or hypothesis, the research round, the findings and your words. The plants
 team build it from that, to the real service's standards.
 
-Before you hand off, choose between any `Option` entries. A pattern copied
-from another release needs you to ask again in this one.
+A page that uses your pattern's classes stays out of the patch, and the
+brief names it. Your release layout turns back into the shared one. The
+hand-off stops if the patch would still carry any of your release's code.
+
+Before you hand off, choose between any `Option` entries: make each one
+`Open`, or close it. A pattern copied from another release needs you to
+ask again in this one. The hand-off stops and lists what to settle until
+you have.
 
 ## When it is done
 
