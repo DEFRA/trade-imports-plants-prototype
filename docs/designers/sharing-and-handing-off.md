@@ -44,11 +44,21 @@ anything to GitHub until you ask, and does it one of two ways — you choose:
 
 **Straight to `main` (the default when you're working on `main`).** Claude
 pushes your saved change directly to `main`. There is nothing to review and
-nothing more to do: the deployed prototype and its demo page at
-`https://defra.github.io/trade-imports-plants-prototype/` update once the
-pipeline runs, usually within about ten minutes. This is exactly how the old
-GB-notification-service prototype worked, where the designer committed
-straight to `main` throughout — fully supported here too.
+nothing more to do. This is exactly how the old GB-notification-service
+prototype worked, where the designer committed straight to `main`
+throughout — fully supported here too.
+
+By default this push makes **no videos**, so you can share quickly:
+
+- **The deployed prototype** has your change about 10 minutes after the push.
+  Its address is the quick link to send colleagues.
+- **The demo page** at `https://defra.github.io/trade-imports-plants-prototype/`
+  keeps the videos it already had. The Monday run brings it up to date.
+
+Want the videos made this time? Say "push it with video". The demo page
+then updates too, but making the videos takes 25 to 50 minutes. Changed your
+mind after a push? Say "make the videos now" and Claude starts them on GitHub
+without a new push.
 
 **On a branch, if you'd rather share it before it goes to `main`.** Say
 "keep this off main", "put it on a branch first" or "make a pull request".
