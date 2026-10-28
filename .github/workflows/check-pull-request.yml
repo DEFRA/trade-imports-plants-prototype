@@ -453,10 +453,13 @@ jobs:
   # Documentation, not a gate: every set's examples walked through page by
   # page, made at run time from fit/walkthroughs/. A story that stops part way
   # is a warning; this job fails only when the walkthroughs could not run at
-  # all. Never make it a required check.
+  # all. Never make it a required check. A push to main whose commit message
+  # holds `[no video]` skips it, so a designer's change is not held up by the
+  # videos; the demo page then keeps the last run's (merge-report skips too).
   walkthroughs:
     name: Walkthroughs
     runs-on: ubuntu-latest
+    if: ${{ !(github.event_name == 'push' && contains(github.event.head_commit.message, '[no video]')) }}
     # Human pacing (scripts/designer/walkthrough/pace.js) makes a walk take
     # far longer than the old fixed slowMo did. When this job goes over 25
     # minutes, turn it into a matrix of --shard=i/n (blob reports shard
@@ -507,12 +510,17 @@ jobs:
   # One report holding the FIT tests and the walkthroughs. Playwright names a
   # blob report after the command that made it (report.zip, or
   # report-<project>-<hash>.zip), so each is copied under its job's name to
-  # be sure two never collide.
+  # be sure two never collide. Skipped for a `[no video]` push to main, so
+  # the published demo page keeps the last run's videos rather than a page
+  # with none.
   merge-report:
     name: Merge the Playwright report
     runs-on: ubuntu-latest
     needs: [playwright, walkthroughs]
-    if: always() && (needs.playwright.result != 'skipped' || needs.walkthroughs.result != 'skipped')
+    if: >
+      always() &&
+      (needs.playwright.result != 'skipped' || needs.walkthroughs.result != 'skipped') &&
+      !(github.event_name == 'push' && contains(github.event.head_commit.message, '[no video]'))
     timeout-minutes: 15
     permissions:
       contents: read
