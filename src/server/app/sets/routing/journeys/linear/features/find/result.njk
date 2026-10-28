@@ -1,0 +1,40 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ destination.title }}</h1>
+
+  <p class="govuk-body">{{ destination.body }}</p>
+
+  <h2 class="govuk-heading-m">{{ copy.told.heading }}</h2>
+  {{ govukSummaryList({ rows: toldRows }) }}
+
+  {% if canStart %}
+    <h2 class="govuk-heading-m">{{ copy.result.prefillHeading }}</h2>
+    <p class="govuk-body">{{ copy.result.prefillBody }}</p>
+    {{ govukSummaryList({ rows: prefillRows }) }}
+
+    <form method="post" action="{{ startAction }}" novalidate>
+      <input type="hidden" name="crumb" value="{{ crumb }}" />
+      {% for field in hidden %}
+        <input type="hidden" name="{{ field.name }}" value="{{ field.value }}" />
+      {% endfor %}
+      {{ govukButton({ text: copy.result.start, isStartButton: true }) }}
+    </form>
+  {% elif isPlaceholder %}
+    <h2 class="govuk-heading-m">{{ copy.result.prefillHeading }}</h2>
+    <p class="govuk-body">{{ copy.result.prefillBody }}</p>
+    {{ govukSummaryList({ rows: prefillRows }) }}
+
+    {{ govukInsetText({ text: copy.result.placeholder }) }}
+    {{ govukButton({ text: copy.result.start, href: placeholderHref, isStartButton: true }) }}
+  {% endif %}
+
+  <p class="govuk-body">
+    <a class="govuk-link" href="{{ startAgainHref }}">{{ copy.result.startAgain }}</a>
+  </p>
+{% endblock %}

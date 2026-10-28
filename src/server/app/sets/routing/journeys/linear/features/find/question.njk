@@ -1,0 +1,58 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "accessible-autocomplete/macro.njk" import appAccessibleAutocomplete %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <form method="get" action="{{ action }}" novalidate>
+    {% for field in hidden %}
+      <input type="hidden" name="{{ field.name }}" value="{{ field.value }}" />
+    {% endfor %}
+
+    {% if question.widget == "autocomplete" %}
+      {{ appAccessibleAutocomplete({
+        id: question.name,
+        name: question.name,
+        label: {
+          text: question.title,
+          isPageHeading: true,
+          classes: "govuk-label--l"
+        },
+        hint: { text: question.hint },
+        errorMessage: errors[question.name] and { text: errors[question.name] },
+        items: question.items,
+        autocomplete: {
+          minLength: question.minLength,
+          showAllValues: question.showAllValues,
+          noResults: question.noResults
+        }
+      }) }}
+    {% else %}
+      {{ govukRadios({
+        name: question.name,
+        fieldset: {
+          legend: {
+            text: question.title,
+            isPageHeading: true,
+            classes: "govuk-fieldset__legend--l"
+          }
+        },
+        hint: { text: question.hint },
+        errorMessage: errors[question.name] and { text: errors[question.name] },
+        items: question.items
+      }) }}
+    {% endif %}
+
+    {{ govukButton({ text: copy.continue }) }}
+  </form>
+
+  {% if toldRows.length %}
+    <h2 class="govuk-heading-m">{{ copy.told.heading }}</h2>
+    {{ govukSummaryList({ rows: toldRows }) }}
+  {% endif %}
+{% endblock %}

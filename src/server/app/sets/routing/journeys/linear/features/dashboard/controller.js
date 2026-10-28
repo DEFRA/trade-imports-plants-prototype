@@ -18,6 +18,7 @@ import * as kit from '../../../../../../shared/kit.js'
 import { beginOpeningRun } from '../../../../../../flow/run-state.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { commodityTypePage } from '../commodity-type/page.js'
+import { findPage } from '../find/page.js'
 import { dashboardPage } from './page.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
@@ -72,6 +73,11 @@ export const renderDashboard = async (request, h) => {
     ...kit.base(copy.title, { page: dashboardPage }),
     contentColumnClass: kit.surfaceClass('display'),
     copy,
+    // The start button opens the routing questions rather than starting a
+    // plants notification outright: what the trader is importing decides
+    // which notification they need.
+    startHref: `${dashboardPath()}/${findPage.slug}`,
+    // The shortcut for a trader who already knows they need this notification.
     startAction: createPath(),
     listAction: dashboardPath(),
     notificationRows: await Promise.all(rows.map(toRow)),

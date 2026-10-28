@@ -6,6 +6,8 @@ import * as contact from './consignment-contact-select/controller.js'
 import * as identificationNumbers from './identification-numbers/controller.js'
 import * as consignor from './consignor-select/controller.js'
 import * as dashboard from './dashboard/controller.js'
+import * as find from './find/controller.js'
+import * as placeholderNotification from './placeholder-notification/controller.js'
 import * as hub from './hub/controller.js'
 import * as deleteNotification from './delete-notification/controller.js'
 import * as commodityType from './commodity-type/controller.js'
@@ -16,6 +18,7 @@ import * as arrivalStatus from './arrival-status/controller.js'
 import * as arrivalDetails from './arrival-details/controller.js'
 import * as placeOfDestination from './place-of-destination/controller.js'
 
+// The find pages sit outside any notification, so they export no meta either.
 // Neither the dashboard nor the hub exports meta: they collect nothing, are
 // never gated and are never a task row, so they stay out of the dispatch index.
 // Delete-notification and cancel-amend are action slugs, not journey pages.
@@ -43,6 +46,8 @@ export const allRoutes = [
   ...contact.routes,
   ...identificationNumbers.routes,
   ...dashboard.routes,
+  ...find.routes,
+  ...placeholderNotification.routes,
   ...hub.routes,
   ...deleteNotification.routes,
   ...commodityType.routes,

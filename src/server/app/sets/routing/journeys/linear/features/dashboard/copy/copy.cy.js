@@ -4,16 +4,16 @@
 // user-facing without Welsh Language Standards sign-off.
 export const copy = {
   title: 'Gwasanaeth hysbysu mewnforio',
-  body:
-    'Defnyddiwch y gwasanaeth hwn i roi gwybod i awdurdodau iechyd planhigion ' +
-    'am blanhigion risg uchel i’w plannu, tatws, neu bren a choed wedi’u ' +
-    'torri rydych chi’n eu mewnforio o aelod-wladwriaethau’r UE, fel sy’n ' +
-    'ofynnol gan Gynllun Hysbysu Cenedlaethol Iechyd Planhigion. Byddwch yn ' +
-    'ateb cyfres fer o gwestiynau am y llwyth, yna’n cyflwyno eich hysbysiad.',
+  body: '[Welsh needed] Use this service to tell the authorities about plants, live animals and germinal products you are importing. Tell us what you are importing and we will find the right notification for you, then fill in what you have already told us.',
   guidanceLink:
     'Gwiriwch a yw eich nwyddau’n risg uchel a phryd y mae’n rhaid i chi ' +
     'hysbysu (GOV.UK)',
   startButton: 'Dechrau hysbysiad newydd',
+  directStart: {
+    body: '[Welsh needed] High-risk plants only: if you already know this is the notification you need, you can skip the questions.',
+    button:
+      '[Welsh needed] Skip the questions and start a high-risk plants notification'
+  },
   notificationsHeading: 'Eich hysbysiadau',
   search: {
     heading: 'Hidlo hysbysiadau',

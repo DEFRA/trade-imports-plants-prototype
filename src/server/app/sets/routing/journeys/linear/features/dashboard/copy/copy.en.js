@@ -3,18 +3,17 @@
 // has still to settle.
 export const copy = {
   title: 'Import notification service',
-  body:
-    'Use this service to tell the plant health authorities about high-risk ' +
-    'plants for planting, potatoes, or wood and cut trees you are importing ' +
-    'from EU member states, as required by the Plant Health National ' +
-    'Notification Scheme. You will answer a short set of questions about the ' +
-    'consignment, then submit your notification.',
+  body: 'Use this service to tell the authorities about plants, live animals and germinal products you are importing. Tell us what you are importing and we will find the right notification for you, then fill in what you have already told us.',
   // The sentence renders only when the view model supplies a guidance URL.
   // No URL exists yet, so the link text waits here for one rather than
   // rendering a '#' href.
   guidanceLink:
     'Check whether your goods are high-risk and when you must notify (GOV.UK)',
   startButton: 'Start a new notification',
+  directStart: {
+    body: 'High-risk plants only: if you already know this is the notification you need, you can skip the questions.',
+    button: 'Skip the questions and start a high-risk plants notification'
+  },
   notificationsHeading: 'Your notifications',
   search: {
     heading: 'Filter notifications',

@@ -1,0 +1,35 @@
+{% extends "shared/layout.njk" %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+{% from "govuk/components/task-list/macro.njk" import govukTaskList %}
+
+{% block journeyContent %}
+  <p class="govuk-body">
+    {{ govukTag({ text: copy.draft, classes: "govuk-tag--blue" }) }}
+    {{ govukTag({ text: copy.placeholder, classes: "govuk-tag--grey" }) }}
+  </p>
+
+  <h1 class="govuk-heading-xl">{{ heading }}</h1>
+
+  {{ govukInsetText({ text: copy.notice }) }}
+
+  {% for group in groups %}
+    <h2 class="govuk-heading-m">{{ group.caption }}</h2>
+    {{ govukTaskList({
+      idPrefix: group.id,
+      items: group.items,
+      classes: "govuk-!-margin-bottom-8"
+    }) }}
+  {% endfor %}
+
+  <p class="govuk-body">
+    <a class="govuk-link" href="{{ answersHref }}">{{ copy.backToAnswers }}</a>
+  </p>
+
+  {{ govukButton({
+    text: copy.returnToDashboard,
+    href: dashboardHref,
+    classes: "govuk-button--secondary"
+  }) }}
+{% endblock %}

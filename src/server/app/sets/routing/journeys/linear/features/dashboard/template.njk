@@ -27,9 +27,12 @@
     </p>
   {% endif %}
 
+  {{ govukButton({ text: copy.startButton, href: startHref, isStartButton: true }) }}
+
+  <p class="govuk-body">{{ copy.directStart.body }}</p>
   <form method="post" action="{{ startAction }}" novalidate>
     <input type="hidden" name="crumb" value="{{ crumb }}" />
-    {{ govukButton({ text: copy.startButton, isStartButton: true }) }}
+    {{ govukButton({ text: copy.directStart.button, classes: "govuk-button--secondary" }) }}
   </form>
 
   <h2 class="govuk-heading-m">{{ copy.notificationsHeading }}</h2>
