@@ -113,8 +113,8 @@ and
 
 ## Deploying, sharing and merging
 
-Once deployed, the maintainer puts its address here and in `deployedUrl` in
-`scripts/designer/prototype.json`. Like `npm run dev`, it uses stub sign-in,
+The maintainer gives you the deployed address privately: it is never written
+in this public repository. Like `npm run dev`, it uses stub sign-in,
 behind [one shared password](docs/designers/sharing-and-handing-off.md#the-prototype-password) when the maintainer sets one in CDP.
 
 `main` is not protected: "share this" pushes straight there, with no videos
