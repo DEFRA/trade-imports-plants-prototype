@@ -1,21 +1,6 @@
-// AWAITING THE COPY PASS — the strings below are the journey spec's verbatim
-// wording, and the per-field hints and examples are invented
-// (journey-spec.json pages[commodities].provisionalCopy,
-// pages[commodity-details].provisionalCopy, ruled at d-049).
-
 /**
  * The commodities collection — the list page that owns the group and the
  * entry sub-page that adds or edits one line.
- *
- * `list.removed` names the commodity type a change dropped lines for, so this
- * bundle carries the three type labels as well. They are deliberately the same
- * three strings the commodity-type feature holds: a feature owns the words it
- * renders, and the two are held together by `copy.test.js` checking both
- * against the service's value list rather than by one importing the other.
- *
- * The length limits in the error sentences are arguments, not literals: the
- * controller passes the constant it validates against, so a cap is written
- * once.
  */
 export const copy = {
   typeLabels: {
@@ -96,7 +81,7 @@ export const copy = {
       'wood-and-cut-trees':
         'Preservative-treated wood does not need to be notified, unless it is cut coniferous trees more than 3 metres high.'
     },
-    genusPlaceholder: 'Select a genus',
+    genusSelectText: 'Select a genus',
     genusNoResults: 'No genera found',
     fields: {
       genus: {

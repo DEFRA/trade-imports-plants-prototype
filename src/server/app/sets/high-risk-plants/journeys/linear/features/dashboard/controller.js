@@ -94,7 +94,8 @@ export const renderDashboard = async (request, h) => {
       ...option,
       selected: option.value === sort
     })),
-    deletionSucceeded: request.query?.deleted === '1'
+    deletionSucceeded: request.query?.deleted === '1',
+    amendRefused: request.query?.amendRefused === '1'
   })
 }
 
@@ -102,7 +103,9 @@ const listGet = async (request, h) => renderDashboard(request, h)
 
 const amendPost = async (request, h) => {
   const journey = await amendJourney(request, h, request.params.journeyId)
-  return h.redirect(journey ? hubPath(journey.journeyId) : dashboardPath())
+  return h.redirect(
+    journey ? hubPath(journey.journeyId) : `${dashboardPath()}?amendRefused=1`
+  )
 }
 
 const createPost = async (request, h) => {

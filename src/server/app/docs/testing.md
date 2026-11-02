@@ -30,6 +30,28 @@ the case they need.
 Tests may compose a real set with platform code. Production imports remain subject
 to the layer rules.
 
+The unit fixture installs under the shipped set's id, so the URLs unit tests see
+are the URLs production serves. `installFixture()` is idempotent: the global
+set-up calls it, and a test that reconfigures a port calls it again to put the
+fixture back.
+
+## The second set and the completeness gate
+
+[`test/fixtures/second-set.js`](../../../../test/fixtures/second-set.js) is a
+second obligation set that exists only for tests. Co-residency is a property of
+the platform, not of one set, so proving it needs two sets mounted in one
+process. The fixture is the smallest set that fills every `configure*` seam and
+mounts under its own prefix. Its routes echo the configuration they resolve, so
+a test can read back which set answered and with whose obligations.
+
+[`set-completeness.test.js`](../set-completeness.test.js) proves a set that
+forgets a seam does not mount. Three seams answer benignly when unconfigured:
+the journey flow returns no sections and no task rows, the session returns the
+shared default cookie names, and the readiness roll-up answers false forever.
+The completeness gate turns each of those into a failed mount. The probe
+gateways are built in that test, not in the second set, because each probe has
+to be wrong in one specific way and the second set is correctly wired.
+
 ## Architecture and formatting
 
 `npm run lint` runs JavaScript, stylesheet and architecture linting. Dependency

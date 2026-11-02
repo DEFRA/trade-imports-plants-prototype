@@ -3,17 +3,20 @@ import {
   journeyIdFromPage,
   setUrl
 } from '../../../../../../../../../../fit/set-base.js'
+import {
+  expectNoSeriousOrCriticalViolations,
+  saveAndContinue,
+  saveAndReturnToHub,
+  startNotification
+} from '../../../../../../../../../../fit/high-risk-plants-journey.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../../fit/sign-in.js'
 import { copy as sharedCopy } from '../../../../../../../shared/copy.en.js'
 import { copy as captionsCopy } from '../../../flow/section-captions/copy/copy.en.js'
-import { copy as dashboardCopy } from '../../dashboard/copy/copy.en.js'
 import { copy as typeCopy } from '../../commodity-type/copy/copy.en.js'
 import { copy } from '../copy/copy.en.js'
-import { expectNoSeriousOrCriticalViolations } from './axe.js'
 
-const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
 const DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details$')
 const DETAILS_EDIT_URL = setUrl(
   '/notifications/[^/]+/commodities/details\\?index=\\d+$'
@@ -29,9 +32,6 @@ const WARE_POTATOES = 'ware-potatoes'
 const MARIS_PIPER = 'Maris Piper'
 const KING_EDWARD = 'King Edward'
 
-const saveAndContinue = (page) =>
-  page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
-
 const fieldNamed = (page, field) =>
   page.getByLabel(copy.details.fields[field].label, { exact: true })
 
@@ -44,9 +44,7 @@ const commodityTypeUrlOf = (page) => `${hubUrlOf(page)}/commodity-type`
 const listUrlOf = (page) => `${hubUrlOf(page)}/commodities`
 
 const startAtDetails = async (page, commodityType) => {
-  await page.goto(BASE)
-  await page.getByRole('button', { name: dashboardCopy.startButton }).click()
-  await expect(page).toHaveURL(COMMODITY_TYPE_URL)
+  await startNotification(page)
   await page
     .getByRole('radio', {
       name: typeCopy.typeLabels[commodityType],
@@ -192,11 +190,7 @@ test.describe('commodities list', () => {
     await startWithOneLine(page)
 
     await expect(saveAndContinue(page)).toBeVisible()
-    await expect(
-      page.getByRole('button', {
-        name: sharedCopy.saveActions.saveAndReturnToHub
-      })
-    ).toBeHidden()
+    await expect(saveAndReturnToHub(page)).toBeHidden()
     await expect(
       page.getByRole('link', {
         name: sharedCopy.saveActions.cancelAndReturnToHub

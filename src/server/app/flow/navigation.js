@@ -1,6 +1,6 @@
 import { hubPath, pagePath } from '../shared/paths.js'
 import { pageGatePasses } from './gates.js'
-import { journeySections } from './journey-flow.js'
+import { journeySections, journeyTaskRows } from './journey-flow.js'
 
 const sectionOfPage = (pageId) =>
   journeySections().find((section) =>
@@ -30,14 +30,29 @@ export const rowEntry = (row, scope, journeyId) => {
 export const rowGatePasses = (row, scope) =>
   row.pages.some((page) => pageGatePasses(page, scope))
 
-export const nextInSection = (pageId, scope, journeyId) => {
+const nextSectionPage = (pageId, scope) => {
   const section = sectionOfPage(pageId)
   if (!section) {
-    return hubPath(journeyId)
+    return undefined
   }
   const index = section.pages.findIndex((page) => page.id === pageId)
-  const next = section.pages
+  return section.pages
     .slice(index + 1)
     .find((page) => pageGatePasses(page, scope))
-  return next ? pagePath(journeyId, next.slug) : hubPath(journeyId)
+}
+
+const taskRowOfPage = (pageId) =>
+  journeyTaskRows().find((row) => row.pages.some((page) => page.id === pageId))
+
+const staysInTaskRow = (row, page) =>
+  !row || row.pages.some((candidate) => candidate.id === page.id)
+
+/** Where a save goes outside the opening run: on to the next page of the same
+ * task row, otherwise back to the hub. A page outside every task row keeps its
+ * section's order. */
+export const nextInTaskRow = (pageId, scope, journeyId) => {
+  const next = nextSectionPage(pageId, scope)
+  return next && staysInTaskRow(taskRowOfPage(pageId), next)
+    ? pagePath(journeyId, next.slug)
+    : hubPath(journeyId)
 }

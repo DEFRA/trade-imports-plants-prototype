@@ -3,8 +3,10 @@ import Jwt from '@hapi/jwt'
 import { getOidcConfigWithRetry } from '../auth/get-oidc-config-with-retry.js'
 import { refreshTokens } from '../auth/refresh-tokens.js'
 import { getSafeRedirect } from '../auth/get-safe-redirect.js'
+import { timeTokenExchange } from '../auth/token-exchange-timer.js'
 import { config } from '../config/config.js'
 import { isStubMode } from '../server/common/services/mode.js'
+import { countSessionResolution } from '../server/common/helpers/call-counts/call-counts.js'
 
 export const authPlugin = {
   plugin: {
@@ -42,7 +44,7 @@ function getBellOptions(oidcConfig) {
       protocol: 'oauth2',
       useParamsAuth: true,
       auth: oidcConfig.authorization_endpoint,
-      token: oidcConfig.token_endpoint,
+      token: timeTokenExchange(oidcConfig.token_endpoint),
       scope: ['openid', 'offline_access', config.get('defraId.clientId')],
       profile: function (credentials, _params, _get) {
         const payload = Jwt.token.decode(credentials.token).decoded.payload
@@ -109,6 +111,7 @@ function getCookieOptions() {
       return `/auth/sign-in?redirect=${encodeURIComponent(target)}`
     },
     validate: async function (request, session) {
+      countSessionResolution(request)
       const userSession = await request.server.app.cache.get(session.sessionId)
 
       // If session does not exist, return an invalid session

@@ -15,10 +15,12 @@ import * as origin from './origin/controller.js'
 import * as arrivalStatus from './arrival-status/controller.js'
 import * as arrivalDetails from './arrival-details/controller.js'
 import * as placeOfDestination from './place-of-destination/controller.js'
+import * as partyEdit from './party-edit/party-edit.controller.js'
 
 // Neither the dashboard nor the hub exports meta: they collect nothing, are
 // never gated and are never a task row, so they stay out of the dispatch index.
-// Delete-notification and cancel-amend are action slugs, not journey pages.
+// Delete-notification and cancel-amend are action slugs, not journey pages, and
+// party-edit is reached only from a picked address's Edit details link.
 export const dispatchPages = [
   confirmation.meta,
   declaration.meta,
@@ -52,5 +54,6 @@ export const allRoutes = [
   ...arrivalStatus.routes,
   ...arrivalDetails.routes,
   ...consignor.routes,
-  ...placeOfDestination.routes
+  ...placeOfDestination.routes,
+  ...partyEdit.routes
 ]

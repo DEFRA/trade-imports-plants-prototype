@@ -130,9 +130,13 @@ For a conditional field, use `scope.has(fieldName)` to decide whether to render
 and validate it. Do not commit a hidden value. The evaluator removes stored data
 when the obligation leaves scope.
 
-Wrap the write in `kit.recoverableSave()`. On a marked persistence failure,
-render the same values with `recoverableError: true` and return 500. Let other
-errors throw.
+Wrap the write in `kit.recoverableSave(request, …)`. On a marked persistence
+failure it logs the fallback once; render the same values with
+`recoverableError: true` and return 500. Let other errors throw. When
+validation fails, render the page again with status 400 and log nothing: a user's
+own field errors shown back on the form are not logged. A refusal that is not the
+user's input error (a state refusal, a bare 400, another service refusing) logs
+once through `kit.logRefusal(request, { …details })` with the journey id.
 
 Run `npm run test:high-risk-plants`. `buildDispatch` should now pass. Update the
 existing case for this controller in `src/server/app/contract.test.js`: add the
@@ -171,7 +175,11 @@ copy test.
 ## 5. Add the check-answers row
 
 Add the row to the matching card under the check-answers feature's view model.
-Add its label and any displayed value labels to both check-answers copy bundles.
+Add its label to both check-answers copy bundles. A stored code is shown through
+a copy lookup keyed by the stored value, as the review does with
+`copy.typeLabels[answers.commodityType]` and
+`copy.statusLabels[answers.arrivalStatus]`, never retyped into the row. Value
+labels only the review shows go in the check-answers copy bundles.
 
 Use `row()` for an editable scalar. Pass the obligation name so `changeAction()`
 resolves the owning page through the dispatch index. Use a service label function
@@ -238,6 +246,17 @@ Extend the feature's `controller.test.js`. Cover:
 Add focused model, gate, mapper and check-answers tests when the field changes
 those contracts.
 
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file.
+
+The controller-test helpers are listed in [Test support](add-a-page.md#test-support), with `useStubbedJourney` as the set-up.
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
+
 ## Playwright feature test
 
 Keep the spec with the feature. Extend its existing `*.fit.spec.js`. A small
@@ -267,13 +286,11 @@ Add an axe test for both page states the field changes:
 - initial render
 - validation error state, after the inline error and error summary appear
 
-Use `AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa'])` and fail when any
-violation has `impact` equal to `serious` or `critical`.
-
-> **EXEMPLAR PLACEHOLDER** — the initial-state and error-state axe pattern
-> should be established by the first feature spec that covers a validated field
-> and cited here once it exists. Filter a known component false positive only
-> when that exemplar does and the same markup proves it applies.
+Call `expectNoSeriousOrCriticalViolations(page, subject)` from
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js)
+in each state, as
+[`commodity-type.fit.spec.js`](../journeys/linear/features/commodity-type/commodity-type.fit.spec.js)
+does. Do not build `AxeBuilder` in a spec.
 
 ## 9. Run every check
 

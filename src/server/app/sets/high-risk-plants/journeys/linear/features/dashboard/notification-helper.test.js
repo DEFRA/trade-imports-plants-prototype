@@ -8,7 +8,8 @@ import {
   buildPaginationLinks,
   DEFAULT_NOTIFICATION_SORT,
   formatCommodity,
-  formatDisplayDate,
+  formatDisplayCalendarDate,
+  formatDisplayMoment,
   NOTIFICATION_SORT_OPTIONS,
   normalizePageNumber,
   parseNotificationSort
@@ -210,14 +211,29 @@ describe('#buildPageResultsRangeLabel', () => {
   })
 })
 
-describe('#formatDisplayDate', () => {
-  it('Should format an ISO date for the list', () => {
-    expect(formatDisplayDate('2026-03-05')).toBe('5 Mar 2026')
+describe('#formatDisplayCalendarDate', () => {
+  it('Should format the arrival day the wire carries', () => {
+    expect(formatDisplayCalendarDate('2026-03-05')).toBe('5 Mar 2026')
   })
 
   it('Should answer an empty string for a missing or unparseable value', () => {
-    expect(formatDisplayDate(null)).toBe('')
-    expect(formatDisplayDate('not-a-date')).toBe('')
+    expect(formatDisplayCalendarDate(null)).toBe('')
+    expect(formatDisplayCalendarDate('not-a-date')).toBe('')
+  })
+})
+
+describe('#formatDisplayMoment', () => {
+  it('Should show a moment as the day it happened in London', () => {
+    expect(formatDisplayMoment('2026-09-10T23:35:39.455Z')).toBe('11 Sep 2026')
+  })
+
+  it('Should read a moment with no zone as UTC', () => {
+    expect(formatDisplayMoment('2026-09-10T23:35:39')).toBe('11 Sep 2026')
+  })
+
+  it('Should answer an empty string for a missing or unparseable value', () => {
+    expect(formatDisplayMoment(undefined)).toBe('')
+    expect(formatDisplayMoment('not-a-date')).toBe('')
   })
 })
 

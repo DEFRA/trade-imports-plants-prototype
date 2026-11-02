@@ -1,28 +1,19 @@
-import { SET_ID } from '../../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectBackLinkIsPage,
+  expectNoRefusalLogged,
+  expectOneRefusalLogged,
+  expectOneSaveFallbackLogged,
+  postHandlerOf,
+  unavailableBackendError
 } from '../../../../../../../engine/test-support.js'
 import { hubPath, pagePath } from '../../../../../../../shared/paths.js'
+import { RUN_ACTIVE } from '../../../../../../../flow/run-state.js'
 import {
   COMPLETE_POTATO_CONSIGNMENT,
-  installHighRiskPlantsJourney
+  useStubbedHighRiskPlantsJourney
 } from '../../../test-support.js'
 import * as list from './list.controller.js'
 
@@ -47,12 +38,6 @@ const TWO_LINES = {
   ]
 }
 
-const install = () => {
-  configureRecords(SET_ID, recordsStub)
-  configureSession(SET_ID, sessionStub)
-  installHighRiskPlantsJourney()
-}
-
 describe('#meta', () => {
   it('Should own the commodityLines group on the commodities page', () => {
     expect(list.meta).toEqual({
@@ -64,8 +49,7 @@ describe('#meta', () => {
 })
 
 describe('GET commodities', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should send a consignment with no line straight to the entry page', async () => {
     const result = await driveHandler(get, {
@@ -141,16 +125,24 @@ describe('GET commodities', () => {
     }
   )
 
-  it('Should send Back to the overview', async () => {
+  it('Should send Back to the overview when the page is opened from the overview', async () => {
     const result = await driveHandler(get, { seed: TWO_LINES })
 
     expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
   })
+
+  it('Should send Back to the commodity type while the opening run is on', async () => {
+    const result = await driveHandler(get, {
+      seed: TWO_LINES,
+      openingRun: RUN_ACTIVE
+    })
+
+    expectBackLinkIsPage(result, 'commodity-type')
+  })
 })
 
 describe('POST commodities — removing a line', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should splice out the line the button names and return to the list', async () => {
     const result = await driveHandler(post, {
@@ -170,6 +162,12 @@ describe('POST commodities — removing a line', () => {
 
     expect(result.response.statusCode).toBe(400)
     expect(result.after.commodityLines).toEqual(TWO_LINES.commodityLines)
+    expectOneRefusalLogged(result.logger, {
+      journeyId: result.journeyId,
+      errorCodes: [],
+      reason: 'remove-index-out-of-range',
+      removeAction: 'remove:7'
+    })
   })
 
   it('Should refuse a malformed index rather than splice the first line', async () => {
@@ -184,8 +182,7 @@ describe('POST commodities — removing a line', () => {
 })
 
 describe('POST commodities — continuing', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should leave the section for the overview once a line exists', async () => {
     const result = await driveHandler(post, {
@@ -206,6 +203,7 @@ describe('POST commodities — continuing', () => {
     expect(result.view.context.errorSummary.errorList).toEqual([
       { text: ADD_AT_LEAST_ONE, href: '#commodityLines' }
     ])
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should commit nothing of its own', async () => {
@@ -219,60 +217,34 @@ describe('POST commodities — continuing', () => {
 })
 
 describe('POST commodities — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       seed: TWO_LINES,
       payload: { action: 'remove:0' }
     })
 
     expect(result.response.statusCode).toBe(500)
     expect(result.view.context.recoverableError).toBe(true)
+    expectOneSaveFallbackLogged(result.logger, {
+      journeyId: result.journeyId,
+      err: failure,
+      action: 'remove-line',
+      index: 0
+    })
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
-    })
-
     await expect(
-      driveHandler(post, { seed: TWO_LINES, payload: { action: 'remove:0' } })
+      driveHandler(post, {
+        seed: TWO_LINES,
+        payload: { action: 'remove:0' },
+        saveFailure: new TypeError('programming failure')
+      })
     ).rejects.toThrow(new TypeError('programming failure'))
   })
 })

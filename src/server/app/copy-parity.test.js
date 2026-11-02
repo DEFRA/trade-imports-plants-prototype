@@ -33,7 +33,9 @@ const featuresWithCopy = readdirSync(FEATURES_DIR, { withFileTypes: true })
 // String leaves that may legitimately be byte-identical across en and cy
 // (proper nouns, codes, reference formats). Keyed `${module}:${path}` —
 // every addition must be justified here.
-const IDENTICAL_ALLOWLIST = new Set([])
+// - layout.govukSuffix is the GOV.UK brand word that closes every page title;
+//   the Welsh GOV.UK carries the same name.
+const IDENTICAL_ALLOWLIST = new Set(['shared:layout.govukSuffix'])
 
 const kindOf = (value) => (typeof value === 'function' ? 'function' : 'string')
 

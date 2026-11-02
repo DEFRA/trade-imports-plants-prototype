@@ -1,12 +1,10 @@
-/** The parts of a stored address, in the order they are read out. The address
- * book's own wire names are mapped to these by `services/address-book/client.js`,
- * so this list is the journey's shape rather than the API's. */
+/** The parts of a stored address, in the order they are read out. */
 const ADDRESS_PARTS = [
   'addressLine1',
   'addressLine2',
   'townOrCity',
   'county',
-  'postalOrZipCode'
+  'postcode'
 ]
 
 /** The address as one line for the results table. The country has its own
@@ -24,7 +22,7 @@ export const detailLines = (record) => {
     record.name,
     ...ADDRESS_PARTS.map((part) => address[part]),
     address.country,
-    address.telephoneNumber,
-    address.emailAddress
+    address.phone,
+    address.email
   ].filter(Boolean)
 }

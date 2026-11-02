@@ -24,17 +24,6 @@ import {
   TOGGLE_NO
 } from '../../../../test/fixtures/index.js'
 
-// Mutator behaviour. Storage is positional (an array; the evaluator holds no
-// instance record and infers instances from leaf composite prefixes), so every
-// mutator's storage mechanic — index-minting, in-place `with`, `toSpliced`,
-// key-matched reconcile — is a storage concern:
-//   - append/update/remove/reconcile store positionally;
-//   - append's cap rejection fires via `collectionCapAt` (`maxEntriesFrom`);
-//   - an empty appended entry survives in storage even though the evaluator
-//     cannot address it (no leaf → no evaluator instance);
-//   - remove/reconcile route their purge to the evaluator (evaluator-authoritative
-//     wipe of now-orphaned notification-level data).
-
 let journeyId
 const buildRequest = () => journeyRequest(journeyId)
 const answersNow = async () => (await store.get(journeyId)).answers
@@ -146,8 +135,7 @@ describe('mutators — storage is positional, purge is evaluator-authoritative',
   })
 
   describe('#appendEntryAt — an empty appended entry is not persisted', () => {
-    it('Should accept the ruled loss of a leaf-less unit the canonical evaluator cannot express', async () => {
-      // No itemCount → uncapped (blank-count semantics).
+    it('Should return index 0 and store no nested entry when the appended entry has no leaf value', async () => {
       await store.seedAnswers(journeyId, {
         itemCollection: [{ itemSelector: SELECTOR_BRAVO, nestedCollection: [] }]
       })
@@ -158,7 +146,6 @@ describe('mutators — storage is positional, purge is evaluator-authoritative',
         {}
       )
       expect(index).toBe(0)
-      // The evaluator infers instances from leaf composite prefixes, so this
       expect(
         (await answersNow()).itemCollection[0].nestedCollection
       ).toBeUndefined()
@@ -167,9 +154,6 @@ describe('mutators — storage is positional, purge is evaluator-authoritative',
 
   describe('#removeEntryAt — the purge is evaluator-authoritative', () => {
     it('Should let the evaluator purge a now-orphaned top-level answer when the last triggering entry is removed', async () => {
-      // aggregateGatedToggle is gated (anyAllowListed) on an entry whose
-      // itemSelector is SELECTOR_BRAVO existing in ANY entry, and is purged
-      // when none does.
       await store.seedAnswers(journeyId, {
         aggregateGatedToggle: TOGGLE_NO,
         itemCollection: [
@@ -177,7 +161,6 @@ describe('mutators — storage is positional, purge is evaluator-authoritative',
           { itemSelector: SELECTOR_CHARLIE, itemCategory: CATEGORY_TWO }
         ]
       })
-      // After removing the SELECTOR_BRAVO entry, the evaluator owns the wipe.
       const afterRemoval = {
         aggregateGatedToggle: TOGGLE_NO,
         itemCollection: [
@@ -223,7 +206,6 @@ describe('mutators — storage is positional, purge is evaluator-authoritative',
       ])
       const entries = (await answersNow()).itemCollection
       expect(entries).toHaveLength(2)
-      // The kept entry retains ALL its data — positional key-matched merge.
       expect(entries[0].nestedCollection).toEqual([
         { nestedGatedFieldA: 'A-1' }
       ])

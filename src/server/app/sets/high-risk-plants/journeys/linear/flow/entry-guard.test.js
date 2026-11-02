@@ -21,6 +21,7 @@ import { installHighRiskPlantsJourney } from '../test-support.js'
 import { SESSION_COOKIE_NAMES } from '../config.js'
 import { commodityTypePage } from '../features/commodity-type/page.js'
 import {
+  entryBackLink,
   entryGuardTarget,
   guardedJourneyPath,
   hasCommittedNotificationAnswers
@@ -166,5 +167,19 @@ describe('#entryGuardTarget', () => {
         record: { [OTHER_JOURNEY_ID]: RUN_ACTIVE }
       })
     ).toBe(pagePath(journeyId, ENTRY_SLUG))
+  })
+})
+
+describe('#entryBackLink', () => {
+  beforeAll(() => installHighRiskPlantsJourney())
+
+  it('Should send Back to the overview once a notification answer is committed', () => {
+    expect(
+      entryBackLink({ journeyId: 'j-1' }, { commodityType: 'potatoes' })
+    ).toBe(hubPath('j-1'))
+  })
+
+  it('Should send Back to the dashboard while nothing is committed', () => {
+    expect(entryBackLink({ journeyId: 'j-1' }, {})).toBe(dashboardPath())
   })
 })

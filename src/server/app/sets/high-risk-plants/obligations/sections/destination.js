@@ -6,9 +6,8 @@
 // three sentences a notifier is shown is the page's business, decided from the
 // arrival status.
 //
-// The answer is a reference to a record in the organisation's address book —
-// `{ addressId }` — and never a copy of the address. The details are resolved
-// on read, so an address the trader later corrects is corrected everywhere.
+// The answer is a copy of a record in the organisation's address book, taken
+// when it is picked; a later change to the record does not reach it.
 export const placeOfDestination = {
   id: '7eb0d717-f852-43f7-9377-c6a9c301d702',
   name: 'placeOfDestination',

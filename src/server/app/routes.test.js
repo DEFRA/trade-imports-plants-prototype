@@ -5,7 +5,6 @@ import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants/status-codes.js'
 import { makeScope } from './engine/index.js'
-import { answersForRead } from './bridge/answers-read.js'
 import { isDispatchBuilt } from './flow/dispatch.js'
 import { allRoutes } from './sets/high-risk-plants/journeys/linear/features/index.js'
 import {
@@ -55,6 +54,7 @@ describe('high-risk-plants plugin registration', () => {
     expect(makeScope(COMPLETE_NOTIFICATION).readyForCheckYourAnswers).toBe(true)
   })
 
+<<<<<<< HEAD
   it('Should inject the set party sanitiser into the answers-read seam', async () => {
     // Registration replaces the bridge's identity default, so a reference the
     // address book does not resolve stops being an answer on every read. The
@@ -69,6 +69,8 @@ describe('high-risk-plants plugin registration', () => {
     )
   })
 
+=======
+>>>>>>> upstream/main
   it('Should name the set-owned session cookies', () => {
     expect(Object.keys(server.states.cookies)).toEqual(
       expect.arrayContaining([

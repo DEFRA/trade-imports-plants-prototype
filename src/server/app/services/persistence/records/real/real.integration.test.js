@@ -26,12 +26,6 @@ import {
   VARIANT_ONE
 } from '../../../../../../../test/fixtures/index.js'
 
-// Gated integration test for the option-e REAL adapter and its two backend
-// resources. The default hermetic run skips it. Run against the matching
-// backend worktree with:
-//
-//   HIGH_RISK_PLANTS_IT=real npm test -- real.integration
-
 const backendBaseUrl =
   process.env.TRADE_IMPORTS_PLANTS_BACKEND_URL ?? 'http://localhost:8091'
 const notificationsUrl = `${backendBaseUrl}/notifications`
@@ -47,8 +41,7 @@ const json = async (url) => {
   return response.json()
 }
 
-// The real adapter receives the agreed plants reference format from the backend.
-const REF_PATTERN = /^GBN-HRP-\d{2}-[0-9A-HJ-KM-NP-TV-Z]{6}$/
+const PLANTS_REFERENCE_PATTERN = /^GBN-HRP-\d{2}-[0-9A-HJ-KM-NP-TV-Z]{6}$/
 const UNKNOWN_REFERENCE = 'GBN-HRP-99-ZZZZZZ'
 
 const answers = {
@@ -87,11 +80,10 @@ const answers = {
 }
 
 describe.skipIf(!runsIt('real'))(
-  'real records adapter over the live option-e backend',
+  'real records adapter against a running plants backend',
   () => {
     beforeAll(async () => {
       try {
-        // Reachability probe — any HTTP response confirms the stack is up.
         await fetch(`${notificationsUrl}?page=1`)
       } catch (cause) {
         throw new Error(
@@ -104,7 +96,7 @@ describe.skipIf(!runsIt('real'))(
     it('Should mint an empty canonical journey and load it directly', async () => {
       const created = await records.create()
 
-      expect(created.journeyId).toMatch(REF_PATTERN)
+      expect(created.journeyId).toMatch(PLANTS_REFERENCE_PATTERN)
       expect(created.status).toBe(DRAFT)
       expect(created.submittedAt).toBeNull()
       expect(created.fulfilment).toEqual({})

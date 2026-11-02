@@ -4,6 +4,11 @@ import {
 } from '../../../server/app/sets/high-risk-plants/set.js'
 import { vi } from 'vitest'
 
+import {
+  callCountsOf,
+  newCallCounts
+} from '../../../server/common/helpers/call-counts/call-counts.js'
+
 const mockReadFileSync = vi.fn()
 const mockLoggerError = vi.fn()
 
@@ -19,10 +24,7 @@ vi.mock('../../../server/common/helpers/logging/logger.js', () => ({
   createLogger: () => ({ error: (...args) => mockLoggerError(...args) })
 }))
 
-// `vi.resetModules()` gives each test a fresh `shared/set-context.js` with an
-// empty mount registry, so the global setup's registration does not carry over.
-// Re-register it, or every path builder throws for want of a set.
-const remountSet = async () => {
+const registerSetMountAfterModuleReset = async () => {
   const { registerSetMount } =
     await import('../../../server/app/shared/set-context.js')
   registerSetMount(SET_ID, SET_BASE)
@@ -33,7 +35,7 @@ describe('context and cache', () => {
     mockReadFileSync.mockReset()
     mockLoggerError.mockReset()
     vi.resetModules()
-    await remountSet()
+    await registerSetMountAfterModuleReset()
   })
 
   describe('#context', () => {
@@ -48,7 +50,6 @@ describe('context and cache', () => {
       })
 
       beforeEach(async () => {
-        // Return JSON string
         mockReadFileSync.mockReturnValue(`{
         "application.js": "javascripts/application.js",
         "stylesheets/application.scss": "stylesheets/application.css"
@@ -113,6 +114,44 @@ describe('context and cache', () => {
         })
       })
 
+      test('Should count one session resolution when it looks up the signed-in user', async () => {
+        const request = {
+          path: SET_BASE,
+          auth: {
+            isAuthenticated: true,
+            credentials: { sessionId: 'session-1' }
+          },
+          plugins: { 'call-counts': newCallCounts() },
+          server: {
+            app: {
+              cache: { get: vi.fn().mockResolvedValue({ email: 'a@b.test' }) }
+            }
+          }
+        }
+
+        expect(callCountsOf(request).sessionResolutions).toBe(0)
+
+        await contextImport.context(request)
+
+        expect(callCountsOf(request).sessionResolutions).toBe(1)
+      })
+
+      test('Should count no session resolution for a sign-in callback with no session id', async () => {
+        const request = {
+          path: '/auth/sign-in-oidc',
+          auth: {
+            isAuthenticated: true,
+            credentials: { profile: { sessionId: 'session-1' } }
+          },
+          plugins: { 'call-counts': newCallCounts() },
+          server: { app: { cache: { get: vi.fn() } } }
+        }
+
+        await contextImport.context(request)
+
+        expect(callCountsOf(request).sessionResolutions).toBe(0)
+      })
+
       test('Should not look up a session for a sign-in callback that has no session id yet', async () => {
         const cacheGet = vi.fn()
         const result = await contextImport.context({
@@ -160,6 +199,10 @@ describe('context and cache', () => {
 
       test('Should log that the Webpack Manifest file is not available', () => {
         expect(mockLoggerError).toHaveBeenCalledWith(
+          {
+            err: expect.any(SyntaxError),
+            manifestPath: expect.stringMatching(/assets-manifest\.json$/)
+          },
           'Webpack assets-manifest.json not found'
         )
       })
@@ -178,7 +221,6 @@ describe('context and cache', () => {
       })
 
       beforeEach(async () => {
-        // Return JSON string
         mockReadFileSync.mockReturnValue(`{
         "application.js": "javascripts/application.js",
         "stylesheets/application.scss": "stylesheets/application.css"
@@ -217,7 +259,7 @@ describe('#activeNavigationItem', () => {
   let activeNavigationItem
 
   beforeAll(async () => {
-    await remountSet()
+    await registerSetMountAfterModuleReset()
     ;({ activeNavigationItem } = await import('./context.js'))
   })
 
@@ -247,7 +289,7 @@ describe('#activeNavigationItem', () => {
 describe('When auth.enabled is set to false', () => {
   beforeEach(async () => {
     vi.resetModules()
-    await remountSet()
+    await registerSetMountAfterModuleReset()
     mockReadFileSync.mockReset()
     mockLoggerError.mockReset()
   })

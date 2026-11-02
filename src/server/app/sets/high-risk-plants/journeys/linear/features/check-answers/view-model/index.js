@@ -8,8 +8,13 @@ import { addressText } from '../../address-book-picker/address-lines.js'
 import { copy as en } from '../copy/copy.en.js'
 import { copy as cy } from '../copy/copy.cy.js'
 import { row, readOnlyRow } from './rows/summary-row.js'
+import { errorRow } from './rows/error-row.js'
 import { changeAction, editableActions } from './rows/change-link.js'
 import { dateText } from './rows/value-text.js'
+import { anchorOf } from './incomplete-cards.js'
+import { CYA_SLUG } from '../../../../../../../shared/kit.js'
+import { partyOf } from '../../../parties/index.js'
+import { partyEditHref } from '../../party-edit/edit-href.js'
 import { copy as arrivalEn } from '../../arrival-details/copy/copy.en.js'
 import { copy as arrivalCy } from '../../arrival-details/copy/copy.cy.js'
 import { copy as destinationEn } from '../../place-of-destination/copy/copy.en.js'
@@ -46,22 +51,76 @@ const IDENTIFIERS = [
   'consignmentNumber'
 ]
 
-const partyCard = (field, title, party, journeyId, readOnly) => ({
+const partyActions = (field, title, partyDisplayValues, journeyId) => {
+  const actions = changeAction(journeyId, field, title)
+  if (partyDisplayValues) {
+    const partyRegistryEntry = partyOf(field)
+    actions.items.push({
+      href: partyEditHref(journeyId, partyRegistryEntry, CYA_SLUG),
+      text: copy.editDetails,
+      visuallyHiddenText: title
+    })
+  }
+  return actions
+}
+
+/** The copy's fields that each card row shows, so a field's error lands on the
+ * row that holds it. */
+const ADDRESS_FIELDS = [
+  'addressLine1',
+  'addressLine2',
+  'townOrCity',
+  'county',
+  'postcode',
+  'countryCode'
+]
+
+const partyCard = (
+  { field, id },
   title,
-  ...editableActions(readOnly, changeAction(journeyId, field, title)),
-  rows: [
-    readOnlyRow(copy.labels.name, party?.name),
-    readOnlyRow(
-      copy.labels.address,
-      party &&
-        [addressText(party.address), party.address?.country]
-          .filter(Boolean)
-          .join(', ')
+  { partyDisplayValuesById, partyFieldErrorsById, journeyId, readOnly }
+) => {
+  const partyDisplayValues = partyDisplayValuesById[field]
+  const fieldErrors = partyFieldErrorsById[field] ?? {}
+  const messagesFor = (fields) =>
+    fields.map((name) => fieldErrors[name]).filter(Boolean)
+  return {
+    id,
+    title,
+    ...editableActions(
+      readOnly,
+      partyActions(field, title, partyDisplayValues, journeyId)
     ),
-    readOnlyRow(copy.labels.telephoneNumber, party?.address?.telephoneNumber),
-    readOnlyRow(copy.labels.emailAddress, party?.address?.emailAddress)
-  ]
-})
+    rows: [
+      errorRow(
+        copy.labels.name,
+        partyDisplayValues?.name,
+        messagesFor(['name'])
+      ),
+      errorRow(
+        copy.labels.address,
+        partyDisplayValues &&
+          [
+            addressText(partyDisplayValues.address),
+            partyDisplayValues.address?.country
+          ]
+            .filter(Boolean)
+            .join(', '),
+        messagesFor(ADDRESS_FIELDS)
+      ),
+      errorRow(
+        copy.labels.phone,
+        partyDisplayValues?.address?.phone,
+        messagesFor(['phone'])
+      ),
+      errorRow(
+        copy.labels.email,
+        partyDisplayValues?.address?.email,
+        messagesFor(['email'])
+      )
+    ]
+  }
+}
 
 const commodityCards = (answers, evaluation, journeyId, readOnly) =>
   collectionView(answers, ['commodityLines'], evaluation).map(
@@ -99,7 +158,7 @@ const commodityCards = (answers, evaluation, journeyId, readOnly) =>
  */
 const sectionContext = async (
   { journey, answers, scope, evaluation },
-  parties,
+  { partyDisplayValuesById, partyFieldErrorsById },
   readOnly
 ) => {
   const journeyId = journey.journeyId
@@ -108,7 +167,7 @@ const sectionContext = async (
   // Pre-resolve the reference-data-backed labels so the section builders can
   // stay synchronous. The readers self-load; buildSections is the natural
   // await point since it is already the async gateway to check-answers.
-  const originCountryLabel = await countries.originLabel(
+  const originCountryLabel = await countries.countryDisplayLabel(
     answers.countryOfOrigin
   )
   const proposedPlaceOfLandingLabel = scope.has('proposedPlaceOfLanding')
@@ -118,7 +177,8 @@ const sectionContext = async (
     answers,
     scope,
     evaluation,
-    parties,
+    partyDisplayValuesById,
+    partyFieldErrorsById,
     journeyId,
     readOnly,
     arrivalState: arrivalStateOf(answers, scope),
@@ -141,8 +201,10 @@ const consignmentSection = ({
   originCountryLabel
 }) => ({
   heading: copy.sections.consignment,
+  anchor: anchorOf('commodities'),
   cards: [
     {
+      id: 'importDetails',
       title: copy.cards.import,
       rows: [
         answerRow('commodityType', copy.typeLabels[answers.commodityType]),
@@ -179,56 +241,60 @@ const arrivalRows = ({
     : [])
 ]
 
-const arrivalSection = (context) => {
-  const { arrivalState, parties, journeyId, readOnly } = context
-  return {
-    heading: copy.sections.arrival,
-    cards: [
-      { title: copy.cards.arrival, rows: arrivalRows(context) },
-      partyCard(
-        'placeOfDestination',
-        destinationCopy.headings[arrivalState],
-        parties.placeOfDestination,
-        journeyId,
-        readOnly
-      )
-    ]
-  }
-}
-
-const partiesSection = ({
-  scope,
-  parties,
-  journeyId,
-  readOnly,
-  scopedRows
-}) => ({
-  heading: copy.sections.parties,
+const arrivalSection = (context) => ({
+  heading: copy.sections.arrival,
   cards: [
-    ...(scope.has('consignor')
-      ? [
-          partyCard(
-            'consignor',
-            copy.cards.consignor,
-            parties.consignor,
-            journeyId,
-            readOnly
-          )
-        ]
-      : []),
-    { title: copy.cards.identification, rows: scopedRows(IDENTIFIERS) },
+    {
+      id: 'arrivalDetails',
+      title: copy.cards.arrival,
+      rows: arrivalRows(context)
+    },
     partyCard(
-      'contactAddress',
-      copy.cards.contact,
-      parties.contactAddress,
-      journeyId,
-      readOnly
+      { field: 'placeOfDestination', id: 'placeOfDestination' },
+      destinationCopy.headings[context.arrivalState],
+      context
     )
   ]
 })
 
-export const buildSections = async (journeyState, parties, readOnly) => {
-  const context = await sectionContext(journeyState, parties, readOnly)
+const partiesSection = (context) => ({
+  heading: copy.sections.parties,
+  cards: [
+    ...(context.scope.has('consignor')
+      ? [
+          partyCard(
+            { field: 'consignor', id: 'consignor' },
+            copy.cards.consignor,
+            context
+          )
+        ]
+      : []),
+    {
+      id: 'identificationNumbers',
+      title: copy.cards.identification,
+      rows: context.scopedRows(IDENTIFIERS)
+    },
+    partyCard(
+      { field: 'contactAddress', id: 'contact' },
+      copy.cards.contact,
+      context
+    )
+  ]
+})
+
+/** `partyFieldErrorsById` names, for each role whose copy breaks the address
+ * book's rules, the fields that break them. Read-only pages pass none. */
+export const buildSections = async (
+  journeyState,
+  partyDisplayValuesById,
+  readOnly,
+  { partyFieldErrorsById = {} } = {}
+) => {
+  const context = await sectionContext(
+    journeyState,
+    { partyDisplayValuesById, partyFieldErrorsById },
+    readOnly
+  )
   return [
     consignmentSection(context),
     arrivalSection(context),

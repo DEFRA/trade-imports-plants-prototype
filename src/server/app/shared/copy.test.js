@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { copyFor } from './copy.js'
+import { leaves } from './copy-leaves.js'
 import { copy as sharedEn } from './copy.en.js'
 import { copy as sharedCy } from './copy.cy.js'
-
-const leaves = (node, path = []) =>
-  typeof node === 'object' && node !== null
-    ? Object.entries(node).flatMap(([key, value]) =>
-        leaves(value, [...path, key])
-      )
-    : [{ path: path.join('.'), value: node }]
 
 describe('#copyFor', () => {
   it('Should resolve the requested locale', () => {
@@ -28,8 +22,28 @@ describe('#copyFor', () => {
   })
 })
 
+describe('journey strip copy', () => {
+  it('Should carry the Amend tag and Cancel amend control in English', () => {
+    expect(sharedEn.journeyStrip).toEqual({
+      draft: 'Draft',
+      submitted: 'Submitted',
+      amend: 'Amend',
+      cancelAmend: 'Cancel amend',
+      deleted: 'Deleted'
+    })
+  })
+
+  it('Should carry the Amend tag and Cancel amend control in Welsh', () => {
+    expect(sharedCy.journeyStrip.amend).toBe('Diwygio')
+    expect(sharedCy.journeyStrip.cancelAmend).toBe('Canslo diwygio')
+    expect(Object.keys(sharedCy.journeyStrip)).toEqual(
+      Object.keys(sharedEn.journeyStrip)
+    )
+  })
+})
+
 describe('phase-banner copy', () => {
-  it('Should carry the Design release 1 banner wording', () => {
+  it('Should carry the Alpha phase banner wording in English', () => {
     expect(sharedEn.layout.phaseBanner).toEqual({
       tag: 'Alpha',
       bodyPrefix: 'This is a new service. Help us improve it and',
@@ -45,7 +59,7 @@ describe('phase-banner copy', () => {
 })
 
 describe('service-navigation copy', () => {
-  it('Should carry the Design release 1 item labels', () => {
+  it('Should carry the five service-navigation labels in English', () => {
     expect(sharedEn.layout.serviceNavigation).toEqual({
       menuButton: 'Menu',
       dashboard: 'Dashboard',
@@ -62,6 +76,13 @@ describe('service-navigation copy', () => {
   })
 })
 
+describe('page-title copy', () => {
+  it('Should close every page title with the GOV.UK brand word in both locales', () => {
+    expect(sharedEn.layout.govukSuffix).toBe('GOV.UK')
+    expect(sharedCy.layout.govukSuffix).toBe('GOV.UK')
+  })
+})
+
 describe('error-page copy', () => {
   it('Should carry one message per status the catch-all names, and the fallback', () => {
     expect(sharedEn.errorPage).toEqual({
@@ -75,8 +96,9 @@ describe('error-page copy', () => {
 })
 
 describe('save-actions copy', () => {
-  it('Should carry the Design release 1 control labels', () => {
+  it('Should carry the four save-action labels in English', () => {
     expect(sharedEn.saveActions).toEqual({
+      saveAndReturn: 'Save and return',
       saveAndContinue: 'Save and continue',
       saveAndReturnToHub: 'Save and return to overview',
       cancelAndReturnToHub: 'Cancel and return to overview'

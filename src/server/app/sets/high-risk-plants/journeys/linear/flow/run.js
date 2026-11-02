@@ -9,39 +9,57 @@ import { originPage } from '../features/origin/page.js'
 import { arrivalStatusPage } from '../features/arrival-status/page.js'
 import { arrivalDetailsPage } from '../features/arrival-details/page.js'
 import { placeOfDestinationPage } from '../features/place-of-destination/page.js'
+import { notificationViewPage } from '../features/check-answers/page.js'
 
 const flowPageTarget = (page) => (scope, journeyId) =>
   pageGatePasses(page, scope) ? pagePath(journeyId, page.slug) : null
 
-/** The opening run's ordered steps — a null target skips the step (see
- * docs/journey-flow-and-gates.md, "Opening run and entry guard"). The run
- * opens on commodity-type, the notification's entry question, asks for the
- * consignment's commodities, then for where they come from, then whether they
- * have arrived, then when. The entry sub-page is not a step: the list page
- * sends a trader with no lines there and takes them back. The arrival-status
- * step is skipped for potatoes, whose notification is never asked the
- * question. Arrival details and destination are asked of every commodity type;
- * the consignor step is skipped for potatoes, then every type reaches
- * identification numbers. */
+/** The opening run's ordered steps. A null target skips the step.
+ * `backCandidates` lists the earlier steps a step's Back link may open, nearest
+ * first. */
 export const RUN_STEPS = [
   { id: commodityTypePage.id, target: flowPageTarget(commodityTypePage) },
-  { id: commoditiesPage.id, target: flowPageTarget(commoditiesPage) },
-  { id: originPage.id, target: flowPageTarget(originPage) },
-  { id: arrivalStatusPage.id, target: flowPageTarget(arrivalStatusPage) },
-  { id: arrivalDetailsPage.id, target: flowPageTarget(arrivalDetailsPage) },
+  {
+    id: commoditiesPage.id,
+    target: flowPageTarget(commoditiesPage),
+    backCandidates: [commodityTypePage.id]
+  },
+  {
+    id: originPage.id,
+    target: flowPageTarget(originPage),
+    backCandidates: [commoditiesPage.id]
+  },
+  {
+    id: arrivalStatusPage.id,
+    target: flowPageTarget(arrivalStatusPage),
+    backCandidates: [originPage.id]
+  },
+  {
+    id: arrivalDetailsPage.id,
+    target: flowPageTarget(arrivalDetailsPage),
+    backCandidates: [arrivalStatusPage.id, originPage.id]
+  },
   {
     id: placeOfDestinationPage.id,
-    target: flowPageTarget(placeOfDestinationPage)
+    target: flowPageTarget(placeOfDestinationPage),
+    backCandidates: [arrivalDetailsPage.id]
   },
-  { id: consignorPage.id, target: flowPageTarget(consignorPage) },
+  {
+    id: consignorPage.id,
+    target: flowPageTarget(consignorPage),
+    backCandidates: [placeOfDestinationPage.id]
+  },
   {
     id: identificationNumbersPage.id,
-    target: flowPageTarget(identificationNumbersPage)
+    target: flowPageTarget(identificationNumbersPage),
+    backCandidates: [consignorPage.id, placeOfDestinationPage.id]
   },
   {
     id: consignmentContactSelectPage.id,
-    target: flowPageTarget(consignmentContactSelectPage)
-  }
+    target: flowPageTarget(consignmentContactSelectPage),
+    backCandidates: [identificationNumbersPage.id]
+  },
+  { id: notificationViewPage.id, target: flowPageTarget(notificationViewPage) }
 ]
 
 export const nextRunTarget = (stepId, scope, journeyId) => {
@@ -56,4 +74,17 @@ export const nextRunTarget = (stepId, scope, journeyId) => {
     }
   }
   return hubPath(journeyId)
+}
+
+export const previousRunTarget = (stepId, scope, journeyId) => {
+  const candidateIds =
+    RUN_STEPS.find((step) => step.id === stepId)?.backCandidates ?? []
+  for (const candidateId of candidateIds) {
+    const candidate = RUN_STEPS.find((step) => step.id === candidateId)
+    const target = candidate.target(scope, journeyId)
+    if (target) {
+      return target
+    }
+  }
+  return null
 }

@@ -12,13 +12,12 @@ const UNCONFIGURED = Object.freeze({
   taskRows: [],
   rowStatus: unconfigured,
   nextRunTarget: unconfigured,
+  previousRunTarget: unconfigured,
   entryGuardTarget: unconfigured
 })
 
 const store = setKeyed('journey flow', { configuredBy: 'configureJourneyFlow' })
 
-// Reading before configuration is the un-booted case, which must report itself
-// through `unconfigured` rather than through setKeyed's "no such set" error.
 const configured = () =>
   store.has(currentSetId()) ? store.current() : UNCONFIGURED
 
@@ -32,6 +31,8 @@ export const journeyTaskRows = () => configured().taskRows
 export const journeyRowStatus = (...args) => configured().rowStatus(...args)
 export const journeyNextRunTarget = (...args) =>
   configured().nextRunTarget(...args)
+export const journeyPreviousRunTarget = (...args) =>
+  configured().previousRunTarget(...args)
 export const journeyEntryGuardTarget = async (...args) =>
   configured().entryGuardTarget(...args)
 export const journeyLayout = () => configured().layout

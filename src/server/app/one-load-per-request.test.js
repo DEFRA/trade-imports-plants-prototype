@@ -32,7 +32,7 @@ const fulfilmentUrl = `${notificationsUrl}/${ref}/fulfilments`
 const fulfilmentBody = JSON.stringify({
   referenceNumber: ref,
   status: 'DRAFT',
-  created: '2026-07-23T09:00:00',
+  created: '2026-07-23T09:00:00Z',
   submittedAt: null,
   fulfilments: []
 })
@@ -73,7 +73,7 @@ describe('one load per request — real records adapter GET count', () => {
             JSON.stringify({
               ...JSON.parse(body).notification,
               status: 'DRAFT',
-              created: '2026-07-23T09:00:00',
+              created: '2026-07-23T09:00:00Z',
               submittedAt: null
             })
           )
