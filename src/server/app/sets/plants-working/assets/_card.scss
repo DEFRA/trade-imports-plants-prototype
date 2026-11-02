@@ -1,0 +1,72 @@
+@use "govuk-frontend/dist/govuk/base" as *;
+
+.app-plants-working-card {
+  margin-bottom: govuk-spacing(6);
+  border: 1px solid $govuk-border-colour;
+  background-color: govuk-colour("white");
+}
+
+.app-plants-working-card--attention {
+  border-left: $govuk-border-width solid $govuk-error-colour;
+}
+
+.app-plants-working-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: govuk-spacing(2);
+  padding: govuk-spacing(3) govuk-spacing(4);
+  border-bottom: 1px solid $govuk-border-colour;
+  background-color: govuk-colour("black", $variant: "tint-95");
+}
+
+.app-plants-working-card__type {
+  @include govuk-font($size: 16);
+  margin: 0;
+  color: $govuk-secondary-text-colour;
+}
+
+.app-plants-working-card__reference {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0;
+}
+
+.app-plants-working-card__actions {
+  @include govuk-font($size: 19);
+  display: flex;
+  gap: govuk-spacing(4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-plants-working-card__details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: govuk-spacing(4);
+  margin: 0;
+  padding: govuk-spacing(4);
+
+  @include govuk-media-query($from: mobile) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.app-plants-working-card__key {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.app-plants-working-card__value {
+  @include govuk-font($size: 19);
+  margin: 0;
+}
+
+.app-plants-working-card__footer {
+  padding: 0 govuk-spacing(4) govuk-spacing(4);
+}

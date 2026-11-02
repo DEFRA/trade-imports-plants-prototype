@@ -1,0 +1,54 @@
+@use "govuk-frontend/dist/govuk/base" as *;
+
+.app-plants-working-summary {
+  margin-bottom: govuk-spacing(8);
+  padding-top: govuk-spacing(6);
+  padding-bottom: govuk-spacing(6);
+  border-top: $govuk-border-width solid $govuk-brand-colour;
+  border-bottom: 1px solid $govuk-border-colour;
+}
+
+.app-plants-working-summary__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(6) govuk-spacing(8);
+}
+
+.app-plants-working-summary__item {
+  width: 300px;
+  max-width: 100%;
+}
+
+.app-plants-working-summary__title {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.app-plants-working-summary__title--action {
+  color: $govuk-error-colour;
+}
+
+.app-plants-working-summary__hint {
+  @include govuk-font($size: 19);
+  margin: 0 0 govuk-spacing(4);
+}
+
+.app-plants-working-summary__count {
+  @include govuk-typography-weight-bold;
+  margin: 0 0 govuk-spacing(4);
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.app-plants-working-summary__count--action {
+  color: $govuk-error-colour;
+}
+
+.app-plants-working-summary__count--updates {
+  color: $govuk-brand-colour;
+}
+
+.app-plants-working-summary__link {
+  @include govuk-font($size: 19);
+  margin: 0;
+}

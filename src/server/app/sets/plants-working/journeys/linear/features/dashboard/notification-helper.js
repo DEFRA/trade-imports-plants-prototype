@@ -56,7 +56,8 @@ export const parseNotificationSort = (sortQuery) =>
 export const buildDashboardListQueryString = ({
   page = 1,
   sort = DEFAULT_NOTIFICATION_SORT,
-  referenceNumber
+  referenceNumber,
+  filters = {}
 } = {}) => {
   const params = new URLSearchParams()
 
@@ -69,6 +70,13 @@ export const buildDashboardListQueryString = ({
   if (referenceNumber) {
     params.set('referenceNumber', referenceNumber)
   }
+  for (const [name, value] of Object.entries(filters)) {
+    for (const item of [value].flat()) {
+      if (item) {
+        params.append(name, item)
+      }
+    }
+  }
 
   const query = params.toString()
   return query ? `?${query}` : ''
@@ -79,7 +87,8 @@ export const buildPaginationLinks = (
   baseUrl,
   sort = DEFAULT_NOTIFICATION_SORT,
   labels = {},
-  referenceNumber = ''
+  referenceNumber = '',
+  filters = {}
 ) => {
   const { totalPages } = pagination
   const page = normalizePageNumber(pagination.page, totalPages)
@@ -92,7 +101,8 @@ export const buildPaginationLinks = (
     href: `${baseUrl}${buildDashboardListQueryString({
       page: targetPage,
       sort,
-      referenceNumber
+      referenceNumber,
+      filters
     })}`,
     text
   })

@@ -4,37 +4,71 @@
 // user-facing without Welsh Language Standards sign-off.
 export const copy = {
   title: 'Gwasanaeth hysbysu mewnforio',
-  body:
-    'Defnyddiwch y gwasanaeth hwn i roi gwybod i awdurdodau iechyd planhigion ' +
-    'am blanhigion risg uchel i’w plannu, tatws, neu bren a choed wedi’u ' +
-    'torri rydych chi’n eu mewnforio o aelod-wladwriaethau’r UE, fel sy’n ' +
-    'ofynnol gan Gynllun Hysbysu Cenedlaethol Iechyd Planhigion. Byddwch yn ' +
-    'ateb cyfres fer o gwestiynau am y llwyth, yna’n cyflwyno eich hysbysiad.',
   guidanceLink:
     'Gwiriwch a yw eich nwyddau’n risg uchel a phryd y mae’n rhaid i chi ' +
     'hysbysu (GOV.UK)',
-  startButton: 'Dechrau hysbysiad newydd',
-  notificationsHeading: 'Eich hysbysiadau',
+  startButton: '[Welsh needed] Create new',
+  notificationsHeading: '[Welsh needed] Notifications',
+  summary: {
+    heading: '[Welsh needed] Summary',
+    actionNeeded: '[Welsh needed] Action needed',
+    actionNeededHint: '[Welsh needed] Tasks requiring your attention',
+    viewTasks: '[Welsh needed] View tasks',
+    statusUpdated: '[Welsh needed] Status updated',
+    statusUpdatedHint: '[Welsh needed] Changes in the past 24 hours',
+    viewUpdates: '[Welsh needed] View updates'
+  },
   search: {
-    heading: 'Hidlo hysbysiadau',
-    label: 'Allweddair neu gyfeirnod',
+    label: '[Welsh needed] Search by',
+    hint: '[Welsh needed] Keyword, notification number, commodity, consignee or consignor',
     button: 'Chwilio',
     noResults: 'Ni chanfuwyd unrhyw hysbysiadau'
   },
+  filters: {
+    show: '[Welsh needed] Additional filters',
+    statusLegend: '[Welsh needed] Status',
+    statuses: {
+      draft: '[Welsh needed] Draft',
+      submitted: '[Welsh needed] Submitted',
+      amend: '[Welsh needed] Amending'
+    },
+    commodity: '[Welsh needed] Commodity',
+    lateOnly: '[Welsh needed] Late notifications only',
+    dateFrom: '[Welsh needed] Arriving from',
+    dateTo: '[Welsh needed] Arriving by',
+    dateHint: '[Welsh needed] For example, 27 3 2026',
+    apply: '[Welsh needed] Apply filters',
+    clear: '[Welsh needed] Clear filters',
+    noMatches: '[Welsh needed] No notifications match your filters',
+    errors: {
+      invalid: '[Welsh needed] Date must be a real date',
+      beforeFrom:
+        '[Welsh needed] The “arriving by” date must be the same as or after the “arriving from” date'
+    }
+  },
+  tabsLabel: '[Welsh needed] Notifications by status',
+  tabs: {
+    inProgress: '[Welsh needed] In progress',
+    drafts: '[Welsh needed] Draft',
+    completed: '[Welsh needed] Completed'
+  },
+  tabHeadings: {
+    inProgress: '[Welsh needed] Notifications in progress',
+    drafts: '[Welsh needed] Draft notifications',
+    completed: '[Welsh needed] Completed notifications'
+  },
   table: {
     reference: 'Cyfeirnod',
-    status: 'Statws',
+    status: '[Welsh needed] Notification status',
     commodity: 'Nwydd',
     origin: 'Tarddiad',
-    arrival: 'Cyrraedd',
+    arrival: '[Welsh needed] Arrival date',
     consignor: 'Traddodwr',
     created: 'Dyddiad creu',
-    submitted: 'Dyddiad cyflwyno',
-    actions: 'Camau gweithredu'
+    submitted: 'Dyddiad cyflwyno'
   },
   sort: {
-    label: 'Trefnu yn ôl',
-    update: 'Diweddaru’r drefn',
+    label: '[Welsh needed] Sort by:',
     options: {
       arrivalNewest: 'Cyrraedd (mwyaf newydd i’r hynaf)',
       arrivalOldest: 'Cyrraedd (hynaf i’r mwyaf newydd)',
