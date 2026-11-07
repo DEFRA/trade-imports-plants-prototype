@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "set": {
+    "id": "sample-journey",
+    "title": "Sample journey",
+    "kind": "placeholder",
+    "frozen": false
+  },
+  "counts": {
+    "pages": 1,
+    "branches": 0,
+    "decisions": 0,
+    "obligations": 1,
+    "fieldConditions": 0,
+    "unreachedPages": 0
+  },
+  "decisions": [],
+  "flags": [],
+  "lanes": [
+    {
+      "id": "welcome",
+      "title": "Welcome",
+      "rows": [],
+      "pages": [
+        "welcome"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "id": "welcome",
+      "slug": "welcome",
+      "route": "/",
+      "title": "Welcome",
+      "titleSource": "guessed",
+      "lane": "welcome",
+      "row": null,
+      "section": "welcome",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": false
+    }
+  ],
+  "edges": [],
+  "ends": [],
+  "unreachedPages": [],
+  "outsideTheFlow": [
+    {
+      "route": "/transporters",
+      "title": "Saved transporters",
+      "titleSource": "copy"
+    },
+    {
+      "route": "/transporters/{transporterId}/delete",
+      "title": "Delete",
+      "titleSource": "guessed"
+    },
+    {
+      "route": "/transporters/add",
+      "title": "Add a transporter",
+      "titleSource": "copy"
+    }
+  ],
+  "unexplainedRules": [],
+  "proofs": {
+    "dependencyGraph": "proved",
+    "unreachableObligations": [],
+    "gateErrors": [],
+    "flowReachability": [],
+    "scopeCompleteness": []
+  }
+}

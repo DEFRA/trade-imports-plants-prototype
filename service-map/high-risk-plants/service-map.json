@@ -1,0 +1,1538 @@
+{
+  "schemaVersion": 1,
+  "set": {
+    "id": "high-risk-plants",
+    "title": "How the service works today",
+    "kind": "real",
+    "frozen": false
+  },
+  "counts": {
+    "pages": 15,
+    "branches": 8,
+    "decisions": 1,
+    "obligations": 25,
+    "fieldConditions": 8,
+    "unreachedPages": 0
+  },
+  "decisions": [
+    {
+      "id": "commodityType",
+      "obligation": "commodityType",
+      "question": "What are you importing?",
+      "page": "commodity-type",
+      "values": [
+        {
+          "value": "potatoes",
+          "label": "Potatoes (seed or ware)"
+        },
+        {
+          "value": "plants-for-planting",
+          "label": "Plants for planting"
+        },
+        {
+          "value": "wood-and-cut-trees",
+          "label": "Wood and cut trees"
+        }
+      ]
+    }
+  ],
+  "flags": [
+    {
+      "id": "everyTaskComplete",
+      "kind": "ready",
+      "question": "Every task is complete",
+      "values": [
+        {
+          "value": false,
+          "label": "Not every task is complete"
+        },
+        {
+          "value": true,
+          "label": "Every task is complete"
+        }
+      ]
+    }
+  ],
+  "lanes": [
+    {
+      "id": "start",
+      "title": "Start",
+      "rows": [],
+      "pages": [
+        "dashboard",
+        "hub"
+      ]
+    },
+    {
+      "id": "about-the-consignment",
+      "title": "1. About the consignment",
+      "rows": [
+        {
+          "id": "commodities",
+          "title": "What are you importing?",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "commodity-type",
+            "commodities",
+            "commodity-details"
+          ]
+        },
+        {
+          "id": "origin",
+          "title": "Where is this consignment coming from?",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "origin"
+          ]
+        }
+      ],
+      "pages": [
+        "commodity-type",
+        "commodities",
+        "commodity-details",
+        "origin"
+      ]
+    },
+    {
+      "id": "arrival-and-destination",
+      "title": "2. Arrival and destination",
+      "rows": [
+        {
+          "id": "arrival",
+          "title": "Arrival details",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "arrival-status",
+            "arrival-details"
+          ]
+        },
+        {
+          "id": "destination",
+          "title": "Place of destination",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "place-of-destination"
+          ]
+        }
+      ],
+      "pages": [
+        "arrival-status",
+        "arrival-details",
+        "place-of-destination"
+      ]
+    },
+    {
+      "id": "consignment-parties",
+      "title": "3. Consignment parties",
+      "rows": [
+        {
+          "id": "consignor",
+          "title": "Consignor or exporter",
+          "conditional": true,
+          "shownWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+            "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "plants-for-planting",
+                  "wood-and-cut-trees"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "plants-for-planting",
+                "wood-and-cut-trees"
+              ]
+            }
+          },
+          "pages": [
+            "consignor-select"
+          ]
+        },
+        {
+          "id": "identificationNumbers",
+          "title": "Identification numbers",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "identification-numbers"
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "Contact address for consignment",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "consignment-contact-select"
+          ]
+        }
+      ],
+      "pages": [
+        "consignor-select",
+        "identification-numbers",
+        "consignment-contact-select"
+      ]
+    },
+    {
+      "id": "check-and-submit",
+      "title": "4. Check and submit",
+      "rows": [
+        {
+          "id": "review",
+          "title": "Check and submit",
+          "conditional": false,
+          "shownWhen": null,
+          "pages": [
+            "notification-view",
+            "declaration",
+            "confirmation"
+          ]
+        }
+      ],
+      "pages": [
+        "notification-view",
+        "declaration",
+        "confirmation"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "id": "dashboard",
+      "slug": "",
+      "route": "/",
+      "title": "Import notification service",
+      "titleSource": "copy",
+      "lane": "start",
+      "row": null,
+      "section": "start",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "commodity-type",
+      "slug": "commodity-type",
+      "route": "/notifications/{journeyId}/commodity-type",
+      "title": "What are you importing?",
+      "titleSource": "copy",
+      "lane": "about-the-consignment",
+      "row": "commodities",
+      "section": "commodity",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [],
+      "fulfils": [
+        {
+          "name": "commodityType",
+          "label": "Commodity type",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "commodities",
+      "slug": "commodities",
+      "route": "/notifications/{journeyId}/commodities",
+      "title": "Commodities in the consignment",
+      "titleSource": "copy",
+      "lane": "about-the-consignment",
+      "row": "commodities",
+      "section": "commodity",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "commodityLines",
+          "label": "Commodity lines",
+          "status": null,
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        },
+        {
+          "name": "category",
+          "label": "Category",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "genus",
+          "label": "Genus",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "species",
+          "label": "Species",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "commodityCode",
+          "label": "Commodity code",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "quantity",
+          "label": "Quantity",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "potatoVariety",
+          "label": "Variety",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "potatoIntendedUse",
+          "label": "Intended use",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "eppoCode",
+          "label": "EPPO code",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "sizeOfTree",
+          "label": "Size of the trees",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        },
+        {
+          "name": "phytosanitaryTreatments",
+          "label": "Phytosanitary treatments applied",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": "commodityLines",
+          "askedWhen": null
+        }
+      ],
+      "fieldConditions": [
+        {
+          "field": "genus",
+          "label": "Genus",
+          "decision": "category",
+          "values": [
+            "plants-for-planting",
+            "trees-for-planting",
+            "hardwood-round-surface",
+            "hardwood-chips"
+          ],
+          "when": "the category is “Plants for planting”, “Trees for planting”, “Wood of sweet chestnut, ash or plane that keeps all or part of its natural round surface” or “Wood of sweet chestnut, ash or plane in chips not processed into pellets or briquettes”",
+          "text": "Genus: asked when the category is “Plants for planting”, “Trees for planting”, “Wood of sweet chestnut, ash or plane that keeps all or part of its natural round surface” or “Wood of sweet chestnut, ash or plane in chips not processed into pellets or briquettes”"
+        },
+        {
+          "field": "species",
+          "label": "Species",
+          "decision": "category",
+          "values": [
+            "plants-for-planting",
+            "trees-for-planting"
+          ],
+          "when": "the category is “Plants for planting” or “Trees for planting”",
+          "text": "Species: asked when the category is “Plants for planting” or “Trees for planting”"
+        },
+        {
+          "field": "commodityCode",
+          "label": "Commodity code",
+          "decision": "category",
+          "values": [
+            "plants-for-planting",
+            "trees-for-planting",
+            "conifer-wood-with-bark",
+            "conifer-wood-without-bark",
+            "cut-coniferous-trees",
+            "hardwood-round-surface",
+            "hardwood-chips"
+          ],
+          "when": "the category is “Plants for planting”, “Trees for planting”, “Conifer wood with bark, or isolated bark of conifer”, “Conifer wood without bark (from Italy, France, Portugal or Spain)”, “Cut coniferous trees more than 3 metres high”, “Wood of sweet chestnut, ash or plane that keeps all or part of its natural round surface” or “Wood of sweet chestnut, ash or plane in chips not processed into pellets or briquettes”",
+          "text": "Commodity code: asked when the category is “Plants for planting”, “Trees for planting”, “Conifer wood with bark, or isolated bark of conifer”, “Conifer wood without bark (from Italy, France, Portugal or Spain)”, “Cut coniferous trees more than 3 metres high”, “Wood of sweet chestnut, ash or plane that keeps all or part of its natural round surface” or “Wood of sweet chestnut, ash or plane in chips not processed into pellets or briquettes”"
+        },
+        {
+          "field": "potatoVariety",
+          "label": "Variety",
+          "decision": "category",
+          "values": [
+            "seed-potatoes",
+            "ware-potatoes"
+          ],
+          "when": "the category is “Seed potatoes” or “Ware potatoes”",
+          "text": "Variety: asked when the category is “Seed potatoes” or “Ware potatoes”"
+        },
+        {
+          "field": "potatoIntendedUse",
+          "label": "Intended use",
+          "decision": "category",
+          "values": [
+            "seed-potatoes",
+            "ware-potatoes"
+          ],
+          "when": "the category is “Seed potatoes” or “Ware potatoes”",
+          "text": "Intended use: asked when the category is “Seed potatoes” or “Ware potatoes”"
+        },
+        {
+          "field": "eppoCode",
+          "label": "EPPO code",
+          "decision": "category",
+          "values": [
+            "plants-for-planting",
+            "trees-for-planting"
+          ],
+          "when": "the category is “Plants for planting” or “Trees for planting”",
+          "text": "EPPO code: asked when the category is “Plants for planting” or “Trees for planting”"
+        },
+        {
+          "field": "sizeOfTree",
+          "label": "Size of the trees",
+          "decision": "category",
+          "values": [
+            "trees-for-planting",
+            "cut-coniferous-trees"
+          ],
+          "when": "the category is “Trees for planting” or “Cut coniferous trees more than 3 metres high”",
+          "text": "Size of the trees: asked when the category is “Trees for planting” or “Cut coniferous trees more than 3 metres high”"
+        },
+        {
+          "field": "phytosanitaryTreatments",
+          "label": "Phytosanitary treatments applied",
+          "decision": "category",
+          "values": [
+            "conifer-wood-with-bark",
+            "conifer-wood-without-bark",
+            "cut-coniferous-trees",
+            "hardwood-round-surface",
+            "hardwood-chips"
+          ],
+          "when": "the category is “Conifer wood with bark, or isolated bark of conifer”, “Conifer wood without bark (from Italy, France, Portugal or Spain)”, “Cut coniferous trees more than 3 metres high”, “Wood of sweet chestnut, ash or plane that keeps all or part of its natural round surface” or “Wood of sweet chestnut, ash or plane in chips not processed into pellets or briquettes”",
+          "text": "Phytosanitary treatments applied: asked when the category is “Conifer wood with bark, or isolated bark of conifer”, “Conifer wood without bark (from Italy, France, Portugal or Spain)”, “Cut coniferous trees more than 3 metres high”, “Wood of sweet chestnut, ash or plane that keeps all or part of its natural round surface” or “Wood of sweet chestnut, ash or plane in chips not processed into pellets or briquettes”"
+        }
+      ],
+      "terminal": false
+    },
+    {
+      "id": "commodity-details",
+      "slug": "commodities/details",
+      "route": "/notifications/{journeyId}/commodities/details",
+      "title": "Commodity details",
+      "titleSource": "copy",
+      "lane": "about-the-consignment",
+      "row": "commodities",
+      "section": "commodityDetails",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        }
+      ],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "origin",
+      "slug": "origin",
+      "route": "/notifications/{journeyId}/origin",
+      "title": "Origin of the import",
+      "titleSource": "copy",
+      "lane": "about-the-consignment",
+      "row": "origin",
+      "section": "origin",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "countryOfOrigin",
+          "label": "Country of origin",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "arrival-status",
+      "slug": "arrival-status",
+      "route": "/notifications/{journeyId}/arrival-status",
+      "title": "Has the consignment arrived in Great Britain?",
+      "titleSource": "copy",
+      "lane": "arrival-and-destination",
+      "row": "arrival",
+      "section": "arrival",
+      "shownWhen": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      },
+      "why": [
+        "arrivalStatus applies to notifications for plants for planting and for wood and cut trees"
+      ],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "arrivalStatus",
+          "label": "Arrival status",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+            "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "plants-for-planting",
+                  "wood-and-cut-trees"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "plants-for-planting",
+                "wood-and-cut-trees"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "arrival-details",
+      "slug": "arrival-details",
+      "route": "/notifications/{journeyId}/arrival-details",
+      "title": "Arrival details",
+      "titleSource": "copy",
+      "lane": "arrival-and-destination",
+      "row": "arrival",
+      "section": "arrival",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [
+        "arrivalTime applies to notifications for potatoes",
+        "proposedPlaceOfLanding applies to notifications for potatoes"
+      ],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "arrivalDate",
+          "label": "Arrival date",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        },
+        {
+          "name": "arrivalTime",
+          "label": "Arrival time",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+            "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "potatoes"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "potatoes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "proposedPlaceOfLanding",
+          "label": "Proposed place of landing",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+            "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "potatoes"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "potatoes"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "place-of-destination",
+      "slug": "destinations/select",
+      "route": "/notifications/{journeyId}/destinations/select",
+      "title": "Place of destination",
+      "titleSource": "copy",
+      "lane": "arrival-and-destination",
+      "row": "destination",
+      "section": "destination",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "placeOfDestination",
+          "label": "Place of destination",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "consignor-select",
+      "slug": "consignors/select",
+      "route": "/notifications/{journeyId}/consignors/select",
+      "title": "Consignor or exporter",
+      "titleSource": "copy",
+      "lane": "consignment-parties",
+      "row": "consignor",
+      "section": "parties",
+      "shownWhen": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      },
+      "why": [
+        "consignor applies to plants for planting and wood and cut trees"
+      ],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "consignor",
+          "label": "Consignor",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+            "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "plants-for-planting",
+                  "wood-and-cut-trees"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "plants-for-planting",
+                "wood-and-cut-trees"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "identification-numbers",
+      "slug": "identification-numbers",
+      "route": "/notifications/{journeyId}/identification-numbers",
+      "title": "Identification numbers",
+      "titleSource": "copy",
+      "lane": "consignment-parties",
+      "row": "identificationNumbers",
+      "section": "parties",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "supplierIdentificationNumber",
+          "label": "Identification number of the supplier of the plants",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Plants for planting”",
+            "text": "If “What are you importing?” is “Plants for planting”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "plants-for-planting"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "plants-for-planting"
+              ]
+            }
+          }
+        },
+        {
+          "name": "producerIdentificationNumber",
+          "label": "Identification number of the producer of the potatoes",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+            "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "potatoes"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "potatoes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "cropIdentificationNumber",
+          "label": "Crop identification number",
+          "status": "mandatory",
+          "system": false,
+          "gated": true,
+          "within": null,
+          "askedWhen": {
+            "kind": "values",
+            "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+            "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+            "clauses": [
+              {
+                "commodityType": [
+                  "potatoes"
+                ]
+              }
+            ],
+            "values": {
+              "commodityType": [
+                "potatoes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "consignmentNumber",
+          "label": "Consignment number (optional)",
+          "status": "optional",
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "consignment-contact-select",
+      "slug": "consignment/contact/select",
+      "route": "/notifications/{journeyId}/consignment/contact/select",
+      "title": "Contact address for consignment",
+      "titleSource": "copy",
+      "lane": "consignment-parties",
+      "row": "contact",
+      "section": "contact",
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [
+        {
+          "name": "contactAddress",
+          "label": "Contact address",
+          "status": "mandatory",
+          "system": false,
+          "gated": false,
+          "within": null,
+          "askedWhen": null
+        }
+      ],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "hub",
+      "slug": null,
+      "route": "/notifications/{journeyId}",
+      "title": "Overview",
+      "titleSource": "copy",
+      "lane": "start",
+      "row": null,
+      "section": null,
+      "shownWhen": {
+        "kind": "always"
+      },
+      "why": [],
+      "needsFirst": [],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "notification-view",
+      "slug": "notification-view",
+      "route": "/notifications/{journeyId}/notification-view",
+      "title": "Check your answers",
+      "titleSource": "copy",
+      "lane": "check-and-submit",
+      "row": "review",
+      "section": "review",
+      "shownWhen": {
+        "kind": "values",
+        "when": "every task is complete",
+        "text": "If every task is complete",
+        "clauses": [
+          {
+            "everyTaskComplete": [
+              true
+            ]
+          }
+        ],
+        "values": {
+          "everyTaskComplete": [
+            true
+          ]
+        }
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "declaration",
+      "slug": "declaration",
+      "route": "/notifications/{journeyId}/declaration",
+      "title": "Declaration",
+      "titleSource": "copy",
+      "lane": "check-and-submit",
+      "row": "review",
+      "section": "review",
+      "shownWhen": {
+        "kind": "values",
+        "when": "every task is complete",
+        "text": "If every task is complete",
+        "clauses": [
+          {
+            "everyTaskComplete": [
+              true
+            ]
+          }
+        ],
+        "values": {
+          "everyTaskComplete": [
+            true
+          ]
+        }
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": false
+    },
+    {
+      "id": "confirmation",
+      "slug": "confirmation",
+      "route": "/notifications/{journeyId}/confirmation",
+      "title": "Notification submitted",
+      "titleSource": "copy",
+      "lane": "check-and-submit",
+      "row": "review",
+      "section": "review",
+      "shownWhen": {
+        "kind": "values",
+        "when": "every task is complete",
+        "text": "If every task is complete",
+        "clauses": [
+          {
+            "everyTaskComplete": [
+              true
+            ]
+          }
+        ],
+        "values": {
+          "everyTaskComplete": [
+            true
+          ]
+        }
+      },
+      "why": [],
+      "needsFirst": [
+        {
+          "obligation": "commodityType",
+          "page": "commodity-type"
+        },
+        {
+          "obligation": "countryOfOrigin",
+          "page": "origin"
+        }
+      ],
+      "fulfils": [],
+      "fieldConditions": [],
+      "terminal": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "dashboard",
+      "to": "commodity-type",
+      "kind": "start",
+      "condition": null
+    },
+    {
+      "from": "commodity-type",
+      "to": "commodities",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "commodities",
+      "to": "origin",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "commodities",
+      "to": "hub",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "commodities",
+      "to": "commodity-details",
+      "kind": "within-task",
+      "condition": null,
+      "note": "Opened from this page (a link, not Continue)"
+    },
+    {
+      "from": "commodity-details",
+      "to": "hub",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "origin",
+      "to": "arrival-status",
+      "kind": "first-pass",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      }
+    },
+    {
+      "from": "origin",
+      "to": "arrival-details",
+      "kind": "first-pass",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+        "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+        "clauses": [
+          {
+            "commodityType": [
+              "potatoes"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "potatoes"
+          ]
+        }
+      }
+    },
+    {
+      "from": "origin",
+      "to": "hub",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "arrival-status",
+      "to": "arrival-details",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "arrival-details",
+      "to": "place-of-destination",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "arrival-details",
+      "to": "hub",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "place-of-destination",
+      "to": "consignor-select",
+      "kind": "first-pass",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      }
+    },
+    {
+      "from": "place-of-destination",
+      "to": "identification-numbers",
+      "kind": "first-pass",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+        "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+        "clauses": [
+          {
+            "commodityType": [
+              "potatoes"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "potatoes"
+          ]
+        }
+      }
+    },
+    {
+      "from": "place-of-destination",
+      "to": "hub",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "consignor-select",
+      "to": "identification-numbers",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "identification-numbers",
+      "to": "consignment-contact-select",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "identification-numbers",
+      "to": "hub",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "consignment-contact-select",
+      "to": "hub",
+      "kind": "first-pass",
+      "condition": null
+    },
+    {
+      "from": "hub",
+      "to": "commodity-type",
+      "kind": "task-list",
+      "row": "commodities",
+      "condition": null
+    },
+    {
+      "from": "hub",
+      "to": "origin",
+      "kind": "task-list",
+      "row": "origin",
+      "condition": null
+    },
+    {
+      "from": "hub",
+      "to": "arrival-status",
+      "kind": "task-list",
+      "row": "arrival",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      }
+    },
+    {
+      "from": "hub",
+      "to": "arrival-details",
+      "kind": "task-list",
+      "row": "arrival",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Potatoes (seed or ware)”",
+        "text": "If “What are you importing?” is “Potatoes (seed or ware)”",
+        "clauses": [
+          {
+            "commodityType": [
+              "potatoes"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "potatoes"
+          ]
+        }
+      }
+    },
+    {
+      "from": "hub",
+      "to": "place-of-destination",
+      "kind": "task-list",
+      "row": "destination",
+      "condition": null
+    },
+    {
+      "from": "hub",
+      "to": "consignor-select",
+      "kind": "task-list",
+      "row": "consignor",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      }
+    },
+    {
+      "from": "hub",
+      "to": "identification-numbers",
+      "kind": "task-list",
+      "row": "identificationNumbers",
+      "condition": null
+    },
+    {
+      "from": "hub",
+      "to": "consignment-contact-select",
+      "kind": "task-list",
+      "row": "contact",
+      "condition": null
+    },
+    {
+      "from": "hub",
+      "to": "notification-view",
+      "kind": "task-list",
+      "row": "review",
+      "condition": {
+        "kind": "values",
+        "when": "every task is complete",
+        "text": "If every task is complete",
+        "clauses": [
+          {
+            "everyTaskComplete": [
+              true
+            ]
+          }
+        ],
+        "values": {
+          "everyTaskComplete": [
+            true
+          ]
+        }
+      }
+    },
+    {
+      "from": "notification-view",
+      "to": "declaration",
+      "kind": "continue",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "commodity-type",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "commodities",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "origin",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "arrival-status",
+      "kind": "change",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      }
+    },
+    {
+      "from": "notification-view",
+      "to": "arrival-details",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "place-of-destination",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "consignor-select",
+      "kind": "change",
+      "condition": {
+        "kind": "values",
+        "when": "“What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "text": "If “What are you importing?” is “Plants for planting” or “Wood and cut trees”",
+        "clauses": [
+          {
+            "commodityType": [
+              "plants-for-planting",
+              "wood-and-cut-trees"
+            ]
+          }
+        ],
+        "values": {
+          "commodityType": [
+            "plants-for-planting",
+            "wood-and-cut-trees"
+          ]
+        }
+      }
+    },
+    {
+      "from": "notification-view",
+      "to": "identification-numbers",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "notification-view",
+      "to": "consignment-contact-select",
+      "kind": "change",
+      "condition": null
+    },
+    {
+      "from": "declaration",
+      "to": "confirmation",
+      "kind": "continue",
+      "condition": null
+    }
+  ],
+  "ends": [
+    "confirmation"
+  ],
+  "unreachedPages": [],
+  "outsideTheFlow": [
+    {
+      "route": "/notifications/{journeyId}/cancel-amend",
+      "title": "Cancel this amendment?",
+      "titleSource": "copy"
+    },
+    {
+      "route": "/notifications/{journeyId}/delete",
+      "title": "Delete this notification?",
+      "titleSource": "copy"
+    }
+  ],
+  "unexplainedRules": [],
+  "proofs": {
+    "dependencyGraph": "proved",
+    "unreachableObligations": [],
+    "gateErrors": [],
+    "flowReachability": [],
+    "scopeCompleteness": []
+  }
+}
