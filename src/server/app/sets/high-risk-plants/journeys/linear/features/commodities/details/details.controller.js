@@ -27,22 +27,10 @@ import {
   widgetOf
 } from '../line-form.js'
 
-/**
- * One commodity line, added or edited.
- *
- * The page collects nothing of its own: the list page owns `commodityLines`
- * and this sub-page writes into that group. A line is created as soon as its
- * category is chosen, because which fields a line is asked for is decided by
- * that category and the model can only scope them once the instance exists.
- * So the page asks for the category, saves it, and returns carrying the fields
- * that category asks for.
- */
 export const meta = { ...page, collects: [] }
 
 const view = `${TEMPLATES}/features/commodities/details/details`
 
-// The group's copy bundle: the vocabulary both pages render sits at its root,
-// this page's own wording under `details`.
 const bundle = copyFor({ en, cy })
 const copy = bundle.details
 
@@ -66,7 +54,7 @@ const categoryItems = (commodityType, selected) =>
   }))
 
 const genusItems = (category, selected) => [
-  { value: '', text: copy.genusPlaceholder },
+  { value: '', text: copy.genusSelectText },
   ...commodities.generaFor(category).map((value) => ({
     value,
     text: bundle.genusLabels[value],
@@ -123,18 +111,6 @@ const pageState = async (request, h) => {
   }
 }
 
-/**
- * The view model for one render.
- *
- * @param {object} current - the page state.
- * @param {number|null} index - the line being edited, or null for a new one.
- * @param {object} source - where the shown values come from: a stored entry, a
- * validated value or the raw payload.
- * @param {string} [fieldsCategory] - the category whose fields are shown, when
- * that is not the category in `source` — a rejected category leaves the page
- * showing the fields the line already had.
- * @returns {object} the model `buildView` renders.
- */
 const modelFor = (current, index, source, fieldsCategory) => {
   const category = String(source?.[CATEGORY] ?? '').trim()
   const fieldsFor = fieldsCategory ?? category
@@ -150,9 +126,6 @@ const modelFor = (current, index, source, fieldsCategory) => {
   }
 }
 
-// A commodity type that offers no category leaves the page with nothing to ask
-// and nothing it could accept, so the trader is sent back to the question that
-// decides the categories.
 const offersNoCategory = (current) =>
   commodities.categoriesFor(current.commodityType).length === 0
 
@@ -170,21 +143,21 @@ const get = async (request, h) => {
   return buildView(request, h, modelFor(current, index, entry))
 }
 
-const rejected = (request, h, model, errors) =>
+const renderRejected = (request, h, model, errors) =>
   buildView(request, h, { ...model, errors }).code(HTTP_STATUS_BAD_REQUEST)
 
 const commitAndRedirect = async (request, h, model, write) => {
-  const { failure, value } = await kit.recoverableSave(write, async () =>
-    buildView(request, h, { ...model, recoverableError: true }).code(
-      HTTP_STATUS_INTERNAL_SERVER_ERROR
-    )
+  const { failure, value } = await kit.recoverableSave(
+    request,
+    write,
+    async () =>
+      buildView(request, h, { ...model, recoverableError: true }).code(
+        HTTP_STATUS_INTERNAL_SERVER_ERROR
+      )
   )
   return failure ?? h.redirect(value)
 }
 
-// A line is created carrying its category alone. The category is a bound leaf,
-// so the instance persists, the model scopes the rest of the line's fields
-// against it, and the page returns with them.
 const addLine = (request, h, model, category) =>
   commitAndRedirect(request, h, model, async () => {
     const index = await state.appendEntryAt(request, h, [LINES], {
@@ -193,10 +166,6 @@ const addLine = (request, h, model, category) =>
     return index === null ? listHref(request) : detailsHref(request, { index })
   })
 
-// Changing a saved line's category changes which fields it is asked for, and
-// the values on the page belong to the old set. The line is rewritten as the
-// bare new category — the engine wipes whatever left scope — and the page
-// returns with the new fields.
 const recategoriseLine = (request, h, model, index, category) =>
   commitAndRedirect(request, h, model, async () => {
     await state.updateEntryAt(request, h, [LINES], index, {
@@ -213,7 +182,7 @@ const saveLine = async (request, h, current, index, category, payload) => {
     payload
   )
   if (errors) {
-    return rejected(request, h, model, errors)
+    return renderRejected(request, h, model, errors)
   }
   return commitAndRedirect(request, h, model, async () => {
     await state.updateEntryAt(
@@ -243,12 +212,9 @@ const post = async (request, h) => {
   )
   if (errors) {
     const model = modelFor(current, index, payload, stored[CATEGORY])
-    return rejected(request, h, model, errors)
+    return renderRejected(request, h, model, errors)
   }
   if (index === null) {
-    // The re-render this call can fall back to describes a line that was never
-    // created, so it asks the category alone: anything typed under the fields
-    // of a category would be discarded on retry.
     return addLine(
       request,
       h,

@@ -11,7 +11,8 @@ import { originPage } from '../features/origin/page.js'
 import { arrivalStatusPage } from '../features/arrival-status/page.js'
 import { arrivalDetailsPage } from '../features/arrival-details/page.js'
 import { placeOfDestinationPage } from '../features/place-of-destination/page.js'
-import { RUN_STEPS, nextRunTarget } from './run.js'
+import { notificationViewPage } from '../features/check-answers/page.js'
+import { RUN_STEPS, nextRunTarget, previousRunTarget } from './run.js'
 
 const JOURNEY_ID = 'HRP-0001'
 
@@ -54,7 +55,7 @@ const answering = (...names) => ({
 describe('#RUN_STEPS — the opening run', () => {
   beforeAll(() => installHighRiskPlantsJourney())
 
-  it('Should open on commodity-type, then commodities, origin, arrival status, arrival details and the destination', () => {
+  it('Should open on commodity-type and end on check your answers', () => {
     expect(RUN_STEPS.map((step) => step.id)).toEqual([
       commodityTypePage.id,
       commoditiesPage.id,
@@ -64,7 +65,8 @@ describe('#RUN_STEPS — the opening run', () => {
       placeOfDestinationPage.id,
       consignorPage.id,
       identificationNumbersPage.id,
-      consignmentContactSelectPage.id
+      consignmentContactSelectPage.id,
+      notificationViewPage.id
     ])
   })
 
@@ -224,14 +226,14 @@ describe('#nextRunTarget', () => {
     ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/destinations/select`)
   })
 
-  it("Should fall through to the overview after the run's last step", () => {
+  it('Should end the run on check your answers after the contact step, even with tasks outstanding', () => {
     expect(
       nextRunTarget(
         consignmentContactSelectPage.id,
         answering(...PLANTS_RUN),
         JOURNEY_ID
       )
-    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}`)
+    ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/notification-view`)
   })
 
   it('Should fall through to the overview when the last step is out of scope', () => {
@@ -292,4 +294,65 @@ it('Should send every commodity type from identification numbers to contact', ()
       )
     ).toBe(`${SET_BASE}/notifications/${JOURNEY_ID}/consignment/contact/select`)
   }
+})
+
+describe('#previousRunTarget — where Back goes during the opening run', () => {
+  beforeAll(() => installHighRiskPlantsJourney())
+
+  const previous = (page, names) =>
+    previousRunTarget(page.id, answering(...names), JOURNEY_ID)
+  const at = (path) => `${SET_BASE}/notifications/${JOURNEY_ID}/${path}`
+
+  it('Should send the commodities list back to the commodity type', () => {
+    expect(previous(commoditiesPage, PLANTS_RUN)).toBe(at('commodity-type'))
+  })
+
+  it('Should send origin back to the commodities list', () => {
+    expect(previous(originPage, PLANTS_RUN)).toBe(at('commodities'))
+  })
+
+  it('Should send arrival status back to origin', () => {
+    expect(previous(arrivalStatusPage, PLANTS_RUN)).toBe(at('origin'))
+  })
+
+  it('Should send the arrival details back to arrival status for plants or wood, and to origin for potatoes', () => {
+    expect(previous(arrivalDetailsPage, PLANTS_RUN)).toBe(at('arrival-status'))
+    expect(previous(arrivalDetailsPage, POTATO_RUN)).toBe(at('origin'))
+  })
+
+  it('Should send the place of destination back to the arrival details', () => {
+    expect(previous(placeOfDestinationPage, PLANTS_RUN)).toBe(
+      at('arrival-details')
+    )
+  })
+
+  it('Should send the consignor back to the place of destination', () => {
+    expect(previous(consignorPage, PLANTS_RUN)).toBe(at('destinations/select'))
+  })
+
+  it('Should send identification numbers back to the consignor for plants or wood, and to the place of destination for potatoes', () => {
+    expect(previous(identificationNumbersPage, PLANTS_RUN)).toBe(
+      at('consignors/select')
+    )
+    expect(previous(identificationNumbersPage, POTATO_RUN)).toBe(
+      at('destinations/select')
+    )
+  })
+
+  it('Should send the contact address back to identification numbers', () => {
+    expect(previous(consignmentContactSelectPage, PLANTS_RUN)).toBe(
+      at('identification-numbers')
+    )
+  })
+
+  it('Should give no run Back to the commodity type or check your answers', () => {
+    expect(previous(commodityTypePage, PLANTS_RUN)).toBeNull()
+    expect(previous(notificationViewPage, PLANTS_RUN)).toBeNull()
+  })
+
+  it('Should decline a step id the run does not hold', () => {
+    expect(
+      previousRunTarget('not-a-step', scopeOf('commodityType'), JOURNEY_ID)
+    ).toBeNull()
+  })
 })

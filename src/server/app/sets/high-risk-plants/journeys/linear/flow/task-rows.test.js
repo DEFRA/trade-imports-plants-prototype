@@ -1,5 +1,4 @@
 import { SET_ID } from '../../../set.js'
-const ADDRESS_ID = 'tech-imports-ltd'
 import { consignmentContactSelectPage } from '../features/consignment-contact-select/page.js'
 import { identificationNumbersPage } from '../features/identification-numbers/page.js'
 import { consignorPage } from '../features/consignor-select/page.js'
@@ -21,6 +20,7 @@ import { makeScope } from '../../../../../engine/index.js'
 import { evaluateAnswers } from '../../../../../bridge/evaluation.js'
 import {
   COMPLETE_POTATO_CONSIGNMENT,
+  TECH_IMPORTS_COPY,
   installHighRiskPlantsJourney
 } from '../test-support.js'
 import { GROUPS } from '../features/hub/controller.js'
@@ -246,13 +246,13 @@ describe('#rowStatus — one status per hub task row', () => {
     ).toBe(FULFILLED)
   })
 
-  it('Should require consignor for plants and wood, hide it for potatoes and complete a reference', () => {
+  it('Should require consignor for plants and wood, hide it for potatoes and complete a picked copy', () => {
     for (const commodityType of ['plants-for-planting', 'wood-and-cut-trees']) {
       expect(statusIn('consignor', { commodityType })).toBe(NOT_STARTED)
       expect(
         statusIn('consignor', {
           commodityType,
-          consignor: { addressId: ADDRESS_ID }
+          consignor: TECH_IMPORTS_COPY
         })
       ).toBe(FULFILLED)
     }
@@ -274,36 +274,34 @@ describe('#rowStatus — one status per hub task row', () => {
       })
     ).toBe(FULFILLED)
   })
-  it('Should require contact and complete the row with an inline record', () => {
+  it('Should require contact and complete the row with a picked copy', () => {
     expect(statusIn('contact', {})).toBe(NOT_STARTED)
-    expect(
-      statusIn('contact', {
-        contactAddress: {
-          addressId: ADDRESS_ID,
-          name: 'Tech Imports',
-          address: { country: 'United Kingdom' }
-        }
-      })
-    ).toBe(FULFILLED)
+    expect(statusIn('contact', { contactAddress: TECH_IMPORTS_COPY })).toBe(
+      FULFILLED
+    )
   })
 
   it('Should hold the destination row at Not yet started while nothing is answered', () => {
     expect(statusIn('destination', {})).toBe(NOT_STARTED)
   })
 
-  it('Should complete the destination row once an address is referenced', () => {
+  it('Should complete the destination row once an address is copied', () => {
     expect(
-      statusIn('destination', {
-        placeOfDestination: { addressId: ADDRESS_ID }
-      })
+      statusIn('destination', { placeOfDestination: TECH_IMPORTS_COPY })
     ).toBe(FULFILLED)
   })
 
-  it('Should hold the destination row at Not yet started on an empty reference', () => {
-    // A reference with no id is as good as no answer: the picker never writes
-    // one, but the status must not read the wrapper object as an answer.
+  it('Should hold the destination row at Not yet started on an empty copy', () => {
+    // A copy with every field blank is as good as no answer: the picker never
+    // writes one, but the status must not read the wrapper object as an answer.
     expect(
-      statusIn('destination', { placeOfDestination: { addressId: '' } })
+      statusIn('destination', {
+        placeOfDestination: {
+          pickedFromId: '',
+          name: '',
+          address: { addressLine1: '', countryCode: '' }
+        }
+      })
     ).toBe(NOT_STARTED)
   })
 })

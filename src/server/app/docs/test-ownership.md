@@ -27,8 +27,8 @@ bring the first spec with it, or this repository proves nothing in a browser.
 
 Deployed, multi-service end-to-end coverage for high-risk plants lives in
 [`DEFRA/trade-imports-ins-tests`](https://github.com/DEFRA/trade-imports-ins-tests),
-as its `plants` Playwright project alongside `animals`, `animals-admin` and
-`ins`. It is the shared tests repository for the programme and replaces
+as its `plants` domain (`tests/plants/`) alongside `animals`, `animals-admin`
+and `ins`. It is the shared tests repository for the programme and replaces
 `trade-imports-animals-tests`. Do not stand up a second tests repository for
 plants.
 
@@ -42,9 +42,9 @@ link.
 ## How the E2E check is wired
 
 `.github/workflows/e2e-tests.yml` delegates to the workspace's reusable
-`e2e-tests.yml`, passing its branch name and the `plants` project and
+`e2e-tests.yml`, passing its branch name and the `tests/plants/` test suite and
 inheriting secrets, then reports the result back to the pull request. It runs
-only the plants project's specs.
+only the plants domain's specs.
 
 Cross-repo branches must carry the **same branch name** in every affected
 repository, because the workspace stack probes each repository for a
@@ -70,7 +70,7 @@ For a change that affects both repositories:
 
 1. Add or update the local frontend contract test.
 2. Add or update the backend contract test in `trade-imports-plants-backend`.
-3. Update or add the plants project spec in the tests repository when the
+3. Update or add the plants domain spec in the tests repository when the
    user-visible path or service interaction changes.
 4. Use matching branch names, and therefore matching branch images, across every
    repository the change touches.

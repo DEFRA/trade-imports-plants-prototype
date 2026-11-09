@@ -24,12 +24,10 @@ const deletable = (journey) =>
   journey.status === state.SUBMITTED ||
   journey.status === state.AMEND
 
-// state.get adopts any journey id the records port can load into the caller's
-// session, which would satisfy softDeleteJourney's own isKnownJourney guard.
-// Both handlers therefore check ownership before the first read.
-const owns = (request) => isKnownJourney(request, request.params.journeyId)
+const journeyBelongsToSession = (request) =>
+  isKnownJourney(request, request.params.journeyId)
 
-const render = (h, journey, recoverableError = false) =>
+const render = (h, journey, { recoverableError = false } = {}) =>
   h.view(view, {
     ...kit.base(copy.title, {
       backLink: dashboardPath(),
@@ -43,7 +41,7 @@ const render = (h, journey, recoverableError = false) =>
   })
 
 const get = async (request, h) => {
-  if (!(await owns(request))) {
+  if (!(await journeyBelongsToSession(request))) {
     return h.redirect(dashboardPath())
   }
   const { journey } = await state.get(request, h)
@@ -51,7 +49,7 @@ const get = async (request, h) => {
 }
 
 const post = async (request, h) => {
-  if (!(await owns(request))) {
+  if (!(await journeyBelongsToSession(request))) {
     return h.redirect(dashboardPath())
   }
   const { journey } = await state.get(request, h)
@@ -60,8 +58,12 @@ const post = async (request, h) => {
   }
 
   const { failure, value: deleted } = await kit.recoverableSave(
+    request,
     () => softDeleteJourney(request, h, request.params.journeyId),
-    () => render(h, journey, true).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+    () =>
+      render(h, journey, { recoverableError: true }).code(
+        HTTP_STATUS_INTERNAL_SERVER_ERROR
+      )
   )
   if (failure) {
     return failure

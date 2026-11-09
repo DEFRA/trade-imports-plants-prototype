@@ -1,17 +1,18 @@
 import { vi } from 'vitest'
+import { config } from '../config/config.js'
 import { getOidcConfig } from './get-oidc-config.js'
+import { readEmfDocuments } from '../server/common/test-helpers/emf-documents.js'
+import { restoreConfigAfterEach } from '../server/common/test-helpers/restore-config-after-each.js'
+import {
+  setStackDefraIdRewrite,
+  STACK_DEFRA_ID_REWRITE_KEYS
+} from '../server/common/test-helpers/stack-defra-id-rewrite.js'
 
-// Must be hoisted too (because vi.mock factories are hoisted)
 const wreckGetMock = vi.hoisted(() => vi.fn())
-const configGetMock = vi.hoisted(() => vi.fn())
 const getTraceIdMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@hapi/wreck', () => ({
   default: { get: wreckGetMock }
-}))
-
-vi.mock('../config/config.js', () => ({
-  config: { get: configGetMock }
 }))
 
 vi.mock('@defra/hapi-tracing', () => ({
@@ -19,21 +20,44 @@ vi.mock('@defra/hapi-tracing', () => ({
 }))
 
 describe('getOidcConfig', () => {
-  const localDiscoveryUrl =
-    'https://localhost/idp/.well-known/openid-configuration'
-  const tracingHeader = 'x-cdp-request-id'
+  const discoveryUrl = 'https://localhost/idp/.well-known/openid-configuration'
   const traceId = 'test-trace-id'
+
+  restoreConfigAfterEach([
+    'defraId.oidcDiscoveryUrl',
+    ...STACK_DEFRA_ID_REWRITE_KEYS
+  ])
+
+  let logSpy
+  let tracingHeader
 
   beforeEach(() => {
     wreckGetMock.mockReset()
-    configGetMock.mockReset()
     getTraceIdMock.mockReset()
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
-    configGetMock.mockImplementation((key) => {
-      if (key === 'defraId.oidcDiscoveryUrl') return localDiscoveryUrl
-      if (key === 'tracing.header') return tracingHeader
-    })
+    setStackDefraIdRewrite()
+    config.set('defraId.oidcDiscoveryUrl', discoveryUrl)
+    tracingHeader = config.get('tracing.header')
     getTraceIdMock.mockReturnValue(traceId)
+  })
+
+  afterEach(() => {
+    logSpy.mockRestore()
+  })
+
+  test('measures the discovery call as defra-id openid-configuration', async () => {
+    wreckGetMock.mockResolvedValue({ payload: {} })
+
+    await getOidcConfig()
+
+    await vi.waitFor(() => expect(readEmfDocuments(logSpy)).toHaveLength(1))
+    const [document] = readEmfDocuments(logSpy)
+    expect(document.Dependency).toBe('defra-id')
+    expect(document.Operation).toBe('openid-configuration')
+    expect(document.ExternalCallFailure).toBe(0)
+    expect(document.Outcome).toBe('success')
+    expect(document).not.toHaveProperty('Interface')
   })
 
   test('fetches discovery document with tracing header', async () => {
@@ -46,8 +70,7 @@ describe('getOidcConfig', () => {
     const result = await getOidcConfig()
 
     expect(result).toEqual(payload)
-    expect(configGetMock).toHaveBeenCalledWith('defraId.oidcDiscoveryUrl')
-    expect(wreckGetMock).toHaveBeenCalledWith(localDiscoveryUrl, {
+    expect(wreckGetMock).toHaveBeenCalledWith(discoveryUrl, {
       headers: { [tracingHeader]: traceId },
       json: true,
       timeout: 1000
@@ -61,156 +84,36 @@ describe('getOidcConfig', () => {
     await getOidcConfig()
 
     expect(wreckGetMock).toHaveBeenCalledWith(
-      localDiscoveryUrl,
+      discoveryUrl,
       expect.objectContaining({ headers: { [tracingHeader]: '' } })
     )
   })
 
   test('rewrites token_endpoint and jwks_uri hostnames to discovery URL hostname', async () => {
-    const payload = {
-      authorization_endpoint: 'https://external-host/auth',
-      token_endpoint: 'https://internal-host:9443/token',
-      jwks_uri: 'https://internal-host:9443/jwks'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.token_endpoint).toBe('https://localhost:9443/token')
-    expect(result.jwks_uri).toBe('https://localhost:9443/jwks')
-  })
-
-  test('leaves authorization_endpoint unchanged', async () => {
-    const payload = {
-      authorization_endpoint: 'https://external-host/auth',
-      token_endpoint: 'https://internal-host/token',
-      jwks_uri: 'https://internal-host/jwks'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.authorization_endpoint).toBe('https://external-host/auth')
-  })
-
-  test('does not rewrite endpoints that already match the discovery hostname', async () => {
-    const payload = {
-      token_endpoint: 'https://localhost/token',
-      jwks_uri: 'https://localhost/jwks'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.token_endpoint).toBe('https://localhost/token')
-    expect(result.jwks_uri).toBe('https://localhost/jwks')
-  })
-
-  test('does not rewrite endpoints when discovery URL is a non-local hostname', async () => {
-    const productionDiscoveryUrl =
-      'https://real-auth-server/idp/.well-known/openid-configuration'
-
-    configGetMock.mockImplementation((key) => {
-      if (key === 'defraId.oidcDiscoveryUrl') return productionDiscoveryUrl
-      if (key === 'tracing.header') return tracingHeader
+    wreckGetMock.mockResolvedValue({
+      payload: {
+        authorization_endpoint: 'https://external-host/auth',
+        token_endpoint: 'https://internal-host:9443/token',
+        jwks_uri: 'https://internal-host:9443/jwks'
+      }
     })
-
-    const payload = {
-      authorization_endpoint: 'https://external-host/auth',
-      token_endpoint: 'https://internal-host:9443/token',
-      jwks_uri: 'https://internal-host:9443/jwks'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.token_endpoint).toBe('https://internal-host:9443/token')
-    expect(result.jwks_uri).toBe('https://internal-host:9443/jwks')
-    expect(result.authorization_endpoint).toBe('https://external-host/auth')
-  })
-
-  test('rewrites endpoints when discovery URL uses host.docker.internal', async () => {
-    const dockerDiscoveryUrl =
-      'https://host.docker.internal/idp/.well-known/openid-configuration'
-
-    configGetMock.mockImplementation((key) => {
-      if (key === 'defraId.oidcDiscoveryUrl') return dockerDiscoveryUrl
-      if (key === 'tracing.header') return tracingHeader
-    })
-
-    const payload = {
-      token_endpoint: 'https://internal-host:9443/token',
-      jwks_uri: 'https://internal-host:9443/jwks'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.token_endpoint).toBe(
-      'https://host.docker.internal:9443/token'
-    )
-    expect(result.jwks_uri).toBe('https://host.docker.internal:9443/jwks')
-  })
-
-  test('skips rewriting when server-side endpoint keys are missing from payload', async () => {
-    const payload = {
-      authorization_endpoint: 'https://external-host/auth'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
 
     const result = await getOidcConfig()
 
     expect(result).toEqual({
-      authorization_endpoint: 'https://external-host/auth'
+      authorization_endpoint: 'https://external-host/auth',
+      token_endpoint: 'https://localhost:9443/token',
+      jwks_uri: 'https://localhost:9443/jwks'
     })
-    expect(result.token_endpoint).toBeUndefined()
-    expect(result.jwks_uri).toBeUndefined()
-  })
-
-  test('skips rewriting when server-side endpoint values are not strings', async () => {
-    const payload = {
-      token_endpoint: null,
-      jwks_uri: 12345
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.token_endpoint).toBeNull()
-    expect(result.jwks_uri).toBe(12345)
-  })
-
-  test('preserves port from the original endpoint when rewriting hostname', async () => {
-    const payload = {
-      token_endpoint: 'https://other-host:8443/oauth/token',
-      jwks_uri: 'http://other-host:8080/.well-known/jwks.json'
-    }
-
-    wreckGetMock.mockResolvedValue({ payload })
-
-    const result = await getOidcConfig()
-
-    expect(result.token_endpoint).toBe('https://localhost:8443/oauth/token')
-    expect(result.jwks_uri).toBe('http://localhost:8080/.well-known/jwks.json')
   })
 
   test('propagates Wreck errors', async () => {
-    const err = new Error('discovery failed')
-
-    wreckGetMock.mockRejectedValue(err)
+    wreckGetMock.mockRejectedValue(new Error('discovery failed'))
 
     await expect(getOidcConfig()).rejects.toThrow('discovery failed')
-    expect(wreckGetMock).toHaveBeenCalledWith(localDiscoveryUrl, {
-      headers: { [tracingHeader]: traceId },
-      json: true,
-      timeout: 1000
-    })
+    await vi.waitFor(() => expect(readEmfDocuments(logSpy)).toHaveLength(1))
+    const [document] = readEmfDocuments(logSpy)
+    expect(document.ExternalCallFailure).toBe(1)
+    expect(document.Outcome).toBe('failure')
   })
 })

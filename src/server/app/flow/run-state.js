@@ -3,9 +3,6 @@ import { session } from '../engine/persistence/session.js'
 export const RUN_ACTIVE = 'active'
 export const RUN_COMPLETE = 'complete'
 
-// Session-side presentation state keyed by journey id for the opening run —
-// never canonical fulfilment data (see docs/flow-and-gates.md).
-
 export const beginOpeningRun = async (request, h, journeyId) =>
   session.setOpeningRun(h, journeyId, RUN_ACTIVE, request)
 

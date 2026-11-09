@@ -4,7 +4,11 @@ import {
   setUrl
 } from '../../../../../../../../../fit/set-base.js'
 import { copy as typeCopy } from '../commodity-type/copy/copy.en.js'
-import AxeBuilder from '@axe-core/playwright'
+import {
+  backLink,
+  saveAndReturnToHub,
+  expectNoSeriousOrCriticalViolations
+} from '../../../../../../../../../fit/high-risk-plants-journey.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
@@ -25,9 +29,6 @@ const RENDERED_GROUP_COUNT = RENDERED_GROUP_IDS.length
 
 // Exact, because the phase banner's "give your feedback by email" link also
 // contains the word.
-const backLink = (page) =>
-  page.getByRole('link', { name: sharedCopy.layout.back, exact: true })
-
 const taskRow = (page, title) =>
   page
     .getByRole('listitem')
@@ -74,6 +75,12 @@ test.describe('overview hub feature', () => {
       page.getByText(sharedCopy.journeyStrip.draft, { exact: true })
     ).toBeVisible()
     await expect(page.getByText(reference, { exact: true })).toBeVisible()
+    await expect(
+      page.locator('.app-journey-strip').getByRole('link', {
+        name: sharedCopy.journeyStrip.cancelAmend,
+        exact: true
+      })
+    ).toHaveCount(0)
   })
 
   test('offers Return to dashboard and a Back link, both to the dashboard', async ({
@@ -181,17 +188,10 @@ test.describe('overview hub feature', () => {
       page.getByRole('heading', { name: copy.title, level: 1 })
     ).toBeVisible()
 
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-      .analyze()
-    const seriousOrCritical = results.violations.filter(({ impact }) =>
-      ['serious', 'critical'].includes(impact)
+    await expectNoSeriousOrCriticalViolations(
+      page,
+      'Overview hub initial render'
     )
-
-    expect(
-      seriousOrCritical,
-      `Overview hub initial render has serious/critical accessibility violations.\nFull axe violations:\n${JSON.stringify(results.violations, null, 2)}`
-    ).toEqual([])
   })
 })
 
@@ -212,9 +212,7 @@ test('shows consignor only for plants and wood notifications', async ({
         exact: true
       })
       .check()
-    await page
-      .getByRole('button', { name: sharedCopy.saveActions.saveAndReturnToHub })
-      .click()
+    await saveAndReturnToHub(page).click()
     await expect(page).toHaveURL(HUB_URL)
     const row = taskRowByTitle(page, copy.rows.consignor.title)
     if (commodityType === 'potatoes') {

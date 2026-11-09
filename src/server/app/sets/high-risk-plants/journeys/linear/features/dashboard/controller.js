@@ -5,8 +5,10 @@ import {
   dashboardRoutePath,
   hubPath,
   pagePath,
-  pageRoutePath
+  pageRoutePath,
+  startRoutePath
 } from '../../../../../../shared/paths.js'
+import { buildActor } from '../../../../../../../common/helpers/actor-helpers.js'
 import { TEMPLATES } from '../../config.js'
 import { DELETED } from '../../../../../../engine/index.js'
 import {
@@ -94,7 +96,8 @@ export const renderDashboard = async (request, h) => {
       ...option,
       selected: option.value === sort
     })),
-    deletionSucceeded: request.query?.deleted === '1'
+    deletionSucceeded: request.query?.deleted === '1',
+    amendRefused: request.query?.amendRefused === '1'
   })
 }
 
@@ -102,14 +105,33 @@ const listGet = async (request, h) => renderDashboard(request, h)
 
 const amendPost = async (request, h) => {
   const journey = await amendJourney(request, h, request.params.journeyId)
-  return h.redirect(journey ? hubPath(journey.journeyId) : dashboardPath())
+  return h.redirect(
+    journey ? hubPath(journey.journeyId) : `${dashboardPath()}?amendRefused=1`
+  )
 }
 
-const createPost = async (request, h) => {
+const openNewNotification = async (request, h, { entry }) => {
   const journey = await startJourney(request, h)
   await beginOpeningRun(request, h, journey.journeyId)
+  request.logger.info(
+    {
+      journeyId: journey.journeyId,
+      entry,
+      organisationId: buildActor(request.auth?.credentials)?.organisationId
+    },
+    'New notification opened'
+  )
   return h.redirect(pagePath(journey.journeyId, commodityTypePage.slug))
 }
+
+const createPost = async (request, h) =>
+  openNewNotification(request, h, { entry: 'list-create' })
+
+const startGet = async (request, h) =>
+  (await openNewNotification(request, h, { entry: 'start' })).header(
+    'Cache-Control',
+    'no-store'
+  )
 
 export const routes = [
   {
@@ -129,5 +151,11 @@ export const routes = [
     path: createRoutePath(),
     options: kit.routeOptions,
     handler: createPost
+  },
+  {
+    method: 'GET',
+    path: startRoutePath(),
+    options: kit.routeOptions,
+    handler: startGet
   }
 ]

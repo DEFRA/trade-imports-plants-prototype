@@ -1,15 +1,17 @@
-import { BASE, setUrl } from '../../../../../../../../../../fit/set-base.js'
+import { setUrl } from '../../../../../../../../../../fit/set-base.js'
+import {
+  chooseCommodityCategory,
+  expectNoSeriousOrCriticalViolations,
+  saveAndContinue,
+  startNotification
+} from '../../../../../../../../../../fit/high-risk-plants-journey.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../../fit/sign-in.js'
-import { copy as sharedCopy } from '../../../../../../../shared/copy.en.js'
 import { copy as captionsCopy } from '../../../flow/section-captions/copy/copy.en.js'
-import { copy as dashboardCopy } from '../../dashboard/copy/copy.en.js'
 import { copy as typeCopy } from '../../commodity-type/copy/copy.en.js'
 import { copy } from '../copy/copy.en.js'
-import { expectNoSeriousOrCriticalViolations } from './axe.js'
 
-const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
 const DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details$')
 const DETAILS_EDIT_URL = setUrl(
   '/notifications/[^/]+/commodities/details\\?index=\\d+$'
@@ -29,9 +31,6 @@ const CATEGORY_RADIOS = 'input[name="category"]'
 // input keeps the original id, and the hidden select still submits the value.
 const GENUS_INPUT = 'input#genus'
 
-const saveAndContinue = (page) =>
-  page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
-
 const categoryRadio = (page, category) =>
   page.getByRole('radio', {
     name: copy.categoryLabels[category],
@@ -41,14 +40,6 @@ const categoryRadio = (page, category) =>
 const fieldNamed = (page, field) =>
   page.getByLabel(copy.details.fields[field].label, { exact: true })
 
-const startNotification = async (page) => {
-  await page.goto(BASE)
-  await page.getByRole('button', { name: dashboardCopy.startButton }).click()
-  await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-}
-
-// The opening run sends a trader from the entry question to the commodities
-// list, and a list with no lines sends them straight on to this page.
 const startAtDetails = async (page, commodityType) => {
   await startNotification(page)
   await page
@@ -62,8 +53,7 @@ const startAtDetails = async (page, commodityType) => {
 }
 
 const chooseCategory = async (page, category) => {
-  await categoryRadio(page, category).check()
-  await page.getByRole('button', { name: copy.details.continue }).click()
+  await chooseCommodityCategory(page, category)
   await expect(page).toHaveURL(DETAILS_EDIT_URL)
 }
 

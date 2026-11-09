@@ -3,23 +3,10 @@ import * as kit from '../../../../../../shared/kit.js'
 import { commodityTypePage } from '../commodity-type/page.js'
 import { commoditiesPage, commodityDetailsPage } from './page.js'
 
-/**
- * The loop's own links, built rather than concatenated.
- *
- * Both pages carry a query parameter of their own — the entry page's `index`,
- * the list page's `removed` — and both have to keep the change context a Check
- * your answers link arrived with. `kit.withChangeContext` appends `?change=1`
- * and so cannot be layered onto a href that already has a query, which is why
- * the context is read here and written into the same parameter list.
- */
 const hrefWith = (request, slug, entries) => {
-  const query = new URLSearchParams(entries)
-  if (kit.changeContext(request)) {
-    query.set('change', '1')
-  }
   const path = pagePath(request.params.journeyId, slug)
-  const search = query.toString()
-  return search ? `${path}?${search}` : path
+  const search = new URLSearchParams(entries).toString()
+  return kit.withChangeContext(request, search ? `${path}?${search}` : path)
 }
 
 /**

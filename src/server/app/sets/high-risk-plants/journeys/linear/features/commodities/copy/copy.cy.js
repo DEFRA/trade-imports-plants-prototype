@@ -85,7 +85,7 @@ export const copy = {
       'wood-and-cut-trees':
         'Nid oes angen hysbysu am bren sydd wedi’i drin â chadwolyn, oni bai ei fod yn goed conwydd wedi’u torri sy’n uwch na 3 metr.'
     },
-    genusPlaceholder: 'Dewiswch genws',
+    genusSelectText: 'Dewiswch genws',
     genusNoResults: 'Ni ddaethpwyd o hyd i unrhyw genws',
     fields: {
       genus: {

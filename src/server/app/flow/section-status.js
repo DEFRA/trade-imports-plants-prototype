@@ -8,8 +8,11 @@ export const sectionObligationIds = (section) =>
 export const sectionStatus = (section, answers, inScope, evaluation) =>
   statusOf(sectionObligationIds(section), answers, inScope, evaluation)
 
+/** True for a status that leaves the trader nothing to do. */
+export const rowReady = (status) =>
+  status === FULFILLED || status === NA || status === OPTIONAL
+
 export const readyForCheckYourAnswers = (answers, inScope, evaluation) =>
-  journeyTaskRows().every((row) => {
-    const status = journeyRowStatus(row, answers, inScope, evaluation)
-    return status === FULFILLED || status === NA || status === OPTIONAL
-  })
+  journeyTaskRows().every((row) =>
+    rowReady(journeyRowStatus(row, answers, inScope, evaluation))
+  )

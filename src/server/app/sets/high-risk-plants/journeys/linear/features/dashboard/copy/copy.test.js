@@ -1,17 +1,12 @@
 import { SET_ID } from '../../../../../set.js'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
+import { dispatchPages } from '../../../../../../../../../../test/fixtures/index.js'
+import { knownJourneysCookie } from '../../../../../../../engine/persistence/session.js'
 import {
-  configureRecords,
-  records
-} from '../../../../../../../engine/persistence/records.js'
-import {
-  configureSession,
-  knownJourneysCookie
-} from '../../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../../services/persistence/records/stub/index.js'
-import { session as sessionStub } from '../../../../../../../services/persistence/session/stub.js'
-import { authenticatedCredentials } from '../../../../../../../engine/test-support.js'
+  authenticatedCredentials,
+  useStubbedJourney
+} from '../../../../../../../engine/test-support.js'
 import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
 
 import { routes } from '../controller.js'
@@ -66,11 +61,7 @@ describe('#copy', () => {
 })
 
 describe('GET /', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-  })
-  beforeEach(() => records.clear())
+  useStubbedJourney(SET_ID, dispatchPages)
 
   it('Should supply the feature copy module and the shared chrome copy', async () => {
     const listGet = routes.find(

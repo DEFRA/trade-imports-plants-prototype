@@ -1,12 +1,3 @@
-/**
- * SYNTHETIC FIXTURE — owned by the tests, not journey content.
- *
- * The journey-flow side of the fixture set: sections, task rows and the
- * flow-only key. Ordering here is the flow order the prerequisite rules
- * read, so `scalarsSection` first keeps `scalarField` a prerequisite of
- * everything downstream.
- */
-
 import { statusOf } from '../../src/server/app/bridge/status/index.js'
 import { collectsOf } from '../../src/server/app/flow/dispatch.js'
 import { hubPath } from '../../src/server/app/shared/paths.js'
@@ -31,9 +22,6 @@ import {
   variantTwoPage
 } from './pages.js'
 
-// A key the flow owns and the notification model does not carry. It is
-// never a manifest obligation, so it is the shape that proves answer-key
-// recognition admits more than the manifest.
 export const FLOW_ONLY_KEY = 'flowOnlyKey'
 
 export const FLOW_ONLY_KEYS = [FLOW_ONLY_KEY]
@@ -64,16 +52,6 @@ export const sections = [
   { id: 'flowOnly', pages: [flowOnlyPage] }
 ]
 
-/**
- * The fixture's own section captions, in the shape a journey's
- * `flow/section-captions/` module exports: one entry per captioned section
- * listing its pages, never a string per page.
- *
- * Synthetic like the rest of this directory — the set under
- * `src/server/app/sets/` owns the real map and nothing here imports it, so
- * the engine suite stays journey-neutral. `itemsPage` is deliberately left
- * out so an uncaptioned page is covered too.
- */
 export const CAPTIONS = { scalars: 'Scalars', itemDetail: 'Item detail' }
 
 const captionSections = [
@@ -87,13 +65,6 @@ const captionByPageId = new Map(
   )
 )
 
-/**
- * The caption a fixture page renders above its heading.
- *
- * @param {string} [pageId] - the page identity's `id`.
- * @returns {string|undefined} the section name, or undefined for a page the
- * fixture leaves uncaptioned.
- */
 export const sectionCaptionOf = (pageId) => captionByPageId.get(pageId)
 
 export const taskRows = [
@@ -148,5 +119,7 @@ export const nextRunTarget = (stepId, scope, journeyId) => {
   }
   return hubPath(journeyId)
 }
+
+export const previousRunTarget = () => null
 
 export const entryGuardTarget = async () => null

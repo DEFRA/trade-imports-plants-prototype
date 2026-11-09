@@ -438,7 +438,22 @@ declares. Add a case shaped like the matching layout:
    need no seed.
 4. Assert the handler committed exactly the declared ids.
 
-## The one hard limit
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file.
+
+The controller-test helpers are listed in [Test support](add-a-page.md#test-support), with `useStubbedJourney` as the set-up.
+
+A step that adds one instance to the collection belongs in
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js)
+once two specs need it.
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
+
+## Hard limit
 
 A member's `applyTo` gate reads values at the same identity level, or projects a
 shallower gate down onto its own instances via the projection group. It cannot

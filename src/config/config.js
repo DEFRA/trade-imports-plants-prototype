@@ -14,10 +14,6 @@ const isProduction = env === 'production'
 const isTest = env === 'test'
 const isDevelopment = env === 'development'
 const isLocal = isDevelopment || isTest
-const isPlatform = !isLocal // Deployed to CDP platform
-
-const authCookieSameSite = 'Lax'
-const csrfEnabled = !isTest
 
 convict.addFormats(convictFormatWithValidator)
 
@@ -178,16 +174,16 @@ export const config = convict({
         format: STRICT_BOOLEAN,
         default: isProduction,
         env: 'SESSION_COOKIE_SECURE'
-      },
-      sameSite: {
-        doc: 'SameSite attribute for Bell OAuth state cookie',
-        format: ['Strict', 'Lax', 'None'],
-        default: authCookieSameSite,
-        env: 'AUTH_COOKIE_SAME_SITE'
       }
     }
   },
   defraId: {
+    stateCookieSameSite: {
+      doc: 'SameSite attribute of the Bell state cookie set during Defra ID sign-in',
+      format: ['Strict', 'Lax', 'None'],
+      default: 'Lax',
+      env: 'DEFRA_ID_STATE_COOKIE_SAME_SITE'
+    },
     oidcDiscoveryUrl: {
       doc: 'Defra ID OIDC well-known configuration URL',
       format: String,
@@ -233,23 +229,23 @@ export const config = convict({
       default: 'http://localhost:3103/auth/sign-out-oidc',
       env: 'DEFRA_ID_SIGN_OUT_REDIRECT_URL'
     },
-    signOutHostnameRewrite: {
+    browserFacingHostnameRewrite: {
       enabled: {
-        doc: 'Rewrite internal OIDC hostnames in sign-out URL for local environments',
+        doc: 'Rewrite Defra ID hostnames: browser-facing discovery and sign-out URLs move to the browser-facing hostname, and the server-side token and JWKS endpoints move to the discovery hostname',
         format: STRICT_BOOLEAN,
         default: !isProduction,
-        env: 'DEFRA_ID_SIGN_OUT_HOSTNAME_REWRITE_ENABLED'
+        env: 'DEFRA_ID_BROWSER_FACING_HOSTNAME_REWRITE_ENABLED'
       },
       from: {
-        doc: 'OIDC hostnames list for sign-out URL re-write',
+        doc: 'Defra ID hostnames the rewrite covers',
         format: Array,
         default: ['host.docker.internal', 'trade-imports-defra-id-stub']
       },
       to: {
-        doc: 'Target hostname used for sign-out OIDC URL rewrite',
+        doc: 'Browser-facing hostname the rewrite targets',
         format: String,
         default: 'localhost',
-        env: 'DEFRA_ID_SIGN_OUT_HOSTNAME_REWRITE_TO'
+        env: 'DEFRA_ID_BROWSER_FACING_HOSTNAME_REWRITE_TO'
       }
     },
     refreshTokens: {
@@ -336,13 +332,13 @@ export const config = convict({
     enabled: {
       doc: 'Enable CSRF protection (disabled during test runs)',
       format: Boolean,
-      default: csrfEnabled
+      default: !isTest
     },
     cookie: {
       secure: {
         doc: 'Set secure flag on CSRF cookie',
         format: Boolean,
-        default: isPlatform
+        default: !isLocal
       }
     }
   },
@@ -352,6 +348,40 @@ export const config = convict({
       format: String,
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
+    }
+  },
+  metrics: {
+    namespace: {
+      doc: 'CloudWatch namespace the service publishes its own metrics to',
+      format: String,
+      default: 'trade-imports-plants-frontend',
+      env: 'AWS_EMF_NAMESPACE'
+    }
+  },
+  pageMaturityBanner: {
+    enabled: {
+      doc: 'Show each page’s maturity level (Exploring, Detailing, Agreed, Ready for live) in the phase banner',
+      format: STRICT_BOOLEAN,
+      default: true,
+      env: 'PAGE_MATURITY_BANNER_ENABLED'
+    }
+  },
+  callCounts: {
+    endpoint: {
+      enabled: {
+        doc: "Serve GET and DELETE /call-counts: each route's page requests and the backend calls, session resolutions and external calls they made",
+        format: STRICT_BOOLEAN,
+        default: isLocal,
+        env: 'CALL_COUNTS_ENDPOINT_ENABLED'
+      }
+    },
+    metrics: {
+      enabled: {
+        doc: 'Write one EMF document per page request with its backend calls and session resolutions',
+        format: STRICT_BOOLEAN,
+        default: !isLocal,
+        env: 'CALL_COUNTS_METRICS_ENABLED'
+      }
     }
   },
   tradeImportsPlantsBackendApi: {

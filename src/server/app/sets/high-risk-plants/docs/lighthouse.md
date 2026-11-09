@@ -6,27 +6,30 @@ plus the scripts under `scripts/lighthouse/`.
 
 ## What the run audits today
 
-Both modules the run imports now exist, so `npm run lighthouse` no longer fails
-at import:
+The run imports these modules:
 
 - `scripts/lighthouse/audit-targets.js` (with `audit-targets.test.js`) derives
   the URL list from the app's own registered routes and holds the `SKIPPED`,
-  `FILLED_BY` and `QUERY` reasons. `QUERY` is empty. `SKIPPED` holds one entry:
-  confirmation, because the page renders only on a submitted notification and
-  no seed shape completes the journey far enough to submit one. `FILLED_BY`
-  holds two entries: arrival-status and consignors/select, both on the
-  `plantsForPlanting` shape, because those questions are out of scope on the
-  ware-potato default.
+  `FILLED_BY` and `QUERY` reasons; the file is the list. `SKIPPED` names the
+  routes that are not audited, with a reason each: the start entry, because it
+  creates a draft and redirects rather than rendering a page, and the pages
+  that render only on a submitted or amending notification, which no seed shape
+  reaches. `FILLED_BY` names the routes audited on another shape than the
+  default. Arrival-status, consignors/select and consignors/edit are read on a
+  plants-for-planting notification. Arrival-status is asked of plants and wood
+  alone, so it is out of scope on the ware-potato default; the consignor pages
+  are reached only on a plants-for-planting notification, because the
+  ware-potato default reaches no consignor question.
 - `scripts/lighthouse/seed-notification.js` holds one `SEED_SHAPES` entry per
   blueprint use case — ware potatoes, ware potatoes notified late, seed
   potatoes, plants for planting, and wood — and fills a notification by walking
   the journey's own pages. Every shape answers `commodity-type` with the type
   its use case is for.
 
-The dashboard at `/` is the first audited route, so the derived URL list is no
-longer empty. Each further page increment adds its own URL, its own step to the
-seed shapes whose use case reaches that page, and its own entry in `SKIPPED`,
-`FILLED_BY` or `QUERY` where the page needs one.
+The dashboard at `/` is the first audited route. Each further page increment
+adds its own URL, its own step to the seed shapes whose use case reaches that
+page, and its own entry in `SKIPPED`, `FILLED_BY` or `QUERY` where the page
+needs one.
 
 A seed step is not only there to reach the pages below it. The re-fetch below
 runs in a session that never created the notification, so the entry guard
@@ -39,7 +42,7 @@ The five shapes are held in `seed-notification.js` for now. They move to
 Lighthouse seed, the flow fixture and the tests-repo journey specs share one set
 of use cases.
 
-## What the run does, once it works
+## What the run does
 
 `npm run lighthouse` is `run-s lighthouse:targets lighthouse:run`.
 
@@ -129,13 +132,24 @@ SEO findings are not included in that file.
 ## CI ownership
 
 This repository has its own `.github/workflows/lighthouse.yml`. It runs after a
-successful branch image publish, or by manual dispatch: it checks out the
-workspace, starts the stack for the chosen branch, installs the frontend, runs
-`npm run lighthouse`, always tears the stack down, uploads the report for 14
-days, publishes it to GitHub Pages and passes the result, report URL and
-flagged findings to the workspace status action.
+successful branch image publish, or by manual dispatch.
 
-The set registers the dashboard, so `lighthouse:targets` now derives one URL and
+Two runners each check out the workspace, start the stack for the chosen
+branch, install this frontend and run `npm run lighthouse` over their own shard
+of the URLs. `LIGHTHOUSE_SHARD_INDEX` and `LIGHTHOUSE_SHARD_TOTAL` make
+`lighthouse:targets` seed as usual but write only that shard's URLs: contiguous
+slices that together hold every URL once. Unset, they default to one shard of
+one, so a local run audits every URL. Two Chromes never share a runner, because
+that would skew the performance scores. The runners are discarded afterwards,
+so the stack is not torn down.
+
+A merge job then joins the shards with
+`scripts/lighthouse/merge-shard-reports.js` into one `lighthouse-report/` and
+one manifest, and builds the index and flagged findings from it. The workflow
+uploads that report for 14 days, publishes it to GitHub Pages and passes the
+result, report URL and flagged findings to the workspace status action.
+
+The set registers the dashboard, so `lighthouse:targets` derives one URL and
 seeds the notifications behind it. The check is expected to pass, and a red
 result is a real failure to investigate from the uploaded report. It is not a
 reason to lower a floor, stub a URL list or gate the workflow behind manual
@@ -144,3 +158,18 @@ dispatch.
 Once pages are registered, when a Lighthouse change fails in CI, use the
 uploaded report for that branch. Reproduce it against the same route and
 stack before changing code or limits.
+
+## The derived targets
+
+`scripts/lighthouse/audit-targets.js` derives the audited URLs from the set's
+GET routes.
+
+- Lighthouse builds its URLs outside the server, so it never enters a request's
+  set context. The script registers the set's mount, which makes the set the
+  sole mounted set and lets the link builders resolve the prefix the server
+  serves on.
+- The route table holds prefix-free route shapes. Every shape becomes a link
+  under the set's mount. The dashboard's `/` shape maps to the set base itself
+  rather than to `<base>/`.
+- A report is named after the page's route, with the set's mount prefix and the
+  seeded journey id dropped, so a run overwrites its predecessor's reports.

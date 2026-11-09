@@ -5,36 +5,32 @@ import { DATE_STATES } from '../fields.js'
 import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
-describe('#copy', () => {
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+const LOCALES = { en: copy, cy }
 
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should label and hint every date state the %s page can ask in, and no other',
-    (locale, bundle) => {
-      const states = [...DATE_STATES].toSorted()
-      expect(
-        Object.keys(bundle.dateLabels).toSorted(),
-        `${locale}: every date state needs a label`
-      ).toEqual(states)
-      expect(
-        Object.keys(bundle.dateHints).toSorted(),
-        `${locale}: every date state needs a hint`
-      ).toEqual(states)
-    }
-  )
+describe('#copy', () => {
+  it('Should hold a non-empty string or copy function at every leaf of both locales', () => {
+    const offenders = Object.entries(LOCALES).flatMap(([locale, bundle]) =>
+      leaves(bundle)
+        .filter(({ value }) => !isCopyLeaf(value))
+        .map(({ path }) => `${locale}: ${path}`)
+    )
+
+    expect(offenders).toEqual([])
+  })
+
+  it('Should label and hint exactly the date states the page can ask in, in both locales', () => {
+    const states = [...DATE_STATES].toSorted()
+    const keysOf = (field) =>
+      Object.fromEntries(
+        Object.entries(LOCALES).map(([locale, bundle]) => [
+          locale,
+          Object.keys(bundle[field]).toSorted()
+        ])
+      )
+
+    expect(keysOf('dateLabels')).toEqual({ en: states, cy: states })
+    expect(keysOf('dateHints')).toEqual({ en: states, cy: states })
+  })
 
   it('Should give each date state its own English label', () => {
     expect(copy.dateLabels).toEqual({
@@ -44,24 +40,12 @@ describe('#copy', () => {
     })
   })
 
-  it('Should say Great Britain in the plants labels, never England', () => {
-    expect(copy.dateLabels['not-yet-arrived']).toContain('Great Britain')
-    expect(copy.dateLabels['not-yet-arrived']).not.toContain('England')
-    expect(copy.dateLabels['already-arrived']).toContain('Great Britain')
-    expect(copy.dateLabels['already-arrived']).not.toContain('England')
-  })
-
-  it('Should translate Great Britain in the Welsh labels', () => {
-    // Welsh mutates the proper noun after a preposition — "ym Mhrydain Fawr" —
-    // so the pair is matched on the stem the two forms share.
+  it('Should name Great Britain in both Welsh date labels by the stem of its Welsh name', () => {
     expect(cy.dateLabels['not-yet-arrived']).toContain('rydain Fawr')
     expect(cy.dateLabels['already-arrived']).toContain('rydain Fawr')
   })
 
-  it('Should keep the potato label future-facing and cover a past date in the hint', () => {
-    // Potatoes have no arrived state, so the label cannot switch. The hint is
-    // what tells somebody whose potatoes are already here what to enter.
-    expect(copy.dateLabels.potatoes).toBe('Expected date of arrival')
+  it('Should pin the exact date hint for each state', () => {
     expect(copy.dateHints).toEqual({
       potatoes:
         'For example, 27/3/2026. If the potatoes have already arrived, enter the date they arrived.',
@@ -70,16 +54,23 @@ describe('#copy', () => {
     })
   })
 
-  it('Should carry the place-of-landing group the spec authored', () => {
+  it('Should pin the exact English place-of-landing label, hint, select text, search placeholder and no-results text', () => {
     expect(copy.placeOfLanding).toEqual({
       label: 'Proposed place of landing',
-      hint: 'Where the potatoes will enter Great Britain. Start typing to search by port name or code.',
-      placeholder: 'Select a place of landing',
+      hint: 'Select where the potatoes will enter Great Britain. Start typing to search by port or airport name or code.',
+      selectText: 'Select a place of landing',
+      searchPlaceholder: 'Select a place of landing',
       noResults: 'No ports found'
     })
   })
 
-  it('Should carry the title the animals service already uses', () => {
+  it('Should pin the exact Welsh place-of-landing hint', () => {
+    expect(cy.placeOfLanding.hint).toBe(
+      'Dewiswch ble bydd y tatws yn dod i mewn i Brydain Fawr. Dechreuwch deipio i chwilio yn ôl enw neu god y porthladd neu’r maes awyr.'
+    )
+  })
+
+  it('Should pin the exact English and Welsh page title', () => {
     expect(copy.title).toBe('Arrival details')
     expect(cy.title).toBe('Manylion cyrraedd')
   })

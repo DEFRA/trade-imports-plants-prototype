@@ -23,28 +23,6 @@
     <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
 
     {% if rows.length %}
-      {% set tableRows = [] %}
-      {% for row in rows %}
-        {% set actionsHtml %}
-          <div class="govuk-button-group govuk-!-margin-bottom-0">
-            <a class="govuk-link" href="{{ row.changeHref }}">{{ copy.change }}<span class="govuk-visually-hidden"> {{ copy.changeHidden(row.position) }}</span></a>
-            {% set removeHtml %}{{ copy.remove }}<span class="govuk-visually-hidden"> {{ copy.removeHidden(row.position) }}</span>{% endset %}
-            {{ govukButton({
-              html: removeHtml,
-              classes: "govuk-button--secondary govuk-!-margin-bottom-0",
-              name: "action",
-              value: row.removeAction
-            }) }}
-          </div>
-        {% endset %}
-        {% set ignored = tableRows.push([
-          { text: row.category },
-          { text: row.genusOrVariety },
-          { text: row.quantity },
-          { html: actionsHtml }
-        ]) %}
-      {% endfor %}
-
       {{ govukTable({
         caption: copy.table.caption,
         captionClasses: "govuk-visually-hidden",
@@ -67,6 +45,6 @@
       attributes: { id: "commodityLines" }
     }) }}
 
-    {{ saveActions(hubHref, null, sharedCopy.saveActions, false) }}
+    {{ saveActions({ hubHref: hubHref, copy: sharedCopy.saveActions, showReturnControls: false, amend: amend }) }}
   </form>
 {% endblock %}

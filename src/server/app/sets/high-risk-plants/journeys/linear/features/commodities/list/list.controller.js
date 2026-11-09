@@ -1,4 +1,3 @@
-import { hubPath } from '../../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../../config.js'
 import * as state from '../../../../../../../engine/index.js'
 import {
@@ -12,17 +11,9 @@ import { copy as en } from '../copy/copy.en.js'
 import { copy as cy } from '../copy/copy.cy.js'
 import { entryIndexOf } from '../entry-index.js'
 import { detailsHref, listHref } from '../links.js'
+import { commodityTableRows } from './table-rows.js'
 import { CATEGORY, GENUS, LINES, POTATO_VARIETY, QUANTITY } from '../fields.js'
 
-/**
- * The commodities the consignment holds.
- *
- * The page owns the `commodityLines` group: it reads the saved lines back,
- * removes one, and is where Continue leaves the loop. The lines themselves are
- * written by the entry sub-page. A load with no lines and nothing to report
- * sends the trader straight to that sub-page, because an empty list is not a
- * page worth showing.
- */
 export const meta = { ...page, collects: [LINES] }
 
 const view = `${TEMPLATES}/features/commodities/list/list`
@@ -54,21 +45,22 @@ const rowsOf = (lines, request) =>
   }))
 
 const buildView = (request, h, model) => {
+  const rows = rowsOf(model.lines, request)
   const errors = model.errors ?? {}
   return h.view(view, {
     ...kit.base(copy.title, {
-      backLink: hubPath(model.journey.journeyId),
+      request,
+      backLink: model.backLink,
       journey: model.journey,
       page,
       recoverableError: model.recoverableError ?? false
     }),
-    // A table of saved lines is a display surface, not a form field: the
-    // longest category label needs the full width to stay on one line.
     contentColumnClass: kit.surfaceClass('display'),
     copy,
     errors,
     errorSummary: kit.errorSummary(errors),
-    rows: rowsOf(model.lines, request),
+    rows,
+    tableRows: commodityTableRows(rows, copy),
     addAnotherHref: detailsHref(request),
     removedCount: model.removedCount,
     removedMessage:
@@ -82,9 +74,11 @@ const buildView = (request, h, model) => {
 }
 
 const pageState = async (request, h) => {
-  const { journey, answers, scope, evaluation } = await state.get(request, h)
+  const current = await state.get(request, h)
+  const { journey, answers, scope, evaluation } = current
   return {
     journey,
+    backLink: await kit.runBackLink(request, page.id, current),
     scope,
     commodityType: answers.commodityType,
     lines: state.collectionView(answers, [LINES], evaluation),
@@ -106,21 +100,24 @@ const removeLine = async (request, h, current, action) => {
     current.lines.length
   )
   if (index === null) {
+    kit.logRefusal(request, {
+      reason: 'remove-index-out-of-range',
+      removeAction: action
+    })
     return buildView(request, h, current).code(HTTP_STATUS_BAD_REQUEST)
   }
   const { failure } = await kit.recoverableSave(
+    request,
     async () => state.removeEntryAt(request, h, [LINES], index),
     async () =>
       buildView(request, h, { ...current, recoverableError: true }).code(
         HTTP_STATUS_INTERNAL_SERVER_ERROR
-      )
+      ),
+    { action: 'remove-line', index }
   )
   return failure ?? h.redirect(listHref(request))
 }
 
-// The model's floor, enforced where the trader meets it. The list is only ever
-// reached empty through a removal or a direct request, so the message is the
-// last thing between an empty consignment and the rest of the journey.
 const post = async (request, h) => {
   const action = String(request.payload?.action ?? '')
   const current = await pageState(request, h)
@@ -128,10 +125,10 @@ const post = async (request, h) => {
     return removeLine(request, h, current, action)
   }
   if (current.lines.length === 0) {
-    return buildView(request, h, {
-      ...current,
-      errors: { [LINES]: copy.errors.commodityLines }
-    }).code(HTTP_STATUS_BAD_REQUEST)
+    const errors = { [LINES]: copy.errors.commodityLines }
+    return buildView(request, h, { ...current, errors }).code(
+      HTTP_STATUS_BAD_REQUEST
+    )
   }
   return h.redirect(await kit.nextTarget(request, page, current.scope))
 }

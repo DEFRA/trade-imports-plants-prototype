@@ -18,6 +18,6 @@
         errorMessage: errors[name] and { text: errors[name] }
       }) }}
     {% endfor %}
-    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+    {{ saveActions({ hubHref: hubHref, copy: sharedCopy.saveActions, amend: amend }) }}
   </form>
 {% endblock %}

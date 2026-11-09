@@ -377,8 +377,7 @@ describe('real records adapter — lifecycle and list', () => {
     await records.list({
       page: 1,
       sort: 'createdAt,asc',
-      referenceNumber: journeyId,
-      organisationId: '5900002'
+      referenceNumber: journeyId
     })
 
     const [request] = fetchMocker.requests()
@@ -401,7 +400,7 @@ describe('real records adapter — lifecycle and list', () => {
       })
     )
 
-    const listed = await records.list({ page: 1, organisationId: '5900002' })
+    const listed = await records.list({ page: 1 })
 
     expect(listed.rows[0]).toMatchObject({
       journeyId,
@@ -409,26 +408,5 @@ describe('real records adapter — lifecycle and list', () => {
       createdAt,
       submittedAt: submittedTimestamp
     })
-  })
-
-  it("Should not send the reader's organisation to the backend", async () => {
-    // The backend stores parties as they are and hands them back the same way.
-    // The organisation is the address book's business, and the address book is
-    // called from here — sending it on the notifications read would be handing
-    // the backend an identity it has nothing to do with.
-    fetchMocker.mockResponse(
-      JSON.stringify({
-        page: 1,
-        size: 20,
-        totalElements: 0,
-        totalPages: 0,
-        content: []
-      })
-    )
-
-    await records.list({ page: 1, organisationId: '5900002' })
-
-    const [request] = fetchMocker.requests()
-    expect(request.headers.get('Trade-Imports-Organisation-Id')).toBeNull()
   })
 })
