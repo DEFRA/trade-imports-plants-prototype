@@ -82,10 +82,11 @@ Three things are still pending:
   it, and adding it to `overrides.json` `ours` in the same commit on a
   `chore/<slug>` branch, so the weekly sync stops restoring the Sonar
   hooks, is Sam's call: raise it with him before making the change.
-- Once the prototype is deployed, put its address in `deployedUrl` in
-  [`scripts/designer/prototype.json`](scripts/designer/prototype.json) (the
-  research sheet reads it from there) and in PROTOTYPE.md, "Deploying and
-  merging".
+- Keep the deployed prototype's address out of this public repository:
+  leave `deployedUrl` in
+  [`scripts/designer/prototype.json`](scripts/designer/prototype.json) as
+  `null`, and give the address to each designer privately. Pass it to the
+  research sheet with `--deployed-url <address>`.
 - **Turn on GitHub Pages** for this repository: Settings, Pages, "Deploy
   from a branch", `gh-pages`, `/ (root)`. The branch appears after the first
   pull request or merge publishes a report. Until Pages is on, the report
