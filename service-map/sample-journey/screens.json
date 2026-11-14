@@ -1,0 +1,10 @@
+{
+  "welcome": {
+    "picture": null,
+    "errorPicture": null,
+    "heading": null,
+    "stories": [],
+    "warnings": [],
+    "note": "No example reaches Welcome yet: add one that walks to it."
+  }
+}
