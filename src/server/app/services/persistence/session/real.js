@@ -1,17 +1,6 @@
-/**
- * The real session: every value lives inside the ONE @hapi/yar session cookie,
- * which yar registers server-wide at path `/`.
- *
- * So the per-set `path` scoping `registerJourneyCookie` applies is a stub-mode
- * property only. Here two sets are kept apart by their cookie NAMES — the
- * per-set names from the configured session seam become distinct keys inside
- * the one yar session. Namespacing those keys by set id as well is a behaviour
- * change, not a tidy-up, and belongs in its own ticket.
- */
 import {
   flowOnlyAnswersCookie,
-  knownJourneysCookie,
-  openingRunCookie
+  knownJourneysCookie
 } from '../../../engine/persistence/session.js'
 
 const isObject = (value) =>
@@ -27,11 +16,6 @@ const flowOnlyByJourneyFrom = (request) => {
   return isObject(stored) ? stored : {}
 }
 
-const openingRunByJourneyFrom = (request) => {
-  const stored = request?.yar?.get(openingRunCookie())
-  return isObject(stored) ? stored : {}
-}
-
 export const session = {
   async knownJourneyIds(request) {
     return knownFrom(request)
@@ -43,18 +27,6 @@ export const session = {
       return
     }
     h.request.yar.set(knownJourneysCookie(), [...known, journeyId])
-  },
-
-  async openingRun(request, journeyId) {
-    return openingRunByJourneyFrom(request)[journeyId]
-  },
-
-  async setOpeningRun(h, journeyId, phase) {
-    const byJourney = openingRunByJourneyFrom(h.request)
-    h.request.yar.set(openingRunCookie(), {
-      ...byJourney,
-      [journeyId]: phase
-    })
   },
 
   async flowOnlyAnswers(request, journeyId) {

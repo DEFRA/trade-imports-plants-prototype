@@ -1,39 +1,25 @@
 import Boom from '@hapi/boom'
 import {
-  flowOnlyAnswersCookie,
-  knownJourneysCookie,
-  openingRunCookie,
+  journeyCookieNames,
   session,
   sessionConfiguredFor
 } from './persistence/session.js'
 import { currentSetBase, currentSetId } from '../shared/set-context.js'
 import { AMEND, DRAFT, records, SUBMITTED } from './persistence/records.js'
 import { buildActor } from '../../common/helpers/actor-helpers.js'
-import { organisationIdOf } from '../../common/helpers/organisation-id.js'
 
 export {
   flowOnlyAnswersCookie,
-  knownJourneysCookie,
-  openingRunCookie
+  knownJourneysCookie
 } from './persistence/session.js'
 
 /**
- * Registers the journey cookies a set reads in STUB mode, scoped to that set's
- * own mount: stub mode keeps each value in a native cookie of its own, so a
- * draft started in one set is invisible to another set's dashboard. Moving
- * these off `/` invalidates existing browser sessions, which is the intended
- * one-off cost of splitting the namespace.
+ * Registers the active set's journey cookies on the server, scoped to the
+ * set's mount. Call it inside the set's context, after `registerSetMount` and
+ * `configureSession`.
  *
- * The `path` scoping applies to those per-name cookies only. In REAL mode the
- * same values are keys inside the single @hapi/yar session cookie, which is
- * registered server-wide at path `/`; isolation there comes from each set's
- * cookie NAMES being distinct, not from the path. See
- * services/persistence/session/real.js.
- *
- * Both the path and the names come from the active set — the mount it
- * registered and the session seam it configured — rather than from arguments,
- * so what is registered cannot drift from what the set actually uses. Call it
- * inside the set's context, after `registerSetMount` and `configureSession`.
+ * @param {object} server - the Hapi server the set is registering on.
+ * @throws {Error} when the session is not configured for the active set.
  */
 export const registerJourneyCookie = (server) => {
   const setId = currentSetId()
@@ -54,13 +40,21 @@ export const registerJourneyCookie = (server) => {
     strictHeader: true
   })
 
-  for (const name of [
-    knownJourneysCookie(),
-    openingRunCookie(),
-    flowOnlyAnswersCookie()
-  ]) {
+  for (const name of journeyCookieNames()) {
     server.state(name, cookieOptions)
   }
+}
+
+const JOURNEY_REFUSAL = Object.freeze({
+  NOT_FOUND: 'not-found',
+  NOT_EDITABLE: 'not-editable'
+})
+
+const logJourneyActionRefused = (
+  request,
+  { action, journeyId, reason, ...fields }
+) => {
+  request.logger.info({ journeyId, reason, ...fields }, `${action} refused`)
 }
 
 const JOURNEY_MEMO = Symbol('currentJourney')
@@ -81,6 +75,18 @@ export const startJourney = async (request, h) => {
   return journey
 }
 
+const loadAndRememberJourney = async (request, h, journeyId) => {
+  const loaded = await records.load({ journeyId })
+  if (loaded && !(await isKnownJourney(request, journeyId))) {
+    request.logger.info(
+      { journeyId },
+      'Notification added to the known journeys of this session'
+    )
+    await session.addKnownJourney(request, h, journeyId)
+  }
+  return loaded
+}
+
 export const currentJourney = async (request, h) => {
   const cached = memoRead(request)
   if (cached) {
@@ -90,12 +96,9 @@ export const currentJourney = async (request, h) => {
   if (!journeyId) {
     throw Boom.notFound()
   }
-  const loaded = await records.load({ journeyId })
+  const loaded = await loadAndRememberJourney(request, h, journeyId)
   if (!loaded) {
     throw Boom.notFound()
-  }
-  if (!(await isKnownJourney(request, journeyId))) {
-    await session.addKnownJourney(request, h, journeyId)
   }
   memoWrite(request, loaded)
   return structuredClone(loaded)
@@ -119,7 +122,6 @@ export const replaceJourneyFulfilment = async (
     known,
     actor
   })
-  // The backend mints a new concurrencyToken on every save, so get the latest
   const next = { ...saved, fulfilment: structuredClone(fulfilment) }
   memoWrite(request, next)
   return next
@@ -130,29 +132,7 @@ export const listKnownJourneys = async (
   { page, sort, referenceNumber } = {}
 ) => {
   const journeyIds = await session.knownJourneyIds(request)
-  // Each row's referenced parties are resolved against the address book while
-  // the list is marshalled. The book scopes on the organisation and has no
-  // authentication of its own, so the read carries the reader's session
-  // organisation with it.
-  const organisationId = organisationIdOf(request)
-
-  // Not the unauthenticated case: `session` is the default strategy, so a
-  // signed-out request is redirected before it reaches this handler. This is
-  // reached when AUTH_ENABLED=false leaves the auth plugin unregistered, or
-  // when a signed-in session carries no organisation. Either way there is no
-  // book to resolve names against, so answer empty rather than start a read
-  // that cannot finish.
-  if (!organisationId) {
-    return { rows: [], page: 1, size: 0, totalElements: 0, totalPages: 0 }
-  }
-
-  return records.list({
-    journeyIds,
-    page,
-    sort,
-    referenceNumber,
-    organisationId
-  })
+  return records.list({ journeyIds, page, sort, referenceNumber })
 }
 
 export const isKnownJourney = async (request, journeyId) =>
@@ -168,17 +148,25 @@ const editableFromStatus = async (journey, journeyId, actor) => {
   return undefined
 }
 
-export const amendJourney = async (request, _h, journeyId) => {
-  if (!(await isKnownJourney(request, journeyId))) {
-    return undefined
-  }
-  const journey = await records.load({ journeyId })
+export const amendJourney = async (request, h, journeyId) => {
+  const journey = await loadAndRememberJourney(request, h, journeyId)
   if (!journey) {
+    logJourneyActionRefused(request, {
+      action: 'Amend',
+      journeyId,
+      reason: JOURNEY_REFUSAL.NOT_FOUND
+    })
     return undefined
   }
   const actor = buildActor(request.auth.credentials)
   const editable = await editableFromStatus(journey, journeyId, actor)
   if (!editable) {
+    logJourneyActionRefused(request, {
+      action: 'Amend',
+      journeyId,
+      reason: JOURNEY_REFUSAL.NOT_EDITABLE,
+      status: journey.status
+    })
     return undefined
   }
   memoWrite(request, editable)

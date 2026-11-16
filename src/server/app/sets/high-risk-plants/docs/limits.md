@@ -24,19 +24,21 @@ them waits on it. Keep both in step with the manifest: a name listed there that
 this set does not declare is inert, and one this set declares but does not list
 gets no continue-time enforcement.
 
-## The commodity vocabulary constrains three of the eleven answers
+## The commodity vocabulary constrains four of the eleven answers
 
 Obligation allow-lists read from a set-owned reference service. The set owns
 one — [`services/commodities/`](../services/commodities/index.js) — and it
 constrains the commodity types, the nine categories and their grouping by
 type, the fifteen genera and the hardwood narrowing, plus which categories
-each per-line field applies on. Only three commodity answers are checked
-against it: `commodityType` in
+each per-line field applies on, and which countries of origin a consignment's
+categories may name. Four answers are checked against it: `commodityType` in
 [`commodity-type/controller.js`](../journeys/linear/features/commodity-type/controller.js),
 `category` through `categoryRule` in
 [`details.controller.js`](../journeys/linear/features/commodities/details/details.controller.js),
-and `genus` in
-[`line-form.js`](../journeys/linear/features/commodities/line-form.js).
+`genus` in
+[`line-form.js`](../journeys/linear/features/commodities/line-form.js), and
+`countryOfOrigin` in
+[`origin/controller.js`](../journeys/linear/features/origin/controller.js).
 
 Every other per-line value is free text bounded only by the length caps in
 `line-form.js` — `species`, `commodityCode`, `potatoVariety`,
@@ -88,6 +90,13 @@ group argument. It cannot read a value in a sibling frame at the same depth.
 A field gated on another value in the _same_ enclosing instance is expressible.
 A field gated across unrelated frames is not. See
 [add-a-collection.md](add-a-collection.md).
+
+The country of origin's narrowing by the categories of the commodity lines is
+the case in point. A gate on the origin answer cannot read `category`, which
+sits one frame down on each line, so the origin page validates the narrowing
+itself against the constraints the commodities service holds. The narrowest
+constraint the consignment breaks is the one reported. A territory is held to
+its parent country's constraints, so the Canary Islands may send what Spain may.
 
 ## Array-valued answers do not drive scalar gates
 

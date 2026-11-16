@@ -4,7 +4,11 @@ import {
   DRAFT,
   SUBMITTED
 } from '../../../../../../../../engine/index.js'
-import { CYA_SLUG } from '../../../../../../../../shared/kit.js'
+import {
+  CYA_SLUG,
+  TRAIL_START,
+  withTrail
+} from '../../../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../../../shared/copy.js'
 import { copy as en } from '../../copy/copy.en.js'
 import { copy as cy } from '../../copy/copy.cy.js'
@@ -40,7 +44,9 @@ export const rowActions = (journey, reference) => {
     return [
       {
         text: copy.actions.view,
-        href: pagePath(journey.journeyId, CYA_SLUG)
+        href: withTrail(pagePath(journey.journeyId, CYA_SLUG), [
+          TRAIL_START.dashboard
+        ])
       },
       {
         text: copy.actions.amend,

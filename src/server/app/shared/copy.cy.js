@@ -3,6 +3,7 @@ export const copy = {
   layout: {
     serviceName: 'Gwasanaeth hysbysu mewnforio',
     errorTitlePrefix: 'Gwall: ',
+    govukSuffix: 'GOV.UK',
     back: 'Yn ôl',
     phaseBanner: {
       tag: 'Alffa',
@@ -66,7 +67,8 @@ export const copy = {
   journeyStrip: {
     draft: 'Drafft',
     submitted: "Wedi'i gyflwyno",
-    amend: 'Wrthi’n diwygio',
+    amend: 'Diwygio',
+    cancelAmend: 'Canslo diwygio',
     deleted: "Wedi'i ddileu"
   }
 }

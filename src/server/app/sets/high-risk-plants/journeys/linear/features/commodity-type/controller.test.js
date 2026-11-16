@@ -1,28 +1,29 @@
-import { SET_BASE, SET_ID } from '../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { SET_BASE } from '../../../../set.js'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectBackLinkIsPath,
+  expectNoRefusalLogged,
+  expectOneLogged,
+  expectOneSaveFallbackLogged,
+  postHandlerOf,
+  reviewChangeLinkQuery,
+  trailQuery,
+  unavailableBackendError
 } from '../../../../../../engine/test-support.js'
-import { hubPath } from '../../../../../../shared/paths.js'
+import {
+  dashboardPath,
+  hubPath,
+  pagePath
+} from '../../../../../../shared/paths.js'
+import { CYA_SLUG, TRAIL_START } from '../../../../../../shared/kit.js'
+import { useInsFrontendBaseUrl } from '../../../../../../../common/test-helpers/use-ins-frontend-base-url.js'
 import {
   COMPLETE_POTATO_CONSIGNMENT,
-  installHighRiskPlantsJourney
+  itSendsBackToTheDashboardUntilCommodityTypeAnswered,
+  itSendsCancelToTheDashboardUntilCommodityTypeAnswered,
+  useStubbedHighRiskPlantsJourney
 } from '../../test-support.js'
 import { commodityTypes } from '../../../../services/commodities/index.js'
 import * as commodityType from './controller.js'
@@ -42,18 +43,14 @@ describe('#meta', () => {
     expect(commodityType.meta).toEqual({
       id: 'commodity-type',
       slug: 'commodity-type',
+      maturity: 'exploring',
       collects: ['commodityType']
     })
   })
 })
 
 describe('GET commodity-type', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should render the page title and the legend as the page heading', async () => {
     const result = await driveHandler(get)
@@ -120,28 +117,75 @@ describe('GET commodity-type', () => {
     ])
   })
 
-  it('Should send Back to the dashboard while nothing is committed', async () => {
-    const result = await driveHandler(get)
+  itSendsBackToTheDashboardUntilCommodityTypeAnswered(get)
+  itSendsCancelToTheDashboardUntilCommodityTypeAnswered(get)
 
-    expect(result.view.context.backLink).toBe(SET_BASE)
-  })
+  describe('where Back goes by where the trader came from', () => {
+    const setInsFrontendBaseUrl = useInsFrontendBaseUrl()
+    const answered = { commodityType: PLANTS_FOR_PLANTING }
 
-  it('Should send Back to the overview once the notification has an answer', async () => {
-    const result = await driveHandler(get, {
-      seed: { commodityType: POTATOES }
+    it.each([
+      ['no answer', {}],
+      ['an answer', answered]
+    ])(
+      'Should send Back to the dashboard for a notification started from the dashboard with %s',
+      async (_state, seed) => {
+        const result = await driveHandler(get, {
+          seed,
+          query: trailQuery(TRAIL_START.dashboard)
+        })
+
+        expectBackLinkIsPath(result, dashboardPath())
+      }
+    )
+
+    it.each([
+      ['no answer', {}],
+      ['an answer', answered]
+    ])(
+      'Should send Back to the Import Notification Service type question for a notification started there with %s',
+      async (_state, seed) => {
+        setInsFrontendBaseUrl('http://ins.example/')
+
+        const result = await driveHandler(get, {
+          seed,
+          query: trailQuery(TRAIL_START.ins)
+        })
+
+        expectBackLinkIsPath(result, 'http://ins.example/notification-type')
+      }
+    )
+
+    it('Should send Back to Overview when opened from Overview', async () => {
+      const result = await driveHandler(get, {
+        seed: answered,
+        query: trailQuery(TRAIL_START.overview)
+      })
+
+      expectBackLinkIsPath(result, hubPath(result.journeyId))
     })
 
-    expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
+    it('Should send Back to the review when opened from a Change link', async () => {
+      const result = await driveHandler(get, {
+        seed: answered,
+        query: reviewChangeLinkQuery()
+      })
+
+      expectBackLinkIsPath(result, pagePath(result.journeyId, CYA_SLUG))
+    })
+
+    it('Should send Back to the dashboard with no answer and a trail naming a place the journey does not have', async () => {
+      const result = await driveHandler(get, {
+        query: trailQuery('not-a-place')
+      })
+
+      expectBackLinkIsPath(result, dashboardPath())
+    })
   })
 })
 
 describe('POST commodity-type — a rejected answer', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should answer 400 for a blank choice, committing nothing', async () => {
     const result = await driveHandler(post, { payload: { commodityType: '' } })
@@ -151,6 +195,7 @@ describe('POST commodity-type — a rejected answer', () => {
       SELECT_WHAT_YOU_ARE_IMPORTING
     )
     expect(result.after).toEqual(result.before)
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should answer 400 for a value the service does not offer', async () => {
@@ -187,15 +232,37 @@ describe('POST commodity-type — a rejected answer', () => {
       COMPLETE_POTATO_CONSIGNMENT.commodityLines
     )
   })
+
+  it('Should refuse no choice on Save and return to overview, keep the lines and save nothing', async () => {
+    const { commodityLines } = COMPLETE_POTATO_CONSIGNMENT
+    const result = await driveHandler(post, {
+      seed: { commodityLines },
+      payload: { exit: 'hub' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.commodityType).toBe(
+      SELECT_WHAT_YOU_ARE_IMPORTING
+    )
+    expect(result.view.context.hasLines).toBe(true)
+    expect(result.after).toEqual(result.before)
+  })
+
+  it('Should refuse a value the service does not offer on Save and return to overview', async () => {
+    const result = await driveHandler(post, {
+      payload: { commodityType: 'bulbs', exit: 'hub' }
+    })
+
+    expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.errors.commodityType).toBe(
+      SELECT_WHAT_YOU_ARE_IMPORTING
+    )
+    expect(result.after).toEqual(result.before)
+  })
 })
 
 describe('POST commodity-type — an accepted answer', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should commit exactly the chosen type', async () => {
     const result = await driveHandler(post, {
@@ -205,13 +272,13 @@ describe('POST commodity-type — an accepted answer', () => {
     expect(result.after).toEqual({ commodityType: WOOD_AND_CUT_TREES })
   })
 
-  it('Should redirect to the commodities list, the run’s next step', async () => {
+  it('Should redirect to the commodities list', async () => {
     const result = await driveHandler(post, {
       payload: { commodityType: POTATOES }
     })
 
     expect(result.response).toEqual({
-      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?from=commodity-type`
     })
   })
 
@@ -226,12 +293,7 @@ describe('POST commodity-type — an accepted answer', () => {
 })
 
 describe('POST commodity-type — changing the type of a consignment with lines', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should drop every line whose category the new type does not hold', async () => {
     const result = await driveHandler(post, {
@@ -243,14 +305,14 @@ describe('POST commodity-type — changing the type of a consignment with lines'
     expect(result.after.commodityLines ?? []).toEqual([])
   })
 
-  it('Should report the count on the commodities list it redirects to', async () => {
+  it('Should report the count on the commodities list it redirects to, with the commodity type on the trail', async () => {
     const result = await driveHandler(post, {
       seed: COMPLETE_POTATO_CONSIGNMENT,
       payload: { commodityType: PLANTS_FOR_PLANTING }
     })
 
     expect(result.response).toEqual({
-      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1&from=commodity-type`
     })
   })
 
@@ -264,44 +326,50 @@ describe('POST commodity-type — changing the type of a consignment with lines'
       COMPLETE_POTATO_CONSIGNMENT.commodityLines
     )
     expect(result.response).toEqual({
-      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?from=commodity-type`
     })
   })
 
-  it('Should carry a change context through the redirect', async () => {
+  it('Should carry the trail through the redirect', async () => {
     const result = await driveHandler(post, {
       seed: COMPLETE_POTATO_CONSIGNMENT,
       payload: { commodityType: WOOD_AND_CUT_TREES },
-      query: { change: '1' }
+      query: reviewChangeLinkQuery()
     })
 
     expect(result.response).toEqual({
-      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1&change=1`
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1&from=notification-view%2Ccommodity-type`
     })
   })
 
-  // A deliberate deviation from the precedence rule in
-  // spec/journey-spec.json:60, where exit=hub wins over run navigation: a
-  // removal the trader has not seen reported wins over both.
-  it('Should report a removal even when Save and return to overview was pressed', async () => {
+  it('Should remove the lines the new type does not hold and open the commodities list reporting them when Save and return to overview was pressed', async () => {
     const result = await driveHandler(post, {
       seed: COMPLETE_POTATO_CONSIGNMENT,
       payload: { commodityType: WOOD_AND_CUT_TREES, exit: 'hub' }
     })
 
-    expect(result.response.redirect).toBe(
-      `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1`
-    )
+    expect(result.response).toEqual({
+      redirect: `${SET_BASE}/notifications/${result.journeyId}/commodities?removed=1&from=commodity-type`
+    })
+    expect(result.after.commodityLines ?? []).toEqual([])
+  })
+
+  it('Should log the removal once with the number of lines', async () => {
+    const result = await driveHandler(post, {
+      seed: COMPLETE_POTATO_CONSIGNMENT,
+      payload: { commodityType: WOOD_AND_CUT_TREES, exit: 'hub' }
+    })
+
+    expectOneLogged(result.logger, {
+      level: 'info',
+      fields: { journeyId: result.journeyId, removed: 1 },
+      message: 'Commodity lines removed by a commodity type change'
+    })
   })
 })
 
 describe('GET commodity-type — a consignment with lines', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should warn on the page while the consignment holds lines', async () => {
     const result = await driveHandler(get, {
@@ -321,60 +389,31 @@ describe('GET commodity-type — a consignment with lines', () => {
 })
 
 describe('POST commodity-type — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner and the value', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       payload: { commodityType: POTATOES }
     })
 
     expect(result.response.statusCode).toBe(500)
     expect(result.view.context.recoverableError).toBe(true)
     expect(result.view.context.values).toEqual({ commodityType: POTATOES })
+    expectOneSaveFallbackLogged(result.logger, {
+      journeyId: result.journeyId,
+      err: failure
+    })
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
-    })
-
     await expect(
-      driveHandler(post, { payload: { commodityType: POTATOES } })
+      driveHandler(post, {
+        payload: { commodityType: POTATOES },
+        saveFailure: new TypeError('programming failure')
+      })
     ).rejects.toThrow(new TypeError('programming failure'))
   })
 })

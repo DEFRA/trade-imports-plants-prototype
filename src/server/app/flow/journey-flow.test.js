@@ -2,20 +2,30 @@ import { SET_ID } from '../sets/high-risk-plants/set.js'
 import { describe, expect, it } from 'vitest'
 
 import { flowOnlyKeys } from '../bridge/flow-only-keys.js'
+import { withSetContext } from '../shared/set-context.js'
 import {
   configureJourneyFlow,
-  journeyNextRunTarget,
+  journeyInsTypeQuestionUrl,
   journeySectionCaption
 } from './journey-flow.js'
 
-describe('#journeyNextRunTarget', () => {
-  it('Should ask the configured journey where the run goes next', () => {
-    const nextRunTarget = (stepId, scope, journeyId) =>
-      `${stepId}|${scope}|${journeyId}`
-    configureJourneyFlow(SET_ID, { sections: [], taskRows: [], nextRunTarget })
+describe('#journeyInsTypeQuestionUrl', () => {
+  const insTypeQuestionUrlInSet = (setId) =>
+    withSetContext(setId, () => journeyInsTypeQuestionUrl('PHN-26-0001'))
 
-    expect(journeyNextRunTarget('origin', 'consignment', 'PHN-26-0001')).toBe(
-      'origin|consignment|PHN-26-0001'
+  it("Should answer the configured journey's Import Notification Service question for the current set", () => {
+    configureJourneyFlow(SET_ID, {
+      sections: [],
+      taskRows: [],
+      insTypeQuestionUrl: (journeyId) => `/ins/${journeyId}`
+    })
+
+    expect(insTypeQuestionUrlInSet(SET_ID)).toBe('/ins/PHN-26-0001')
+  })
+
+  it('Should report an unconfigured set as not configured', () => {
+    expect(() => insTypeQuestionUrlInSet('unconfigured-set')).toThrow(
+      'journey flow not configured'
     )
   })
 })

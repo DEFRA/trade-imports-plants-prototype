@@ -2,6 +2,7 @@ export const copy = {
   layout: {
     serviceName: 'Import notification service',
     errorTitlePrefix: 'Error: ',
+    govukSuffix: 'GOV.UK',
     back: 'Back',
     phaseBanner: {
       tag: 'Alpha',
@@ -65,7 +66,8 @@ export const copy = {
   journeyStrip: {
     draft: 'Draft',
     submitted: 'Submitted',
-    amend: 'Amending',
+    amend: 'Amend',
+    cancelAmend: 'Cancel amend',
     deleted: 'Deleted'
   }
 }

@@ -10,8 +10,8 @@ import { marshal } from './document.js'
 const document = (status) => ({
   referenceNumber: 'GBN-AG-26-DOC001',
   status,
-  created: '2026-01-01T00:00:00',
-  submittedAt: '2026-01-02T00:00:00',
+  created: '2026-01-01T00:00:00Z',
+  submittedAt: '2026-01-02T00:00:00Z',
   concurrencyToken: 3,
   fulfilments: []
 })

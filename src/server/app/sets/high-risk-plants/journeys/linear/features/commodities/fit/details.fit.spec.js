@@ -1,20 +1,23 @@
-import { BASE, setUrl } from '../../../../../../../../../../fit/set-base.js'
+import { pageUrlOnWalk } from '../../../../../../../../../../fit/set-base.js'
+import {
+  errorSummary,
+  errorSummaryLinks,
+  chooseCommodityCategory,
+  expectNoSeriousOrCriticalViolations,
+  saveAndContinue,
+  startNotification
+} from '../../../../../../../../../../fit/high-risk-plants-journey.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../../fit/sign-in.js'
-import { copy as sharedCopy } from '../../../../../../../shared/copy.en.js'
 import { copy as captionsCopy } from '../../../flow/section-captions/copy/copy.en.js'
-import { copy as dashboardCopy } from '../../dashboard/copy/copy.en.js'
 import { copy as typeCopy } from '../../commodity-type/copy/copy.en.js'
 import { copy } from '../copy/copy.en.js'
-import { expectNoSeriousOrCriticalViolations } from './axe.js'
 
-const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
-const DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details$')
-const DETAILS_EDIT_URL = setUrl(
-  '/notifications/[^/]+/commodities/details\\?index=\\d+$'
-)
-const LIST_URL = setUrl('/notifications/[^/]+/commodities$')
+const WALK = ['commodity-type']
+const DETAILS_URL = pageUrlOnWalk('commodities/details', WALK)
+const DETAILS_EDIT_URL = pageUrlOnWalk('commodities/details\\?index=\\d+', WALK)
+const LIST_URL = pageUrlOnWalk('commodities', WALK)
 
 const POTATOES = 'potatoes'
 const PLANTS = 'plants-for-planting'
@@ -29,9 +32,6 @@ const CATEGORY_RADIOS = 'input[name="category"]'
 // input keeps the original id, and the hidden select still submits the value.
 const GENUS_INPUT = 'input#genus'
 
-const saveAndContinue = (page) =>
-  page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
-
 const categoryRadio = (page, category) =>
   page.getByRole('radio', {
     name: copy.categoryLabels[category],
@@ -41,14 +41,6 @@ const categoryRadio = (page, category) =>
 const fieldNamed = (page, field) =>
   page.getByLabel(copy.details.fields[field].label, { exact: true })
 
-const startNotification = async (page) => {
-  await page.goto(BASE)
-  await page.getByRole('button', { name: dashboardCopy.startButton }).click()
-  await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-}
-
-// The opening run sends a trader from the entry question to the commodities
-// list, and a list with no lines sends them straight on to this page.
 const startAtDetails = async (page, commodityType) => {
   await startNotification(page)
   await page
@@ -62,8 +54,7 @@ const startAtDetails = async (page, commodityType) => {
 }
 
 const chooseCategory = async (page, category) => {
-  await categoryRadio(page, category).check()
-  await page.getByRole('button', { name: copy.details.continue }).click()
+  await chooseCommodityCategory(page, category)
   await expect(page).toHaveURL(DETAILS_EDIT_URL)
 }
 
@@ -149,9 +140,7 @@ test.describe('commodity details — choosing a category', () => {
       page.getByRole('group', { name: copy.details.categoryLegend })
     ).toContainText(copy.details.errors.category)
 
-    const summaryLink = page
-      .getByRole('alert')
-      .getByRole('link', { name: copy.details.errors.category })
+    const summaryLink = errorSummaryLinks(page, copy.details.errors.category)
     await summaryLink.click()
     await expect(page.locator(CATEGORY_RADIOS).first()).toBeFocused()
   })
@@ -167,9 +156,7 @@ test.describe('commodity details — choosing a category', () => {
 
     await page.getByRole('button', { name: copy.details.continue }).click()
     await expect(
-      page.getByRole('alert').getByRole('link', {
-        name: copy.details.errors.category
-      })
+      errorSummaryLinks(page, copy.details.errors.category)
     ).toBeVisible()
 
     await expectNoSeriousOrCriticalViolations(
@@ -272,9 +259,7 @@ test.describe('commodity details — the fields a category asks for', () => {
     await saveAndContinue(page).click()
 
     await expect(
-      page.getByRole('alert').getByRole('link', {
-        name: copy.details.errors.quantity.required
-      })
+      errorSummaryLinks(page, copy.details.errors.quantity.required)
     ).toBeVisible()
     await expect(fieldNamed(page, 'potatoVariety')).toHaveValue(MARIS_PIPER)
   })
@@ -286,10 +271,7 @@ test.describe('commodity details — the fields a category asks for', () => {
     await chooseCategory(page, SEED_POTATOES)
 
     await saveAndContinue(page).click()
-    await page
-      .getByRole('alert')
-      .getByRole('link', { name: copy.details.errors.quantity.required })
-      .click()
+    await errorSummaryLinks(page, copy.details.errors.quantity.required).click()
 
     await expect(fieldNamed(page, 'quantity')).toBeFocused()
   })
@@ -305,9 +287,7 @@ test.describe('commodity details — the fields a category asks for', () => {
     await saveAndContinue(page).click()
 
     await expect(
-      page.getByRole('alert').getByRole('link', {
-        name: copy.details.errors.quantity.invalid
-      })
+      errorSummaryLinks(page, copy.details.errors.quantity.invalid)
     ).toBeVisible()
   })
 
@@ -337,7 +317,7 @@ test.describe('commodity details — the fields a category asks for', () => {
     )
 
     await saveAndContinue(page).click()
-    await expect(page.getByRole('alert')).toBeVisible()
+    await expect(errorSummary(page)).toBeVisible()
 
     await expectNoSeriousOrCriticalViolations(
       page,

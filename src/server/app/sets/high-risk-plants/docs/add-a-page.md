@@ -64,7 +64,11 @@ journeys/linear/features/<name>/
 If the page joins an existing multi-page feature, add its controller and
 template inside that group. Keep the browser spec in that group's `fit/` folder.
 
-`page.js` exports only `{ id, slug }` and imports nothing. The controller and
+`page.js` exports `{ id, slug, maturity }`, an authored `gate` where the derived gate cannot express the page, and `subPage: true` on a page reached only from the page that opens it, and imports nothing. `maturity` is the
+page's level in the phase banner, as a level id from
+[`page-maturity/levels.js`](../../../page-maturity/levels.js); a new page in a
+notification journey takes the level its section's pages have
+([features.md](features.md#page-maturity)). The controller and
 flow import the same object. This prevents a module cycle through flow, status
 and the controller.
 
@@ -109,8 +113,16 @@ Use `collects: []` only when the page owns no obligation or edits a collection
 whose root another page already owns.
 
 Use one `render()` helper for GET and POST errors. Build the common view with
-`kit.base()`. Pass `journey` so the shared reference strip renders, and `page`
-so the section caption does. The normal back link is `hubPath(journey.journeyId)`.
+`kit.base()`. Pass `journey` so the shared reference strip renders. A page that
+shows no status strip still passes `journey`, with `showJourneyStrip: false`.
+Pass `page` so the section caption renders. A journey page takes its back link from
+the shared Back rule, `kit.trailBackLink(request)`, which reads where the trader came
+from off the link or form and falls back to the overview when the request names none.
+A page names no fixed Back target and no list of earlier pages its Back may open. A
+page with a different fallback
+passes it: `kit.trailBackLink(request, { fallback })`. A link that moves the trader on
+pushes the page onto the trail with `kit.pushTrail()`, and a link that brings the
+trader back to the same page carries it with `kit.carryTrail()`.
 
 GET calls `state.get()` once and prefills from `answers`. POST:
 
@@ -118,11 +130,34 @@ GET calls `state.get()` once and prefills from `answers`. POST:
 2. validates with [`src/server/app/lib/validate/index.js`](../../../lib/validate/index.js)
 3. re-renders raw values with status 400 on error
 4. commits cleaned values with `state.commit()`
-5. redirects through `await kit.nextTarget(request, page, committed.scope)`
+5. redirects through `kit.nextTarget(request, page, committed.scope)`, the shared
+   next-page target: the next page in the journey's one page order that applies,
+   ending at check your answers. Save and continue sends the trader to the page
+   that asks for a missing required earlier answer; see
+   [`journey-flow-and-gates.md`](journey-flow-and-gates.md)
 
-Wrap the write in `kit.recoverableSave()`. A marked persistence failure renders
-the same values with `recoverableError: true` and status 500. Unexpected errors
-must throw.
+Wrap the write in `kit.recoverableSave(request, …)`. A marked persistence
+failure is logged once by `recoverableSave`; render the same values with
+`recoverableError: true` and status 500. Unexpected errors must throw. When
+validation fails, render the page again with status 400 and log nothing: a user's
+own field errors shown back on the form are not logged. A refusal that is not the
+user's input error (a state refusal, a bare 400, another service refusing) logs
+once through `kit.logRefusal(request, { …details })` with the journey id.
+
+"Save and return to overview" posts `exit=hub`. It runs the same validation as
+"Save and continue", with no opt-in, and only changes where a valid save goes. An
+address-book picker does not call
+`validate`: it resolves the save through `resolveSelectionOnSave` in
+[`journeys/linear/features/address-book-picker/save-selection.js`](../journeys/linear/features/address-book-picker/save-selection.js),
+so a save with nothing ticked always leaves without a commit and an id the book
+does not hold is refused.
+
+These task-row pages offer no overview exit:
+
+- the commodities list
+  ([`journeys/linear/features/commodities/list/list.controller.js`](../journeys/linear/features/commodities/list/list.controller.js))
+- commodity details
+  ([`journeys/linear/features/commodities/details/details.controller.js`](../journeys/linear/features/commodities/details/details.controller.js))
 
 Export the standard routes:
 
@@ -176,7 +211,9 @@ Import the controller namespace in
 
 `src/server/app/routes-high-risk-plants.js` — this set's gateway, re-exported by
 the `routes.js` barrel — wraps `allRoutes` in its set context and passes them to
-Hapi. `buildDispatch(SET_ID, dispatchPages)` rejects an unsafe obligation name,
+Hapi. Its wiring passes the journey flow its sections, task rows and policy and no
+routing targets: where Save and continue goes comes only from the page order.
+`buildDispatch(SET_ID, dispatchPages)` rejects an unsafe obligation name,
 two page owners and an uncovered obligation.
 
 Run `npm run test:high-risk-plants`. Dispatch should now build. If it does not,
@@ -187,14 +224,23 @@ owner to silence coverage.
 
 Import the page identity into
 [`journeys/linear/flow/flow.js`](../journeys/linear/flow/flow.js). Put it in the
-right `sections` entry, or add the first section. Its position controls
-`nextInSection()` and strictly-earlier prerequisites.
+right `sections` entry, or add the first section. A new question page goes into the
+journey's one page order and its task row and nothing else. Its position controls
+strictly-earlier prerequisites and the journey's page order, which Save and
+continue follows from every start: the next page that applies, skipping a
+sub-page, which is a page reached only from the page that opens it. Its place in that
+order decides where Save and continue lands on it and on the page before it. Save and
+continue sends the trader to the page that asks for a missing required earlier answer;
+see [`journey-flow-and-gates.md`](journey-flow-and-gates.md). A
+page stays out of the order as a `subPage: true` page when only the page that opens it
+reaches it, in no section when it is a detour off a list page, and in no task row when
+it is the review, declaration or confirmation.
 
 Import it into
 [`journeys/linear/flow/task-rows.js`](../journeys/linear/flow/task-rows.js). Put
 it in an existing task row when those pages form one user task. Add a task row
-only when the page needs its own entry on the hub. A task row is the hub entry;
-a flow section is the navigation sequence.
+only when the page needs its own entry on the hub. A task row places pages on
+Overview and decides readiness; it does not change where Save and continue goes.
 
 Decide the page's caption in
 [`journeys/linear/flow/section-captions/`](../journeys/linear/flow/section-captions/index.js):
@@ -203,20 +249,16 @@ test. The coverage test fails until you do one or the other.
 
 If you add a task row, also:
 
-- add the row id to one `GROUPS` entry in the hub feature's controller
+- the hub lists the row under the section that holds its first page; a new section needs a caption under `groups` in the hub copy
 - add matching English and Welsh `rows` copy in the hub feature
 - update the hub's `copy/copy.test.js`, the hub feature spec and
   `journeys/linear/flow/task-rows.test.js`
 
-The hub feature is built, and it is the worked example for those bullets. It now
-renders four rows — commodities, origin, arrival and destination — so read it as
-a worked example of a row that already exists rather than as an empty consumer.
+The hub feature is the worked example for those bullets.
 
 - [`journeys/linear/features/hub/controller.js`](../journeys/linear/features/hub/controller.js)
-  holds `GROUPS` — the four numbered groups in the order the hub renders them.
-  The first two now name the landed rows (`['commodities', 'origin']` and
-  `['arrival', 'destination']`); consignment-parties and check-and-submit still hold an empty
-  `rows` list. It turns a row id into a task-list item: a row
+  derives the numbered groups from the flow sections, in the order the hub
+  renders them, then appends the check-and-submit group. It turns a row into a task-list item: a row
   whose gate passes gets its `rowEntry()` link and a status tag, a row whose
   gate fails gets the "Cannot start yet" status and no link, and a conditional
   row that is not applicable is dropped. A group with no items is not rendered.
@@ -226,9 +268,9 @@ a worked example of a row that already exists rather than as an empty consumer.
   hold the four group captions, the five statuses — completed, optional, in
   progress, not yet started and cannot start yet, whose presentation lives in
   the controller as three `govuk-tag` classes, plain text for optional and a
-  task-list status class for cannot start yet — and a `rows` map that now holds
-  the landed rows. Your row's `title` and `hint` join them under `rows` in both
-  locales.
+  task-list status class for cannot start yet — and a `rows` map with each
+  row's `title` and `hint`. Your row's `title` and `hint` join them under
+  `rows` in both locales.
 - [`journeys/linear/features/hub/copy/copy.test.js`](../journeys/linear/features/hub/copy/copy.test.js)
   checks the English bundle leaf by leaf, names the four groups in the design
   order in both locales, holds the controller and the captions to the same set
@@ -247,8 +289,8 @@ a worked example of a row that already exists rather than as an empty consumer.
   your row.
 - [`journeys/linear/flow/task-rows.test.js`](../journeys/linear/flow/task-rows.test.js)
   proves that state from the flow side — `taskRows` holds the rows landed so far
-  and `taskRowById()` resolves each of them — and that every id a `GROUPS` entry names
-  resolves to a task row or the review row. It covers `rowParts()` and
+  and `taskRowById()` resolves each of them — and that every row has hub copy
+  title. It covers `rowParts()` and
   `rowStatus()` over fixture rows: an explicit `parts` list wins over the
   obligations the row's pages collect, an out-of-scope row is not applicable,
   and an in-scope row nobody has answered is optional.
@@ -257,16 +299,24 @@ a worked example of a row that already exists rather than as an empty consumer.
 continue-enforced fields. Add an authored `gate` to the page identity only when
 that rule cannot express the page.
 
-Add the page to [`journeys/linear/flow/run.js`](../journeys/linear/flow/run.js)
-only when it belongs in the opening run — that is, add it to `RUN_STEPS`, which
-currently holds six steps: commodity-type, commodities, origin, arrival-status,
-arrival-details and place-of-destination, the arrival-status step skipped for
-potatoes by its derived gate. Update its run tests if you do.
+A page's place in Save and continue's order is its place in `journeySections()`; a
+page whose scope rule fails is skipped, as arrival-status is for potatoes, and a page
+missing a required earlier answer sends Save and continue to the page that asks for
+it. Its Back
+comes from `kit.trailBackLink()`: no other file lists it. See
+[`journey-flow-and-gates.md`](journey-flow-and-gates.md), "Entry guard and the Back
+link".
 
 ## 7. Add check-answers and backend mapping when needed
 
-Add the page's fields to the matching check-answers card and both check-answers
-copy bundles. Pass each obligation name to `row()` or `changeAction()` so the
+Add the page's rows to the matching check-answers card and their row labels to
+both check-answers copy bundles. A stored code is shown through a copy lookup
+keyed by the stored value, as the review does with
+`copy.typeLabels[answers.commodityType]` and
+`copy.statusLabels[answers.arrivalStatus]`, never retyped into the row. Value
+labels only the review shows go in the check-answers copy bundles.
+
+Pass each obligation name to `row()` or `changeAction()` so the
 dispatch index builds the Change URL. Extend the check-answers feature spec.
 
 Canonical persistence is complete once the feature binding is registered. If the
@@ -314,7 +364,109 @@ In `controller.test.js`, cover:
 - unexpected errors throwing
 
 Add or update flow tests for section order, skip behaviour, task-row entry,
-status and opening-run behaviour.
+status and Back from each entry point, through itSendsBackToWhereTheTraderCameFrom.
+
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file:
+
+- controller tests:
+  [`engine/test-support.js`](../../../engine/test-support.js) exports:
+  - `driveHandler` seeds a journey, runs one handler and returns the answers
+    before and after and the logger; its `amend` option opens an amendment, its
+    `query` option carries a trail, and `saveFailure` makes every save the handler
+    makes fail with the error it is given
+  - these drive a page from every start: a new notification (a `trailQuery` of the
+    dashboard start place), a reopened draft (a seeded journey with no
+    trail), the Overview (a `trailQuery` of the Overview place), a new browser
+    session (`driveHandler` with no session state, the default), a check your
+    answers Change link (`reviewChangeLinkQuery`) and an amendment (`amend`)
+  - `postHandlerOf` and `postHandlerEndingWith` return a feature module's POST
+    handler
+  - `useStubbedJourney(setId, dispatchPages)` configures the stub records and
+    session and builds the dispatch before a describe, and restores the stub
+    records and clears the store before each test; a test that never installs
+    the real journey passes the fixture `dispatchPages` from `test/fixtures/`
+  - `useBackendRecords(setId)` configures the real records and the stub session
+    before a describe, enables the shared `fetchMock` and clears its calls
+    before each test, and resets the mocks and config after each test;
+    `useStubbedJourney` and `useBackendRecords` go on sibling describes, never
+    nested
+  - `journeyRequest`, `stubH`, `recordingH` and `recordingLogger` build the
+    request, toolkit and logger
+  - `stubH(request, { writesStateToRequest: true })` writes each cookie it is
+    given onto `request.state`
+  - `requestAsSessionHoldingNoJourney` runs a GET and a POST handler as a
+    session that holds no journey
+  - `resetMocksAndConfigAfterTests` registers the reset of fetch mocks and
+    config after each test
+  - `restoreConfigAfterEach(keys)`, from
+    [`common/test-helpers/restore-config-after-each.js`](../../../../common/test-helpers/restore-config-after-each.js),
+    restores those config keys after each test; every other helper that
+    restores config uses it
+  - `useReferenceDataServing` registers `resetMocksAndConfigAfterTests()` for the
+    describe that calls it, and returns the function that serves given rows as
+    the reference-data response
+  - `fetchMock` is the shared `vitest-fetch-mock` instance that
+    `useBackendRecords`, `addressBookAnswering` and `useReferenceDataServing`
+    drive; a test enables it and sets its response, with
+    `resetMocksAndConfigAfterTests()` registered
+  - `addressBookAnswering`, `addressBookRefusingAddresses` and
+    `addressBookRequestUrls` put the address book on the network boundary and
+    report the requests made to it
+  - `expectBackLinkIsPage` and `expectBackLinkIsPath` assert the Back link
+  - `trailQuery(...places)` and `reviewChangeLinkQuery()` build the query of a
+    request that carries a trail, newest place last
+  - `itSendsBackToWhereTheTraderCameFrom`, from
+    [`journeys/linear/test-support.js`](../journeys/linear/test-support.js),
+    registers the Back cases of a page; it takes the GET handler and an options
+    object with an optional `seed` and the `previousPage` slug
+  - `itSendsBackToWhereTheTraderCameFromOnRefusal`, from the same file, registers
+    the test that the page shown again after a refused save keeps its Back; it takes
+    the POST handler and an options object with the refused `payload`, the
+    `savedPage` slug Save and continue was pressed on and an optional `seed`
+  - `expectOneRefusalLogged` asserts the logger holds exactly one refusal line,
+    and `expectNoRefusalLogged` asserts it holds none
+  - `expectOneSaveFallbackLogged` asserts it holds exactly one save fallback line
+  - `unavailableBackendError` builds the error a save failure is given
+  - `itHoldsCopyAtEveryLeaf` registers the copy-leaf test for a locale pair
+- address-book picker tests:
+  [`address-book-picker/controller-test-support.js`](../journeys/linear/features/address-book-picker/controller-test-support.js)
+  — `describeAddressBookPickerController` registers the controller tests every
+  picker shares, and a picker's call names the page Save and continue was
+  pressed on before it and the answers that make that page apply;
+  [`address-book-picker/test-support.js`](../journeys/linear/features/address-book-picker/test-support.js)
+  — `pickerViewModelSuites` builds the view model and paging test cases, and
+  `addressResponseForABookHoldingADeletedRecord` is the address response for a
+  book holding a deleted record, served through `addressBookAnswering`, with
+  `DELETED_ID` and `NOT_IN_THE_BOOK`
+- rendered-template tests:
+  [`common/test-helpers/document-of.js`](../../../../common/test-helpers/document-of.js)
+  — `documentOf` parses rendered HTML into a document and `trimmedTextOf` gives
+  an element's trimmed text
+- the set's journey and seed data:
+  [`journeys/linear/test-support.js`](../journeys/linear/test-support.js) —
+  the global test setup installs the journey-neutral fixture set from
+  `test/fixtures/`, so engine and model tests do not depend on the installed
+  set; a test that drives this journey's controllers installs the real journey
+  with `useStubbedHighRiskPlantsJourney`, which installs the journey and then
+  uses `useStubbedJourney`; `installHighRiskPlantsJourney` installs the journey
+  and builds its dispatch for a test that wires its own stores;
+  `COMPLETE_NOTIFICATION` answers every built section on a potato consignment,
+  and `COMPLETE_POTATO_CONSIGNMENT` is a potato consignment whose commodities
+  section is complete
+- browser tests:
+  [`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js)
+  — see [Shared browser-test helpers](testing.md#shared-browser-test-helpers)
+
+When a second test needs the same set-up, move it into one of these helpers in
+the same change and delete every local copy. Importing a sibling feature's test
+helper is fine.
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
 
 ## Playwright feature test
 
@@ -330,12 +482,15 @@ locator. Never use a sleep.
 Cover:
 
 - initial render, heading, copy, hints, controls and service-backed options
-- happy-path save and the correct next-page or hub redirect
+- happy-path Save and continue landing on the next page in the journey order, or on
+  check your answers from the last page
 - reload and persistence of every entered value
 - each validation rule in its own test
 - preservation of entered values on error
 - every error-summary link moving focus to its control
-- back, Save and return to overview, Cancel and Change navigation as applicable
+- Back returning to the page the trader came from, Save and return to overview,
+  Cancel and Change navigation as applicable
+- the same controls while amending as on a draft: every page passes `saveActions` the same arguments on a draft and while amending. `features/amend-endings.test.js` renders every task-row page on a draft and while amending, checks each one for those controls and fails if their endings differ.
 - conditional scope, skip and purge behaviour
 - the check-answers rows and Change links
 
@@ -343,9 +498,9 @@ Cover:
 
 Add one axe check for the initial render and one for the validation error state.
 
-Build axe with `AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa'])`. Fail if
-any result has `impact` equal to `serious` or `critical`. Only filter a known
-component false positive when the same component and condition apply.
+Call `expectNoSeriousOrCriticalViolations(page, subject)` from
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js).
+Do not build `AxeBuilder` in a spec.
 
 [`journeys/linear/features/commodity-type/commodity-type.fit.spec.js`](../journeys/linear/features/commodity-type/commodity-type.fit.spec.js)
 establishes that pattern for a validated field: one axe check on the initial

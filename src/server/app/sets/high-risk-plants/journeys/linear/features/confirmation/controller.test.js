@@ -1,15 +1,15 @@
-import { SET_BASE, SET_ID } from '../../../../set.js'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { SET_BASE } from '../../../../set.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as state from '../../../../../../engine/index.js'
 import { store } from '../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
-import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
-import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
+import {
+  driveHandler,
+  journeyRequest,
+  stubH
+} from '../../../../../../engine/test-support.js'
 import {
   COMPLETE_NOTIFICATION,
-  installHighRiskPlantsJourney
+  useStubbedHighRiskPlantsJourney
 } from '../../test-support.js'
 import { sections } from '../../flow/flow.js'
 import {
@@ -22,12 +22,7 @@ import { routes, meta } from './controller.js'
 const get = routes[0].handler
 
 describe('confirmation', () => {
-  beforeAll(() => {
-    installHighRiskPlantsJourney()
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should be a GET-only receipt after declaration without collecting answers', () => {
     expect(meta.collects).toEqual([])
@@ -88,6 +83,28 @@ describe('confirmation', () => {
     }
   )
 
+  describe('notification date', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it.each([
+      { submittedAt: '2026-08-11T23:30:00Z', shown: '12 August 2026' },
+      { submittedAt: '2026-01-11T23:30:00Z', shown: '11 January 2026' }
+    ])(
+      'Should show $shown for a notification submitted at $submittedAt, the London date',
+      async ({ submittedAt, shown }) => {
+        const { journeyId } = await store.create()
+        await store.seedAnswers(journeyId, COMPLETE_NOTIFICATION)
+        vi.useFakeTimers({ toFake: ['Date'] })
+        vi.setSystemTime(new Date(submittedAt))
+        await store.submit(journeyId)
+        vi.useRealTimers()
+        const h = stubH()
+        await get(journeyRequest(journeyId), h)
+        expect(h.captured.view.context.notificationDate).toBe(shown)
+      }
+    )
+  })
+
   it('Should quote the plants and wood window for a plants consignment', async () => {
     const { journeyId } = await store.create()
     await store.seedAnswers(journeyId, {
@@ -106,14 +123,11 @@ describe('confirmation', () => {
   it.each([state.DRAFT, state.AMEND])(
     'Should return %s to check answers without claiming submission',
     async (status) => {
-      const { journeyId } = await store.create()
-      await store.seedAnswers(journeyId, COMPLETE_NOTIFICATION)
-      if (status === state.AMEND) {
-        await store.submit(journeyId)
-        await recordsStub.amend(journeyId)
-      }
-      const h = stubH()
-      expect(await get(journeyRequest(journeyId), h)).toEqual({
+      const { journeyId, response } = await driveHandler(get, {
+        seed: COMPLETE_NOTIFICATION,
+        amend: status === state.AMEND
+      })
+      expect(response).toEqual({
         redirect: `${SET_BASE}/notifications/${journeyId}/notification-view`
       })
       expect((await store.get(journeyId)).status).toBe(status)

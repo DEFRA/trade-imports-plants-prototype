@@ -1,4 +1,5 @@
 export const placeOfDestinationPage = {
   id: 'place-of-destination',
-  slug: 'destinations/select'
+  slug: 'destinations/select',
+  maturity: 'exploring'
 }

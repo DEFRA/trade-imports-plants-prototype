@@ -1,4 +1,5 @@
 import { authController } from './controller.js'
+import { unauthorisedPage } from './page.js'
 
 export const authRoutes = {
   plugin: {
@@ -17,7 +18,8 @@ export const authRoutes = {
           method: 'GET',
           path: '/auth/sign-in-oidc',
           options: {
-            auth: { strategy: 'defra-id', mode: 'try' }
+            auth: { strategy: 'defra-id', mode: 'try' },
+            app: { page: unauthorisedPage }
           },
           ...authController.signinOidc
         },

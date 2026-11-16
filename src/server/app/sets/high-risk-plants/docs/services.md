@@ -20,8 +20,8 @@ copy leaf in the feature that renders them.
 It landed with the commodity-type page because the lists are volatile enough
 that retyping one into an obligation or a copy module would leave two copies
 with nothing holding them in step, and the commodities collection extended it
-rather than replacing it. Still to come: the origin narrowing, and the stub and
-real clients behind a `configure*` seam in this set's gateway,
+rather than replacing it. Still to come: the stub and real clients behind a
+`configure*` seam in this set's gateway,
 [`routes-high-risk-plants.js`](../../../routes-high-risk-plants.js).
 
 A set-owned service is the right home for vocabulary that belongs to this

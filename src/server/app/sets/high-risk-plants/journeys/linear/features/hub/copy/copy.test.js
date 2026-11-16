@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
-import { GROUPS } from '../controller.js'
+import { sections } from '../../../flow/flow.js'
+import { taskRows } from '../../../flow/task-rows.js'
 import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
@@ -31,7 +32,17 @@ describe('#copy', () => {
   })
 
   it('Should caption every group the controller renders, and no other', () => {
-    expect(Object.keys(copy.groups)).toEqual(GROUPS.map((group) => group.id))
+    const groupsWithTaskRows = sections
+      .filter(({ pages }) =>
+        taskRows.some((row) =>
+          pages.some((page) => page.id === row.pages[0].id)
+        )
+      )
+      .map(({ id }) => id)
+    expect(Object.keys(copy.groups)).toEqual([
+      ...groupsWithTaskRows,
+      'check-and-submit'
+    ])
   })
 
   it('Should title the commodities row in both locales', () => {
@@ -77,8 +88,8 @@ describe('#copy', () => {
 })
 
 it('Should title the consignor row in both locales', () => {
-  expect(copy.rows.consignor).toEqual({ title: 'Consignor or exporter' })
-  expect(cy.rows.consignor).toEqual({ title: 'Anfonwr neu allforiwr' })
+  expect(copy.rows.consignor).toEqual({ title: 'Consignor' })
+  expect(cy.rows.consignor).toEqual({ title: 'Anfonwr' })
 })
 
 it('Should title the contact row in both locales', () => {

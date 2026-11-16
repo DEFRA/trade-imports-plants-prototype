@@ -1,9 +1,26 @@
 import {
+  addCommodityLine,
+  chooseTypeAheadOption,
+  chooseCommodityType,
+  describeDatePickerLook,
+  backLink,
+  changeCommodityType,
+  visitOverviewThenOpen,
+  expectNoSeriousOrCriticalViolations,
+  expectGovukLabelSize,
+  expectThreeSaveControls,
+  saveAndContinue,
+  errorSummary,
+  errorSummaryLinks,
+  saveOrigin,
+  startNotification,
+  WOOD_LINE_FIELDS
+} from '../../../../../../../../../fit/high-risk-plants-journey.js'
+import {
   BASE,
-  journeyIdFromPage,
+  notificationPageWithTrail,
   setUrl
 } from '../../../../../../../../../fit/set-base.js'
-import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
@@ -12,33 +29,50 @@ import {
   validatorDefaults
 } from '../../../../../../shared/copy.en.js'
 import { copy as captionsCopy } from '../../flow/section-captions/copy/copy.en.js'
+import { TRAIL_START } from '../../../../../../shared/trail.js'
 import { copy as arrivalStatusCopy } from '../arrival-status/copy/copy.en.js'
 import { ALREADY_ARRIVED, NOT_YET_ARRIVED } from '../arrival-status/statuses.js'
-import { copy as commoditiesCopy } from '../commodities/copy/copy.en.js'
-import { copy as commodityTypeCopy } from '../commodity-type/copy/copy.en.js'
-import { copy as dashboardCopy } from '../dashboard/copy/copy.en.js'
 import { copy as hubCopy } from '../hub/copy/copy.en.js'
 import { copy } from './copy/copy.en.js'
 
-const COMMODITY_TYPE_URL = setUrl('/notifications/[^/]+/commodity-type$')
-const COMMODITY_DETAILS_URL = setUrl('/notifications/[^/]+/commodities/details')
-const COMMODITY_LIST_URL = setUrl('/notifications/[^/]+/commodities$')
-const ORIGIN_URL = setUrl('/notifications/[^/]+/origin$')
-const ARRIVAL_STATUS_URL = setUrl('/notifications/[^/]+/arrival-status$')
-const PAGE_URL = setUrl('/notifications/[^/]+/arrival-details$')
+const ORIGIN = 'origin'
+const ARRIVAL_STATUS = 'arrival-status'
+const ARRIVAL_DETAILS = 'arrival-details'
+
+const ARRIVAL_STATUS_URL = setUrl(`/notifications/[^/]+/${ARRIVAL_STATUS}`)
+const PAGE_URL = setUrl(`/notifications/[^/]+/${ARRIVAL_DETAILS}`)
 const HUB_URL = setUrl('/notifications/[^/]+$')
-// Continue from here goes on to the place of destination, the last step of the
-// opening run, rather than straight back to the overview.
-const DESTINATION_URL = setUrl('/notifications/[^/]+/destinations/select$')
+const ARRIVAL_STATUS_AFTER_ORIGIN_URL = notificationPageWithTrail(
+  ARRIVAL_STATUS,
+  [ORIGIN]
+)
+const POTATO_PAGE_URL = notificationPageWithTrail(ARRIVAL_DETAILS, [ORIGIN])
+const WOOD_PAGE_URL = notificationPageWithTrail(ARRIVAL_DETAILS, [
+  ORIGIN,
+  ARRIVAL_STATUS
+])
+const OVERVIEW_PAGE_URL = notificationPageWithTrail(ARRIVAL_DETAILS, [
+  TRAIL_START.overview
+])
+const ARRIVAL_DETAILS_AFTER_STATUS_URL = notificationPageWithTrail(
+  ARRIVAL_DETAILS,
+  [ARRIVAL_STATUS]
+)
+const POTATO_DESTINATION_URL = notificationPageWithTrail(
+  'destinations/select',
+  [ORIGIN, ARRIVAL_DETAILS]
+)
+const WOOD_DESTINATION_URL = notificationPageWithTrail('destinations/select', [
+  ORIGIN,
+  ARRIVAL_STATUS,
+  ARRIVAL_DETAILS
+])
 
 const DATE_INPUT = 'input#arrivalDate'
 const TIME_INPUT = 'input#arrivalTime'
-// accessible-autocomplete enhances the native <select>: the visible combobox
-// input keeps the original id, and the hidden select still submits the value.
 const PORT_INPUT = 'input#proposedPlaceOfLanding'
 const PORT_SELECT = 'select[name="proposedPlaceOfLanding"]'
 const UNOFFERED_PORT = 'GB ZZZ'
-const COUNTRY_INPUT = 'input#countryOfOrigin'
 
 const POTATOES = 'potatoes'
 const WARE_POTATOES = 'ware-potatoes'
@@ -50,7 +84,11 @@ const FRANCE = 'France'
 const A_DATE = '27/3/2026'
 const A_PAST_DATE = '1/1/2020'
 const A_TIME = '14:30'
-const DOVER = 'Port of Dover (GB DVR)'
+const DOVER = 'Port of Dover - GB DVR'
+const DOVER_PLACE_OF_LANDING = {
+  label: copy.placeOfLanding.label,
+  optionName: DOVER
+}
 
 const WARE_POTATO_LINE_FIELDS = {
   potatoVariety: 'Maris Piper',
@@ -58,92 +96,42 @@ const WARE_POTATO_LINE_FIELDS = {
   potatoIntendedUse: 'Eating'
 }
 
-const WOOD_LINE_FIELDS = {
-  commodityCode: '06042020',
-  quantity: '40',
-  sizeOfTree: '3.5',
-  phytosanitaryTreatments: 'Heat treatment'
+const answerArrivalAndSave = async (page) => {
+  await page.locator(DATE_INPUT).fill(A_DATE)
+  await page.locator(TIME_INPUT).fill(A_TIME)
+  await chooseTypeAheadOption(page, DOVER_PLACE_OF_LANDING)
+  await saveAndContinue(page).click()
 }
-
-const backLink = (page) =>
-  page.getByRole('link', { name: sharedCopy.layout.back, exact: true })
-
-const saveAndContinue = (page) =>
-  page.getByRole('button', { name: sharedCopy.saveActions.saveAndContinue })
 
 const arrivalDetailsPathOf = (reference) =>
   `${BASE}/notifications/${reference}/arrival-details`
 
-const startNotification = async (page) => {
-  await page.goto(BASE)
-  await page.getByRole('button', { name: dashboardCopy.startButton }).click()
-  await expect(page).toHaveURL(COMMODITY_TYPE_URL)
-  return journeyIdFromPage(page)
-}
+const selectPortMissingFromTheList = (page, portCode) =>
+  page.locator(PORT_SELECT).evaluate(
+    (select, request) => {
+      const option = document.createElement('option')
+      option.value = request.portCode
+      select.append(option)
+      select.value = request.portCode
+    },
+    { portCode }
+  )
 
-const chooseCommodityType = async (page, commodityType) => {
-  await page
-    .getByRole('radio', {
-      name: commodityTypeCopy.typeLabels[commodityType],
-      exact: true
-    })
-    .check()
-  await saveAndContinue(page).click()
-  await expect(page).toHaveURL(COMMODITY_DETAILS_URL)
-}
-
-const addLine = async (page, category, values) => {
-  await page
-    .getByRole('radio', {
-      name: commoditiesCopy.categoryLabels[category],
-      exact: true
-    })
-    .check()
-  await page
-    .getByRole('button', { name: commoditiesCopy.details.continue })
-    .click()
-  for (const [field, value] of Object.entries(values)) {
-    await page
-      .getByLabel(commoditiesCopy.details.fields[field].label, { exact: true })
-      .fill(value)
-  }
-  await saveAndContinue(page).click()
-  await expect(page).toHaveURL(COMMODITY_LIST_URL)
-}
-
-const chooseFromAutocomplete = async (page, selector, name) => {
-  const field = page.locator(selector)
-  await field.click()
-  await field.fill(name)
-  await page.getByRole('option', { name, exact: true }).click()
-}
-
-const saveOrigin = async (page, reference, country) => {
-  await page.goto(`${BASE}/notifications/${reference}/origin`)
-  await expect(page).toHaveURL(ORIGIN_URL)
-  await chooseFromAutocomplete(page, COUNTRY_INPUT, country)
-  await saveAndContinue(page).click()
-}
-
-/** A ware-potato notification, walked as far as the arrival details. Potatoes
- * are never asked the arrival question, so the run lands here from origin. */
 const startAtPotatoDetails = async (page) => {
   const reference = await startNotification(page)
   await chooseCommodityType(page, POTATOES)
-  await addLine(page, WARE_POTATOES, WARE_POTATO_LINE_FIELDS)
+  await addCommodityLine(page, WARE_POTATOES, WARE_POTATO_LINE_FIELDS)
   await saveOrigin(page, reference, SPAIN)
-  await expect(page).toHaveURL(PAGE_URL)
+  await expect(page).toHaveURL(POTATO_PAGE_URL)
   return reference
 }
 
-/** A wood notification, walked as far as the arrival details through the
- * arrival question, answering it with the status given. */
 const startAtWoodDetails = async (page, status) => {
   const reference = await startNotification(page)
   await chooseCommodityType(page, WOOD_AND_CUT_TREES)
-  await addLine(page, CUT_CONIFEROUS_TREES, WOOD_LINE_FIELDS)
+  await addCommodityLine(page, CUT_CONIFEROUS_TREES, WOOD_LINE_FIELDS)
   await saveOrigin(page, reference, FRANCE)
-  await expect(page).toHaveURL(ARRIVAL_STATUS_URL)
+  await expect(page).toHaveURL(ARRIVAL_STATUS_AFTER_ORIGIN_URL)
   await page
     .getByRole('radio', {
       name: arrivalStatusCopy.statusLabels[status],
@@ -151,36 +139,8 @@ const startAtWoodDetails = async (page, status) => {
     })
     .check()
   await saveAndContinue(page).click()
-  await expect(page).toHaveURL(PAGE_URL)
+  await expect(page).toHaveURL(WOOD_PAGE_URL)
   return reference
-}
-
-// Changing type once a line is saved drops the lines the new type cannot
-// hold. After that the next change has no lines, so do not pin the landing
-// URL — the list reports a removal, the details page does not.
-const changeCommodityType = async (page, reference, commodityType) => {
-  await page.goto(`${BASE}/notifications/${reference}/commodity-type`)
-  await page
-    .getByRole('radio', {
-      name: commodityTypeCopy.typeLabels[commodityType],
-      exact: true
-    })
-    .check()
-  await saveAndContinue(page).click()
-}
-
-const expectNoSeriousOrCriticalViolations = async (page, subject) => {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-    .analyze()
-  const seriousOrCritical = results.violations.filter(({ impact }) =>
-    ['serious', 'critical'].includes(impact)
-  )
-
-  expect(
-    seriousOrCritical,
-    `${subject} has serious/critical accessibility violations.\nFull axe violations:\n${JSON.stringify(results.violations, null, 2)}`
-  ).toEqual([])
 }
 
 test.describe('arrival-details — a potato notification', () => {
@@ -191,7 +151,7 @@ test.describe('arrival-details — a potato notification', () => {
   test('renders the caption, the heading and the three save controls', async ({
     page
   }) => {
-    const reference = await startAtPotatoDetails(page)
+    await startAtPotatoDetails(page)
 
     await expect(
       page.getByText(captionsCopy.sections.arrival, { exact: true })
@@ -199,17 +159,31 @@ test.describe('arrival-details — a potato notification', () => {
     await expect(
       page.getByRole('heading', { name: copy.title, level: 1 })
     ).toBeVisible()
-    await expect(saveAndContinue(page)).toBeVisible()
-    await expect(
-      page.getByRole('button', {
-        name: sharedCopy.saveActions.saveAndReturnToHub
-      })
-    ).toBeVisible()
-    await expect(
-      page.getByRole('link', {
-        name: sharedCopy.saveActions.cancelAndReturnToHub
-      })
-    ).toBeVisible()
+    await expectThreeSaveControls(page)
+  })
+
+  test('sends Back to origin after Save and continue on origin', async ({
+    page
+  }) => {
+    const reference = await startAtPotatoDetails(page)
+
+    await expect(backLink(page)).toHaveAttribute(
+      'href',
+      `${BASE}/notifications/${reference}/origin`
+    )
+  })
+
+  test('sends Back to the overview when opened from the overview', async ({
+    page
+  }) => {
+    const reference = await startAtPotatoDetails(page)
+
+    await visitOverviewThenOpen(
+      page,
+      reference,
+      arrivalDetailsPathOf(reference)
+    )
+
     await expect(backLink(page)).toHaveAttribute(
       'href',
       `${BASE}/notifications/${reference}`
@@ -236,12 +210,30 @@ test.describe('arrival-details — a potato notification', () => {
     await expect(page.getByText(copy.placeOfLanding.hint)).toBeVisible()
   })
 
+  for (const fieldId of [
+    'arrivalDate',
+    'arrivalTime',
+    'proposedPlaceOfLanding'
+  ]) {
+    test(`sets the ${fieldId} question label in the medium GOV.UK label size`, async ({
+      page
+    }) => {
+      await startAtPotatoDetails(page)
+
+      await expectGovukLabelSize(
+        page,
+        page.locator(`label[for="${fieldId}"]`),
+        'm'
+      )
+    })
+  }
+
   test('offers the ports the reference-data service holds', async ({
     page
   }) => {
     await startAtPotatoDetails(page)
 
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
+    await chooseTypeAheadOption(page, DOVER_PLACE_OF_LANDING)
 
     await expect(page.locator(PORT_INPUT)).toHaveValue(DOVER)
   })
@@ -251,12 +243,9 @@ test.describe('arrival-details — a potato notification', () => {
   }) => {
     const reference = await startAtPotatoDetails(page)
 
-    await page.locator(DATE_INPUT).fill(A_DATE)
-    await page.locator(TIME_INPUT).fill(A_TIME)
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
-    await saveAndContinue(page).click()
+    await answerArrivalAndSave(page)
 
-    await expect(page).toHaveURL(DESTINATION_URL)
+    await expect(page).toHaveURL(POTATO_DESTINATION_URL)
 
     await page.goto(arrivalDetailsPathOf(reference))
     await expect(page.locator(DATE_INPUT)).toHaveValue(A_DATE)
@@ -267,10 +256,7 @@ test.describe('arrival-details — a potato notification', () => {
   test('completes the arrival row on the overview', async ({ page }) => {
     const reference = await startAtPotatoDetails(page)
 
-    await page.locator(DATE_INPUT).fill(A_DATE)
-    await page.locator(TIME_INPUT).fill(A_TIME)
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
-    await saveAndContinue(page).click()
+    await answerArrivalAndSave(page)
     await page.goto(`${BASE}/notifications/${reference}`)
 
     const taskList = page.locator('.govuk-task-list')
@@ -286,7 +272,7 @@ test.describe('arrival-details — a potato notification', () => {
 
     await page.getByRole('link', { name: hubCopy.rows.arrival.title }).click()
 
-    await expect(page).toHaveURL(PAGE_URL)
+    await expect(page).toHaveURL(OVERVIEW_PAGE_URL)
   })
 
   test('Cancel and return to overview reaches the overview without saving', async ({
@@ -305,6 +291,19 @@ test.describe('arrival-details — a potato notification', () => {
 
     await page.goto(arrivalDetailsPathOf(reference))
     await expect(page.locator(DATE_INPUT)).toHaveValue('')
+  })
+})
+
+test.describe('arrival-details — the arrival date calendar', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+    await startAtPotatoDetails(page)
+  })
+
+  describeDatePickerLook({
+    fieldName: 'arrival date',
+    label: copy.dateLabels[POTATOES],
+    nextQuestionLabel: (page) => page.locator('label[for="arrivalTime"]')
   })
 })
 
@@ -333,6 +332,20 @@ test.describe('arrival-details — the question a plants notification is asked',
     ).toBeVisible()
   })
 
+  for (const status of [NOT_YET_ARRIVED, ALREADY_ARRIVED]) {
+    test(`sets the arrival date label in the medium GOV.UK label size when the status is ${status}`, async ({
+      page
+    }) => {
+      await startAtWoodDetails(page, status)
+
+      await expectGovukLabelSize(
+        page,
+        page.locator('label[for="arrivalDate"]'),
+        'm'
+      )
+    })
+  }
+
   test('asks for no time and no place of landing', async ({ page }) => {
     await startAtWoodDetails(page, NOT_YET_ARRIVED)
 
@@ -340,9 +353,7 @@ test.describe('arrival-details — the question a plants notification is asked',
     await expect(page.locator(PORT_INPUT)).toHaveCount(0)
   })
 
-  test('keeps the date when the status switches, because the date is always asked', async ({
-    page
-  }) => {
+  test('keeps the date when the status switches', async ({ page }) => {
     const reference = await startAtWoodDetails(page, NOT_YET_ARRIVED)
     await page.locator(DATE_INPUT).fill(A_PAST_DATE)
     await saveAndContinue(page).click()
@@ -356,19 +367,17 @@ test.describe('arrival-details — the question a plants notification is asked',
       .check()
     await saveAndContinue(page).click()
 
-    await expect(page).toHaveURL(PAGE_URL)
+    await expect(page).toHaveURL(ARRIVAL_DETAILS_AFTER_STATUS_URL)
     await expect(page.locator(DATE_INPUT)).toHaveValue(A_PAST_DATE)
   })
 
-  test('accepts a past date, because a late notification is recorded not refused', async ({
-    page
-  }) => {
+  test('accepts a past date', async ({ page }) => {
     const reference = await startAtWoodDetails(page, ALREADY_ARRIVED)
 
     await page.locator(DATE_INPUT).fill(A_PAST_DATE)
     await saveAndContinue(page).click()
 
-    await expect(page).toHaveURL(DESTINATION_URL)
+    await expect(page).toHaveURL(WOOD_DESTINATION_URL)
     await page.goto(arrivalDetailsPathOf(reference))
     await expect(page.locator(DATE_INPUT)).toHaveValue(A_PAST_DATE)
   })
@@ -386,8 +395,8 @@ test.describe('arrival-details — the answers it refuses', () => {
 
     await saveAndContinue(page).click()
 
-    await expect(page).toHaveURL(PAGE_URL)
-    const summary = page.getByRole('alert')
+    await expect(page).toHaveURL(POTATO_PAGE_URL)
+    const summary = errorSummary(page)
     await expect(
       summary.getByRole('link', { name: copy.errors.arrivalDate.required })
     ).toBeVisible()
@@ -413,13 +422,11 @@ test.describe('arrival-details — the answers it refuses', () => {
 
     await page.locator(DATE_INPUT).fill('31/2/2026')
     await page.locator(TIME_INPUT).fill(A_TIME)
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
+    await chooseTypeAheadOption(page, DOVER_PLACE_OF_LANDING)
     await saveAndContinue(page).click()
 
     await expect(
-      page
-        .getByRole('alert')
-        .getByRole('link', { name: copy.errors.arrivalDate.invalid })
+      errorSummaryLinks(page, copy.errors.arrivalDate.invalid)
     ).toBeVisible()
     await expect(page.locator(DATE_INPUT)).toHaveValue('31/2/2026')
     await expect(page.locator(TIME_INPUT)).toHaveValue(A_TIME)
@@ -435,9 +442,7 @@ test.describe('arrival-details — the answers it refuses', () => {
     await saveAndContinue(page).click()
 
     await expect(
-      page
-        .getByRole('alert')
-        .getByRole('link', { name: copy.errors.arrivalDate.inFuture })
+      errorSummaryLinks(page, copy.errors.arrivalDate.inFuture)
     ).toBeVisible()
   })
 
@@ -446,12 +451,10 @@ test.describe('arrival-details — the answers it refuses', () => {
 
     await page.locator(DATE_INPUT).fill(A_DATE)
     await page.locator(TIME_INPUT).fill('2.30pm')
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
+    await chooseTypeAheadOption(page, DOVER_PLACE_OF_LANDING)
     await saveAndContinue(page).click()
 
-    const summaryLink = page
-      .getByRole('alert')
-      .getByRole('link', { name: validatorDefaults.time })
+    const summaryLink = errorSummaryLinks(page, validatorDefaults.time)
     await expect(summaryLink).toBeVisible()
 
     await summaryLink.click()
@@ -465,36 +468,22 @@ test.describe('arrival-details — the answers it refuses', () => {
 
     await page.locator(DATE_INPUT).fill(A_DATE)
     await page.locator(TIME_INPUT).fill(A_TIME)
-    // The list is closed, so the only way to send a port the service does not
-    // hold is to put it in the select the picker submits. The visible combobox
-    // is left untouched on purpose: the picker rewrites the select from the
-    // combobox text whenever that input loses focus.
-    await page.locator(PORT_SELECT).evaluate((select, code) => {
-      const option = document.createElement('option')
-      option.value = code
-      select.append(option)
-      select.value = code
-    }, UNOFFERED_PORT)
+    await selectPortMissingFromTheList(page, UNOFFERED_PORT)
     await saveAndContinue(page).click()
 
     await expect(
-      page.getByRole('alert').getByRole('link', {
-        name: copy.errors.proposedPlaceOfLanding
-      })
+      errorSummaryLinks(page, copy.errors.proposedPlaceOfLanding)
     ).toBeVisible()
   })
 
   test('recovers once every answer is given', async ({ page }) => {
     await startAtPotatoDetails(page)
     await saveAndContinue(page).click()
-    await expect(page.getByRole('alert')).toBeVisible()
+    await expect(errorSummary(page)).toBeVisible()
 
-    await page.locator(DATE_INPUT).fill(A_DATE)
-    await page.locator(TIME_INPUT).fill(A_TIME)
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
-    await saveAndContinue(page).click()
+    await answerArrivalAndSave(page)
 
-    await expect(page).toHaveURL(DESTINATION_URL)
+    await expect(page).toHaveURL(POTATO_DESTINATION_URL)
   })
 })
 
@@ -523,9 +512,7 @@ test.describe('arrival-details — accessibility', () => {
     await startAtPotatoDetails(page)
     await saveAndContinue(page).click()
     await expect(
-      page
-        .getByRole('alert')
-        .getByRole('link', { name: copy.errors.arrivalDate.required })
+      errorSummaryLinks(page, copy.errors.arrivalDate.required)
     ).toBeVisible()
 
     await expectNoSeriousOrCriticalViolations(
@@ -569,11 +556,8 @@ test.describe('arrival-details — answers that leave scope when the commodity t
   }) => {
     const reference = await startAtPotatoDetails(page)
 
-    await page.locator(DATE_INPUT).fill(A_DATE)
-    await page.locator(TIME_INPUT).fill(A_TIME)
-    await chooseFromAutocomplete(page, PORT_INPUT, DOVER)
-    await saveAndContinue(page).click()
-    await expect(page).toHaveURL(DESTINATION_URL)
+    await answerArrivalAndSave(page)
+    await expect(page).toHaveURL(POTATO_DESTINATION_URL)
 
     await changeCommodityType(page, reference, WOOD_AND_CUT_TREES)
     await changeCommodityType(page, reference, POTATOES)

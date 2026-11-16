@@ -3,6 +3,7 @@ import { validateState } from '../../auth/state.js'
 import { verifyToken } from '../../auth/verify-token.js'
 import { getPermissions } from '../../auth/get-permissions.js'
 import { getSafeRedirect } from '../../auth/get-safe-redirect.js'
+import { recordTokenExchange } from '../../auth/token-exchange-timer.js'
 import { serverWideBase, sharedCopy } from '../app/shared/kit.js'
 
 const UNAUTHORISED_VIEW = 'auth/unauthorised'
@@ -15,12 +16,9 @@ export const authController = {
   },
   signinOidc: {
     handler: async function (request, h) {
-      // If the user is not authenticated, redirect to the home page
-      // This should only occur if the user tries to access the sign-in page directly and not part of the sign-in flow
-      // eg if the user has bookmarked the Defra Identity sign-in page or they have signed out and tried to go back in the browser
+      recordTokenExchange(request)
+
       if (!request.auth.isAuthenticated) {
-        // When Bell can't authenticate the callback, `mode: try` means we need to inspect `request.auth.error`
-        // to understand whether it was a state/nonce mismatch, token exchange failure, or cookie decode issue.
         request.logger?.error(
           {
             bellError: request.auth.error,
@@ -47,7 +45,6 @@ export const authController = {
         )
       }
 
-      // verify token returned from Defra Identity against public key
       try {
         await verifyToken(token)
       } catch (err) {
@@ -61,10 +58,6 @@ export const authController = {
         )
       }
 
-      // Typically permissions for the selected organisation would be available in the `roles` property of the token
-      // However, when signing in with RPA credentials, the roles only include the role name and not the permissions
-      // Therefore, we need to make additional API calls to get the permissions from Siti Agri
-      // These calls are authenticated using the token returned from Defra Identity
       let role
       let scope
       try {
@@ -84,23 +77,20 @@ export const authController = {
         )
       }
 
-      // Store token and all useful data in the session cache
       await request.server.app.cache.set(profile.sessionId, {
         isAuthenticated: true,
         ...profile,
+        currentRelationshipId: profile.organisationId,
         role,
         scope,
         token,
         refreshToken
       })
 
-      // Create a new session using cookie authentication strategy which is used for all subsequent requests
       request.cookieAuth.set({ sessionId: profile.sessionId })
 
-      // Redirect user to the page they were trying to access before signing in or to the home page if no redirect was set
       const redirect = request.yar.get('redirect') ?? '/'
       request.yar.clear('redirect')
-      // Ensure redirect is a relative path to prevent redirect attacks
       const safeRedirect = getSafeRedirect(redirect)
       return h.redirect(safeRedirect)
     }
@@ -108,12 +98,9 @@ export const authController = {
   signout: {
     handler: async function (request, h) {
       if (!request.auth.isAuthenticated) {
+        request.logger?.info('Sign-out with no session; redirecting home')
         return h.redirect('/')
       }
-      // Drop the session locally at sign-out initiation rather than relying on
-      // the OIDC provider redirecting back to /auth/sign-out-oidc. The provider
-      // round-trip is not guaranteed (Entra/CDP-WAF reject an id_token_hint that
-      // exceeds the querystring limit), so the local session must be cleared here.
       if (request.auth.credentials?.sessionId) {
         await request.server.app.cache.drop(request.auth.credentials.sessionId)
       }
@@ -128,13 +115,10 @@ export const authController = {
   signoutOidc: {
     handler: async function (request, h) {
       if (request.auth.isAuthenticated) {
-        // OIDC sign-out callback includes `state` for CSRF protection.
-        // Only validate if it is present to avoid breaking local logout flows.
         if (request.query?.state) {
           validateState(request, request.query.state)
         }
         if (request.auth.credentials?.sessionId) {
-          // Clear the session cache
           await request.server.app.cache.drop(
             request.auth.credentials.sessionId
           )
@@ -146,20 +130,20 @@ export const authController = {
         )
       }
 
-      // Already signed out: land back in the app rather than bouncing to the
-      // provider again, which would loop when the provider honours
-      // post_logout_redirect_uri without an id_token_hint.
+      request.logger?.info(
+        'OIDC sign-out callback with no session; redirecting home'
+      )
       return h.redirect('/')
     }
   },
   organisation: {
     handler: async function (request, h) {
-      // Should never be called as the user should no longer be authenticated with `defra-id` after initial sign in
-      // The strategy should redirect the user to the sign in page and they will rejoin the service at the /auth/sign-in-oidc route
-      // Adding as safeguard
+      request.logger?.warn(
+        { redirect: request.yar.get('redirect') },
+        'Organisation route hit after Defra ID strategy finished'
+      )
       const redirect = request.yar.get('redirect') ?? '/'
       request.yar.clear('redirect')
-      // Ensure redirect is a relative path to prevent redirect attacks
       const safeRedirect = getSafeRedirect(redirect)
       return h.redirect(safeRedirect)
     }

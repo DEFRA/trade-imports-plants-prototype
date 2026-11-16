@@ -1,7 +1,6 @@
 import {
   flowOnlyAnswersCookie,
-  knownJourneysCookie,
-  openingRunCookie
+  knownJourneysCookie
 } from '../../../engine/persistence/session.js'
 
 const isObject = (value) =>
@@ -17,34 +16,17 @@ const flowOnlyByJourneyFrom = (request) => {
   return isObject(stored) ? stored : {}
 }
 
-const openingRunByJourneyFrom = (request) => {
-  const stored = request?.state?.[openingRunCookie()]
-  return isObject(stored) ? stored : {}
-}
-
 export const session = {
   async knownJourneyIds(request) {
     return knownFrom(request)
   },
 
-  async addKnownJourney(request, toolkit, journeyId) {
+  async addKnownJourney(request, h, journeyId) {
     const known = knownFrom(request)
     if (known.includes(journeyId)) {
       return
     }
-    toolkit.state(knownJourneysCookie(), [...known, journeyId])
-  },
-
-  async openingRun(request, journeyId) {
-    return openingRunByJourneyFrom(request)[journeyId]
-  },
-
-  async setOpeningRun(toolkit, journeyId, phase, request) {
-    const byJourney = openingRunByJourneyFrom(request ?? toolkit?.request)
-    toolkit.state(openingRunCookie(), {
-      ...byJourney,
-      [journeyId]: phase
-    })
+    h.state(knownJourneysCookie(), [...known, journeyId])
   },
 
   async flowOnlyAnswers(request, journeyId) {
@@ -52,13 +34,13 @@ export const session = {
     return isObject(values) ? structuredClone(values) : {}
   },
 
-  async setFlowOnlyAnswers(toolkit, journeyId, values, request) {
-    const byJourney = flowOnlyByJourneyFrom(request ?? toolkit?.request)
+  async setFlowOnlyAnswers(h, journeyId, values, request) {
+    const byJourney = flowOnlyByJourneyFrom(request ?? h?.request)
     const next = {
       ...byJourney,
       [journeyId]: structuredClone(values ?? {})
     }
-    toolkit.state(flowOnlyAnswersCookie(), next)
+    h.state(flowOnlyAnswersCookie(), next)
     return structuredClone(next[journeyId])
   }
 }
