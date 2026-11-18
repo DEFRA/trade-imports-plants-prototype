@@ -297,8 +297,8 @@ docker run -p 3103:3103 trade-imports-plants-prototype
 ### Local stack
 
 This repository carries no compose file of its own, and **the workspace
-stack does not run this prototype**: `./scripts/stack/run-stack.sh` in
-[DEFRA/trade-imports-workspace](https://github.com/DEFRA/trade-imports-workspace)
+stack does not run this prototype**: `tim docker up` (or `tim docker dev`)
+in [DEFRA/trade-imports-workspace](https://github.com/DEFRA/trade-imports-workspace)
 stands up MongoDB, Floci, Redis, the stubs and the real trade-imports
 services, but never this one. This prototype always runs on its own
 stubs, with `npm run dev`, whether or not the stack is running.
