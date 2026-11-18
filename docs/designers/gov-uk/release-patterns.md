@@ -139,6 +139,9 @@ would undo them:
   release shares. A change to them is a [design gap](design-gaps.md).
 - The real service's own styles and scripts, in `src/client`.
 - Images and fonts. Use a GOV.UK icon, or a picture drawn in the page.
+  Your styles load GOV.UK Frontend with the service's own settings: the
+  same asset path, and no font files of their own, so the font is the one
+  every other page shows.
 
 Every pattern works with JavaScript off and meets WCAG 2.2 AA, like any
 other page. `designer:check` checks the rest for you.

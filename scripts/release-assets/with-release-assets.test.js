@@ -6,7 +6,11 @@ import { withReleaseAssets } from './with-release-assets.js'
 const sassRule = () => ({
   test: /\.scss$/,
   type: 'asset/resource',
-  generator: { binary: false, filename: 'stylesheets/[name].css' }
+  generator: { binary: false, filename: 'stylesheets/[name].css' },
+  use: [
+    'postcss-loader',
+    { loader: 'sass-loader', options: { sassOptions: { style: 'expanded' } } }
+  ]
 })
 
 const baseConfigWith = ({
@@ -29,6 +33,13 @@ const releases = [
 
 const cssFilenameOf = (config, resource) =>
   config.module.rules[0].generator.filename({ module: { resource } })
+
+const sassSourceOf = (config, resourcePath) => {
+  const sassLoader = config.module.rules[0].use.find(
+    (step) => step.loader === 'sass-loader'
+  )
+  return sassLoader.options.additionalData('.app-x {}', { resourcePath })
+}
 
 describe('withReleaseAssets', () => {
   it('Should add one entry per release beside the base entries', () => {
@@ -73,6 +84,21 @@ describe('withReleaseAssets', () => {
     )
   })
 
+  it('Should load GOV.UK in each release stylesheet with the application asset path and no font faces, and leave the rest as written', () => {
+    const config = withReleaseAssets(baseConfigWith(), releases)
+
+    expect(sassSourceOf(config, '/sets/beta/assets/styles.scss')).toBe(
+      `@use "govuk-frontend/dist/govuk/base" as release-application-settings with (
+  $govuk-assets-path: "/public/assets/",
+  $govuk-include-default-font-face: false
+);
+.app-x {}`
+    )
+    expect(
+      sassSourceOf(config, '/src/client/stylesheets/application.scss')
+    ).toBe('.app-x {}')
+  })
+
   it('Should leave the base config entries and rules as they were', () => {
     const base = baseConfigWith()
     withReleaseAssets(base, releases)
@@ -81,6 +107,9 @@ describe('withReleaseAssets', () => {
     expect(base.module.rules[0].generator.filename).toBe(
       'stylesheets/[name].css'
     )
+    expect(base.module.rules[0].use[1].options).toEqual({
+      sassOptions: { style: 'expanded' }
+    })
   })
 
   it.each([
@@ -98,6 +127,11 @@ describe('withReleaseAssets', () => {
       'the Sass rule names its CSS with a function',
       { rules: [{ ...sassRule(), generator: { filename: () => 'x.css' } }] },
       /generator\.filename string/
+    ],
+    [
+      'the Sass rule has no sass-loader step',
+      { rules: [{ ...sassRule(), use: ['postcss-loader'] }] },
+      /exactly one sass-loader step in the Sass rule.*found 0/
     ],
     [
       'there is no assets manifest plugin',
