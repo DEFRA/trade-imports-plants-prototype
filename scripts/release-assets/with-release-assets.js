@@ -29,6 +29,33 @@ const findStylesRule = (rules) => {
   return rule
 }
 
+const findSassLoader = (stylesRule) =>
+  onlyOne(
+    (stylesRule.use ?? []).filter((step) => step?.loader === 'sass-loader'),
+    'sass-loader step in the Sass rule'
+  )
+
+const sassLoaderWithApplicationSettings = (sassLoader, releases) => {
+  const applicationSettings = `@use "govuk-frontend/dist/govuk/base" as release-application-settings with (
+  $govuk-assets-path: "/public/assets/",
+  $govuk-include-default-font-face: false
+);
+`
+  const releaseStyles = new Set(
+    releases.map(({ styles }) => styles).filter(Boolean)
+  )
+  return {
+    ...sassLoader,
+    options: {
+      ...sassLoader.options,
+      additionalData: (content, loaderContext) =>
+        releaseStyles.has(loaderContext.resourcePath)
+          ? `${applicationSettings}${content}`
+          : content
+    }
+  }
+}
+
 const findManifest = (plugins) =>
   onlyOne(
     plugins.filter((plugin) => plugin instanceof WebpackAssetsManifest),
@@ -68,10 +95,13 @@ const keyWithReleaseStylesNamed = (entryNames, { key, value }) => {
  * built from the release's `assets/scripts.js` and `assets/styles.scss`. Its
  * CSS is written as `stylesheets/release-<id>.css` (hashed as the base hashes
  * its own) and its manifest keys are `release-<id>.css` and `release-<id>.js`.
- * Everything the base builds keeps its own names.
+ * Everything the base builds keeps its own names. A release stylesheet loads
+ * GOV.UK Frontend with the application stylesheet's asset path
+ * (`/public/assets/`) and, like it, declares no font faces.
  *
  * Throws at once when the base no longer has exactly one Sass asset rule with
- * a filename string, or exactly one assets manifest plugin.
+ * a filename string and one sass-loader step, or exactly one assets manifest
+ * plugin.
  *
  * @param {object} baseConfig - the real service's webpack config.
  * @param {Array<{ id: string, styles?: string, scripts?: string }>} releases
@@ -80,6 +110,7 @@ const keyWithReleaseStylesNamed = (entryNames, { key, value }) => {
  */
 export const withReleaseAssets = (baseConfig, releases) => {
   const stylesRule = findStylesRule(baseConfig.module.rules)
+  const sassLoader = findSassLoader(stylesRule)
   const manifest = findManifest(baseConfig.plugins)
   const entryNames = releases.map(({ id }) => releaseEntryName(id))
 
@@ -101,7 +132,12 @@ export const withReleaseAssets = (baseConfig, releases) => {
               generator: {
                 ...rule.generator,
                 filename: cssFilenameFor(rule.generator.filename, releases)
-              }
+              },
+              use: rule.use.map((step) =>
+                step === sassLoader
+                  ? sassLoaderWithApplicationSettings(sassLoader, releases)
+                  : step
+              )
             }
           : rule
       )

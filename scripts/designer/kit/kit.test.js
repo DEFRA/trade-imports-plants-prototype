@@ -132,17 +132,17 @@ describe('designer:kit', () => {
   })
 
   it('Should remember a clone it was given, and use it next time', () => {
-    const given = runKit(['find', '--clone', clone], repoRoot)
+    const given = runKit(['find', '--clone', clone], { repoRoot, home })
     expect(given.code).toBe(0)
     expect(readFileSync(path.join(repoRoot, SETTING_FILE), 'utf8').trim()).toBe(
       clone
     )
-    const pages = runKit(['pages'], repoRoot)
+    const pages = runKit(['pages'], { repoRoot, home })
     expect(pages.lines).toContain('  transporter')
   })
 
   it('Should refuse a folder that is not the old prototype', () => {
-    const result = runKit(['find', '--clone', repoRoot], repoRoot)
+    const result = runKit(['find', '--clone', repoRoot], { repoRoot, home })
     expect(result.code).toBe(1)
     expect(result.lines[0]).toContain('has no app/views folder')
   })

@@ -21,12 +21,15 @@ agents, delegation of authority, plant-operator registration and "who
 notifies" are out of phase; bulk upload is out of phase. Both are parked,
 not rejected.
 
-To change a ruling, do not edit any of these files. From the workspace:
+To change a ruling, leave the two files here alone and edit the ledger and
+its subject in one commit:
 
-```
-tools/journey-builder/spec-add-decision.sh EUDPA-409 --subject conflict:c-012 \
-    --ruling resolve --resolution "..." --rationale "..." --decided-by sam \
-    --decided-at YYYY-MM-DD --supersedes d-0NN
-```
-
-The earlier entry is marked superseded and the subject is re-stamped.
+1. Append an entry to `../decisions.json` with the next `d-NNN` id,
+   `status: "current"`, `supersedes` set to the earlier entry's id and
+   `decidedAt` set to the date of the ruling.
+2. Set the earlier entry's `status` to `"superseded"` and its
+   `supersededBy` to the new id.
+3. Re-stamp the subject. For a conflict in `../conflicts.json`, set
+   `resolution`, `resolvedBy` and `decision`. For a behaviour in
+   `../journey-spec.json`, set `status` and `decision`, and append
+   ` | Ruling: <resolution>` to its `detail`.

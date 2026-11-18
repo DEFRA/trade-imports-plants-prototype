@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -77,11 +76,10 @@ const WORKSPACE = '~/git/defra/trade-imports-workspace/'
 const WORKSPACE_SKILL = `${WORKSPACE}.claude/skills/prototype/SKILL.md`
 const AGENT_LAYER_FOLDERS = ['.claude/skills/', '.claude/workflows/']
 
-// The workspace is on disk when this repo is its repos/ checkout. CI and a
-// A CI checkout of this repo alone has no workspace, so existence is skipped.
-const insideWorkspace = existsSync(path.resolve(REPO_ROOT, '../../tim'))
-const resolveTildePath = (tildePath) =>
-  path.join(os.homedir(), tildePath.slice('~/'.length))
+const WORKSPACE_CLONE_ROOT = path.resolve(REPO_ROOT, '../..')
+const insideWorkspace = existsSync(path.join(WORKSPACE_CLONE_ROOT, 'tim'))
+const inWorkspaceClone = (tildePath) =>
+  path.join(WORKSPACE_CLONE_ROOT, tildePath.slice(WORKSPACE.length))
 
 const SHIPPED_SETS = new Set([REAL_JOURNEY_SET, PLACEHOLDER_SET])
 
@@ -143,7 +141,7 @@ describe('the designer suite', () => {
     test('AGENTS.md sends routing to the workspace prototype skill by its full path', () => {
       expect(agentsMd).toContain(`\`${WORKSPACE_SKILL}\``)
       if (insideWorkspace) {
-        expect(existsSync(resolveTildePath(WORKSPACE_SKILL))).toBe(true)
+        expect(existsSync(inWorkspaceClone(WORKSPACE_SKILL))).toBe(true)
       }
     })
 
@@ -381,7 +379,7 @@ describe('the designer suite', () => {
       }
       for (const [named] of text.matchAll(TILDE_PATH)) {
         const tildePath = named.replace(/\.+$/, '')
-        if (!existsSync(resolveTildePath(tildePath))) {
+        if (!existsSync(inWorkspaceClone(tildePath))) {
           missing.push(`${repoPath}: ${tildePath}`)
         }
       }

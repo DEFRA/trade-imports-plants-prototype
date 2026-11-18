@@ -274,11 +274,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # plants-working is the id every designer's first release gets
-      # (CLAUDE.md rule 9), and designer docs name example paths inside it, so
-      # the canary proves that exact release can be saved.
+      # An id no designer uses: a committed release (plants-working is one)
+      # would make new:set refuse the id as taken.
       - name: Make a throwaway design release from the real journey
-        run: npm run new:set -- plants-working --from high-risk-plants --title "Working release" --describe "A throwaway copy of the real journey, made by CI"
+        run: npm run new:set -- ci-canary --from high-risk-plants --title "CI canary release" --describe "A throwaway copy of the real journey, made by CI"
 
       # designer:check --full is what a designer runs before saving: the
       # quick checks (copy usage, templates, the prototype checks), then the
@@ -289,7 +288,7 @@ jobs:
         run: npm run designer:format
 
       - name: Full designer check with the release mounted
-        run: npm run designer:check -- --set plants-working --full
+        run: npm run designer:check -- --set ci-canary --full
 
       - name: Install the Playwright browser
         run: npm run playwright:install
@@ -303,12 +302,12 @@ jobs:
       # watchable, so it skips human pacing and keeps this job's 25-minute
       # limit.
       - name: Walk the throwaway release through
-        run: npm run designer:walkthrough -- --ci --fast --set plants-working
+        run: npm run designer:walkthrough -- --ci --fast --set ci-canary
 
       # Proves a brand-new release gets its service map with no code written
       # for it: its pages, branches and pictures read from its own files.
       - name: Map the throwaway release
-        run: npm run designer:service-map -- --set plants-working --no-open
+        run: npm run designer:service-map -- --set ci-canary --no-open
 
       - name: Upload Playwright report
         if: failure()

@@ -24,7 +24,6 @@
  * it as proposed files.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 
 import {
@@ -495,49 +494,40 @@ const testImpactOf = (root, changes) =>
  * lays it out (`repos/<this repo>` beside `openspec/`). */
 export const WORKSPACE_PLANTS_SPEC = 'openspec/specs/plants'
 
-/** The canonical workspace clone, the one place agent instructions and
- * `CLAUDE.md` say to look — never resolved relative to this checkout, so it
- * is right however deep this repo happens to sit. */
-export const CANONICAL_WORKSPACE_ROOT = path.join(
-  os.homedir(),
-  'git/defra/trade-imports-workspace'
-)
-
-/** Whether `root` (this checkout) sits inside `canonicalRoot`: true for the
- * real designer setup (`.../trade-imports-workspace/repos/trade-imports-plants-prototype`),
- * false for a standalone clone elsewhere — CI, or a scratch test repo. */
-const isInsideWorkspace = (root, canonicalRoot) =>
-  `${path.resolve(root)}${path.sep}`.startsWith(`${canonicalRoot}${path.sep}`)
+const enclosingWorkspaceOf = (root) => {
+  const checkout = path.resolve(root)
+  const workspaceRoot = path.resolve(checkout, '../..')
+  const isWorkspaceCheckout =
+    path.basename(path.dirname(checkout)) === 'repos' &&
+    existsSync(path.join(workspaceRoot, 'repos.json'))
+  return isWorkspaceCheckout ? workspaceRoot : null
+}
 
 /**
  * Where the workspace's plants behaviour spec is on this computer.
  *
- * - This checkout sits inside the canonical workspace (the real designer
- *   setup): resolve `openspec/specs/plants` there. Missing there is a real
- *   error, in plain words — that checkout is broken, not merely standalone.
- * - This checkout sits outside it (a standalone clone, as in the
- *   prototype's own CI, or a scratch test repo): null, exactly as before.
+ * - This checkout is a workspace clone's `repos/` checkout (the folder two
+ *   up holds `repos.json`), wherever that clone is: resolve
+ *   `openspec/specs/plants` there. Missing there is a real error, in plain
+ *   words — that workspace is broken, not merely absent.
+ * - This checkout sits anywhere else (a standalone clone, as in the
+ *   prototype's own CI, or a scratch test repo): null.
  *
  * @param {string} root - this checkout's root.
  * @param {string} [override] - a spec directory to use instead (tests).
- * @param {string} [canonicalRoot] - the workspace root to treat as
- * canonical (tests only; defaults to `CANONICAL_WORKSPACE_ROOT`).
  */
-export const workspaceSpecDir = (
-  root,
-  override,
-  canonicalRoot = CANONICAL_WORKSPACE_ROOT
-) => {
+export const workspaceSpecDir = (root, override) => {
   if (override) {
     return existsSync(override) ? override : null
   }
-  if (!isInsideWorkspace(root, canonicalRoot)) {
+  const workspaceRoot = enclosingWorkspaceOf(root)
+  if (!workspaceRoot) {
     return null
   }
-  const dir = path.join(canonicalRoot, WORKSPACE_PLANTS_SPEC)
+  const dir = path.join(workspaceRoot, WORKSPACE_PLANTS_SPEC)
   if (!existsSync(dir)) {
     throw new HandoffError(
-      `The trade-imports workspace is at ${canonicalRoot} but has no ${WORKSPACE_PLANTS_SPEC}. Check that checkout before handing off.`
+      `The trade-imports workspace is at ${workspaceRoot} but has no ${WORKSPACE_PLANTS_SPEC}. Check that checkout before handing off.`
     )
   }
   return dir
