@@ -3,6 +3,16 @@ import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
 import * as client from './client.js'
 import * as stub from './stub.js'
 
+export {
+  ADDRESS_FORM_TYPES,
+  ADDRESS_TYPES,
+  PLACE_ROLES,
+  ROLES,
+  ROLES_BY_ADDRESS_TYPE,
+  addressTypeOfRole,
+  keepRolesOfferedBy
+} from './address-types.js'
+
 const impl = () => (isStubDataMode() ? stub : client)
 
 /**
