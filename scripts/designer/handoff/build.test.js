@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   buildHandoff,
-  CANONICAL_WORKSPACE_ROOT,
   plantsFrontendApplyCheck,
   REAL_JOURNEY,
   rulingConflictsFor,
@@ -28,67 +27,56 @@ import {
 const TIMEOUT_MS = 120_000
 
 describe('workspaceSpecDir', () => {
-  let canonicalRoot
+  let workspaceRoot
+  let checkout
 
   beforeEach(() => {
-    canonicalRoot = mkdtempSync(path.join(tmpdir(), 'handoff-canonical-'))
+    workspaceRoot = mkdtempSync(path.join(tmpdir(), 'handoff-workspace-'))
+    writeFiles(workspaceRoot, { 'repos.json': '{}' })
+    checkout = path.join(workspaceRoot, 'repos/trade-imports-plants-prototype')
+    mkdirSync(checkout, { recursive: true })
   })
 
   afterEach(() => {
-    rmSync(canonicalRoot, { recursive: true, force: true })
+    rmSync(workspaceRoot, { recursive: true, force: true })
   })
 
-  it('Should give null for a checkout outside the canonical workspace, with no error (a standalone clone, or CI)', () => {
+  it('Should give null for a checkout outside any workspace, with no error (a standalone clone, or CI)', () => {
     const standalone = mkdtempSync(path.join(tmpdir(), 'handoff-standalone-'))
     try {
-      expect(workspaceSpecDir(standalone, undefined, canonicalRoot)).toBeNull()
+      expect(workspaceSpecDir(standalone)).toBeNull()
     } finally {
       rmSync(standalone, { recursive: true, force: true })
     }
   })
 
-  it('Should resolve openspec/specs/plants inside the canonical workspace when this checkout sits inside it', () => {
-    const specDir = path.join(canonicalRoot, 'openspec/specs/plants')
-    mkdirSync(specDir, { recursive: true })
-    const root = path.join(
-      canonicalRoot,
-      'repos/trade-imports-plants-prototype'
-    )
-    mkdirSync(root, { recursive: true })
+  it('Should give null for a repos/ checkout whose parent folder holds no repos.json', () => {
+    rmSync(path.join(workspaceRoot, 'repos.json'))
 
-    expect(workspaceSpecDir(root, undefined, canonicalRoot)).toBe(specDir)
+    expect(workspaceSpecDir(checkout)).toBeNull()
   })
 
-  it('Should refuse, in plain words, a canonical workspace with no openspec/specs/plants', () => {
-    const root = path.join(
-      canonicalRoot,
-      'repos/trade-imports-plants-prototype'
-    )
-    mkdirSync(root, { recursive: true })
+  it('Should resolve openspec/specs/plants in the workspace clone this checkout sits in, wherever that clone is', () => {
+    const specDir = path.join(workspaceRoot, 'openspec/specs/plants')
+    mkdirSync(specDir, { recursive: true })
 
-    expect(() => workspaceSpecDir(root, undefined, canonicalRoot)).toThrow(
+    expect(workspaceSpecDir(checkout)).toBe(specDir)
+  })
+
+  it('Should refuse, in plain words, a workspace with no openspec/specs/plants', () => {
+    expect(() => workspaceSpecDir(checkout)).toThrow(
       /has no openspec\/specs\/plants/
     )
   })
 
   it('Should use an override when one is given, regardless of where this checkout sits', () => {
-    const specDir = path.join(canonicalRoot, 'a-spec-dir')
+    const specDir = path.join(workspaceRoot, 'a-spec-dir')
     mkdirSync(specDir, { recursive: true })
 
-    expect(workspaceSpecDir('/anywhere', specDir, canonicalRoot)).toBe(specDir)
+    expect(workspaceSpecDir('/anywhere', specDir)).toBe(specDir)
     expect(
-      workspaceSpecDir(
-        '/anywhere',
-        path.join(canonicalRoot, 'missing'),
-        canonicalRoot
-      )
+      workspaceSpecDir('/anywhere', path.join(workspaceRoot, 'missing'))
     ).toBeNull()
-  })
-
-  it('Should default to the real ~/git/defra/trade-imports-workspace when no canonical root is injected', () => {
-    expect(
-      CANONICAL_WORKSPACE_ROOT.endsWith('git/defra/trade-imports-workspace')
-    ).toBe(true)
   })
 })
 

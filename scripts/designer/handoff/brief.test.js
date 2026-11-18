@@ -203,7 +203,7 @@ describe('the story block', () => {
     const jira = jiraOf({ ...REPORT, servicesToBuild: [TRANSPORTERS] })
 
     expect(jira).toContain(
-      '* Backend house conventions: {{~/git/defra/trade-imports-workspace/docs/best-practices/java/}}'
+      '* Backend house conventions: {{docs/best-practices/java/}}'
     )
     expect(jira).toContain('integration tests that run under {{mvn verify}}')
     expect(jira).toContain('* Platform: the backend address')
@@ -288,13 +288,15 @@ describe('See the prototype', () => {
     )
   })
 
-  it('Should always say how to run it locally, from the workspace checkout, never a fresh clone', () => {
+  it('Should always say how to run it locally, from the workspace root, never a fresh clone', () => {
     expect(markdown).toContain(
       [
         '### Run it on your own computer',
         '',
-        '1. `git -C ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype switch design/plants-working-arrival-hint`',
-        '2. `npm --prefix ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype run dev`',
+        'From the root of your trade-imports workspace clone:',
+        '',
+        '1. `git -C repos/trade-imports-plants-prototype switch design/plants-working-arrival-hint`',
+        '2. `npm --prefix repos/trade-imports-plants-prototype run dev`',
         '3. Open `http://localhost:3103/examples/plants-working/complete?page=arrival-details`'
       ].join('\n')
     )
@@ -305,7 +307,7 @@ describe('See the prototype', () => {
     expect(
       markdownOf(REPORT, { ...META, designBranchOnGitHub: false })
     ).toContain(
-      '1. `git -C ~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype switch design/plants-working-arrival-hint` (this branch is not on GitHub yet: ask the designer to push it first)'
+      '1. `git -C repos/trade-imports-plants-prototype switch design/plants-working-arrival-hint` (this branch is not on GitHub yet: ask the designer to push it first)'
     )
   })
 
@@ -524,7 +526,7 @@ describe('Tests to add and the note for the developer or agent', () => {
 
   it('Should send the developer to build it in the workspace’s plants-frontend checkout, on the story’s branch, with the recipe, then spec-catchup/spec-cover, then code-style and review', () => {
     expect(markdown).toContain(
-      'Build it properly in `~/git/defra/trade-imports-workspace/repos/trade-imports-plants-frontend` on `feat/EUDPA-456-arrival-hint`'
+      'Build it properly in `repos/trade-imports-plants-frontend` on `feat/EUDPA-456-arrival-hint`'
     )
     expect(markdown).toContain(
       '`.claude/skills/frontend-change/SKILL.md`, target high-risk-plants-frontend'
@@ -803,7 +805,7 @@ describe('workspace plants-frontend apply check', () => {
     })
 
     expect(markdown).toContain(
-      "also applies cleanly to the workspace's own `~/git/defra/trade-imports-workspace/repos/trade-imports-plants-frontend` (its origin/main)"
+      "also applies cleanly to the workspace's own `repos/trade-imports-plants-frontend` (its origin/main)"
     )
   })
 

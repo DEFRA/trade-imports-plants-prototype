@@ -38,9 +38,8 @@ const MONTHS = [
 
 const LOCAL_BASE_URL = 'http://localhost:3103'
 const PLANTS_FRONTEND = 'trade-imports-plants-frontend'
-const WORKSPACE_ROOT = '~/git/defra/trade-imports-workspace'
-const WORKSPACE_PROTOTYPE = `${WORKSPACE_ROOT}/repos/trade-imports-plants-prototype`
-const WORKSPACE_PLANTS_FRONTEND = `${WORKSPACE_ROOT}/repos/trade-imports-plants-frontend`
+const WORKSPACE_PROTOTYPE = 'repos/trade-imports-plants-prototype'
+const WORKSPACE_PLANTS_FRONTEND = 'repos/trade-imports-plants-frontend'
 
 /**
  * Code in the brief's own markup (`{{…}}`, monospace in Jira and Markdown).
@@ -296,7 +295,7 @@ const ownerReposOf = (report) => [
 const reposNote = (report) =>
   [PLANTS_FRONTEND, ...ownerReposOf(report)].join('; ')
 
-const BEST_PRACTICES = `${WORKSPACE_ROOT}/docs/best-practices`
+const BEST_PRACTICES = 'docs/best-practices'
 
 /** The backend and platform house conventions, only when a service here
  * needs a backend the real team has to build or extend. */
@@ -447,6 +446,7 @@ const addSeeThePrototype = (add, report, meta) => {
     })
   }
   add('subheading', { text: 'Run it on your own computer' })
+  add('para', { text: 'From the root of your trade-imports workspace clone:' })
   add('numbered', { items: localSteps(report, meta, links) })
 }
 

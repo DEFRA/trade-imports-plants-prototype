@@ -1,7 +1,4 @@
-/** The tilde `--prefix` form, so a command copied from the workspace root
- * acts on this repo and never on the workspace. */
-const PROTOTYPE_PREFIX =
-  '~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype'
+const PROTOTYPE_PREFIX = 'repos/trade-imports-plants-prototype'
 
 const WELSH_LABELS = {
   translated: 'translated',
@@ -76,7 +73,7 @@ export const formatFind = (result) => {
       ]
       if (showPages.length > 0) {
         lines.push(
-          `  To picture every page these words are on (${plural(showPages.length, 'page')}):`,
+          `  To picture every page these words are on (${plural(showPages.length, 'page')}), from the workspace root:`,
           `    npm --prefix ${PROTOTYPE_PREFIX} run designer:show -- --set ${info.setId} --pages ${showPages.join(',')} --before`
         )
       }
