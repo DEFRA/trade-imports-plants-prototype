@@ -56,7 +56,7 @@ const NOT_FOUND = [
   'Never clone it without asking: it is a separate repository (defra-design/GB-notification-service).'
 ].join('\n')
 
-const cloneFor = (flags, root) => {
+const cloneFor = (flags, place) => {
   if (flags.clone) {
     const dir = path.resolve(flags.clone)
     if (!isKitClone(dir)) {
@@ -64,25 +64,25 @@ const cloneFor = (flags, root) => {
         `${dir} is not the old prototype: it has no app/views folder.`
       )
     }
-    rememberClone(root, dir)
+    rememberClone(place.repoRoot, dir)
     return dir
   }
-  const [first] = findKitClones({ repoRoot: root })
+  const [first] = findKitClones(place)
   if (!first) {
     throw new Error(NOT_FOUND)
   }
   return first
 }
 
-const runFind = (flags, root) => {
+const runFind = (flags, place) => {
   if (flags.clone) {
-    const dir = cloneFor(flags, root)
+    const dir = cloneFor(flags, place)
     return [
       `Found the old prototype at ${dir}, and remembered it.`,
       `Current design folder: app/views/${currentFolder(dir)}`
     ]
   }
-  const clones = findKitClones({ repoRoot: root })
+  const clones = findKitClones(place)
   if (clones.length === 0) {
     throw new Error(NOT_FOUND)
   }
@@ -93,8 +93,8 @@ const runFind = (flags, root) => {
   ]
 }
 
-const runPages = (flags, root) => {
-  const clone = cloneFor(flags, root)
+const runPages = (flags, place) => {
+  const clone = cloneFor(flags, place)
   const folder = flags.folder ?? currentFolder(clone)
   const pages = pagesIn(clone, folder)
   return [
@@ -103,14 +103,14 @@ const runPages = (flags, root) => {
   ]
 }
 
-const runCopy = (target, flags, root) => {
+const runCopy = (target, flags, place) => {
   if (!target || !flags.release) {
     throw new Error(`Say which page and which release.\n${USAGE}`)
   }
-  const clone = cloneFor(flags, root)
+  const clone = cloneFor(flags, place)
   const folder = flags.folder ?? currentFolder(clone)
   const copied = copyKitPage({
-    repoRoot: root,
+    repoRoot: place.repoRoot,
     clone,
     page: target,
     folder,
@@ -130,18 +130,26 @@ const runCopy = (target, flags, root) => {
   ]
 }
 
-/** Runs one command; returns what to print and the exit code. */
-export const runKit = (argv, root = REPO_ROOT) => {
+/**
+ * Runs one command; returns what to print and the exit code.
+ *
+ * @param {string[]} argv - the command and its flags.
+ * @param {{ repoRoot?: string, home?: string }} [place] - this prototype's
+ * root (default: this checkout) and the home folder to search (default: the
+ * user's own).
+ */
+export const runKit = (argv, { repoRoot = REPO_ROOT, home } = {}) => {
+  const place = { repoRoot, home }
   const { command, target, flags } = parseKitArgs(argv)
   try {
     if (command === 'find') {
-      return { code: 0, lines: runFind(flags, root) }
+      return { code: 0, lines: runFind(flags, place) }
     }
     if (command === 'pages') {
-      return { code: 0, lines: runPages(flags, root) }
+      return { code: 0, lines: runPages(flags, place) }
     }
     if (command === 'copy') {
-      return { code: 0, lines: runCopy(target, flags, root) }
+      return { code: 0, lines: runCopy(target, flags, place) }
     }
     return { code: 1, lines: [USAGE] }
   } catch (error) {
