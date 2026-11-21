@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en" class="govuk-template">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The plants prototype, walked through</title>
+  <link rel="stylesheet" href="demo.css">
+  <script>
+    if (location.hash.startsWith('#?')) {
+      location.replace('tests/' + location.hash)
+    }
+  </script>
+</head>
+<body class="govuk-template__body">
+  <div class="govuk-width-container">
+    <div class="govuk-phase-banner govuk-width-container">
+  <p class="govuk-phase-banner__content">
+    <strong class="govuk-tag govuk-phase-banner__content__tag">
+      prototype
+    </strong>
+    <span class="govuk-phase-banner__text">
+      This is a prototype of the import notification service for high-risk plants. It uses made-up data.
+    </span>
+  </p>
+</div>
+
+
+    <main class="govuk-main-wrapper" id="main-content">
+      <h1 class="govuk-heading-xl">The plants prototype, walked through</h1>
+
+        <p class="govuk-caption-m">What is on main today. Updated 27 October 2026 (commit 01ac7cd)</p>
+
+        <p class="govuk-body">Each video shows someone using the prototype, page by page, at a normal pace. They are made automatically every time the prototype changes, so they always match it.</p>
+        <p class="govuk-body">The most important journeys are first.</p>
+        <p class="govuk-body">Each video has no sound. The pictures under it show the same pages.</p>
+
+
+          <section id="set-high-risk-plants">
+            <h2 class="govuk-heading-l">
+              How the service works today
+              <strong class="govuk-tag govuk-!-margin-left-2">
+  Today’s service
+</strong>
+
+            </h2>
+
+
+              <p class="govuk-body"><a class="govuk-link" href="service-map/high-risk-plants/">See how the pages connect</a>: every page, in order, and which answers send someone a different way.</p>
+
+              <nav aria-label="Journeys in How the service works today">
+                <ol class="govuk-list govuk-list--number">
+                    <li><a class="govuk-link" href="#high-risk-plants-1">Send a notification from start to finish</a></li>
+                    <li><a class="govuk-link" href="#high-risk-plants-2">Save a notification and come back to it later</a></li>
+                    <li><a class="govuk-link" href="#high-risk-plants-3">Change a notification after sending it</a></li>
+                    <li><a class="govuk-link" href="#high-risk-plants-4">Start a new notification from an earlier one</a></li>
+                    <li><a class="govuk-link" href="#high-risk-plants-5">What happens when something is missing</a></li>
+                </ol>
+                  <p class="govuk-body"><a class="govuk-link" href="#high-risk-plants-other">Other journeys in this release (5)</a></p>
+              </nav>
+
+              <h3 class="govuk-heading-m" id="high-risk-plants-1">1. Send a notification from start to finish</h3>
+                <p class="govuk-body">A trader bringing in seed potatoes answers every question, checks their answers and sends the notification.</p>
+
+
+                <video controls preload="metadata"
+poster="tests/data/f45eb5e658f5c4367b006407b62b8676de739d5f.jpg"                  src="tests/data/246eed3cc52d3d20b404ad548cb25b5cb41b0b63.webm" class="app-demo-video">
+                  Your browser cannot play this video.
+                  <a class="govuk-link" href="tests/data/246eed3cc52d3d20b404ad548cb25b5cb41b0b63.webm">Download the video</a> instead.
+                </video>
+                <p class="govuk-body"><a class="govuk-link" href="tests/data/246eed3cc52d3d20b404ad548cb25b5cb41b0b63.webm">Download the video</a></p>
+
+              <p class="govuk-body-s">2 minutes 26 seconds · 15 pages</p>
+
+                <details class="govuk-details">
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">
+      See each page (15)
+    </span>
+  </summary>
+  <div class="govuk-details__text">
+                      <div class="app-demo-page-strip">
+                      <a class="app-demo-page-strip__item" href="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg">
+                        <img src="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/28e12c4c7cb748ebb8754aeba659f43d005882cd.jpg">
+                        <img src="tests/data/28e12c4c7cb748ebb8754aeba659f43d005882cd.jpg" alt="What are you importing?" loading="lazy">
+                        <span class="govuk-body-s">What are you importing?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/26b73e46ae230cfd368a41139215add6949e9b6b.jpg">
+                        <img src="tests/data/26b73e46ae230cfd368a41139215add6949e9b6b.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/194f75c193ed48f46c00561f81ce2297fa0946a5.jpg">
+                        <img src="tests/data/194f75c193ed48f46c00561f81ce2297fa0946a5.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/cf92351012dbc28812297faa2d7dc5745b3fe987.jpg">
+                        <img src="tests/data/cf92351012dbc28812297faa2d7dc5745b3fe987.jpg" alt="Commodities in the consignment" loading="lazy">
+                        <span class="govuk-body-s">Commodities in the consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/71f1700c0fe44dfdbb0314f4cbd259e198d97dea.jpg">
+                        <img src="tests/data/71f1700c0fe44dfdbb0314f4cbd259e198d97dea.jpg" alt="Origin of the import" loading="lazy">
+                        <span class="govuk-body-s">Origin of the import</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/f50b802fe50123417a4ec7138bbc47c7bb8eaa54.jpg">
+                        <img src="tests/data/f50b802fe50123417a4ec7138bbc47c7bb8eaa54.jpg" alt="Arrival details" loading="lazy">
+                        <span class="govuk-body-s">Arrival details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/fb5d8da2302437181792d2c01cb56e40ffbbbafe.jpg">
+                        <img src="tests/data/fb5d8da2302437181792d2c01cb56e40ffbbbafe.jpg" alt="Place of destination" loading="lazy">
+                        <span class="govuk-body-s">Place of destination</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/8755bbe20cf0c25eec54abede9dcd05dbb9fe4a0.jpg">
+                        <img src="tests/data/8755bbe20cf0c25eec54abede9dcd05dbb9fe4a0.jpg" alt="Identification numbers" loading="lazy">
+                        <span class="govuk-body-s">Identification numbers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/4b638b858768ae64691eeb740fcde74e68ba51cb.jpg">
+                        <img src="tests/data/4b638b858768ae64691eeb740fcde74e68ba51cb.jpg" alt="Contact address for consignment" loading="lazy">
+                        <span class="govuk-body-s">Contact address for consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/69eefe625d15aa23efa4fad0f326456ac4057583.jpg">
+                        <img src="tests/data/69eefe625d15aa23efa4fad0f326456ac4057583.jpg" alt="Overview" loading="lazy">
+                        <span class="govuk-body-s">Overview</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/115934ad3ed21068c892b30291151c0a8f4d042e.jpg">
+                        <img src="tests/data/115934ad3ed21068c892b30291151c0a8f4d042e.jpg" alt="Check your answers" loading="lazy">
+                        <span class="govuk-body-s">Check your answers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/d002d8653e0925776da2043e7924192e7868a5ae.jpg">
+                        <img src="tests/data/d002d8653e0925776da2043e7924192e7868a5ae.jpg" alt="Declaration" loading="lazy">
+                        <span class="govuk-body-s">Declaration</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/4f46712db8284ed5ff08e93fb4bb44651de6bc23.jpg">
+                        <img src="tests/data/4f46712db8284ed5ff08e93fb4bb44651de6bc23.jpg" alt="Notification submitted" loading="lazy">
+                        <span class="govuk-body-s">Notification submitted</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/f45eb5e658f5c4367b006407b62b8676de739d5f.jpg">
+                        <img src="tests/data/f45eb5e658f5c4367b006407b62b8676de739d5f.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                  </div>
+
+  </div>
+</details>
+
+
+              <p class="govuk-body">
+                <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-b964255bc28aece8cb75">See every step, and the technical detail</a>
+              </p>
+              <h3 class="govuk-heading-m" id="high-risk-plants-2">2. Save a notification and come back to it later</h3>
+                <p class="govuk-body">A trader bringing in plants for planting answers about half the questions, leaves, and finds the draft waiting on their dashboard.</p>
+
+
+                <video controls preload="metadata"
+poster="tests/data/dd290f9a643f511dd044d67158d0f034fcc2eaec.jpg"                  src="tests/data/7fd553b2a64da5e1ca5314795872c30467aaa550.webm" class="app-demo-video">
+                  Your browser cannot play this video.
+                  <a class="govuk-link" href="tests/data/7fd553b2a64da5e1ca5314795872c30467aaa550.webm">Download the video</a> instead.
+                </video>
+                <p class="govuk-body"><a class="govuk-link" href="tests/data/7fd553b2a64da5e1ca5314795872c30467aaa550.webm">Download the video</a></p>
+
+              <p class="govuk-body-s">1 minute 39 seconds · 10 pages</p>
+
+                <details class="govuk-details">
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">
+      See each page (10)
+    </span>
+  </summary>
+  <div class="govuk-details__text">
+                      <div class="app-demo-page-strip">
+                      <a class="app-demo-page-strip__item" href="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg">
+                        <img src="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/73356e8634b062d454fd009d675c23473c087b3f.jpg">
+                        <img src="tests/data/73356e8634b062d454fd009d675c23473c087b3f.jpg" alt="What are you importing?" loading="lazy">
+                        <span class="govuk-body-s">What are you importing?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/8a6f7eb7fbfd8929790f891bf8504908b884ddc8.jpg">
+                        <img src="tests/data/8a6f7eb7fbfd8929790f891bf8504908b884ddc8.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/e370e94e9ad218d60142a62f165bca6a59cb2774.jpg">
+                        <img src="tests/data/e370e94e9ad218d60142a62f165bca6a59cb2774.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/71b40e1aa98aef43e1b2f125d09dd249f8aec409.jpg">
+                        <img src="tests/data/71b40e1aa98aef43e1b2f125d09dd249f8aec409.jpg" alt="Commodities in the consignment" loading="lazy">
+                        <span class="govuk-body-s">Commodities in the consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/dfdc0363ed8419145cbcfb903285ec4a193cce39.jpg">
+                        <img src="tests/data/dfdc0363ed8419145cbcfb903285ec4a193cce39.jpg" alt="Origin of the import" loading="lazy">
+                        <span class="govuk-body-s">Origin of the import</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/d5ef5b4a9d1ef6947f5622f4ba846541b68ab8dd.jpg">
+                        <img src="tests/data/d5ef5b4a9d1ef6947f5622f4ba846541b68ab8dd.jpg" alt="Has the consignment arrived in Great Britain?" loading="lazy">
+                        <span class="govuk-body-s">Has the consignment arrived in Great Britain?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/67cb5f7fb30a7520e404c96a895d110844ee4d04.jpg">
+                        <img src="tests/data/67cb5f7fb30a7520e404c96a895d110844ee4d04.jpg" alt="Arrival details" loading="lazy">
+                        <span class="govuk-body-s">Arrival details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/7bd3c21aac16b07c1aa507bd1de0c8bea98d79aa.jpg">
+                        <img src="tests/data/7bd3c21aac16b07c1aa507bd1de0c8bea98d79aa.jpg" alt="Place of destination" loading="lazy">
+                        <span class="govuk-body-s">Place of destination</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/dd290f9a643f511dd044d67158d0f034fcc2eaec.jpg">
+                        <img src="tests/data/dd290f9a643f511dd044d67158d0f034fcc2eaec.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                  </div>
+
+  </div>
+</details>
+
+
+              <p class="govuk-body">
+                <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-0b17354f3e2a8785b56e">See every step, and the technical detail</a>
+              </p>
+              <h3 class="govuk-heading-m" id="high-risk-plants-3">3. Change a notification after sending it</h3>
+                <p class="govuk-body">A trader sends a notification for wood without bark, then starts to change it.</p>
+
+
+                <video controls preload="metadata"
+poster="tests/data/3b474fcacbbecf48a7502ebd1de9403e386f448d.jpg"                  src="tests/data/7643f36c92d02ce264a82cb17b2063531d780598.webm" class="app-demo-video">
+                  Your browser cannot play this video.
+                  <a class="govuk-link" href="tests/data/7643f36c92d02ce264a82cb17b2063531d780598.webm">Download the video</a> instead.
+                </video>
+                <p class="govuk-body"><a class="govuk-link" href="tests/data/7643f36c92d02ce264a82cb17b2063531d780598.webm">Download the video</a></p>
+
+              <p class="govuk-body-s">2 minutes 55 seconds · 19 pages</p>
+
+                <details class="govuk-details">
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">
+      See each page (19)
+    </span>
+  </summary>
+  <div class="govuk-details__text">
+                      <div class="app-demo-page-strip">
+                      <a class="app-demo-page-strip__item" href="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg">
+                        <img src="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/9b6e91b61f553db491f9c70bb21c2ae7f2a0a227.jpg">
+                        <img src="tests/data/9b6e91b61f553db491f9c70bb21c2ae7f2a0a227.jpg" alt="What are you importing?" loading="lazy">
+                        <span class="govuk-body-s">What are you importing?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/e29a1bc4233bac4c90215a37d1022d18abbc42d2.jpg">
+                        <img src="tests/data/e29a1bc4233bac4c90215a37d1022d18abbc42d2.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/5a86c4bd5894e63cfbe79e9d8f844929132889cf.jpg">
+                        <img src="tests/data/5a86c4bd5894e63cfbe79e9d8f844929132889cf.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/41a8b4ee62d54a54cfc35ed1e404294da7d72aa1.jpg">
+                        <img src="tests/data/41a8b4ee62d54a54cfc35ed1e404294da7d72aa1.jpg" alt="Commodities in the consignment" loading="lazy">
+                        <span class="govuk-body-s">Commodities in the consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/2950bd7063f4af7f340156b53347b7a316283e83.jpg">
+                        <img src="tests/data/2950bd7063f4af7f340156b53347b7a316283e83.jpg" alt="Origin of the import" loading="lazy">
+                        <span class="govuk-body-s">Origin of the import</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/2ef33efe0e451f894ac7c56f00f7ee16cd106a36.jpg">
+                        <img src="tests/data/2ef33efe0e451f894ac7c56f00f7ee16cd106a36.jpg" alt="Has the consignment arrived in Great Britain?" loading="lazy">
+                        <span class="govuk-body-s">Has the consignment arrived in Great Britain?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/1a21a29cd1daacb2d9aa98dd9bf31cc97b2ab493.jpg">
+                        <img src="tests/data/1a21a29cd1daacb2d9aa98dd9bf31cc97b2ab493.jpg" alt="Arrival details" loading="lazy">
+                        <span class="govuk-body-s">Arrival details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/097af976ab70844a6b05fb41f5c46db70efdb3d7.jpg">
+                        <img src="tests/data/097af976ab70844a6b05fb41f5c46db70efdb3d7.jpg" alt="Place of destination" loading="lazy">
+                        <span class="govuk-body-s">Place of destination</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/c8ab7e2a0d607e0a57692a6d9985a335d599bb44.jpg">
+                        <img src="tests/data/c8ab7e2a0d607e0a57692a6d9985a335d599bb44.jpg" alt="Consignor or exporter" loading="lazy">
+                        <span class="govuk-body-s">Consignor or exporter</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/929af54f2048cca0d38b19a595f8e3eefc0052e2.jpg">
+                        <img src="tests/data/929af54f2048cca0d38b19a595f8e3eefc0052e2.jpg" alt="Identification numbers" loading="lazy">
+                        <span class="govuk-body-s">Identification numbers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/ddf6f308b6ccf2c4c4bf5552938a5377631ffbf2.jpg">
+                        <img src="tests/data/ddf6f308b6ccf2c4c4bf5552938a5377631ffbf2.jpg" alt="Contact address for consignment" loading="lazy">
+                        <span class="govuk-body-s">Contact address for consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/f86c0c3e6ee2ea60c4c97b4d6b4c237999c93cf2.jpg">
+                        <img src="tests/data/f86c0c3e6ee2ea60c4c97b4d6b4c237999c93cf2.jpg" alt="Overview" loading="lazy">
+                        <span class="govuk-body-s">Overview</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/c9934923b2a97fd1dd0a409062334a10df95dcb0.jpg">
+                        <img src="tests/data/c9934923b2a97fd1dd0a409062334a10df95dcb0.jpg" alt="Check your answers" loading="lazy">
+                        <span class="govuk-body-s">Check your answers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/d09ff0129f9c7c2b5f56c5644ab07b463e04b627.jpg">
+                        <img src="tests/data/d09ff0129f9c7c2b5f56c5644ab07b463e04b627.jpg" alt="Declaration" loading="lazy">
+                        <span class="govuk-body-s">Declaration</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/b0054515d3aaee89a302541c845a9c82515ec3cd.jpg">
+                        <img src="tests/data/b0054515d3aaee89a302541c845a9c82515ec3cd.jpg" alt="Notification submitted" loading="lazy">
+                        <span class="govuk-body-s">Notification submitted</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/bd029cb8815c52c955103895432c13619d146870.jpg">
+                        <img src="tests/data/bd029cb8815c52c955103895432c13619d146870.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/83fd48eccc7272415fa0167a54b80565a4101ea4.jpg">
+                        <img src="tests/data/83fd48eccc7272415fa0167a54b80565a4101ea4.jpg" alt="Overview" loading="lazy">
+                        <span class="govuk-body-s">Overview</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/3b474fcacbbecf48a7502ebd1de9403e386f448d.jpg">
+                        <img src="tests/data/3b474fcacbbecf48a7502ebd1de9403e386f448d.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                  </div>
+
+  </div>
+</details>
+
+
+              <p class="govuk-body">
+                <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-a3c5e00208b5aa7292da">See every step, and the technical detail</a>
+              </p>
+              <h3 class="govuk-heading-m" id="high-risk-plants-4">4. Start a new notification from an earlier one</h3>
+                <p class="govuk-body">A trader reuses the answers from an earlier notification, with the goods arriving at Felixstowe instead.</p>
+
+
+                <video controls preload="metadata"
+poster="tests/data/35a6b1329a787538d8ecbcf20949109259850fc7.jpg"                  src="tests/data/20e83c31735fe93005acbf88c0aa971ccc534d6c.webm" class="app-demo-video">
+                  Your browser cannot play this video.
+                  <a class="govuk-link" href="tests/data/20e83c31735fe93005acbf88c0aa971ccc534d6c.webm">Download the video</a> instead.
+                </video>
+                <p class="govuk-body"><a class="govuk-link" href="tests/data/20e83c31735fe93005acbf88c0aa971ccc534d6c.webm">Download the video</a></p>
+
+              <p class="govuk-body-s">2 minutes 9 seconds · 13 pages</p>
+
+                <details class="govuk-details">
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">
+      See each page (13)
+    </span>
+  </summary>
+  <div class="govuk-details__text">
+                      <div class="app-demo-page-strip">
+                      <a class="app-demo-page-strip__item" href="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg">
+                        <img src="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/ad2fe39178ac73c48912ce5f669907add05d372e.jpg">
+                        <img src="tests/data/ad2fe39178ac73c48912ce5f669907add05d372e.jpg" alt="What are you importing?" loading="lazy">
+                        <span class="govuk-body-s">What are you importing?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/ba8528c74d55f68b527b1dfb79490dd56a5f7fc5.jpg">
+                        <img src="tests/data/ba8528c74d55f68b527b1dfb79490dd56a5f7fc5.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/8358e8bfff7071bda64933b14c6611fedb75f662.jpg">
+                        <img src="tests/data/8358e8bfff7071bda64933b14c6611fedb75f662.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/ade43d672b053485b3c9cf48cffea4ab3aa17d72.jpg">
+                        <img src="tests/data/ade43d672b053485b3c9cf48cffea4ab3aa17d72.jpg" alt="Commodities in the consignment" loading="lazy">
+                        <span class="govuk-body-s">Commodities in the consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/10a77915ffd8b8fb9e1b7fbd374c37ea4dcbe17f.jpg">
+                        <img src="tests/data/10a77915ffd8b8fb9e1b7fbd374c37ea4dcbe17f.jpg" alt="Origin of the import" loading="lazy">
+                        <span class="govuk-body-s">Origin of the import</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/d72e61bdb0170fb1d9df82b71305869b22481510.jpg">
+                        <img src="tests/data/d72e61bdb0170fb1d9df82b71305869b22481510.jpg" alt="Arrival details" loading="lazy">
+                        <span class="govuk-body-s">Arrival details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/d82e167431e63d24e0f0aeca5e399444e8c1a2fb.jpg">
+                        <img src="tests/data/d82e167431e63d24e0f0aeca5e399444e8c1a2fb.jpg" alt="Place of destination" loading="lazy">
+                        <span class="govuk-body-s">Place of destination</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/399eb495ef2b2918b8d25786509ffbd829a2ed8e.jpg">
+                        <img src="tests/data/399eb495ef2b2918b8d25786509ffbd829a2ed8e.jpg" alt="Identification numbers" loading="lazy">
+                        <span class="govuk-body-s">Identification numbers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/88cfaa03c2aa608dbe538b49331afef624c42f92.jpg">
+                        <img src="tests/data/88cfaa03c2aa608dbe538b49331afef624c42f92.jpg" alt="Contact address for consignment" loading="lazy">
+                        <span class="govuk-body-s">Contact address for consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/cd4b5f67ed9b152da2aa02a6f348eb6a43b219c2.jpg">
+                        <img src="tests/data/cd4b5f67ed9b152da2aa02a6f348eb6a43b219c2.jpg" alt="Overview" loading="lazy">
+                        <span class="govuk-body-s">Overview</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/96ca3b5173851cda94aceba38f41e694c87980ca.jpg">
+                        <img src="tests/data/96ca3b5173851cda94aceba38f41e694c87980ca.jpg" alt="Check your answers" loading="lazy">
+                        <span class="govuk-body-s">Check your answers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/35a6b1329a787538d8ecbcf20949109259850fc7.jpg">
+                        <img src="tests/data/35a6b1329a787538d8ecbcf20949109259850fc7.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                  </div>
+
+  </div>
+</details>
+
+
+              <p class="govuk-body">
+                <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-d3b4df4e3e01b2ec8285">See every step, and the technical detail</a>
+              </p>
+              <h3 class="govuk-heading-m" id="high-risk-plants-5">5. What happens when something is missing</h3>
+                <p class="govuk-body">Each page is first sent with nothing filled in, to show the message a trader would see, then filled in properly.</p>
+
+
+                <video controls preload="metadata"
+poster="tests/data/55cbaa258b76af6c887c94337d89a3a068a30316.jpg"                  src="tests/data/e1409c409a4f4e5362ad1d0c0c7f02340cc22114.webm" class="app-demo-video">
+                  Your browser cannot play this video.
+                  <a class="govuk-link" href="tests/data/e1409c409a4f4e5362ad1d0c0c7f02340cc22114.webm">Download the video</a> instead.
+                </video>
+                <p class="govuk-body"><a class="govuk-link" href="tests/data/e1409c409a4f4e5362ad1d0c0c7f02340cc22114.webm">Download the video</a></p>
+
+              <p class="govuk-body-s">2 minutes 58 seconds · 13 pages</p>
+
+                <details class="govuk-details">
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">
+      See each page (13)
+    </span>
+  </summary>
+  <div class="govuk-details__text">
+                      <div class="app-demo-page-strip">
+                      <a class="app-demo-page-strip__item" href="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg">
+                        <img src="tests/data/44dfd9e0cdaddb134d568582471d779a9626a1aa.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/e2a9e0de0951e2ec2476dbb1428bcfce93b5b609.jpg">
+                        <img src="tests/data/e2a9e0de0951e2ec2476dbb1428bcfce93b5b609.jpg" alt="What are you importing?" loading="lazy">
+                        <span class="govuk-body-s">What are you importing?</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/d0ead3abaac65fe1c8c682f75eaeda9b08b740ad.jpg">
+                        <img src="tests/data/d0ead3abaac65fe1c8c682f75eaeda9b08b740ad.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/05276e2c66fa616aa5ac7664a1cef87305be893e.jpg">
+                        <img src="tests/data/05276e2c66fa616aa5ac7664a1cef87305be893e.jpg" alt="Commodity details" loading="lazy">
+                        <span class="govuk-body-s">Commodity details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/7f1e8095b15a9448cd6b3c451daa883557b72277.jpg">
+                        <img src="tests/data/7f1e8095b15a9448cd6b3c451daa883557b72277.jpg" alt="Commodities in the consignment" loading="lazy">
+                        <span class="govuk-body-s">Commodities in the consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/a35989abba2187df4d469f17a084d8365115df82.jpg">
+                        <img src="tests/data/a35989abba2187df4d469f17a084d8365115df82.jpg" alt="Origin of the import" loading="lazy">
+                        <span class="govuk-body-s">Origin of the import</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/30c6bafa53cb642c777d59764970b1152fc64b82.jpg">
+                        <img src="tests/data/30c6bafa53cb642c777d59764970b1152fc64b82.jpg" alt="Arrival details" loading="lazy">
+                        <span class="govuk-body-s">Arrival details</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/183ccb3b3fcd94e4840cfce2194ea71feb04b579.jpg">
+                        <img src="tests/data/183ccb3b3fcd94e4840cfce2194ea71feb04b579.jpg" alt="Place of destination" loading="lazy">
+                        <span class="govuk-body-s">Place of destination</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/3d60e1d9ce1fe4df891f143300a065a390eecfe5.jpg">
+                        <img src="tests/data/3d60e1d9ce1fe4df891f143300a065a390eecfe5.jpg" alt="Identification numbers" loading="lazy">
+                        <span class="govuk-body-s">Identification numbers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/5018b72b5d6fa1cca2123035ca62047db4af2ad8.jpg">
+                        <img src="tests/data/5018b72b5d6fa1cca2123035ca62047db4af2ad8.jpg" alt="Contact address for consignment" loading="lazy">
+                        <span class="govuk-body-s">Contact address for consignment</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/1e97e24fc871472457fa6fd14a6b42aa78d5100c.jpg">
+                        <img src="tests/data/1e97e24fc871472457fa6fd14a6b42aa78d5100c.jpg" alt="Overview" loading="lazy">
+                        <span class="govuk-body-s">Overview</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/7b642f5bb7b433e8b5b40d29b9cb2c4cc0fa3394.jpg">
+                        <img src="tests/data/7b642f5bb7b433e8b5b40d29b9cb2c4cc0fa3394.jpg" alt="Check your answers" loading="lazy">
+                        <span class="govuk-body-s">Check your answers</span>
+                      </a>
+                      <a class="app-demo-page-strip__item" href="tests/data/55cbaa258b76af6c887c94337d89a3a068a30316.jpg">
+                        <img src="tests/data/55cbaa258b76af6c887c94337d89a3a068a30316.jpg" alt="Import notification service" loading="lazy">
+                        <span class="govuk-body-s">Import notification service</span>
+                      </a>
+                  </div>
+
+  </div>
+</details>
+
+
+              <p class="govuk-body">
+                <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-9cdba8b179940ff8c6e5">See every step, and the technical detail</a>
+              </p>
+
+              <h3 class="govuk-heading-m" id="high-risk-plants-other">Other journeys in this release</h3>
+              <dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Draft, just started
+    </dt>
+    <dd class="govuk-summary-list__value">
+      A trader has started a notification for ware potatoes and left it after the first question.
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <ul class="govuk-summary-list__actions-list">
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/data/90088ba3d08e7b721411ba5c7d66a14a24ad5f04.webm">Watch<span class="govuk-visually-hidden"> Draft, just started</span></a>
+        </li>
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-0e9e9cbee9089f5098ab">Details<span class="govuk-visually-hidden"> Draft, just started</span></a>
+        </li>
+      </ul>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Submitted late (the potatoes arrived yesterday)
+    </dt>
+    <dd class="govuk-summary-list__value">
+      A trader whose potatoes arrived yesterday sends the notification late, so the dashboard shows it as late.
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <ul class="govuk-summary-list__actions-list">
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/data/4ba3a855be68556fec203d76f37a2fae83ab117c.webm">Watch<span class="govuk-visually-hidden"> Submitted late (the potatoes arrived yesterday)</span></a>
+        </li>
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-06d9b38e1a8dfbed5c9b">Details<span class="govuk-visually-hidden"> Submitted late (the potatoes arrived yesterday)</span></a>
+        </li>
+      </ul>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Amendment started, then cancelled
+    </dt>
+    <dd class="govuk-summary-list__value">
+      A trader starts to change a notification they sent, then changes their mind and keeps the one they sent.
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <ul class="govuk-summary-list__actions-list">
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/data/0bdd6c805faa3c978e9df2686cb60a091b8c7d16.webm">Watch<span class="govuk-visually-hidden"> Amendment started, then cancelled</span></a>
+        </li>
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-75e6737960334ae4cafe">Details<span class="govuk-visually-hidden"> Amendment started, then cancelled</span></a>
+        </li>
+      </ul>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Deleted draft
+    </dt>
+    <dd class="govuk-summary-list__value">
+      A trader answers every question, then deletes the draft.
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <ul class="govuk-summary-list__actions-list">
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/data/667d4c02b32cf880d19351efc35ca1468fea1b38.webm">Watch<span class="govuk-visually-hidden"> Deleted draft</span></a>
+        </li>
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-75ce4aa8d155276284ee">Details<span class="govuk-visually-hidden"> Deleted draft</span></a>
+        </li>
+      </ul>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">
+      Another organisation’s submitted notification
+    </dt>
+    <dd class="govuk-summary-list__value">
+      A notification sent by a different organisation. People signed in to other organisations never see it.
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <ul class="govuk-summary-list__actions-list">
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/data/51fae39d415c3e0549b419ec82e3729de1e6c579.webm">Watch<span class="govuk-visually-hidden"> Another organisation’s submitted notification</span></a>
+        </li>
+        <li class="govuk-summary-list__actions-list-item">
+          <a class="govuk-link" href="tests/#?testId=735df6f3ae9e621b49b1-4144ea39c09f3d05dde6">Details<span class="govuk-visually-hidden"> Another organisation’s submitted notification</span></a>
+        </li>
+      </ul>
+    </dd>
+  </div>
+</dl>
+          </section>
+
+      <h2 class="govuk-heading-l">For the development team</h2>
+      <p class="govuk-body">
+        <a class="govuk-link" href="tests/">The technical report</a>: every automatic test and every walkthrough, with traces.
+      </p>
+      <p class="govuk-body">
+        <a class="govuk-link" href="service-map/">How the pages connect</a>: a map of every release’s journey, made from its code, with the map as data for each.
+      </p>
+        <p class="govuk-body">FIT tests: 239 passed, 0 failed, 0 flaky.</p>
+        <p class="govuk-body">Made by run https://github.com/DEFRA/trade-imports-plants-prototype/actions/runs/40498039341</p>
+    </main>
+  </div>
+</body>
+</html>
