@@ -8,54 +8,47 @@ import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { TEMPLATES } from '../../config.js'
 import { confirmationPage as page } from './page.js'
+import { declarationPage } from '../declaration/page.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
-import {
-  POTATO_DAYS_BEFORE_ARRIVAL,
-  PLANTS_WOOD_DAYS_AFTER_ARRIVAL
-} from '../timing-windows.js'
+import { lateRuleText } from '../review/late-rule.js'
+import { notificationDayText } from '../review/notification-day-text.js'
+import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
 
 export const meta = { ...page, collects: [] }
 const copy = copyFor({ en, cy })
 
-// Matches the declaration page's own dateText: submittedAt is a UTC instant,
-// shown in the Europe/London civil date the service reports against.
-const dateText = (value) =>
-  new Date(value).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Europe/London'
-  })
-
 const get = async (request, h) => {
   const { journey, answers } = await state.get(request, h)
   if (journey.status !== state.SUBMITTED) {
-    return h.redirect(pagePath(journey.journeyId, kit.CYA_SLUG))
+    request.logger.info(
+      {
+        journeyId: journey.journeyId,
+        status: journey.status,
+        organisationId: organisationIdOf(request),
+        refusal: 'not-submitted'
+      },
+      'Confirmation refused'
+    )
+    return h.redirect(pagePath(journey.journeyId, declarationPage.slug))
   }
   return h.view(`${TEMPLATES}/features/confirmation/template`, {
     ...kit.base(copy.title, { journey, page }),
     copy,
     reference: journey.journeyId,
-    notificationDate: dateText(journey.submittedAt),
-    // The stored value committed at first finalise, never recomputed here
-    // from submittedAt (c-030).
+    notificationDate: notificationDayText(journey.submittedAt),
     late: answers.lateNotificationIndicator === 'late',
-    lateRule:
-      answers.commodityType === 'potatoes'
-        ? copy.late.potatoes(POTATO_DAYS_BEFORE_ARRIVAL)
-        : copy.late.plantsAndWood(PLANTS_WOOD_DAYS_AFTER_ARRIVAL),
+    lateRule: lateRuleText(answers.commodityType, copy.late),
     notificationHref: pagePath(journey.journeyId, kit.CYA_SLUG),
     dashboardHref: dashboardPath()
   })
 }
 
-// Confirmation is a read-only receipt; there is no form or POST action.
 export const routes = [
   {
     method: 'GET',
     path: pageRoutePath(page.slug),
-    options: kit.routeOptions,
+    options: kit.pageRouteOptions(page),
     handler: get
   }
 ]

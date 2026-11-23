@@ -1,4 +1,3 @@
-// Provisional plants statements pending content review.
 export const copy = {
   title: 'Declaration',
   body: [
@@ -8,6 +7,7 @@ export const copy = {
   ],
   declarationLabel:
     'I confirm that I have reviewed and comply with this declaration and that the information submitted in this notification is true and correct.',
+  declarationLegend: 'Declaration confirmation',
   dateOfDeclaration: 'Date of declaration:',
   continueButton: 'Continue',
   errors: {

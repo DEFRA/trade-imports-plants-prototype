@@ -5,14 +5,20 @@
 {% block journeyContent %}
   <h1 class="govuk-heading-xl">{{ heading }}</h1>
 
-  {% for group in groups %}
-    <h2 class="govuk-heading-m">{{ group.caption }}</h2>
-    {{ govukTaskList({
-      idPrefix: group.id,
-      items: group.items,
-      classes: "govuk-!-margin-bottom-8"
-    }) }}
-  {% endfor %}
+  <section aria-labelledby="task-list-heading">
+    <h2 class="govuk-heading-l" id="task-list-heading">{{ copy.taskListHeading }}</h2>
+
+    {% for group in groups %}
+      <section aria-labelledby="{{ group.id }}-heading">
+        <h3 class="govuk-heading-m" id="{{ group.id }}-heading">{{ group.caption }}</h3>
+        {{ govukTaskList({
+          idPrefix: group.id,
+          items: group.items,
+          classes: "govuk-!-margin-bottom-8"
+        }) }}
+      </section>
+    {% endfor %}
+  </section>
 
   {{ govukButton({
     text: copy.returnToDashboard,

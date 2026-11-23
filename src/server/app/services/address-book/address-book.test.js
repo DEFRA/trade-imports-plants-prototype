@@ -1,17 +1,16 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
+
+import { resetModulesStubModeAndStubbedGlobals } from '../../../common/test-helpers/reset-modules-stub-mode-and-globals.js'
 
 // Address-book toRecord translates a countryCode to a display name via
-// originLabel; with self-loading readers, calling originLabel in real mode
+// addressBookCountryName; with self-loading readers, calling it in real mode
 // would trigger a countries fetch. This file's tests are about the address-
 // book, not countries, so mock the reader to a fixed lookup — the fetch mock
 // only has to answer address-book URLs.
 const COUNTRY_LABELS = { BE: 'Belgium', FR: 'France' }
 vi.mock('../countries/index.js', () => ({
-  ensureLoaded: async () => {},
-  originLabel: async (code) => COUNTRY_LABELS[code]
+  addressBookCountryName: async (code) => COUNTRY_LABELS[code] ?? code
 }))
-
-const originalMode = process.env.STUB_MODE
 
 const ORG = '5900001'
 const PHONE = '01632 960000'
@@ -31,17 +30,25 @@ const operator = (id, overrides = {}) => ({
   email: `${id}@example.com`,
   phone: PHONE,
   deleted: false,
+  roles: [],
   ...overrides
 })
 
 /** An address book of `total` records, served the way the API serves it:
- * `apiPageSize` records per page, page number taken from the query string. */
-const bookOf = (total, apiPageSize = 25) => {
+ * the requested page size or else `defaultPageSize` records per page, page
+ * number taken from the query string. */
+const bookOf = (
+  total,
+  defaultPageSize = 25,
+  buildRecord = (id) => operator(id)
+) => {
   const all = Array.from({ length: total }, (_, index) =>
-    operator(`record-${index + 1}`)
+    buildRecord(`record-${index + 1}`, index)
   )
   return async (url) => {
-    const page = Number(new URL(url).searchParams.get('page') ?? 1)
+    const { searchParams } = new URL(url)
+    const page = Number(searchParams.get('page') ?? 1)
+    const apiPageSize = Number(searchParams.get('pageSize') ?? defaultPageSize)
     const totalPages = Math.max(1, Math.ceil(total / apiPageSize))
     if (page > totalPages) {
       return { ok: false, status: 400, statusText: 'Page out of range' }
@@ -63,27 +70,16 @@ const realMode = () => {
 
 const addressBook = () => import('./index.js')
 
-beforeEach(() => {
-  vi.resetModules()
-})
+resetModulesStubModeAndStubbedGlobals()
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-  if (originalMode === undefined) {
-    delete process.env.STUB_MODE
-  } else {
-    process.env.STUB_MODE = originalMode
-  }
-})
-
-describe('#search against the real address book', () => {
+describe('#addresses against the real address book', () => {
   test('Should scope the request to the organisation in both path and header', async () => {
     const fetched = vi.fn(bookOf(10))
     realMode()
     stubFetch(fetched)
 
-    const { search } = await addressBook()
-    await search(ORG, { page: 1 })
+    const { addresses } = await addressBook()
+    await addresses(ORG)
 
     const [url, options] = fetched.mock.calls[0]
     expect(url).toContain(`/organisation/${ORG}/addresses`)
@@ -95,79 +91,88 @@ describe('#search against the real address book', () => {
     realMode()
     stubFetch(fetched)
 
-    const { search } = await addressBook()
-    await search(ORG, { page: 1 })
+    const { addresses } = await addressBook()
+    await addresses(ORG)
 
     const [, options] = fetched.mock.calls[0]
     expect(options.headers).toHaveProperty('x-cdp-request-id')
   })
 
-  test('Should serve five records a page out of the API page of twenty-five', async () => {
-    realMode()
-    stubFetch(bookOf(60))
-
-    const { search } = await addressBook()
-    const found = await search(ORG, { page: 1 })
-
-    expect(found.results).toHaveLength(5)
-    expect(found.pageSize).toBe(5)
-    expect(found.total).toBe(60)
-    expect(found.totalPages).toBe(12)
-    expect(found.results[0].id).toBe('record-1')
-  })
-
-  test('Should read a later page out of the API page that holds it', async () => {
+  test('Should return every matching record the book holds across more than one API page, not the first page only', async () => {
     const fetched = vi.fn(bookOf(60))
     realMode()
     stubFetch(fetched)
 
-    // Our page 6 starts at offset 25 — the first record of their page 2.
-    const { search } = await addressBook()
-    const found = await search(ORG, { page: 6 })
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG)
 
-    expect(found.results[0].id).toBe('record-26')
-    expect(found.results).toHaveLength(5)
-    expect(new URL(fetched.mock.calls[0][0]).searchParams.get('page')).toBe('2')
+    expect(found).toHaveLength(60)
+    expect(found.at(-1).id).toBe('record-60')
   })
 
-  test('Should fall back to the first page when asked for one past the end', async () => {
-    realMode()
-    stubFetch(bookOf(10))
-
-    const { search } = await addressBook()
-    const found = await search(ORG, { page: 99 })
-
-    expect(found.page).toBe(1)
-    expect(found.results[0].id).toBe('record-1')
-  })
-
-  test('Should re-slice against the size the server actually reports', async () => {
-    const fetched = vi.fn(bookOf(60, 10))
+  test('Should make a single call when the book fits one page', async () => {
+    const fetched = vi.fn(bookOf(3))
     realMode()
     stubFetch(fetched)
 
-    // Assuming 25 puts our page 6 on their page 2; at a real size of 10 the
-    // record we want is on their page 3, so the service must ask again.
-    const { search } = await addressBook()
-    const found = await search(ORG, { page: 6 })
+    const { addresses } = await addressBook()
+    await addresses(ORG)
 
-    expect(found.results[0].id).toBe('record-26')
-    expect(new URL(fetched.mock.calls.at(-1)[0]).searchParams.get('page')).toBe(
-      '3'
-    )
+    expect(fetched).toHaveBeenCalledTimes(1)
   })
 
-  test('Should pass a search term through to the API', async () => {
+  test('Should read a large book in pages of a hundred', async () => {
+    const fetched = vi.fn(bookOf(1001))
+    realMode()
+    stubFetch(fetched)
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG)
+
+    expect(found.map(({ id }) => id)).toEqual(
+      Array.from({ length: 1001 }, (_, index) => `record-${index + 1}`)
+    )
+    expect(
+      fetched.mock.calls.map(([url]) => new URL(url).searchParams.get('page'))
+    ).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'])
+    expect(
+      fetched.mock.calls.every(
+        ([url]) => new URL(url).searchParams.get('pageSize') === '100'
+      )
+    ).toBe(true)
+  })
+
+  test('Should have at most four page requests in flight at once', async () => {
+    const serve = bookOf(2000)
+    let inFlight = 0
+    let mostInFlight = 0
+    realMode()
+    stubFetch(async (url) => {
+      inFlight += 1
+      mostInFlight = Math.max(mostInFlight, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      inFlight -= 1
+      return serve(url)
+    })
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG)
+
+    expect(found).toHaveLength(2000)
+    expect(mostInFlight).toBe(4)
+  })
+
+  test('Should send the search term to the address book and not the role', async () => {
     const fetched = vi.fn(bookOf(10))
     realMode()
     stubFetch(fetched)
 
-    const { search } = await addressBook()
-    await search(ORG, { query: 'nordvik' })
+    const { addresses } = await addressBook()
+    await addresses(ORG, { query: 'nordvik', role: 'CONSIGNOR' })
 
-    expect(new URL(fetched.mock.calls[0][0]).searchParams.get('q')).toBe(
-      'nordvik'
-    )
+    const { searchParams } = new URL(fetched.mock.calls[0][0])
+    expect(searchParams.get('q')).toBe('nordvik')
+    expect(searchParams.has('role')).toBe(false)
   })
 
   test('Should raise a failure rather than serving an empty book', async () => {
@@ -178,10 +183,72 @@ describe('#search against the real address book', () => {
       statusText: 'Service Unavailable'
     }))
 
-    const { search } = await addressBook()
-    await expect(search(ORG, { page: 1 })).rejects.toThrow(
-      'Failed to list addresses'
+    const { addresses } = await addressBook()
+    await expect(addresses(ORG)).rejects.toThrow('Failed to list addresses')
+  })
+})
+
+describe('the role rule', () => {
+  test('Should return a record whose roles include the role asked for', async () => {
+    realMode()
+    stubFetch(bookOf(1, 25, (id) => operator(id, { roles: ['CONSIGNOR'] })))
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG, { role: 'CONSIGNOR' })
+
+    expect(found).toHaveLength(1)
+  })
+
+  test('Should not return a record whose roles belong to another role', async () => {
+    realMode()
+    stubFetch(
+      bookOf(1, 25, (id) => operator(id, { roles: ['PLACE_OF_DESTINATION'] }))
     )
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG, { role: 'CONSIGNOR' })
+
+    expect(found).toEqual([])
+  })
+
+  test('Should return a record the book answers with an empty roles list, whatever role is asked for', async () => {
+    realMode()
+    stubFetch(bookOf(1, 25, (id) => operator(id, { roles: [] })))
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG, { role: 'CONSIGNOR' })
+
+    expect(found).toHaveLength(1)
+  })
+
+  test('Should return a record carrying two roles when either is asked for', async () => {
+    realMode()
+    stubFetch(
+      bookOf(1, 25, (id) =>
+        operator(id, { roles: ['PLACE_OF_DESTINATION', 'CONSIGNEE'] })
+      )
+    )
+
+    const { addresses } = await addressBook()
+
+    expect(await addresses(ORG, { role: 'PLACE_OF_DESTINATION' })).toHaveLength(
+      1
+    )
+    expect(await addresses(ORG, { role: 'CONSIGNEE' })).toHaveLength(1)
+  })
+
+  test('Should return every live record when no role is asked for', async () => {
+    realMode()
+    stubFetch(
+      bookOf(2, 25, (id, index) =>
+        operator(id, { roles: index === 0 ? ['CONSIGNOR'] : [] })
+      )
+    )
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG)
+
+    expect(found).toHaveLength(2)
   })
 })
 
@@ -190,18 +257,20 @@ describe('mapping the wire onto the journey', () => {
     realMode()
     stubFetch(bookOf(1))
 
-    const { search } = await addressBook()
-    const [record] = (await search(ORG, { page: 1 })).results
+    const { addresses } = await addressBook()
+    const [record] = await addresses(ORG)
 
     expect(record).toMatchObject({
       id: 'record-1',
+      roles: [],
       address: {
         addressLine1: '1 Test Street',
         townOrCity: 'Testville',
         county: 'Testshire',
-        postalOrZipCode: 'TE5 7ER',
-        emailAddress: 'record-1@example.com',
-        telephoneNumber: PHONE
+        postcode: 'TE5 7ER',
+        countryCode: 'BE',
+        email: 'record-1@example.com',
+        phone: PHONE
       }
     })
   })
@@ -210,8 +279,8 @@ describe('mapping the wire onto the journey', () => {
     realMode()
     stubFetch(bookOf(1))
 
-    const { search } = await addressBook()
-    const [record] = (await search(ORG, { page: 1 })).results
+    const { addresses } = await addressBook()
+    const [record] = await addresses(ORG)
 
     expect(record.address.country).toBe('Belgium')
   })
@@ -228,8 +297,8 @@ describe('mapping the wire onto the journey', () => {
       })
     )
 
-    const { search } = await addressBook()
-    const [record] = (await search(ORG, { page: 1 })).results
+    const { addresses } = await addressBook()
+    const [record] = await addresses(ORG)
 
     expect(record.address.country).toBe('ZZ')
   })
@@ -245,9 +314,9 @@ describe('without an organisation', () => {
     realMode()
     stubFetch(async () => okResponse(operator('record-7')))
 
-    const { search, party } = await addressBook()
+    const { addresses, party } = await addressBook()
 
-    await expect(search(undefined, {})).rejects.toThrow(
+    await expect(addresses(undefined)).rejects.toThrow(
       /without an organisation/
     )
     await expect(party(undefined, 'record-7')).rejects.toThrow(
@@ -309,44 +378,64 @@ describe('writes', () => {
     // maintaining addresses belongs to the INS frontend.
     const book = await addressBook()
 
-    expect(Object.keys(book).sort()).toEqual(['PAGE_SIZE', 'party', 'search'])
+    expect(Object.keys(book).sort()).toEqual([
+      'addresses',
+      'offeredForRole',
+      'party'
+    ])
   })
 })
 
 describe('in stub mode', () => {
-  test('Should page the stub book without calling the API', async () => {
+  test('Should read the stub book without calling the API', async () => {
     const fetched = vi.fn()
     process.env.STUB_MODE = 'true'
     stubFetch(fetched)
 
-    const { search } = await addressBook()
-    const found = await search(ORG, { page: 1 })
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG)
 
-    expect(found.results).toHaveLength(5)
-    expect(found.pageSize).toBe(5)
+    expect(found.length).toBeGreaterThan(0)
     expect(fetched).not.toHaveBeenCalled()
   })
 
   test('Should search the stub book by free text', async () => {
     process.env.STUB_MODE = 'true'
 
-    const { search } = await addressBook()
-    const found = await search(ORG, { query: 'nordvik' })
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG, { query: 'nordvik' })
 
-    expect(found.total).toBe(1)
-    expect(found.results[0].name).toContain('Nordvik')
+    expect(found).toHaveLength(1)
+    expect(found[0].name).toContain('Nordvik')
   })
-})
 
-describe('the book is untyped (D3)', () => {
-  test('Should offer the same records whichever role is being filled', async () => {
+  test('Should keep a record holding the role asked for, and a record holding no role, dropping one holding another role', async () => {
     process.env.STUB_MODE = 'true'
 
-    const { search } = await addressBook()
-    const forConsignor = await search(ORG, { page: 1 })
-    const forConsignee = await search(ORG, { page: 1 })
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG, { role: 'CONSIGNOR' })
 
-    expect(forConsignor.results).toEqual(forConsignee.results)
-    expect(forConsignor.total).toBe(forConsignee.total)
+    expect(found.some((record) => record.id === 'northgate-trading-ag')).toBe(
+      true
+    )
+    expect(found.some((record) => record.id === 'unlisted-traders-ltd')).toBe(
+      true
+    )
+    expect(found.some((record) => record.id === 'tech-imports-ltd')).toBe(false)
+  })
+
+  test('Should return only records carrying the role asked for, or carrying none', async () => {
+    process.env.STUB_MODE = 'true'
+
+    const { addresses } = await addressBook()
+    const found = await addresses(ORG, { role: 'PLACE_OF_DESTINATION' })
+
+    expect(
+      found.every(
+        (record) =>
+          record.roles.includes('PLACE_OF_DESTINATION') ||
+          record.roles.length === 0
+      )
+    ).toBe(true)
   })
 })

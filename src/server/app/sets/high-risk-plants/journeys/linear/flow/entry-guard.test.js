@@ -9,36 +9,28 @@ import {
 } from '../../../../../shared/paths.js'
 import { store } from '../../../../../engine/store.js'
 import { configureRecords } from '../../../../../engine/persistence/records.js'
-import {
-  configureSession,
-  openingRunCookie
-} from '../../../../../engine/persistence/session.js'
+import { configureSession } from '../../../../../engine/persistence/session.js'
 import { records as recordsStub } from '../../../../../services/persistence/records/stub/index.js'
 import { session as sessionStub } from '../../../../../services/persistence/session/stub.js'
 import { journeyRequest, stubH } from '../../../../../engine/test-support.js'
-import { RUN_ACTIVE, RUN_COMPLETE } from '../../../../../flow/run-state.js'
 import { installHighRiskPlantsJourney } from '../test-support.js'
 import { SESSION_COOKIE_NAMES } from '../config.js'
+import { useInsFrontendBaseUrl } from '../../../../../../common/test-helpers/use-ins-frontend-base-url.js'
 import { commodityTypePage } from '../features/commodity-type/page.js'
 import {
+  insTypeQuestionUrl,
+  leaveJourneyLink,
   entryGuardTarget,
   guardedJourneyPath,
   hasCommittedNotificationAnswers
 } from './entry-guard.js'
 
 const ENTRY_SLUG = commodityTypePage.slug
-const OTHER_JOURNEY_ID = 'HRP-9999'
+const NOTIFICATION_VIEW_SLUG = 'notification-view'
 
-const openingRunState = (record) => ({
-  [openingRunCookie()]: record
-})
-
-const guardOn = (journeyId, { path, record } = {}) =>
+const guardOn = (journeyId, { path } = {}) =>
   entryGuardTarget(
-    journeyRequest(journeyId, {
-      path: path ?? hubPath(journeyId),
-      ...(record ? { state: openingRunState(record) } : {})
-    }),
+    journeyRequest(journeyId, { path: path ?? hubPath(journeyId) }),
     stubH()
   )
 
@@ -54,8 +46,6 @@ describe('#guardedJourneyPath', () => {
     expect(guardedJourneyPath(dashboardPath())).toBe(false)
     expect(guardedJourneyPath(createPath())).toBe(false)
     expect(guardedJourneyPath('/some-other-service/commodity-type')).toBe(false)
-    // Another set's journey path: the guard matches on this set's full mount
-    // prefix, not on the `/notifications/` substring every set shares.
     expect(guardedJourneyPath('/another-set/notifications/j-1')).toBe(false)
   })
 
@@ -74,7 +64,9 @@ describe('#guardedJourneyPath', () => {
 
   it('Should guard the overview and every journey page beyond the entry page', () => {
     expect(guardedJourneyPath(hubPath('j-1'))).toBe(true)
-    expect(guardedJourneyPath(pagePath('j-1', 'notification-view'))).toBe(true)
+    expect(guardedJourneyPath(pagePath('j-1', NOTIFICATION_VIEW_SLUG))).toBe(
+      true
+    )
   })
 })
 
@@ -120,7 +112,15 @@ describe('#entryGuardTarget', () => {
     ).resolves.toBeNull()
   })
 
-  it('Should redirect a journey with neither a run record nor answers to the entry page', async () => {
+  it('Should reject with not found for a guarded path of a notification that does not exist', async () => {
+    await expect(
+      guardOn('GBN-0000-0000-0000', {
+        path: pagePath('GBN-0000-0000-0000', NOTIFICATION_VIEW_SLUG)
+      })
+    ).rejects.toMatchObject({ isBoom: true, output: { statusCode: 404 } })
+  })
+
+  it('Should redirect a journey with no answers to the entry page', async () => {
     const journeyId = await freshJourney()
 
     expect(await guardOn(journeyId)).toBe(pagePath(journeyId, ENTRY_SLUG))
@@ -131,19 +131,57 @@ describe('#entryGuardTarget', () => {
 
     expect(
       await guardOn(journeyId, {
-        path: pagePath(journeyId, 'notification-view')
+        path: pagePath(journeyId, NOTIFICATION_VIEW_SLUG)
       })
     ).toBe(pagePath(journeyId, ENTRY_SLUG))
   })
 
-  it('Should admit a journey whose opening run has begun — active or complete', async () => {
-    const journeyId = await freshJourney()
+  it.each([
+    ['Overview', (journeyId) => hubPath(journeyId)],
+    [
+      'the review page',
+      (journeyId) => pagePath(journeyId, NOTIFICATION_VIEW_SLUG)
+    ],
+    ['the declaration', (journeyId) => pagePath(journeyId, 'declaration')],
+    [
+      'the confirmation page',
+      (journeyId) => pagePath(journeyId, 'confirmation')
+    ]
+  ])(
+    'Should send %s of a notification with no entered answer to the entry page',
+    async (_name, pathFor) => {
+      const journeyId = await freshJourney()
 
-    for (const phase of [RUN_ACTIVE, RUN_COMPLETE]) {
+      expect(await guardOn(journeyId, { path: pathFor(journeyId) })).toBe(
+        pagePath(journeyId, ENTRY_SLUG)
+      )
+    }
+  )
+
+  it.each(['amend', 'cancel-amend', 'copy', 'delete'])(
+    'Should let the %s action of a notification with no entered answer through',
+    async (action) => {
+      const journeyId = await freshJourney()
+
       expect(
-        await guardOn(journeyId, { record: { [journeyId]: phase } })
+        await guardOn(journeyId, { path: pagePath(journeyId, action) })
       ).toBeNull()
     }
+  )
+
+  it('Should log the redirect once with the journey and the requested path', async () => {
+    const journeyId = await freshJourney()
+    const request = journeyRequest(journeyId, { path: hubPath(journeyId) })
+
+    await entryGuardTarget(request, stubH(request))
+
+    expect(request.logger.entries).toEqual([
+      {
+        level: 'info',
+        fields: { journeyId, path: hubPath(journeyId) },
+        message: 'No answer entered, sent to the first page'
+      }
+    ])
   })
 
   it('Should admit a journey holding a committed user answer', async () => {
@@ -157,14 +195,28 @@ describe('#entryGuardTarget', () => {
 
     expect(await guardOn(journeyId)).toBe(pagePath(journeyId, ENTRY_SLUG))
   })
+})
 
-  it("Should not let another journey's run record vouch for a fresh journey", async () => {
-    const journeyId = await freshJourney()
+describe('#leaveJourneyLink', () => {
+  beforeAll(() => installHighRiskPlantsJourney())
 
+  it('Should send Back to the overview once a notification answer is committed', () => {
     expect(
-      await guardOn(journeyId, {
-        record: { [OTHER_JOURNEY_ID]: RUN_ACTIVE }
-      })
-    ).toBe(pagePath(journeyId, ENTRY_SLUG))
+      leaveJourneyLink({ journeyId: 'j-1' }, { commodityType: 'potatoes' })
+    ).toBe(hubPath('j-1'))
+  })
+
+  it('Should send Back to the dashboard while nothing is committed', () => {
+    expect(leaveJourneyLink({ journeyId: 'j-1' }, {})).toBe(dashboardPath())
+  })
+})
+
+describe('#insTypeQuestionUrl', () => {
+  const setInsFrontendBaseUrl = useInsFrontendBaseUrl()
+
+  it('Should be the same Import Notification Service What are you importing? question URL for every journey', () => {
+    setInsFrontendBaseUrl('http://ins.example/')
+
+    expect(insTypeQuestionUrl()).toBe('http://ins.example/notification-type')
   })
 })

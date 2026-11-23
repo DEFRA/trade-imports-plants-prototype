@@ -22,9 +22,29 @@ Platform services are:
 - [`ports`](../services/ports/index.js)
 - [`address-book`](../services/address-book/index.js)
 
-Countries and ports expose `prime()` operations. The set's gateway
-(`routes-<set-id>.js`, re-exported by the `routes.js` barrel) primes them when
-the application runs in real mode, before Hapi routes are registered.
+Countries and ports load their list on the first read, not at boot, so a
+reference-data outage at start-up does not stop the service serving. A failed
+load throws a 503 through `referenceDataUnavailable()` and the next read tries
+again. In stub mode they read their seeded lists and never call reference data.
+
+The `address-book` client keeps four facts out of its code:
+
+- A listed or fetched record carries its roles exactly as the book sends
+  them, role-less included: the client invents no role and drops none.
+- The address book takes a page size from 1 to 100. The service always asks
+  for the largest page size, 100, so it reads the organisation's whole
+  matching book in as few round trips as possible.
+- The organisation id in the path and in the organisation header always comes
+  from the signed-in session, never from a payload or a stored field. A read
+  without one is refused, not sent: the path would name an organisation
+  literally called "undefined", which the address book answers with an empty
+  book and which would read as "no saved addresses".
+- A deleted address answers as a record marked deleted, not as a 404, so a
+  deletion is told apart from a record that never existed.
+
+The origin page reads the SPS country list (`GBNAG_SPS_EX`). The address book
+validates against the unfiltered list. "United Kingdom" is not on the SPS list,
+so address forms offer it first and store it as `GB`.
 
 The reason-for-import/purpose service and the transport and transporter services
 were removed because the high-risk-plants journey asks no such question:
@@ -44,7 +64,7 @@ records and session contracts. L1 passes the selected adapters to
 `configureRecords()` and `configureSession()`.
 
 The records adapter owns canonical storage and the backend notification projection.
-The session adapter owns known journey ids, opening-run state and flow-only answers.
+The session adapter owns known journey ids and flow-only answers.
 See [Persistence](persistence.md).
 
 ## Set-owned services

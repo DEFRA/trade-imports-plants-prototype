@@ -22,7 +22,10 @@ export function catchAll(request, h) {
   const errorMessage = errorMessageFor(statusCode)
 
   if (statusCode >= statusCodes.internalServerError) {
-    request.logger.error(response?.stack)
+    request.logger.error(
+      { err: response, statusCode, journeyId: request.params?.journeyId },
+      'Request failed'
+    )
   }
 
   return h

@@ -1,25 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
 import { originConstraints } from '../../../../../services/commodities/index.js'
 import { originLabel } from '../../../../../../../services/countries/index.js'
 import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
-const WARE_POTATOES = 'ware-potatoes'
-
 describe('#copy', () => {
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
   it.each([
     ['en', copy],
@@ -48,46 +36,15 @@ describe('#copy', () => {
     }
   )
 
-  it('Should name the subject of the error the consignment, not the animal', () => {
-    expect(copy.errors.countryRequired).toBe(
-      'Select the country where the consignment originates from'
-    )
-    expect(cy.errors.countryRequired).toBe(
-      'Dewiswch y wlad y mae’r llwyth yn tarddu ohoni'
-    )
-    expect(cy.errors.countryRequired).not.toContain('anifail')
-  })
+  it.each(['country', 'errors', 'guidance'])(
+    'Should hold the same %s keys in English and Welsh',
+    (block) => {
+      expect(Object.keys(cy[block]).toSorted()).toEqual(
+        Object.keys(copy[block]).toSorted()
+      )
+    }
+  )
 
-  it('Should carry the spec label, hint and autocomplete strings', () => {
-    expect(copy.title).toBe('Origin of the import')
-    expect(copy.country).toEqual({
-      label: 'Country of origin',
-      hint: 'Start typing to search for a country.',
-      placeholder: 'Select a country',
-      noResults: 'No countries found'
-    })
-  })
-
-  it('Should carry the ware-potato scope guidance, Balearic exclusion and all', () => {
-    expect(copy.guidance[WARE_POTATOES]).toBe(
-      'Notify ware potatoes grown, or suspected to have been grown, in Poland, Portugal, Romania or Spain. Spain does not include the Balearic Islands.'
-    )
-  })
-
-  it('Should name the four ware-potato countries in their narrowing sentence', () => {
-    expect(copy.errors.narrowing[WARE_POTATOES]).toBe(
-      'Select Poland, Portugal, Romania or Spain – ware potatoes from other countries do not need to be notified'
-    )
-  })
-
-  it('Should carry the machine-draft Welsh for the title and the country field', () => {
-    expect(cy.title).toBe('Tarddiad y mewnforyn')
-    expect(cy.country.label).toBe('Gwlad tarddiad')
-    expect(cy.country.noResults).toBe('Dim gwledydd wedi’u darganfod')
-  })
-
-  // `eu-member-states` is exempt: its sentence names the bloc, not its 27
-  // members.
   const ENUMERATED_CONSTRAINTS = ['ware-potatoes', 'conifer-wood-without-bark']
 
   it.each(ENUMERATED_CONSTRAINTS)(

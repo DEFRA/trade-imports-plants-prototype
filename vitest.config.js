@@ -5,11 +5,14 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     clearMocks: true,
-    setupFiles: ['./test/setup-obligation-set.js'],
+    setupFiles: [
+      './test/setup-obligation-set.js',
+      './test/setup-organisation-context.js'
+    ],
     // The service default is real mode; the unit suite opts into stub, the same
     // way the Playwright suite does. Tests that exercise real mode set the flag
     // themselves and restore it.
-    env: { STUB_MODE: 'true' },
+    env: { STUB_MODE: 'true', AWS_EMF_ENVIRONMENT: 'Local' },
     // Playwright FIT specs are run by Playwright, not vitest.
     exclude: [
       ...configDefaults.exclude,
@@ -23,6 +26,8 @@ export default defineConfig({
       include: ['src/**/*.js'],
       exclude: [
         ...configDefaults.exclude,
+        '**/*.test.js',
+        '**/*.fit.spec.js',
         '.public',
         'coverage',
         'postcss.config.js',

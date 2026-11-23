@@ -5,6 +5,7 @@ import { catchAll } from './errors.js'
 import { createServer } from '../../server.js'
 import { statusCodes } from '../constants/status-codes.js'
 import { mockOidcConfig } from '../test-helpers/mock-oidc-config.js'
+import { referenceDataUnavailable } from '../../app/services/reference-data-unavailable.js'
 
 vi.mock('../../../auth/get-oidc-config.js', () => ({
   getOidcConfig: vi.fn(() => Promise.resolve(mockOidcConfig))
@@ -45,7 +46,9 @@ describe('#errors', () => {
     })
 
     expect(result).toEqual(
-      expect.stringContaining('Page not found | Import notification service')
+      expect.stringContaining(
+        'Page not found - Import notification service - GOV.UK'
+      )
     )
     expect(statusCode).toBe(statusCodes.notFound)
   })
@@ -59,7 +62,7 @@ describe('#errors', () => {
     expect(statusCode).toBe(statusCodes.internalServerError)
     expect(result).toEqual(
       expect.stringContaining(
-        'Something went wrong | Import notification service'
+        'Something went wrong - Import notification service - GOV.UK'
       )
     )
     expect(result).toEqual(expect.stringContaining('>500</h1>'))
@@ -77,7 +80,7 @@ describe('#errors', () => {
     expect(statusCode).toBe(statusCodes.serviceUnavailable)
     expect(result).toEqual(
       expect.stringContaining(
-        'Something went wrong | Import notification service'
+        'Something went wrong - Import notification service - GOV.UK'
       )
     )
     expect(result).toEqual(expect.stringContaining('>503</h1>'))
@@ -121,7 +124,7 @@ describe('#catchAll', () => {
   test('Should provide expected "Not Found" page', () => {
     catchAll(mockRequest(statusCodes.notFound), mockToolkit)
 
-    expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
+    expect(mockErrorLogger).not.toHaveBeenCalled()
     expect(mockToolkitView).toHaveBeenCalledWith(
       errorPage,
       expectedContext('Page not found', statusCodes.notFound)
@@ -132,7 +135,7 @@ describe('#catchAll', () => {
   test('Should provide expected "Forbidden" page', () => {
     catchAll(mockRequest(statusCodes.forbidden), mockToolkit)
 
-    expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
+    expect(mockErrorLogger).not.toHaveBeenCalled()
     expect(mockToolkitView).toHaveBeenCalledWith(
       errorPage,
       expectedContext('Forbidden', statusCodes.forbidden)
@@ -143,7 +146,7 @@ describe('#catchAll', () => {
   test('Should provide expected "Unauthorized" page', () => {
     catchAll(mockRequest(statusCodes.unauthorized), mockToolkit)
 
-    expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
+    expect(mockErrorLogger).not.toHaveBeenCalled()
     expect(mockToolkitView).toHaveBeenCalledWith(
       errorPage,
       expectedContext(
@@ -157,7 +160,7 @@ describe('#catchAll', () => {
   test('Should provide expected "Bad Request" page', () => {
     catchAll(mockRequest(statusCodes.badRequest), mockToolkit)
 
-    expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
+    expect(mockErrorLogger).not.toHaveBeenCalled()
     expect(mockToolkitView).toHaveBeenCalledWith(
       errorPage,
       expectedContext(
@@ -171,7 +174,7 @@ describe('#catchAll', () => {
   test('Should provide expected default page', () => {
     catchAll(mockRequest(statusCodes.imATeapot), mockToolkit)
 
-    expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
+    expect(mockErrorLogger).not.toHaveBeenCalled()
     expect(mockToolkitView).toHaveBeenCalledWith(
       errorPage,
       expectedContext('Something went wrong', statusCodes.imATeapot)
@@ -179,10 +182,22 @@ describe('#catchAll', () => {
     expect(mockToolkitCode).toHaveBeenCalledWith(statusCodes.imATeapot)
   })
 
-  test('Should provide expected "Something went wrong" page and log error for internalServerError', () => {
-    catchAll(mockRequest(statusCodes.internalServerError), mockToolkit)
+  test('Should provide expected "Something went wrong" page and log the error with its status and journey id for internalServerError', () => {
+    const request = {
+      ...mockRequest(statusCodes.internalServerError),
+      params: { journeyId: 'journey-1' }
+    }
 
-    expect(mockErrorLogger).toHaveBeenCalledWith(mockStack)
+    catchAll(request, mockToolkit)
+
+    expect(mockErrorLogger).toHaveBeenCalledWith(
+      {
+        err: request.response,
+        statusCode: statusCodes.internalServerError,
+        journeyId: 'journey-1'
+      },
+      'Request failed'
+    )
     expect(mockToolkitView).toHaveBeenCalledWith(
       errorPage,
       expectedContext('Something went wrong', statusCodes.internalServerError)
@@ -190,6 +205,20 @@ describe('#catchAll', () => {
     expect(mockToolkitCode).toHaveBeenCalledWith(
       statusCodes.internalServerError
     )
+  })
+
+  test('Should log a reference data outage once, with its cause and dataset on the error', () => {
+    const cause = new Error('connect ECONNREFUSED')
+    const response = referenceDataUnavailable('countries', cause)
+
+    catchAll({ response, logger: { error: mockErrorLogger } }, mockToolkit)
+
+    expect(mockErrorLogger).toHaveBeenCalledTimes(1)
+    const [[logged, message]] = mockErrorLogger.mock.calls
+    expect(message).toBe('Request failed')
+    expect(logged.statusCode).toBe(statusCodes.serviceUnavailable)
+    expect(logged.err.cause).toEqual(cause)
+    expect(logged.err.data).toEqual({ dataset: 'countries' })
   })
 
   test('Should leave non-Boom responses untouched', () => {

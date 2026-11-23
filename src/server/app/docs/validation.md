@@ -43,9 +43,18 @@ scope and `requires` rules decide whether the journey is complete. These are
 separate checks: saving an optional blank is allowed, while submit readiness still
 reflects every in-scope mandatory obligation and group invariant.
 
+"Save and return to overview" runs the same checks as "Save and continue", with no
+opt-in. A missing or invalid answer keeps the user on the page with an error for
+each and what they entered kept. The hub exit only changes where a valid save goes.
+The address-book pickers do not use `validate`: a save with nothing ticked leaves
+without a commit, whichever button posted it, and an id the book does not hold is
+still refused.
+
 [`src/server/app/flow/prerequisites.js`](../flow/prerequisites.js) adds the separate
 continue-time gate for configured fields that must be answered before later pages
-open.
+open. See "Navigation and status" in
+[`flow-and-gates.md`](flow-and-gates.md#navigation-and-status) for which pages Overview
+offers and where Save and continue lands.
 
 ## Dates and structured values
 

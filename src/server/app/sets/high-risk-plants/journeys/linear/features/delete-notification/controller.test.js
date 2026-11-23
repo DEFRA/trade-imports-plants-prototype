@@ -1,13 +1,5 @@
 import { SET_BASE, SET_ID } from '../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { pagePath } from '../../../../../../shared/paths.js'
 import {
@@ -16,12 +8,16 @@ import {
   DRAFT,
   records
 } from '../../../../../../engine/persistence/records.js'
-import { knownJourneysCookie } from '../../../../../../engine/journey.js'
-import { configureSession } from '../../../../../../engine/persistence/session.js'
-import { journeyRequest, stubH } from '../../../../../../engine/test-support.js'
+import {
+  fetchMock,
+  journeyRequest,
+  requestAsSessionHoldingNoJourney,
+  resetMocksAndConfigAfterTests,
+  stubH
+} from '../../../../../../engine/test-support.js'
 import { records as recordsStub } from '../../../../../../services/persistence/records/stub/index.js'
 import { records as realRecords } from '../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../services/persistence/session/stub.js'
+import { useStubbedHighRiskPlantsJourney } from '../../test-support.js'
 import { routes } from './controller.js'
 
 const get = routes.find((route) => route.method === 'GET').handler
@@ -30,30 +26,10 @@ const post = routes.find((route) => route.method === 'POST').handler
 const view =
   'high-risk-plants/journeys/linear/features/delete-notification/template'
 
-// The real session writes known journeys through h.request.yar, so a read later
-// in the same request sees the id currentJourney adopted. stubH's no-op state()
-// hides that, so this toolkit writes the adoption back onto the request.
-const adoptingH = (request) => ({
-  ...stubH(),
-  state: (name, value) => {
-    request.state[name] = value
-  }
-})
-
 describe('delete notification routes', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-  })
+  useStubbedHighRiskPlantsJourney()
 
-  beforeEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    records.clear()
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
+  resetMocksAndConfigAfterTests()
 
   it('Should render a journey-scoped irreversible confirmation', async () => {
     const journey = await records.create()
@@ -97,19 +73,11 @@ describe('delete notification routes', () => {
 
   it('Should refuse to disclose or delete a journey the session does not hold', async () => {
     const journey = await records.create()
-    const foreign = () =>
-      journeyRequest(journey.journeyId, {
-        state: { [knownJourneysCookie()]: [] }
-      })
-    const getRequest = foreign()
-    const postRequest = foreign()
+    const { getResponse, postResponse } =
+      await requestAsSessionHoldingNoJourney(journey.journeyId, { get, post })
 
-    expect(await get(getRequest, adoptingH(getRequest))).toEqual({
-      redirect: SET_BASE
-    })
-    expect(await post(postRequest, adoptingH(postRequest))).toEqual({
-      redirect: SET_BASE
-    })
+    expect(getResponse).toEqual({ redirect: SET_BASE })
+    expect(postResponse).toEqual({ redirect: SET_BASE })
     expect((await records.load({ journeyId: journey.journeyId })).status).toBe(
       DRAFT
     )
@@ -120,14 +88,8 @@ describe('delete notification routes', () => {
       ...recordsStub,
       softDelete: realRecords.softDelete
     })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
+    fetchMock.enableMocks()
+    fetchMock.mockResponse(async () => ({ status: 503, body: '' }))
     const journey = await records.create()
 
     const response = await post(journeyRequest(journey.journeyId), stubH())

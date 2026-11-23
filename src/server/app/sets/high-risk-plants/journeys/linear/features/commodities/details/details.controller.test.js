@@ -1,29 +1,20 @@
-import { SET_ID } from '../../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectNoRefusalLogged,
+  postHandlerOf,
+  reviewChangeLinkQuery,
+  trailQuery,
+  unavailableBackendError
 } from '../../../../../../../engine/test-support.js'
 import { makeScope } from '../../../../../../../engine/index.js'
-import { pagePath } from '../../../../../../../shared/paths.js'
+import { hubPath, pagePath } from '../../../../../../../shared/paths.js'
+import { TRAIL_START, withTrail } from '../../../../../../../shared/kit.js'
+import { HTTP_STATUS_BAD_REQUEST } from '../../../../../../../lib/http-status.js'
 import {
   COMPLETE_POTATO_CONSIGNMENT,
-  installHighRiskPlantsJourney
+  useStubbedHighRiskPlantsJourney
 } from '../../../test-support.js'
 import * as details from './details.controller.js'
 
@@ -56,25 +47,20 @@ const POTATO_LINE = {
 
 const namesOf = (context) => context.fieldViews.map((field) => field.name)
 
-const install = () => {
-  configureRecords(SET_ID, recordsStub)
-  configureSession(SET_ID, sessionStub)
-  installHighRiskPlantsJourney()
-}
-
 describe('#meta', () => {
   it('Should collect nothing — the list page owns the group', () => {
     expect(details.meta).toEqual({
       id: 'commodity-details',
       slug: 'commodities/details',
+      subPage: true,
+      maturity: 'exploring',
       collects: []
     })
   })
 })
 
 describe('GET commodities/details', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should offer only the categories the notification’s type allows', async () => {
     const result = await driveHandler(get, {
@@ -187,24 +173,35 @@ describe('GET commodities/details', () => {
     expect(result.response.redirect).toBe(pagePath(result.journeyId, LIST_SLUG))
   })
 
-  it('Should send Back to the entry question until the collection holds a line', async () => {
+  it('Should send Back to the page Save and continue was pressed on, carrying the trail beneath it, until the collection holds a line', async () => {
+    const result = await driveHandler(get, {
+      seed: { commodityType: POTATOES },
+      query: trailQuery(TRAIL_START.overview, COMMODITY_TYPE_SLUG)
+    })
+
+    expect(result.view.context.backLink).toBe(
+      withTrail(pagePath(result.journeyId, COMMODITY_TYPE_SLUG), [
+        TRAIL_START.overview
+      ])
+    )
+  })
+
+  it('Should send Back to Overview when there is no line and nothing says where the trader came from', async () => {
     const result = await driveHandler(get, {
       seed: { commodityType: POTATOES }
     })
 
-    expect(result.view.context.backLink).toBe(
-      pagePath(result.journeyId, COMMODITY_TYPE_SLUG)
-    )
+    expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
   })
 
-  it('Should send Back to the list once the collection holds a line', async () => {
+  it('Should send Back to the list, carrying the trail, once the collection holds a line', async () => {
     const result = await driveHandler(get, {
       seed: COMPLETE_POTATO_CONSIGNMENT,
-      query: { index: '0' }
+      query: { index: '0', ...trailQuery(TRAIL_START.overview) }
     })
 
     expect(result.view.context.backLink).toBe(
-      pagePath(result.journeyId, LIST_SLUG)
+      withTrail(pagePath(result.journeyId, LIST_SLUG), [TRAIL_START.overview])
     )
   })
 
@@ -215,11 +212,23 @@ describe('GET commodities/details', () => {
       pagePath(result.journeyId, COMMODITY_TYPE_SLUG)
     )
   })
+
+  it('Should send a commodity type that offers no category back to the question, carrying the trail beneath the details page', async () => {
+    const result = await driveHandler(get, {
+      seed: {},
+      query: trailQuery(TRAIL_START.overview, COMMODITY_TYPE_SLUG)
+    })
+
+    expect(result.response.redirect).toBe(
+      withTrail(pagePath(result.journeyId, COMMODITY_TYPE_SLUG), [
+        TRAIL_START.overview
+      ])
+    )
+  })
 })
 
 describe('POST commodities/details — choosing a category', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should create the line and come back for the fields it asks for', async () => {
     const result = await driveHandler(post, {
@@ -239,9 +248,10 @@ describe('POST commodities/details — choosing a category', () => {
       payload: { category: '' }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(result.view.context.errors.category).toBe(SELECT_THE_CATEGORY)
     expect(result.after).toEqual(result.before)
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should refuse a category that belongs to another commodity type', async () => {
@@ -250,10 +260,11 @@ describe('POST commodities/details — choosing a category', () => {
       payload: { category: PLANTS }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(result.view.context.errorSummary.errorList).toEqual([
       { text: SELECT_THE_CATEGORY, href: '#category' }
     ])
+    expectNoRefusalLogged(result.logger)
     expect(result.after).toEqual(result.before)
   })
 
@@ -266,8 +277,9 @@ describe('POST commodities/details — choosing a category', () => {
       payload: { index: '0', category: 'constructor' }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(result.view.context.errors.category).toBe(SELECT_THE_CATEGORY)
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should send a commodity type that offers no category back to the question', async () => {
@@ -284,8 +296,7 @@ describe('POST commodities/details — choosing a category', () => {
 })
 
 describe('POST commodities/details — saving a line', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   const seededLine = {
     seed: {
@@ -340,13 +351,14 @@ describe('POST commodities/details — saving a line', () => {
       }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(result.view.context.errors.quantity).toBe('Enter the quantity')
     expect(result.view.context.errors.potatoIntendedUse).toBe(
       'Enter the intended use'
     )
     expect(result.view.context.values.potatoVariety).toBe(MARIS_PIPER)
     expect(result.after.commodityLines).toEqual([{ category: SEED_POTATOES }])
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should refuse a quantity that is not a whole number above zero', async () => {
@@ -361,10 +373,11 @@ describe('POST commodities/details — saving a line', () => {
       }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(result.view.context.errors.quantity).toBe(
       'Enter a whole number greater than 0'
     )
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should refuse a genus the line’s category does not offer', async () => {
@@ -383,8 +396,9 @@ describe('POST commodities/details — saving a line', () => {
       }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(result.view.context.errors.genus).toBe('Select the genus')
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should store only the fields the category asks for', async () => {
@@ -441,7 +455,7 @@ describe('POST commodities/details — saving a line', () => {
       payload: { index: '0', category: '', genus: FRAXINUS }
     })
 
-    expect(result.response.statusCode).toBe(400)
+    expect(result.response.statusCode).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(namesOf(result.view.context)).toEqual([
       'genus',
       'commodityCode',
@@ -460,6 +474,7 @@ describe('POST commodities/details — saving a line', () => {
     expect(genus.items.find((item) => item.value === FRAXINUS).selected).toBe(
       true
     )
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should treat a stale index as a new line rather than write over one', async () => {
@@ -474,59 +489,27 @@ describe('POST commodities/details — saving a line', () => {
     ])
   })
 
-  it('Should carry a change context through every redirect', async () => {
+  it('Should carry the trail through every redirect', async () => {
     const result = await driveHandler(post, {
       seed: { commodityType: POTATOES },
       payload: { category: SEED_POTATOES },
-      query: { change: '1' }
+      query: reviewChangeLinkQuery()
     })
 
     expect(result.response.redirect).toMatch(
-      /\/commodities\/details\?index=0&change=1$/
+      /\/commodities\/details\?index=0&from=notification-view$/
     )
   })
 })
 
 describe('POST commodities/details — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       seed: { commodityType: POTATOES },
       payload: { category: SEED_POTATOES }
     })
@@ -538,15 +521,47 @@ describe('POST commodities/details — save failures', () => {
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
-    })
-
     await expect(
       driveHandler(post, {
+        saveFailure: new TypeError('programming failure'),
         seed: { commodityType: POTATOES },
         payload: { category: SEED_POTATOES }
       })
     ).rejects.toThrow(new TypeError('programming failure'))
   })
+})
+
+describe('POST commodities/details — saving a line from a Change link or an amendment', () => {
+  useStubbedHighRiskPlantsJourney()
+
+  it.each([
+    [
+      'a Change link',
+      { query: reviewChangeLinkQuery() },
+      '?from=notification-view'
+    ],
+    ['an amendment', { amend: true }, '']
+  ])(
+    'Should return to the list when saved from %s',
+    async (_start, start, listQuery) => {
+      const result = await driveHandler(post, {
+        ...start,
+        seed: {
+          commodityType: POTATOES,
+          commodityLines: [{ category: SEED_POTATOES }]
+        },
+        payload: {
+          index: '0',
+          category: SEED_POTATOES,
+          potatoVariety: MARIS_PIPER,
+          quantity: POTATO_QUANTITY,
+          potatoIntendedUse: PLANTING
+        }
+      })
+
+      expect(result.response.redirect).toBe(
+        `${pagePath(result.journeyId, LIST_SLUG)}${listQuery}`
+      )
+    }
+  )
 })

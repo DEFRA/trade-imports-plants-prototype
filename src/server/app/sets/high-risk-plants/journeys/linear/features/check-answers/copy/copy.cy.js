@@ -15,8 +15,9 @@ export const copy = {
 
   title: 'Gwiriwch eich atebion',
   change: 'Newid',
+  editDetails: 'Golygu manylion',
+  errorPrefix: 'Gwall:',
   cancelAmend: {
-    link: 'Canslo’r diwygiad',
     successTitle: 'Llwyddiant',
     successBody:
       'Mae’r diwygiad wedi’i ganslo a’r fersiwn a gyflwynwyd wedi’i hadfer.'
@@ -25,8 +26,20 @@ export const copy = {
   continue: 'Parhau',
   errors: {
     parties: {
-      consignor: 'Dewiswch gyfeiriad ar gyfer yr anfonwr',
-      placeOfDestination: 'Dewiswch gyfeiriad ar gyfer y man cyrchfan'
+      consignor: 'Cywirwch fanylion y cyfeiriad ar gyfer yr anfonwr',
+      placeOfDestination:
+        'Cywirwch fanylion y cyfeiriad ar gyfer y man cyrchfan',
+      contactAddress:
+        'Cywirwch fanylion y cyfeiriad cyswllt ar gyfer y llwyth hwn'
+    },
+    cards: {
+      importDetails: 'Cwblhewch y manylion mewnforio',
+      commodities: 'Cwblhewch fanylion y nwydd',
+      arrivalDetails: 'Cwblhewch y manylion cyrraedd',
+      placeOfDestination: 'Cwblhewch y man cyrchfan',
+      consignor: 'Cwblhewch yr anfonwr',
+      identificationNumbers: 'Cwblhewch y rhifau adnabod',
+      contact: 'Cwblhewch y cyswllt'
     }
   },
   submit: {
@@ -36,13 +49,13 @@ export const copy = {
   sections: {
     consignment: '1. Am y llwyth',
     arrival: '2. Cyrraedd a chyrchfan',
-    parties: '3. Partïon y llwyth'
+    addresses: '3. Cyfeiriadau'
   },
   cards: {
     import: 'Manylion mewnforio',
     commodity: 'Nwydd',
     arrival: 'Manylion cyrraedd',
-    consignor: 'Anfonwr neu allforiwr',
+    consignor: 'Anfonwr',
     identification: 'Rhifau adnabod',
     contact: 'Cyswllt'
   },
@@ -55,8 +68,6 @@ export const copy = {
     proposedPlaceOfLanding: 'Man glanio',
     name: 'Enw',
     address: 'Cyfeiriad',
-    telephoneNumber: 'Rhif ffôn',
-    emailAddress: 'Cyfeiriad e-bost',
     genus: 'Genws',
     species: 'Rhywogaeth',
     commodityCode: 'Cod nwyddau',
@@ -72,6 +83,19 @@ export const copy = {
     consignmentNumber: 'Rhif y llwyth (dewisol)'
   },
   delete: 'Dileu’r hysbysiad',
+  viewHeader: {
+    amend: 'Diwygio’r hysbysiad hwn',
+    dateCreated: (date) => `Dyddiad creu: ${date}`,
+    dateSubmitted: (date) => `Dyddiad cyflwyno: ${date}`
+  },
+  importReferences: {
+    heading: 'Cyfeirnodau mewnforio',
+    warning:
+      'Rhaid i chi ddefnyddio’r cyfeirnod a’r cod cywir ar y datganiad tollau neu bydd oedi i’ch llwyth.',
+    warningIcon: 'Rhybudd',
+    notificationReference: 'Cyfeirnod yr hysbysiad',
+    customsDocumentCode: 'Cod dogfen tollau'
+  },
   typeLabels: {
     potatoes: 'Tatws (hadyd neu fwyd)',
     'plants-for-planting': 'Planhigion i’w plannu',

@@ -4,19 +4,30 @@ The linear journey owns its topology in
 [`src/server/app/sets/high-risk-plants/journeys/linear/flow/`](../journeys/linear/flow/).
 The platform consumes that policy through `configureJourneyFlow()`.
 
-Those exports hold the start, commodity, commodityDetails, origin, arrival and
-destination sections, the `commodities`, `origin`, `arrival` and `destination`
-task rows and the opening run's six steps — everything the journey has landed so
-far.
+Those exports hold the five sections, the seven task rows and the entry guard.
+
+The journey has one page order: the order Overview lists its tasks in. Save and
+continue goes to the next page in that order that applies, and from the last page
+that applies to check your answers, however the page was reached (a new notification,
+the Overview, a reopened draft, a new browser session, a check your answers
+Change link or an amendment). The session holds no record of how a notification was
+started. When the next page that applies needs a required earlier answer that is
+missing, Save and continue goes to the page that asks for it instead. This journey's
+required earlier answers are the commodity type and where the consignment is coming
+from.
 
 ## Flow sections
 
-[`flow.js`](../journeys/linear/flow/flow.js) exports `sections`, today holding
-`start` (the dashboard), `commodity` (the commodity-type page and the
-commodities list), `commodityDetails` (the collection's entry sub-page),
-`origin` (the country-of-origin page), `arrival` (the arrival-status question,
-then the arrival details) and `destination` (the place-of-destination page). A
-flow section is a navigation sequence:
+[`flow.js`](../journeys/linear/flow/flow.js) exports `sections`, holding `start` (the
+dashboard), `about-the-consignment` (the commodity-type page, the commodities list,
+the commodity details sub-page and origin), `arrival-and-destination` (the
+arrival-status question, the arrival details and the place of destination),
+`consignment-parties` (the consignor, the identification numbers and the consignment
+contact) and `review` (check your answers, the declaration and the confirmation page).
+
+The section id `consignment-parties` is a stable id that the journey spec and the prototype share. Its caption and group heading read "Addresses".
+
+A flow section is an Overview group:
 
 ```js
 {
@@ -25,38 +36,36 @@ flow section is a navigation sequence:
 }
 ```
 
-Array order is journey order. It controls `nextInSection()` and, through the
-section's place among the other sections, the strictly-earlier continue
-prerequisites.
+Array order is the journey's page order, and the sections are Overview's groups. The
+section's place among the others gives the strictly-earlier continue prerequisites.
 
-A page reached from another page rather than by continuing past one needs a
-section of its own, which is why `commodityDetails` is separate. The
-commodities list page's Continue leaves the commodity section; the entry
-sub-page is opened from the list and sends the trader back to it. Had the two
-shared a section, `nextInSection` would send that Continue into the entry page
-instead. Its own section still gives it the commodity-type prerequisite every
-page after the entry question carries.
+A page reached only from the page that opens it is a sub-page: commodity details
+carries `subPage: true` on its page identity, so it keeps its section's status and
+prerequisites but is no step of the journey's order. It is opened from the
+commodities list and sends the trader back to it, and the list goes on to origin.
+Origin follows commodity details so a line can be added before a country is named.
+Arrival status and the consignor are out of scope for potatoes and so passed over.
 
 Normal page gates are derived from `meta.collects`, in-scope obligations and
-earlier continue prerequisites. Author a section or page `gate` only for policy
+the required earlier answers. Author a section or page `gate` only for policy
 that the derived rule cannot express. The animals journey has exactly one
 authored section gate — its `review` section requires
 `scope.readyForCheckYourAnswers` — and this journey should expect to need about
 as few.
 
-`FLOW_ONLY_KEYS` is `[]`. Add `declaration` when the declaration page lands, and
-not before: a flow-only key widens the recognised answer-key surface, and an
-unrecognised key is rejected loudly by the engine write paths rather than stored
-inert. Flow-only values use the session's flow-only store, not canonical
-obligation fulfilment.
+`FLOW_ONLY_KEYS` is `['declaration']`. A flow-only key widens the recognised
+answer-key surface, and an unrecognised key is rejected loudly by the engine write
+paths rather than stored inert. Flow-only values use the session's flow-only store,
+not canonical obligation fulfilment.
 
 ## Task rows
 
-[`task-rows.js`](../journeys/linear/flow/task-rows.js) exports `taskRows`, today
-holding the `commodities` row — the entry question, the list page and the entry
-sub-page — the `origin` row, the `arrival` row and the `destination` row. The
-commodities row spans two flow sections. A task row is a hub item and a submit-readiness unit; it is not a
-flow section. Do not call the hub entry a section in code.
+[`task-rows.js`](../journeys/linear/flow/task-rows.js) exports seven `taskRows`, in
+the order Overview lists them: `commodities` (the entry question, the list page and the
+entry sub-page), `origin`, `arrival`, `destination`, `consignor` (conditional),
+`identificationNumbers` and `contact`. A task row groups pages on Overview and is a
+submit-readiness unit; it decides nothing about where Save and continue goes. It is not
+a flow section. Do not call the hub entry a section in code.
 
 The arrival row holds the arrival-status question and the arrival details. The
 question is out of scope for potatoes, so a potato notification opens the row on
@@ -68,11 +77,16 @@ inapplicable.
 { id: '<task-row-id>', pages: [firstPage, secondPage] }
 ```
 
-Array order is journey order here too. The hub opens a row when ANY of its pages
+The hub opens a row when ANY of its pages
 is reachable and links it to the first of them whose gate passes
 (`rowGatePasses` and `rowEntry`), so the page a notification is asked first has
 to lead the row; the commodity entry sub-page is in its row because its data
 belongs to that task, not because the hub ever links there.
+
+Save and continue goes to the next page that applies in the journey's order,
+from every start: commodity type to the commodities list, the list to origin,
+arrival details to the place of destination, the consignor to identification
+numbers, and the contact address to check your answers. No task row changes that.
 
 Row status defaults to the union of each page's `collects` — that is what
 `rowParts()` computes, and `rowStatus()` feeds to `statusOf()`. `parts` narrows
@@ -83,29 +97,91 @@ Every row contributes to `readyForCheckYourAnswers`. A mandatory new row
 therefore blocks Check and submit until it is complete, so prove both the
 blocked and the complete state.
 
-The hub feature's controller places task-row ids under visible headings and
-supplies their presentation order. The hub feature and its `GROUPS` array both
-landed with the hub increment.
+The hub feature's controller derives its groups from the flow sections, in
+order, then appends the check-and-submit group.
 
-## Opening run and entry guard
+## Entry guard and the Back link
 
-[`run.js`](../journeys/linear/flow/run.js) owns the opening-run sequence. Its
-`RUN_STEPS` holds six steps, commodity-type, commodities, origin,
-arrival-status, arrival-details then place-of-destination: the opening run opens
-on the entry question, goes on to the consignment's commodities, asks where they
-come from, asks whether they have arrived, then when, and closes on where the
-consignment is going. Place-of-destination is asked of every commodity type —
-the `placeOfDestination` obligation carries no `applyTo` — and with no later step
-after it `nextRunTarget` falls through to the hub, whose GET marks the run
-complete. An unknown step id still returns `null`. The entry sub-page is not a
-step — the list page sends a trader with no lines there and takes them back. The
-arrival-status step is skipped for potatoes, whose notification is never asked
-the question: its target is `null` while the answer is out of scope, and the run
-goes straight on to arrival-details, which every commodity type answers.
+[`entry-guard.js`](../journeys/linear/flow/entry-guard.js) owns the journey's redirect
+policy before handlers run and the Import Notification Service's type question
+(`insTypeQuestionUrl`), which the gateway passes to `configureJourneyFlow()`. Its
+question is the plain What are you importing? question, because the Import Notification
+Service takes no high-risk plants notification back to it.
 
-The opening run should begin when the notification is created, from the
-dashboard's create POST — the single caller of `beginOpeningRun`. The journey
-entry page is an ordinary page otherwise, with no opening-run special case.
+Back on every journey page goes to the place the trader came from. The place travels
+on the page's links and form posts as the trail (see
+[Where Back goes](../../../docs/flow-and-gates.md#where-back-goes-the-trail)):
+
+| The trader came from                  | Back opens                                           |
+| ------------------------------------- | ---------------------------------------------------- |
+| Save and continue on another page     | That page, carrying the places beneath it            |
+| An Overview task row or review button | Overview                                             |
+| A review Change link or error link    | The review                                           |
+| A dashboard card (View or Amend)      | The dashboard                                        |
+| Start a new notification              | The dashboard, from the first page                   |
+| The Import Notification Service       | Its plain type question, from the first page         |
+| Nothing the journey knows             | Overview (the first page: see the entry guard below) |
+
+Following a Back link does not end anything: a later Save and continue goes on to the
+next page that applies, adding the page saved to the trail, so Back steps through the
+visited pages in reverse. Save and return to overview still goes to the overview. The
+commodity details page opened with no line on the consignment goes Back where the
+commodities list would go. Changing the commodity type so that lines are removed
+removes them whichever button was pressed, and opens the commodities list reporting
+the removed lines with the commodity type page on the trail. Back is the same on a draft and while amending, and a page names no fixed Back
+target and no list of earlier pages its Back may open.
+
+A check your answers Change link or error-summary link carries where check your
+answers' own Back link went, so Back from the page it opens returns to check your
+answers with that Back link unchanged.
+
+A round trip to a sub-page keeps where the trader came from, so the page that opened
+it still goes Back where it did before: commodity details from the commodities list,
+a picker's View link and a party's edit page each carry the trail out and back.
+
+This journey has no address-book exception: no page goes Back to the Overview whatever
+the trail. The live animals journey has two, after a return from the Import
+Notification Service's address book.
+
+A trail that names a place the journey does not have is ignored and logged once, and
+the page goes Back to its fallback. The fallback is the overview, except on the first
+page (the dashboard until an answer is entered, then the overview: `leaveJourneyLink` in
+`entry-guard.js`) and on the review (the overview on a draft or an amendment, the
+dashboard on a submitted notification, including the one shown after an amendment is
+cancelled). A refused Continue on the review shows the same Back link.
+
+## Back on check your answers
+
+Check your answers' Back link goes to where the trader came from, on a draft, an
+amendment and a submitted notification alike:
+
+- the last journey page, when check your answers was reached by Save and continue
+  from it
+- the Overview, when it was opened from the Overview
+- the dashboard, when it was opened from the dashboard
+
+Coming back by Back from a page a check your answers Change link or error-summary link
+opened, Back goes where it went before. After a refused Continue that shows check your
+answers again, Back goes where it went before. After an amendment is cancelled, Back
+goes to the dashboard.
+
+Check your answers reached any other way goes Back to the Overview on a draft or an
+amendment and to the dashboard on a submitted notification. The other ways are: from
+the declaration; from the confirmation page; by a typed address; in a new browser
+session; or by a link whose marker is missing or not allowed.
+
+Its buttons, Continue, the declaration and the confirmation page behave as the
+features guide describes them.
+
+## Creating a notification
+
+The dashboard's create POST and the start entry (`<set>/start`, which the Import
+Notification Service's type question opens) both create a notification through one
+helper in the dashboard controller, which redirects to the commodity-type page with the
+dashboard or the Import Notification Service as the first place on the trail. The start
+entry sits outside `/notifications/`, so the entry guard never sees it.
+
+## The entry guard
 
 [`entry-guard.js`](../journeys/linear/flow/entry-guard.js) is **live**, keyed to
 the entry page `commodity-type`, whose identity it imports from
@@ -116,34 +192,38 @@ the call — and redirects on any target it returns. The guard:
 
 - ignores anything outside `/notifications/<id>/`
 - ignores the create path
-- ignores the `amend`, `cancel-amend`, `copy` and `delete` action slugs — `copy`
-  has no route yet, and the exemption is deliberately ahead of it
+- ignores the `amend`, `cancel-amend`, `copy` and `delete` action slugs
 - ignores the entry page and its sub-paths, so there is no redirect loop
-- admits a request when the opening run has begun for that journey in this
-  session (`openingRunStarted`, true for both `RUN_ACTIVE` and `RUN_COMPLETE`),
-  or when the journey carries committed user answers
+- admits a request when the journey carries committed user answers
   (`hasCommittedNotificationAnswers`)
-- sends anything else — a deep link to an id this session never created and that
-  holds no answers — to the entry page
+- sends anything else — a deep link to an id this session never created, or a
+  draft with nothing saved, whether the request is for Overview, the review,
+  the declaration or the confirmation page — to the entry page, logging the
+  journey id and the requested path once
+- answers a request for a notification that cannot be found with the service's
+  standard page not found (404), on every page, the review included, before any
+  page runs, and sends nothing to the entry page or the notification list; an
+  exempt path's own page answers not found the same way
 
 `hasCommittedNotificationAnswers` counts only answers that resolve to a manifest
 obligation and are not `SYSTEM_POPULATED`, so a journey holding nothing but a
 flow-only key reads as fresh. The commodity-type controller imports the same
 predicate to choose its Back link.
 
-A journey the guard bounces to the entry page does not resume the opening run
-when it saves that page: `kit.nextTarget` finds `inOpeningRun` false, so
-`runTarget` is null and the user continues to the hub. That is the accepted rule
-for a returning user without run state. Only a notification created in this
-session sequences through `RUN_STEPS`.
+A journey the guard bounces to the entry page goes on from there to the
+commodities list like any other start. `leaveJourneyLink` in `entry-guard.js` is
+Overview's link as the trader may follow it: the dashboard until an answer is
+entered, once for Back and for the first page's Cancel link. The guarded prefix is
+read per request, because the set's mount prefix is only known inside a request's
+set context.
 
 ## Registration wiring
 
 This set's gateway,
 [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
 (the [`routes.js`](../../../routes.js) barrel only re-exports it), imports
-`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`,
-`entryGuardTarget` and `sectionCaptionOf` (from
+`sections`, `taskRows`, `rowStatus`, `insTypeQuestionUrl`,
+`FLOW_ONLY_KEYS`, `entryGuardTarget` and `sectionCaptionOf` (from
 [`flow/section-captions/index.js`](../journeys/linear/flow/section-captions/index.js)),
 then passes them to
 [`configureJourneyFlow()`](../../../flow/journey-flow.js), along with the
@@ -164,13 +244,13 @@ engine suite stays journey-neutral; it never imports this set.
 
 `captionSections` is data — an array of `{ id, pages }` importing page
 identities from the features — and `sectionCaptionOf(pageId)` resolves the
-section's name from the copy pair. Never a string chosen page by page. Four
-caption sections exist so far — the dashboard; About the consignment over the
-four commodity and origin pages (commodity-type, commodities,
-commodity-details, origin); Arrival over the arrival-status question and the
-arrival details; and Destination over the place-of-destination page; the
-module's doc comment names the rest the journey spec still expects, so a page
-increment knows where to file itself.
+section's name from the copy pair. Never a string chosen page by page. The
+sections are the dashboard; About the consignment over the commodity-type,
+commodities, commodity-details and origin pages; Arrival over the
+arrival-status question and the arrival details; Destination over the
+place-of-destination page; and addresses over the consignor-select
+and identification-numbers pages. The overview hub, the contact page, check
+your answers, declaration and confirmation carry no caption.
 
 `kit.base()` resolves the name for the page identity a controller passes it and
 puts it in the view as `caption`. The page template imports the macro with

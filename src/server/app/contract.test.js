@@ -5,6 +5,7 @@ import * as state from './engine/index.js'
 import { journeyRequest, stubH } from './engine/test-support.js'
 import * as checkAnswers from './sets/high-risk-plants/journeys/linear/features/check-answers/controller.js'
 const ADDRESS_ID = 'tech-imports-ltd'
+const CONSIGNOR_ADDRESS_ID = 'northgate-trading-ag'
 import * as contact from './sets/high-risk-plants/journeys/linear/features/consignment-contact-select/controller.js'
 import * as identificationNumbers from './sets/high-risk-plants/journeys/linear/features/identification-numbers/controller.js'
 import * as consignor from './sets/high-risk-plants/journeys/linear/features/consignor-select/controller.js'
@@ -121,7 +122,7 @@ const cases = [
     collects: consignor.meta.collects,
     handler: postHandlerOf(consignor),
     seed: { commodityType: PLANTS_FOR_PLANTING },
-    payload: { consignor: ADDRESS_ID }
+    payload: { consignor: CONSIGNOR_ADDRESS_ID }
   },
   {
     id: 'commodity-type',
@@ -208,12 +209,13 @@ describe('controller <-> model commit contract', () => {
 
   it('Should let Check your answers continue without committing any answers', async () => {
     expect(checkAnswers.meta.collects).toEqual([])
-    const seed = { commodityType: 'potatoes', countryOfOrigin: 'FR' }
-    const result = await driveHandler(postHandlerOf(checkAnswers), { seed })
-    expect(result.after).toEqual(seed)
+    const result = await driveHandler(postHandlerOf(checkAnswers), {
+      seed: COMPLETE_NOTIFICATION
+    })
+    expect(result.after).toEqual(COMPLETE_NOTIFICATION)
     expect(committedIds(result)).toEqual([])
     expect(result.response.redirect).toBe(
-      `${SET_BASE}/notifications/${result.journeyId}`
+      `${SET_BASE}/notifications/${result.journeyId}/declaration`
     )
   })
 

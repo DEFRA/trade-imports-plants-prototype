@@ -1,13 +1,28 @@
+import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { includeIgnoreFile } from 'eslint/config'
 import { neostandard } from 'neostandard'
 import sonarjs from 'eslint-plugin-sonarjs'
+import { codeQuality } from './eslint-rules/code-quality.js'
+
+const SETS_DIR = path.join(import.meta.dirname, 'src/server/app/sets')
+const SET_NAMES = readdirSync(SETS_DIR, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+const PLATFORM_LAYER = [
+  'analysis',
+  'bridge',
+  'engine',
+  'flow',
+  'lib',
+  'model',
+  'services',
+  'shared'
+].map((dir) => `src/server/app/${dir}/**/*.js`)
 
 import { designerRules } from './scripts/designer/eslint-rules/index.js'
 
 export default [
-  // neostandard 0.14 scopes `ignores` to its own layers, so gitignored
-  // output (.public, coverage, playwright-report) needs a global ignore
   includeIgnoreFile(path.join(import.meta.dirname, '.gitignore')),
   ...neostandard({
     env: ['node', 'vitest'],
@@ -15,7 +30,6 @@ export default [
     noStyle: true
   }),
   {
-    // page.evaluate callbacks in Playwright specs run in the browser
     files: ['**/*.fit.spec.js'],
     languageOptions: {
       globals: {
@@ -26,7 +40,6 @@ export default [
     }
   },
   {
-    // mirrors the SonarCloud quality-gate rules that have local equivalents
     files: ['src/server/**/*.js'],
     plugins: { sonarjs },
     rules: {
@@ -51,6 +64,29 @@ export default [
       'sonarjs/single-character-alternation': 'error',
       'sonarjs/super-linear-regex': 'error',
       'sonarjs/too-many-break-or-continue-in-loop': 'error'
+    }
+  },
+  {
+    files: ['src/**/*.test.js', 'src/**/*.fit.spec.js'],
+    plugins: { sonarjs },
+    rules: {
+      'sonarjs/no-empty-test-file': 'error'
+    }
+  },
+  {
+    files: ['**/*.{js,cjs,mjs}'],
+    plugins: { 'code-quality': codeQuality },
+    rules: {
+      'code-quality/no-tracking-references': 'error',
+      'code-quality/no-silent-catch': 'error',
+      'code-quality/no-message-only-error-log': 'error'
+    }
+  },
+  {
+    files: PLATFORM_LAYER,
+    ignores: ['**/*.test.js', '**/test-support.js', '**/fixtures/**'],
+    rules: {
+      'code-quality/no-set-vocabulary': ['error', { terms: SET_NAMES }]
     }
   },
   {

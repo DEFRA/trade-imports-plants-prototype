@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { leaves, isCopyLeaf } from '../../../../../../../shared/copy-leaves.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
 import { copy as en } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
 describe('section-caption copy modules', () => {
-  it.each([
-    ['en', en],
-    ['cy', cy]
-  ])('Should keep every %s leaf valid copy', (locale, copy) => {
-    for (const { path, value } of leaves(copy)) {
-      expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-    }
-  })
+  itHoldsCopyAtEveryLeaf(en, cy)
 
   it('Should name the sections the journey spec names', () => {
     expect(en.sections).toEqual({
@@ -20,7 +13,7 @@ describe('section-caption copy modules', () => {
       aboutTheConsignment: 'About the consignment',
       arrival: 'Arrival',
       destination: 'Destination',
-      consignmentParties: 'Consignment parties'
+      addresses: 'Addresses'
     })
   })
 
@@ -30,7 +23,7 @@ describe('section-caption copy modules', () => {
       aboutTheConsignment: 'Am y llwyth',
       arrival: 'Cyrraedd',
       destination: 'Cyrchfan',
-      consignmentParties: 'Partïon y llwyth'
+      addresses: 'Cyfeiriadau'
     })
   })
 })

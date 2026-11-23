@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
 import { commodityTypes } from '../../../../../services/commodities/index.js'
 import {
   PLANTS_WOOD_DAYS_AFTER_ARRIVAL,
@@ -10,17 +10,7 @@ import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
 describe('#copy', () => {
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
   it('Should label every commodity type the service offers, and no other', () => {
     expect(Object.keys(copy.typeLabels)).toEqual([...commodityTypes()])

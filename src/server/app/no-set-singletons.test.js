@@ -86,7 +86,6 @@ const callsOf = (source, name) => {
 const SEAMS = [
   'configureObligationSet',
   'configureFulfilmentRegistry',
-  'configureAnswersForRead',
   'configureReadyForCheckYourAnswers',
   'configureJourneyFlow',
   'buildDispatch',
@@ -167,8 +166,10 @@ describe('no set singletons — every gateway is keyed by its set', () => {
         `${name} registers no onPreHandler — has the entry guard moved?`
       ).toBeGreaterThan(0)
 
-      const wrapped = entryGuards.filter((argument) =>
-        argument.includes('withSetContext(SET_ID')
+      const wrapped = entryGuards.filter(
+        (argument) =>
+          argument.includes('withSetContext(SET_ID') ||
+          argument.includes('runInRequestContext(')
       )
       expect(
         wrapped.length,

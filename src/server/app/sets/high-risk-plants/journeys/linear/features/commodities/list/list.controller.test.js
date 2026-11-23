@@ -1,28 +1,26 @@
-import { SET_ID } from '../../../../../set.js'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { store } from '../../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../../services/persistence/records/stub/index.js'
-import { records as realRecords } from '../../../../../../../services/persistence/records/real/index.js'
-import { session as sessionStub } from '../../../../../../../services/persistence/session/stub.js'
 import {
   driveHandler,
-  postHandlerOf
+  expectNoRefusalLogged,
+  expectOneRefusalLogged,
+  expectOneSaveFallbackLogged,
+  postHandlerOf,
+  reviewChangeLinkQuery,
+  trailQuery,
+  unavailableBackendError
 } from '../../../../../../../engine/test-support.js'
-import { hubPath, pagePath } from '../../../../../../../shared/paths.js'
+import { pagePath } from '../../../../../../../shared/paths.js'
+import {
+  CYA_SLUG,
+  TRAIL_START,
+  withTrail
+} from '../../../../../../../shared/kit.js'
+import { originPage } from '../../origin/page.js'
 import {
   COMPLETE_POTATO_CONSIGNMENT,
-  installHighRiskPlantsJourney
+  itSendsBackToWhereTheTraderCameFrom,
+  useStubbedHighRiskPlantsJourney
 } from '../../../test-support.js'
 import * as list from './list.controller.js'
 
@@ -32,6 +30,7 @@ const post = postHandlerOf(list)
 const POTATOES = 'potatoes'
 const ADD_AT_LEAST_ONE = 'Add at least one commodity'
 const LIST_SLUG = 'commodities'
+const COMMODITY_TYPE_SLUG = 'commodity-type'
 const DETAILS_SLUG = 'commodities/details'
 
 const TWO_LINES = {
@@ -47,25 +46,19 @@ const TWO_LINES = {
   ]
 }
 
-const install = () => {
-  configureRecords(SET_ID, recordsStub)
-  configureSession(SET_ID, sessionStub)
-  installHighRiskPlantsJourney()
-}
-
 describe('#meta', () => {
   it('Should own the commodityLines group on the commodities page', () => {
     expect(list.meta).toEqual({
       id: 'commodities',
       slug: 'commodities',
+      maturity: 'exploring',
       collects: ['commodityLines']
     })
   })
 })
 
 describe('GET commodities', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should send a consignment with no line straight to the entry page', async () => {
     const result = await driveHandler(get, {
@@ -141,16 +134,27 @@ describe('GET commodities', () => {
     }
   )
 
-  it('Should send Back to the overview', async () => {
-    const result = await driveHandler(get, { seed: TWO_LINES })
+  itSendsBackToWhereTheTraderCameFrom(get, {
+    seed: TWO_LINES,
+    previousPage: COMMODITY_TYPE_SLUG
+  })
 
-    expect(result.view.context.backLink).toBe(hubPath(result.journeyId))
+  it('Should send Back to the previous page on the trail, carrying the rest of the trail', async () => {
+    const result = await driveHandler(get, {
+      seed: TWO_LINES,
+      query: trailQuery(TRAIL_START.overview, COMMODITY_TYPE_SLUG)
+    })
+
+    expect(result.view.context.backLink).toBe(
+      withTrail(pagePath(result.journeyId, COMMODITY_TYPE_SLUG), [
+        TRAIL_START.overview
+      ])
+    )
   })
 })
 
 describe('POST commodities — removing a line', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should splice out the line the button names and return to the list', async () => {
     const result = await driveHandler(post, {
@@ -170,6 +174,12 @@ describe('POST commodities — removing a line', () => {
 
     expect(result.response.statusCode).toBe(400)
     expect(result.after.commodityLines).toEqual(TWO_LINES.commodityLines)
+    expectOneRefusalLogged(result.logger, {
+      journeyId: result.journeyId,
+      errorCodes: [],
+      reason: 'remove-index-out-of-range',
+      removeAction: 'remove:7'
+    })
   })
 
   it('Should refuse a malformed index rather than splice the first line', async () => {
@@ -184,28 +194,34 @@ describe('POST commodities — removing a line', () => {
 })
 
 describe('POST commodities — continuing', () => {
-  beforeAll(install)
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
-  it('Should leave the section for the overview once a line exists', async () => {
+  it('Should go on to origin once a line exists', async () => {
     const result = await driveHandler(post, {
       seed: COMPLETE_POTATO_CONSIGNMENT,
       payload: {}
     })
 
-    expect(result.response).toEqual({ redirect: hubPath(result.journeyId) })
+    expect(result.response).toEqual({
+      redirect: withTrail(pagePath(result.journeyId, originPage.slug), [
+        LIST_SLUG
+      ])
+    })
   })
 
-  it('Should hold an empty consignment at the collection floor', async () => {
+  it('Should hold a consignment left empty by a type change at the collection floor, still reporting the removed lines', async () => {
     const result = await driveHandler(post, {
       seed: { commodityType: POTATOES },
-      payload: {}
+      payload: {},
+      query: { removed: '2', ...trailQuery(COMMODITY_TYPE_SLUG) }
     })
 
     expect(result.response.statusCode).toBe(400)
+    expect(result.view.context.removedCount).toBe(2)
     expect(result.view.context.errorSummary.errorList).toEqual([
       { text: ADD_AT_LEAST_ONE, href: '#commodityLines' }
     ])
+    expectNoRefusalLogged(result.logger)
   })
 
   it('Should commit nothing of its own', async () => {
@@ -219,60 +235,69 @@ describe('POST commodities — continuing', () => {
 })
 
 describe('POST commodities — save failures', () => {
-  beforeAll(() => {
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-
-  beforeEach(() => {
-    store.clear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable'
-      }))
-    )
-  })
-
-  afterEach(() => {
-    configureRecords(SET_ID, recordsStub)
-    vi.unstubAllGlobals()
-  })
-
-  const failingOnControllerCommit = (failure) => {
-    let replaceCalls = 0
-    configureRecords(SET_ID, {
-      ...recordsStub,
-      replaceFulfilment: (...args) => {
-        replaceCalls += 1
-        return replaceCalls === 1
-          ? recordsStub.replaceFulfilment(...args)
-          : failure(...args)
-      }
-    })
-  }
+  useStubbedHighRiskPlantsJourney()
 
   it('Should re-render a backend request failure at 500 with the banner', async () => {
-    failingOnControllerCommit(realRecords.replaceFulfilment)
+    const failure = unavailableBackendError('save answers')
 
     const result = await driveHandler(post, {
+      saveFailure: failure,
       seed: TWO_LINES,
       payload: { action: 'remove:0' }
     })
 
     expect(result.response.statusCode).toBe(500)
     expect(result.view.context.recoverableError).toBe(true)
+    expectOneSaveFallbackLogged(result.logger, {
+      journeyId: result.journeyId,
+      err: failure,
+      action: 'remove-line',
+      index: 0
+    })
   })
 
   it('Should let a programming error escape to the promoted catch-all', async () => {
-    failingOnControllerCommit(async () => {
-      throw new TypeError('programming failure')
+    await expect(
+      driveHandler(post, {
+        seed: TWO_LINES,
+        payload: { action: 'remove:0' },
+        saveFailure: new TypeError('programming failure')
+      })
+    ).rejects.toThrow(new TypeError('programming failure'))
+  })
+})
+
+describe.each([
+  ['opened from Overview', {}],
+  ['opened from a Change link', { query: reviewChangeLinkQuery() }],
+  ['while amending', { amend: true }]
+])('POST commodities — %s', (_start, start) => {
+  useStubbedHighRiskPlantsJourney()
+
+  it('Should keep the trader on the list after removing a line', async () => {
+    const result = await driveHandler(post, {
+      ...start,
+      seed: TWO_LINES,
+      payload: { action: 'remove:0' }
     })
 
-    await expect(
-      driveHandler(post, { seed: TWO_LINES, payload: { action: 'remove:0' } })
-    ).rejects.toThrow(new TypeError('programming failure'))
+    expect(result.response.redirect).toBe(
+      `${pagePath(result.journeyId, LIST_SLUG)}${start.query ? '?from=notification-view' : ''}`
+    )
+  })
+
+  it('Should go on to origin when the list is continued', async () => {
+    const result = await driveHandler(post, {
+      ...start,
+      seed: COMPLETE_POTATO_CONSIGNMENT,
+      payload: {}
+    })
+
+    expect(result.response.redirect).toBe(
+      withTrail(pagePath(result.journeyId, originPage.slug), [
+        ...(start.query ? [CYA_SLUG] : []),
+        LIST_SLUG
+      ])
+    )
   })
 })
