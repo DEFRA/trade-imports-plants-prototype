@@ -104,8 +104,8 @@ red story never stops a pull request. Say "record a walkthrough" to make one.
 The walkthroughs feed a **demo page**: short videos of the most important
 journeys first, for anyone interested in the prototype rather than the code.
 Each pull request gets a comment linking to its copy at `reports/pr-<n>/`;
-`main`'s lives at `https://defra.github.io/trade-imports-plants-prototype/`
-(once GitHub Pages is on), with the full Playwright report at `tests/`, and a service map per release at `service-map/<set>/`. Choose what leads it with
+`main`'s lives at `https://defra.github.io/trade-imports-plants-prototype/`,
+with the full Playwright report at `tests/`, and a service map per release at `service-map/<set>/`. Choose what leads it with
 `featured` and `headline` on an example — see
 [Example data](docs/designers/example-data.md#choose-what-the-demo-page-shows-first)
 and

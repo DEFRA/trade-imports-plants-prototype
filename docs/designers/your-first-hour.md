@@ -41,7 +41,7 @@ Do these once. Ask someone who has done it before if a step is new to you.
    it.
 
 4. **Node.js.** The prototype's own version is in its `.nvmrc` file (Node
-   24). If you use [nvm](https://github.com/nvm-sh/nvm), run `nvm install`
+   26.13.1). If you use [nvm](https://github.com/nvm-sh/nvm), run `nvm install`
    in `~/git/defra/trade-imports-workspace/repos/trade-imports-plants-prototype`.
 5. **Claude Code.** Install it from
    [claude.com/claude-code](https://claude.com/claude-code), sign in, and
