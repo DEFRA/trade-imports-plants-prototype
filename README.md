@@ -72,9 +72,9 @@ weekly sync pull requests.
   pull requests' reports, so `gh-pages` stays small; the root demo page and
   report are never pruned. Each run is also uploaded as the
   `prototype-playwright-report` Actions artifact (the demo page plus
-  `tests/`), so the checks are useful even before Pages is turned on.
+  `tests/`), so a run's report can still be read if publishing fails.
 
-Three things are still pending:
+Two things are still pending:
 
 - `.claude/settings.json` is still plants-frontend's copy, so it wires up
   three Sonar hook scripts `overrides.json` deletes rather than the
@@ -86,11 +86,6 @@ Three things are still pending:
   [`scripts/designer/prototype.json`](scripts/designer/prototype.json) (the
   research sheet reads it from there) and in PROTOTYPE.md, "Deploying and
   merging".
-- **Turn on GitHub Pages** for this repository: Settings, Pages, "Deploy
-  from a branch", `gh-pages`, `/ (root)`. The branch appears after the first
-  pull request or merge publishes a report. Until Pages is on, the report
-  links above resolve to nothing and the pull request comment says so, but
-  nothing fails: the Actions artifact is still there.
 
 ## Current state
 
@@ -103,7 +98,7 @@ for the registered routes and tasks, and
 for real features to follow when extending the journey.
 
 Deployed end-to-end tests for this service live in the shared tests repository
-`trade-imports-ins-tests`, as its `plants` Playwright project alongside
+`trade-imports-ins-tests`, as its `plants` domain (`tests/plants/`) alongside
 `animals`, `animals-admin` and `ins`. See
 [Cross-repo test ownership](src/server/app/docs/test-ownership.md).
 
@@ -120,7 +115,8 @@ Deployed end-to-end tests for this service live in the shared tests repository
 
 ### Node.js
 
-Node 24 or later, and npm 11.6.2 or later — the floor in `engines`.
+Node 26.13.1 or later, and npm 11.6.2 or later — the floor in `engines`.
+`.nvmrc` pins Node 26.13.1.
 
 To use the correct version of Node.js for this application, via nvm:
 
@@ -264,9 +260,9 @@ visitor gives the password first and then signs in as usual.
 ### Development image
 
 > [!TIP]
-> For Apple Silicon users, you may need to add `--platform linux/amd64` to the
-> `docker run` command to ensure compatibility, for example
-> `docker build --platform=linux/arm64 --no-cache --tag trade-imports-plants-prototype`
+> On Apple Silicon you may need to add `--platform linux/amd64` to the
+> `docker build` command, for example
+> `docker build --platform=linux/amd64 --no-cache --tag trade-imports-plants-prototype .`
 
 Build:
 
