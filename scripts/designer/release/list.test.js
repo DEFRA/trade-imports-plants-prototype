@@ -4,6 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { scaffoldSet } from '../../new-set/index.js'
 import { formatList, listReleases } from './list.js'
 import { commitAll, makeTestRepo, removeTestRepo } from './test-repo.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 let repoRoot
 

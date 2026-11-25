@@ -14,6 +14,9 @@ import { scaffoldSet } from '../../new-set/index.js'
 import { run } from './cli.js'
 import { formatDrift, releaseDrift } from './drift.js'
 import { commitAll, makeTestRepo, removeTestRepo } from './test-repo.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 const REAL = 'src/server/app/sets/high-risk-plants'
 const FEATURES = `${REAL}/journeys/linear/features`
