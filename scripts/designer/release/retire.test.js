@@ -13,6 +13,9 @@ import {
   removeTestRepo,
   statusOf
 } from './test-repo.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 const NOW = new Date('2026-09-27T10:00:00.000Z')
 const SHARED_FILES = [

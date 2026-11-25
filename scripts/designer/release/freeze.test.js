@@ -6,6 +6,9 @@ import { readReleaseRecord } from '../../new-set/release-record.js'
 import { STEP_RUNNERS } from '../check/steps.js'
 import { freezeRelease } from './freeze.js'
 import { commitAll, makeTestRepo, removeTestRepo } from './test-repo.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 const NOW = new Date('2026-09-27T10:00:00.000Z')
 

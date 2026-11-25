@@ -5,6 +5,9 @@ import { scaffoldSet } from '../../new-set/index.js'
 import { formatChanges, releaseChanges } from './changes.js'
 import { git } from './git.js'
 import { commitAll, makeTestRepo, removeTestRepo } from './test-repo.js'
+import { allowRepoScaleWork } from '../lib/test-support.js'
+
+allowRepoScaleWork()
 
 const NOW = new Date('2026-09-27T10:00:00.000Z')
 const RENAME = 'plants-working: rename Consignment parties'

@@ -3,7 +3,7 @@
 .app-plants-working-card {
   margin-bottom: govuk-spacing(6);
   border: 1px solid $govuk-border-colour;
-  background-color: govuk-colour("white");
+  background-color: govuk-functional-colour(inverse-text);
 }
 
 .app-plants-working-card--attention {
