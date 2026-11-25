@@ -13,7 +13,7 @@
   padding: govuk-spacing(2);
   overflow-x: auto;
   border: 1px solid govuk-functional-colour(border);
-  background-color: govuk-colour("white");
+  background-color: govuk-functional-colour(inverse-text);
 
   svg {
     display: block;

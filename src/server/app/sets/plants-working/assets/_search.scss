@@ -41,7 +41,7 @@
   height: 40px;
   padding: 0;
   border: 0;
-  color: govuk-colour("white");
+  color: govuk-functional-colour(inverse-text);
   background-color: $govuk-brand-colour;
   box-shadow: inset 0 (-$govuk-border-width-form-element) 0
     govuk-shade($govuk-brand-colour, 50%);
