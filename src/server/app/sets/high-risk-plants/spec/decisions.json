@@ -128,14 +128,14 @@
       },
       "ruling": "adopt",
       "resolution": "Build the user-selected arrivalStatus radios page (Yes first) for plants and wood, placed before arrival-details and place-of-destination; potatoes have no status and skip the page by the derived gate. The service never derives the status from the date, in this run or later.",
-      "rationale": "Per c-006: annex:5/reg:26(2)(a)-(b) make the branch a fact about the consignment the operator declares, and NNS-UN-036, NNS-UN-001 and NNS-UN-025 treat it as something the importer states; the day-of-arrival case is undecidable from a date. Engine: arrivalStatus is a top-level scalar with includesGate on commodityType (helpers/index.js), same frame, wipeOnExit by the evaluator; the page collects one in-scope obligation so the derived gate (flow/gates.js; skeleton derived-gates) hides it for potatoes and the opening run skips it — single-question recipe, one increment, no authored gate. The arrival-status page already exists in the spec with the right pattern (legend as heading, caption Arrival).",
+      "rationale": "Per c-006: annex:5/reg:26(2)(a)-(b) make the branch a fact about the consignment the operator declares, and NNS-UN-036, NNS-UN-001 and NNS-UN-025 treat it as something the importer states; the day-of-arrival case is undecidable from a date. Engine: arrivalStatus is a top-level scalar with includesGate on commodityType (helpers/index.js), same frame, wipeOnExit by the evaluator; the page collects one in-scope obligation so the derived gate (flow/gates.js; skeleton derived-gates) hides it for potatoes and Save and continue skips it — single-question recipe, one increment, no authored gate. The arrival-status page already exists in the spec with the right pattern (legend as heading, caption Arrival).",
       "decidedBy": "panel",
       "dissent": null,
       "escalate": false,
       "supersedes": null,
-      "supersededBy": null,
+      "supersededBy": "d-090",
       "decidedAt": "2026-09-06",
-      "status": "current"
+      "status": "superseded"
     },
     {
       "id": "d-009",
@@ -218,9 +218,9 @@
       "dissent": null,
       "escalate": false,
       "supersedes": null,
-      "supersededBy": null,
+      "supersededBy": "d-088",
       "decidedAt": "2026-09-06",
-      "status": "current"
+      "status": "superseded"
     },
     {
       "id": "d-014",
@@ -229,15 +229,15 @@
         "id": "c-026"
       },
       "ruling": "resolve",
-      "resolution": "The SI wins on scope: the consignor is required for plants for planting and for wood and cut trees only and is never asked for potatoes — the potato list traces the crop through producer and crop identification numbers instead. The shape stays the variant-of-animals address-book picker with fieldGroupRef address and reference storage { addressId } resolved on read, gated same-frame on commodityType (activatedBy includes [plants-for-planting, wood-and-cut-trees], wipeOnExit true — the includesGate shape arrivalStatus already uses), so consignor-select is skipped by the opening run and its hub row hidden for potatoes. A typed name-and-address fallback for an EU consignor not yet in the address book is parked, not built: the trader adds it in the INS address book first, as animals traders do.",
+      "resolution": "The SI wins on scope: the consignor is required for plants for planting and for wood and cut trees only and is never asked for potatoes — the potato list traces the crop through producer and crop identification numbers instead. The shape stays the variant-of-animals address-book picker with fieldGroupRef address and reference storage { addressId } resolved on read, gated same-frame on commodityType (activatedBy includes [plants-for-planting, wood-and-cut-trees], wipeOnExit true — the includesGate shape arrivalStatus already uses), so consignor-select is skipped by Save and continue and its hub row hidden for potatoes. A typed name-and-address fallback for an EU consignor not yet in the address book is parked, not built: the trader adds it in the INS address book first, as animals traders do.",
       "rationale": "Reg 26(2)(f) 'the name and address of the consignor' sits in the plants-and-wood matters; reg 24A(2) lists eight potato matters and no consignor (verified at .sources/phnns-policy.txt lines 274-321). Annex 2 and Annex 6 repeat the split, and the policy team's two restatements agree (extract.confluence-requirements consignor under h4:All other goods/li:7 with the potato list carrying none; extract.mural consignorNameAndAddress under file:data-fields/region:Other goods/item:7 only). Four concordant sources are not an oversight — potatoes are traced through the producer identification number and crop identification number (reg 24A(2)(e)-(f)), which plants and wood do not have — so reading the omission as a drafting slip is a policy answer nobody has, which standing ruling 1 parks and standing ruling 4 (the SI is the authority on WHAT is collected) forbids the panel to overrule; Article 9(7) OCR 'strictly necessary' (section:legal-basis/para:1) and NNS-UN-004/NNS-UN-010 point the same way. The gate is buildable today: activatedBy { obligation: commodityType, includes: [...] } with wipeOnExit is the same-frame shape the spec already uses on arrivalStatus (skeleton helper vocabulary: includesGate on a top-level scalar), the derived page gate hides consignor-select and the row status rules mark the row NA (hub-task-list-and-row-status). The address book is the party source the engine has: skeleton ambiguity (e) is settled by the adopted address-book-picker behaviour, animals stores { addressId } resolved on read (live-animals parties.js:12; plants services/address-book/index.js all/party), and writes belong to the INS frontend. A typed fallback is an address-form page plus a second storage shape for one party that no plants source asks for (the SI says 'name and address', not 'typed'); the 'EU consignor unlikely to be in the book' worry is an operating assumption, so it is parked with one note for the revisit: the INS address book demands a phone and email that reg 26(2)(f) does not (AddressRequest.java) — a friction animals already lives with.",
       "decidedBy": "panel",
       "dissent": null,
       "escalate": false,
       "supersedes": null,
-      "supersededBy": null,
+      "supersededBy": "d-089",
       "decidedAt": "2026-09-06",
-      "status": "current"
+      "status": "superseded"
     },
     {
       "id": "d-015",
@@ -388,9 +388,9 @@
       "dissent": null,
       "escalate": false,
       "supersedes": null,
-      "supersededBy": null,
+      "supersededBy": "d-091",
       "decidedAt": "2026-09-06",
-      "status": "current"
+      "status": "superseded"
     },
     {
       "id": "d-024",
@@ -490,9 +490,9 @@
       "dissent": null,
       "escalate": false,
       "supersedes": null,
-      "supersededBy": null,
+      "supersededBy": "d-092",
       "decidedAt": "2026-09-06",
-      "status": "current"
+      "status": "superseded"
     },
     {
       "id": "d-030",
@@ -1170,9 +1170,9 @@
       "dissent": null,
       "escalate": false,
       "supersedes": null,
-      "supersededBy": null,
+      "supersededBy": "d-087",
       "decidedAt": "2026-09-06",
-      "status": "current"
+      "status": "superseded"
     },
     {
       "id": "d-070",
@@ -1427,6 +1427,227 @@
       "supersedes": null,
       "supersededBy": null,
       "decidedAt": "2026-09-06",
+      "status": "current"
+    },
+    {
+      "id": "d-085",
+      "subject": {
+        "kind": "behaviour",
+        "id": "opening-run"
+      },
+      "ruling": "adopt",
+      "resolution": "The opening run ends on check your answers instead of the hub: Continue on consignment-contact-select goes to check your answers even when the notification is incomplete, check your answers shows the unfinished notification and names every outstanding task, and its Continue re-shows the page with those errors rather than going to the hub. Only the declaration and confirmation wait for a complete notification. Supersedes d-069's 'landing on the hub' only; d-069's grouped hub, captions and declaration stand.",
+      "rationale": "ruling:sam-2026-10-09-pm p3-002, p3-009 and p3-014 (claims 43-45: plants takes the same change as the animals journey, in the same increment) and Design Release 2.1 app/routes.js:1523-1554, where the contact address step goes to review-notification whether or not the notification is complete.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-069",
+      "supersededBy": "d-086",
+      "decidedAt": "2026-10-09",
+      "status": "superseded"
+    },
+    {
+      "id": "d-086",
+      "subject": {
+        "kind": "behaviour",
+        "id": "opening-run"
+      },
+      "ruling": "adopt",
+      "resolution": "Save and continue goes to the next page in the journey's one page order that applies, from every start. When that page needs a required earlier answer that is missing (the commodity type, the country of origin) it goes to the page that asks for it, and the page it opens is always one the Overview offers. From the last page that applies it goes to check your answers even when the notification is incomplete. Back goes to where the trader came from; the trail keeps the newest 40 places, past which the oldest drop and Back ends at the Overview. On check your answers reached with nothing saying where the trader came from, Back goes to the Overview on a draft or an amendment and to the dashboard once the notification is submitted and after a cancelled amendment.",
+      "rationale": "Owner rulings of 2026-11-06 (sam-2026-11-06, -06b, -06c) and the 2026-11-09 ruling given after the engineering review of the save-and-continue ticket: one Save and continue rule over one page order that honours the required earlier answers, and one Back rule that reads where the trader came from. Check your answers ending the journey even when incomplete follows ruling:sam-2026-10-09-pm p3-002, p3-009 and p3-014.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-085",
+      "supersededBy": null,
+      "decidedAt": "2026-11-09",
+      "status": "current"
+    },
+    {
+      "id": "d-087",
+      "subject": {
+        "kind": "conflict",
+        "id": "c-034"
+      },
+      "ruling": "resolve",
+      "resolution": "Plants has all four, mirroring animals: Save and continue over the journey's one page order ending at check your answers, a grouped govukTaskList hub with the five animals statuses whose groups come from the flow sections, section captions from a captionSections map, and a flow-only declaration page as the submit gate. The commodity-details entry sub-page is no step of the page order: its Continue returns to the commodities list page, whose Continue advances. The hub carries provisionalCopy because one of its Welsh group names is invented, and the declaration's statements may assert only what a plants source supports.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b and the save-and-continue ticket replace the earlier routing with one Save and continue rule over one page order. The panel's reasons for the grouped hub, the captions and the flow-only declaration stand: the SI prescribes what is notified, not the form, and nothing in the four collects a new matter.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-069",
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-088",
+      "subject": {
+        "kind": "conflict",
+        "id": "c-025"
+      },
+      "ruling": "resolve",
+      "resolution": "The animals shape wins outright. contactAddress (same-as-animals: flat radios over the organisation's address book, inline copy { addressId, name, address }) is the whole contact section, because the copied address block already carries telephoneNumber and emailAddress. The contactNumber and contactEmail obligations and the contact-details page do not exist; the contact task row completes on the pick alone. The plants Check your answers Contact card adds Telephone number and Email address rows read from the inline copy.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b: the contact section keeps the animals shape and the panel's reasons stand (the address-book record already carries phone and email; a second page would ask twice for data the pick holds). Save and continue passes over no page here: the contact address is the last page and goes to check your answers.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-013",
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-089",
+      "subject": {
+        "kind": "conflict",
+        "id": "c-026"
+      },
+      "ruling": "resolve",
+      "resolution": "The SI wins on scope: the consignor is required for plants for planting and for wood and cut trees only and is never asked for potatoes. The shape stays the variant-of-animals address-book picker with reference storage { addressId } resolved on read, gated same-frame on commodityType (activatedBy includes [plants-for-planting, wood-and-cut-trees], wipeOnExit true), so Save and continue passes over consignor-select for potatoes and its hub row is hidden. A typed name-and-address fallback for an EU consignor not yet in the address book is parked, not built.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b keep the consignor scope the panel set: reg 26(2)(f) lists the consignor for plants and wood only and reg 24A(2) lists none for potatoes, and the derived gate hides the page and the row. Save and continue follows the one page order and passes over a page whose scope does not apply.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-014",
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-090",
+      "subject": {
+        "kind": "behaviour",
+        "id": "consignment-status-selected-or-derived"
+      },
+      "ruling": "adopt",
+      "resolution": "Build the user-selected arrivalStatus radios page (Yes first) for plants and wood, placed before arrival-details and place-of-destination; potatoes have no status and Save and continue passes over the page by the derived gate. The service never derives the status from the date. The destination page's already-arrived copy covers the landed-but-in-transit case (reg 26(2)(b)).",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b keep the panel's ruling on arrival status: the page is user-selected, its gate is derived and not authored, and potatoes skip it. Save and continue follows the one page order.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-008",
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-091",
+      "subject": {
+        "kind": "conflict",
+        "id": "c-013"
+      },
+      "ruling": "resolve",
+      "resolution": "Wipe wins: wipeOnExit = true stays on every gated plants obligation and no answer is retained out of scope. A change of commodityType after lines exist is handled in the commodity-type page's POST, not on the list page's load: the page warns before the change when lines exist, the POST commits the type and then drops the lines whose category is not in the new type's set via reconcileEntriesAt, and redirects to the commodities list with ?removed=<n>, carrying where the trader came from, whichever save control was pressed. The list page names what was removed in a notification banner, suppresses its zero-lines redirect for that load and never writes on GET.",
+      "rationale": "The panel's reasons for wipe and for reconciling in the POST stand: no plants source asks for retention, a GET must not delete, and doing it in the POST closes the hole at the moment it opens. Owner rulings sam-2026-11-06 and the 2026-11-09 ruling given after the engineering review set where the trader goes after lines are removed: the commodities list with the removed count, whichever save control was pressed.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-023",
+      "supersededBy": null,
+      "decidedAt": "2026-11-09",
+      "status": "current"
+    },
+    {
+      "id": "d-092",
+      "subject": {
+        "kind": "behaviour",
+        "id": "commodity-type-change-reconciles-lines"
+      },
+      "ruling": "adopt",
+      "resolution": "Built as ruled in c-013: the commodity-type POST, after committing a changed commodityType, reconciles commodityLines with reconcileEntriesAt (keep lines whose category is in the new type's set, drop the rest with wipe semantics), the page warns before when lines exist, and it redirects to the commodities list with ?removed=<n> carrying where the trader came from, whichever save control was pressed. The list shows a notification banner reporting the removal, suppresses its zero-lines redirect for that load and never writes on GET. Rejected: reconcile on list-page load, three typed collections, retain and flag. A model-owned projection helper is recorded as a candidate extension.",
+      "rationale": "Keeps this behaviour in step with the c-013 ruling it was built from, which the 2026-11-09 owner ruling after the engineering review restates: the removal outcome does not depend on the save control.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": "d-029",
+      "supersededBy": null,
+      "decidedAt": "2026-11-09",
+      "status": "current"
+    },
+    {
+      "id": "d-093",
+      "subject": {
+        "kind": "behaviour",
+        "id": "back-link-rules"
+      },
+      "ruling": "adopt",
+      "resolution": "Back on every journey page and on check your answers goes to where the trader came from: the page Save and continue was pressed on, the Overview, check your answers (from a Change link or an error-summary link), the dashboard, or the Import Notification Service's type question. The place travels on the link or form and is never held in the session; the trail keeps the newest 40 places, past which the oldest drop and Back ends at the Overview. The same Back rule applies on a draft and while amending. A sub-page that returns to the page that opened it keeps that page as its Back.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b: one Back rule that reads where the trader came from replaces the fixed Back targets, and the save-and-continue ticket sets the trail.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": null,
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-094",
+      "subject": {
+        "kind": "behaviour",
+        "id": "save-and-return"
+      },
+      "ruling": "adopt",
+      "resolution": "A draft and a notification being amended show the same three controls on every hub-linked page. Save and return to overview commits the page and opens the Overview, whichever page it is pressed on.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06c: the draft controls are the same on a draft and while amending, and the save-and-continue ticket keeps Save and return to overview as the one exit to the Overview.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": null,
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-095",
+      "subject": {
+        "kind": "behaviour",
+        "id": "cya-change-round-trip"
+      },
+      "ruling": "adopt",
+      "resolution": "A Change link on check your answers opens the page that collects the answer, carrying where the trader came from. Save and continue then carries on through the journey to check your answers.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b: a Change link is a trail entry like any other link, and the save-and-continue ticket sets one Save and continue rule from every start.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": null,
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-096",
+      "subject": {
+        "kind": "behaviour",
+        "id": "collections-two-page-batch"
+      },
+      "ruling": "adopt",
+      "resolution": "The commodity collection is the two-page batch as built: the commodities list owns the group and the commodity-details entry sub-page adds or edits one line, whose Save and continue returns to the list. Where the trader came from travels through the loop.",
+      "rationale": "Owner rulings sam-2026-11-06 and -06b keep the collection loop and set the trail as the one way the loop remembers where the trader came from.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": null,
+      "supersededBy": null,
+      "decidedAt": "2026-11-06",
+      "status": "current"
+    },
+    {
+      "id": "d-097",
+      "subject": {
+        "kind": "behaviour",
+        "id": "enforced-at-continue"
+      },
+      "ruling": "adopt",
+      "resolution": "Save and continue honours the required earlier answers. When the next page that applies needs one that is missing (the commodity type, then the country of origin, in page order), Save and continue goes to the page that asks for it, and the page it opens is always one the Overview offers.",
+      "rationale": "Owner ruling of 2026-11-09 given after the engineering review of the save-and-continue ticket: Save and continue must not skip required earlier answers.",
+      "decidedBy": "sam",
+      "dissent": null,
+      "escalate": false,
+      "supersedes": null,
+      "supersededBy": null,
+      "decidedAt": "2026-11-09",
       "status": "current"
     }
   ]

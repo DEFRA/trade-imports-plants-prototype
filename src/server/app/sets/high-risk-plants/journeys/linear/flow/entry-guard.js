@@ -1,17 +1,22 @@
-import { createPath, pagePath, setBase } from '../../../../../shared/paths.js'
+import {
+  createPath,
+  dashboardPath,
+  hubPath,
+  pagePath,
+  setBase
+} from '../../../../../shared/paths.js'
 import { isAnswered } from '../../../../../lib/answered.js'
-import { get } from '../../../../../engine/read.js'
+import { get } from '../../../../../engine/index.js'
+import { notificationActionSlugs } from './notification-action-slugs.js'
 import {
   obligationByName,
   SYSTEM_POPULATED
 } from '../../../../../bridge/obligation-source.js'
 import { commodityTypePage } from '../features/commodity-type/page.js'
-import { openingRunStarted } from '../../../../../flow/run-state.js'
+import { buildInsFrontendUrl } from '../../../../../../common/helpers/ins-frontend-url.js'
 
-// A function, not a module-load constant: `request.path` now carries the Hapi
-// mount prefix, which is only known inside a request's set context.
 const journeyPrefix = () => `${setBase()}/notifications/`
-const ACTION_SLUGS = new Set(['amend', 'cancel-amend', 'copy', 'delete'])
+const ACTION_SLUGS = new Set(Object.values(notificationActionSlugs))
 
 export const guardedJourneyPath = (path) => {
   const prefix = journeyPrefix()
@@ -29,10 +34,6 @@ export const guardedJourneyPath = (path) => {
   return Boolean(journeyId) && !isEntrySurface
 }
 
-/** Only a model answer the USER entered starts a journey. System populated
- * obligations do not represent user progress, and flow-only keys such as
- * `declaration` are session state rather than canonical fulfilment, so they
- * never resolve to a manifest obligation. */
 const userEntered = (key) => {
   const obligation = obligationByName(key)
   return obligation !== undefined && !SYSTEM_POPULATED.has(key)
@@ -43,20 +44,25 @@ export const hasCommittedNotificationAnswers = (answers) =>
     ([key, value]) => userEntered(key) && isAnswered(value)
   )
 
-/** Deep-link guard: a journey with neither a run record in this session nor
- * committed user answers is sent to the entry page (see
- * sets/high-risk-plants/docs/journey-flow-and-gates.md, "Opening run and entry
- * guard"). */
+export const leaveJourneyLink = (journey, answers) =>
+  hasCommittedNotificationAnswers(answers)
+    ? hubPath(journey.journeyId)
+    : dashboardPath()
+
+export const insTypeQuestionUrl = () =>
+  buildInsFrontendUrl('/notification-type')
+
 export const entryGuardTarget = async (request, h) => {
   if (!guardedJourneyPath(request.path)) {
     return null
   }
   const { journey, answers } = await get(request, h)
-  if (await openingRunStarted(request, journey.journeyId)) {
-    return null
-  }
   if (hasCommittedNotificationAnswers(answers)) {
     return null
   }
+  request.logger.info(
+    { journeyId: journey.journeyId, path: request.path },
+    'No answer entered, sent to the first page'
+  )
   return pagePath(request.params.journeyId, commodityTypePage.slug)
 }

@@ -1,7 +1,10 @@
-import { load } from 'cheerio'
 import { describe, expect, it } from 'vitest'
 
 import { nunjucksConfig } from '../../../config/nunjucks/nunjucks.js'
+import {
+  documentOf,
+  trimmedTextOf
+} from '../../common/test-helpers/document-of.js'
 import { base, SURFACES, surfaceClass } from './kit.js'
 import { copy as sharedCopy } from './copy.en.js'
 import { SET_BASE } from '../sets/high-risk-plants/set.js'
@@ -12,8 +15,6 @@ const PHASE_BANNER = 'govuk-phase-banner'
 const BREADCRUMBS = 'govuk-breadcrumbs'
 const ADDRESS_BOOK_URL = 'http://ins.test/address-book'
 
-// `homeUrl` comes from the view model, the way kit.base() supplies it, so the
-// rendered chrome carries the set's own prefix rather than a bare `/`.
 const renderLayout = (userSession, context = {}) =>
   environment.render('shared/layout.njk', {
     pageTitle: 'Create an import notification',
@@ -24,6 +25,9 @@ const renderLayout = (userSession, context = {}) =>
     getAssetPath: (asset) => `/assets/${asset}`,
     ...context
   })
+
+const textOf = (elements) =>
+  [...elements].map((element) => element.textContent).join('')
 
 const NAVIGATION_LIST = 'govuk-service-navigation__list'
 const ACTIVE_ITEM = 'govuk-service-navigation__item--active'
@@ -36,19 +40,21 @@ describe('service navigation', () => {
     email: 'sam@example.test'
   }
 
-  it('Should offer the four Design release 1 items on a signed-in page', () => {
-    const $ = load(renderLayout(signedIn))
-    const items = $('.govuk-service-navigation__item')
-    const links = items.find('a')
+  it('Should offer dashboard, address book, manage account and log out on a signed-in page', () => {
+    const document = documentOf(renderLayout(signedIn))
+    const items = document.querySelectorAll('.govuk-service-navigation__item')
+    const links = [
+      ...document.querySelectorAll('.govuk-service-navigation__item a')
+    ]
 
     expect(items).toHaveLength(4)
-    expect(links.map((_, a) => $(a).text().trim()).get()).toEqual([
+    expect(links.map((a) => a.textContent.trim())).toEqual([
       serviceNavigation.dashboard,
       serviceNavigation.addressBook,
       serviceNavigation.manageAccount,
       serviceNavigation.logOut
     ])
-    expect(links.map((_, a) => $(a).attr('href')).get()).toEqual([
+    expect(links.map((a) => a.getAttribute('href'))).toEqual([
       SET_BASE,
       ADDRESS_BOOK_URL,
       '#',
@@ -57,26 +63,34 @@ describe('service navigation', () => {
   })
 
   it('Should point the dashboard link and the service name at the set’s own base', () => {
-    const $ = load(renderLayout(signedIn))
+    const document = documentOf(renderLayout(signedIn))
 
     expect(
-      $(`.govuk-service-navigation__item a[href="${SET_BASE}"]`)
+      document.querySelectorAll(
+        `.govuk-service-navigation__item a[href="${SET_BASE}"]`
+      )
     ).toHaveLength(1)
-    expect($('.govuk-service-navigation__service-name a').attr('href')).toBe(
-      SET_BASE
-    )
+    expect(
+      document
+        .querySelector('.govuk-service-navigation__service-name a')
+        .getAttribute('href')
+    ).toBe(SET_BASE)
   })
 
   it('Should mark the dashboard item active inside the notifications section', () => {
-    const $ = load(
+    const document = documentOf(
       renderLayout(signedIn, { activeNavigationItem: 'dashboard' })
     )
 
-    expect($('.govuk-service-navigation__item--active')).toHaveLength(1)
-    expect($('[aria-current="true"]')).toHaveLength(1)
-    expect($('.govuk-service-navigation__active-fallback').text()).toBe(
-      serviceNavigation.dashboard
-    )
+    expect(
+      document.querySelectorAll('.govuk-service-navigation__item--active')
+    ).toHaveLength(1)
+    expect(document.querySelectorAll('[aria-current="true"]')).toHaveLength(1)
+    expect(
+      textOf(
+        document.querySelectorAll('.govuk-service-navigation__active-fallback')
+      )
+    ).toBe(serviceNavigation.dashboard)
   })
 
   it('Should mark nothing active outside any navigation section', () => {
@@ -87,7 +101,7 @@ describe('service navigation', () => {
     expect(html).not.toContain('aria-current')
   })
 
-  it('Should not show the signed-in user anywhere, as Design release 1 does not', () => {
+  it('Should not show the signed-in user’s name, email or user header', () => {
     const html = renderLayout(signedIn)
 
     expect(html).not.toContain('Sam Example')
@@ -97,10 +111,11 @@ describe('service navigation', () => {
 
   it('Should carry the service name and no items when there is no user', () => {
     const html = renderLayout({ isAuthenticated: false })
+    const serviceName = documentOf(html).querySelector(
+      '.govuk-service-navigation__service-name'
+    )
 
-    expect(html).toContain(sharedCopy.layout.serviceName)
-    expect(html).not.toContain('Prototype')
-    expect(html).not.toContain('non-functional prototype')
+    expect(trimmedTextOf(serviceName)).toBe(sharedCopy.layout.serviceName)
     expect(html).not.toContain(NAVIGATION_LIST)
     expect(html).not.toContain('href="/auth/sign-out"')
     expect(html).not.toContain(serviceNavigation.logOut)
@@ -140,8 +155,50 @@ describe('alpha phase banner', () => {
   })
 })
 
+describe('journey strip', () => {
+  const status = { text: 'Amend', classes: 'govuk-tag--yellow' }
+  const cancelAmend = { href: '/x/cancel-amend', text: 'Cancel amend' }
+
+  it('Should show Cancel amend as a link beside the tag and reference while amending', () => {
+    const document = documentOf(
+      renderLayout(
+        { isAuthenticated: true },
+        { journeyStrip: { reference: 'R', status, cancelAmend } }
+      )
+    )
+    const links = document.querySelectorAll('.app-journey-strip a.govuk-link')
+
+    expect(
+      textOf(document.querySelectorAll('.app-journey-strip .govuk-tag')).trim()
+    ).toBe('Amend')
+    expect(textOf(document.querySelectorAll('.app-journey-strip'))).toContain(
+      'R'
+    )
+    expect(links).toHaveLength(1)
+    expect(links[0].textContent).toBe('Cancel amend')
+    expect(links[0].getAttribute('href')).toBe('/x/cancel-amend')
+  })
+
+  it('Should show no link in the strip without a Cancel amend control', () => {
+    const document = documentOf(
+      renderLayout(
+        { isAuthenticated: true },
+        {
+          journeyStrip: {
+            reference: 'R',
+            status: { text: 'Draft', classes: 'govuk-tag--blue' }
+          }
+        }
+      )
+    )
+
+    expect(document.querySelectorAll('.app-journey-strip')).toHaveLength(1)
+    expect(document.querySelectorAll('.app-journey-strip a')).toHaveLength(0)
+  })
+})
+
 describe('breadcrumbs', () => {
-  it('Should render no breadcrumb trail, as Design release 1 has none', () => {
+  it('Should render no breadcrumb trail', () => {
     const html = renderLayout(
       { isAuthenticated: true },
       { backLink: '/notifications' }
@@ -150,7 +207,7 @@ describe('breadcrumbs', () => {
     expect(html).not.toContain(BREADCRUMBS)
   })
 
-  it('Should ignore a breadcrumbs value a caller still passes', () => {
+  it('Should render no breadcrumb trail and none of its text when breadcrumbs are passed', () => {
     const html = renderLayout(
       { isAuthenticated: true },
       { breadcrumbs: [{ text: 'Your notifications', href: '/' }] }
@@ -198,6 +255,33 @@ describe('kit surfaces', () => {
   it('Should reject an inherited Object property as a surface name', () => {
     expect(() => surfaceClass('constructor')).toThrow(
       /Unknown surface 'constructor'/
+    )
+  })
+})
+
+describe('page title', () => {
+  const titleOf = (html) =>
+    documentOf(html).querySelector('head title').textContent
+  const { serviceName, govukSuffix, errorTitlePrefix } = sharedCopy.layout
+
+  it('Should join the page name, the service name and GOV.UK with hyphens', () => {
+    expect(titleOf(renderLayout({ isAuthenticated: true }))).toBe(
+      `Create an import notification - ${serviceName} - ${govukSuffix}`
+    )
+  })
+
+  it('Should keep the error prefix in front of the whole title', () => {
+    const html = renderLayout(
+      { isAuthenticated: true },
+      {
+        errorSummary: [
+          { text: 'Select what you are importing', href: '#commodityType' }
+        ]
+      }
+    )
+
+    expect(titleOf(html)).toBe(
+      `${errorTitlePrefix}Create an import notification - ${serviceName} - ${govukSuffix}`
     )
   })
 })

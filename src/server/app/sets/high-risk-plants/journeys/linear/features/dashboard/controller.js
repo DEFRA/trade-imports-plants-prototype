@@ -3,10 +3,11 @@ import {
   createRoutePath,
   dashboardPath,
   dashboardRoutePath,
-  hubPath,
   pagePath,
-  pageRoutePath
+  pageRoutePath,
+  startRoutePath
 } from '../../../../../../shared/paths.js'
+import { buildActor } from '../../../../../../../common/helpers/actor-helpers.js'
 import { TEMPLATES } from '../../config.js'
 import { DELETED } from '../../../../../../engine/index.js'
 import {
@@ -15,9 +16,10 @@ import {
   startJourney
 } from '../../../../../../engine/journey.js'
 import * as kit from '../../../../../../shared/kit.js'
-import { beginOpeningRun } from '../../../../../../flow/run-state.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { commodityTypePage } from '../commodity-type/page.js'
+import { notificationViewPage } from '../check-answers/page.js'
+import { notificationActionSlugs } from '../../flow/notification-action-slugs.js'
 import { dashboardPage } from './page.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
@@ -33,6 +35,9 @@ import { sortOptions } from './view-model/sort-options.js'
 const view = `${TEMPLATES}/features/dashboard/template`
 
 const copy = copyFor({ en, cy })
+
+const organisationIdOf = (request) =>
+  buildActor(request.auth?.credentials)?.organisationId
 
 const DECIMAL = 10
 
@@ -94,7 +99,8 @@ export const renderDashboard = async (request, h) => {
       ...option,
       selected: option.value === sort
     })),
-    deletionSucceeded: request.query?.deleted === '1'
+    deletionSucceeded: request.query?.deleted === '1',
+    amendRefused: request.query?.amendRefused === '1'
   })
 }
 
@@ -102,25 +108,64 @@ const listGet = async (request, h) => renderDashboard(request, h)
 
 const amendPost = async (request, h) => {
   const journey = await amendJourney(request, h, request.params.journeyId)
-  return h.redirect(journey ? hubPath(journey.journeyId) : dashboardPath())
+  if (!journey) {
+    return h.redirect(`${dashboardPath()}?amendRefused=1`)
+  }
+  request.logger.info(
+    {
+      journeyId: journey.journeyId,
+      organisationId: organisationIdOf(request)
+    },
+    'Amendment started, sent to the review page'
+  )
+  return h.redirect(
+    kit.withTrail(pagePath(journey.journeyId, notificationViewPage.slug), [
+      kit.TRAIL_START.dashboard
+    ])
+  )
 }
 
-const createPost = async (request, h) => {
+const openNewNotification = async (request, h, { entry, startPlace }) => {
   const journey = await startJourney(request, h)
-  await beginOpeningRun(request, h, journey.journeyId)
-  return h.redirect(pagePath(journey.journeyId, commodityTypePage.slug))
+  request.logger.info(
+    {
+      journeyId: journey.journeyId,
+      entry,
+      organisationId: organisationIdOf(request)
+    },
+    'New notification opened'
+  )
+  return h.redirect(
+    kit.withTrail(pagePath(journey.journeyId, commodityTypePage.slug), [
+      startPlace
+    ])
+  )
 }
+
+const createPost = async (request, h) =>
+  openNewNotification(request, h, {
+    entry: 'list-create',
+    startPlace: kit.TRAIL_START.dashboard
+  })
+
+const startGet = async (request, h) =>
+  (
+    await openNewNotification(request, h, {
+      entry: 'start',
+      startPlace: kit.TRAIL_START.ins
+    })
+  ).header('Cache-Control', 'no-store')
 
 export const routes = [
   {
     method: 'GET',
     path: dashboardRoutePath(),
-    options: kit.routeOptions,
+    options: kit.pageRouteOptions(dashboardPage),
     handler: listGet
   },
   {
     method: 'POST',
-    path: pageRoutePath('amend'),
+    path: pageRoutePath(notificationActionSlugs.amend),
     options: kit.routeOptions,
     handler: amendPost
   },
@@ -129,5 +174,11 @@ export const routes = [
     path: createRoutePath(),
     options: kit.routeOptions,
     handler: createPost
+  },
+  {
+    method: 'GET',
+    path: startRoutePath(),
+    options: kit.routeOptions,
+    handler: startGet
   }
 ]

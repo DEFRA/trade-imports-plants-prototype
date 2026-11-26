@@ -1,4 +1,5 @@
 import { pagePath } from '../../../../../../../../shared/paths.js'
+import { withTrail } from '../../../../../../../../shared/kit.js'
 import {
   pageOfObligation,
   slugOfPage
@@ -9,20 +10,25 @@ import { copy as cy } from '../../copy/copy.cy.js'
 
 const copy = copyFor({ en, cy })
 
-export const withChange = (href) => `${href}?change=1`
+export const changeHref = ({ journeyId, changeLinkTrail }, obligationId) =>
+  withTrail(
+    pagePath(journeyId, slugOfPage(pageOfObligation(obligationId))),
+    changeLinkTrail
+  )
 
-export const changeHref = (journeyId, obligationId) =>
-  withChange(pagePath(journeyId, slugOfPage(pageOfObligation(obligationId))))
-
-export const changeAction = (journeyId, obligationId, visuallyHiddenText) => ({
+export const changeAction = (
+  { journeyId, changeLinkTrail },
+  obligationId,
+  visuallyHiddenText
+) => ({
   items: [
     {
-      href: changeHref(journeyId, obligationId),
+      href: changeHref({ journeyId, changeLinkTrail }, obligationId),
       text: copy.change,
       visuallyHiddenText
     }
   ]
 })
 
-export const editableActions = (readOnly, actions) =>
+export const editableActions = ({ readOnly, actions }) =>
   readOnly ? {} : { actions }

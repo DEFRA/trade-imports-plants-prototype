@@ -1,1 +1,5 @@
-export const confirmationPage = { id: 'confirmation', slug: 'confirmation' }
+export const confirmationPage = {
+  id: 'confirmation',
+  slug: 'confirmation',
+  maturity: 'exploring'
+}

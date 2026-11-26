@@ -1,11 +1,4 @@
 // MACHINE-DRAFT Welsh — not reviewed by a translator. Do not ship user-facing without Welsh Language Standards sign-off.
-// AWAITING THE COPY PASS — the English behind these strings is provisional
-// (journey-spec.json pages[arrival-details].provisionalCopy). Two strings have
-// a source: `title` from pages[arrival-details].titleCy, and
-// `placeOfLanding.noResults`, the live-animals string for the identical English
-// (live-animals features/transport/copy/copy.cy.js) — both carried over from
-// the animals port-of-entry page. "Prydain Fawr" is the Welsh for Great
-// Britain: the proper noun is translated, so those pairs are not identical.
 export const copy = {
   title: 'Manylion cyrraedd',
   dateLabels: {
@@ -25,8 +18,9 @@ export const copy = {
   },
   placeOfLanding: {
     label: 'Man glanio arfaethedig',
-    hint: 'Lle bydd y tatws yn dod i mewn i Brydain Fawr. Dechreuwch deipio i chwilio yn ôl enw neu god y porthladd.',
-    placeholder: 'Dewiswch fan glanio',
+    hint: 'Dewiswch ble bydd y tatws yn dod i mewn i Brydain Fawr. Dechreuwch deipio i chwilio yn ôl enw neu god y porthladd neu’r maes awyr.',
+    selectText: 'Dewiswch fan glanio',
+    searchPlaceholder: 'Dewiswch fan glanio',
     noResults: 'Dim porthladdoedd wedi’u darganfod'
   },
   errors: {

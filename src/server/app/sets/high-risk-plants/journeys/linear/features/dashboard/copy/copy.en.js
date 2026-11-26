@@ -1,6 +1,3 @@
-// PROVISIONAL COPY — awaiting the copy pass. The spec marks this page
-// provisionalCopy: true, so every string here is a draft the content designer
-// has still to settle.
 export const copy = {
   title: 'Import notification service',
   body:
@@ -9,9 +6,6 @@ export const copy = {
     'from EU member states, as required by the Plant Health National ' +
     'Notification Scheme. You will answer a short set of questions about the ' +
     'consignment, then submit your notification.',
-  // The sentence renders only when the view model supplies a guidance URL.
-  // No URL exists yet, so the link text waits here for one rather than
-  // rendering a '#' href.
   guidanceLink:
     'Check whether your goods are high-risk and when you must notify (GOV.UK)',
   startButton: 'Start a new notification',
@@ -60,6 +54,10 @@ export const copy = {
     amend: 'Amend',
     resume: 'Resume',
     cancelAmend: 'Cancel amendment'
+  },
+  amendRefused: {
+    title: 'Important',
+    body: 'This notification could not be amended.'
   },
   statusLate: 'Late',
   actionHidden: (reference) => `notification ${reference}`,

@@ -34,6 +34,12 @@ describe('#toRow', () => {
     ).toBe('ZZ')
   })
 
+  it('Should name a territory of origin with its country', async () => {
+    expect(
+      (await toRow({ ...marshalledRow, originCountryCode: 'ES-CN' })).origin
+    ).toBe('Canary Islands (Spain)')
+  })
+
   it('Should leave an absent origin, consignor or arrival date empty', async () => {
     const row = await toRow({
       journeyId: '26-ABC123',

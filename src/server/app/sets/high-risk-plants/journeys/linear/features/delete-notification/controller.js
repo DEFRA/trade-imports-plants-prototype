@@ -14,22 +14,21 @@ import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { copy as en } from './copy/copy.en.js'
 import { copy as cy } from './copy/copy.cy.js'
+import { deleteNotificationPage as page } from './page.js'
 
 const view = `${TEMPLATES}/features/delete-notification/template`
 const copy = copyFor({ en, cy })
 
-const deletePath = (journeyId) => pagePath(journeyId, 'delete')
+const deletePath = (journeyId) => pagePath(journeyId, page.slug)
 const deletable = (journey) =>
   journey.status === state.DRAFT ||
   journey.status === state.SUBMITTED ||
   journey.status === state.AMEND
 
-// state.get adopts any journey id the records port can load into the caller's
-// session, which would satisfy softDeleteJourney's own isKnownJourney guard.
-// Both handlers therefore check ownership before the first read.
-const owns = (request) => isKnownJourney(request, request.params.journeyId)
+const journeyBelongsToSession = (request) =>
+  isKnownJourney(request, request.params.journeyId)
 
-const render = (h, journey, recoverableError = false) =>
+const render = (h, journey, { recoverableError = false } = {}) =>
   h.view(view, {
     ...kit.base(copy.title, {
       backLink: dashboardPath(),
@@ -43,7 +42,7 @@ const render = (h, journey, recoverableError = false) =>
   })
 
 const get = async (request, h) => {
-  if (!(await owns(request))) {
+  if (!(await journeyBelongsToSession(request))) {
     return h.redirect(dashboardPath())
   }
   const { journey } = await state.get(request, h)
@@ -51,7 +50,7 @@ const get = async (request, h) => {
 }
 
 const post = async (request, h) => {
-  if (!(await owns(request))) {
+  if (!(await journeyBelongsToSession(request))) {
     return h.redirect(dashboardPath())
   }
   const { journey } = await state.get(request, h)
@@ -60,8 +59,12 @@ const post = async (request, h) => {
   }
 
   const { failure, value: deleted } = await kit.recoverableSave(
+    request,
     () => softDeleteJourney(request, h, request.params.journeyId),
-    () => render(h, journey, true).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+    () =>
+      render(h, journey, { recoverableError: true }).code(
+        HTTP_STATUS_INTERNAL_SERVER_ERROR
+      )
   )
   if (failure) {
     return failure
@@ -75,14 +78,14 @@ const post = async (request, h) => {
 export const routes = [
   {
     method: 'GET',
-    path: pageRoutePath('delete'),
-    options: kit.routeOptions,
+    path: pageRoutePath(page.slug),
+    options: kit.pageRouteOptions(page),
     handler: get
   },
   {
     method: 'POST',
-    path: pageRoutePath('delete'),
-    options: kit.routeOptions,
+    path: pageRoutePath(page.slug),
+    options: kit.pageRouteOptions(page),
     handler: post
   }
 ]

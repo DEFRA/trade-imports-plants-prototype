@@ -1,47 +1,60 @@
+<<<<<<< HEAD
 import { isStubDataMode } from '../../../common/services/mode.js'
 import { HTTP_STATUS_BAD_REQUEST } from '../../lib/http-status.js'
+=======
+import { isStubMode } from '../../../common/services/mode.js'
+import { addressBookCountryCodesMatching } from '../countries/index.js'
+>>>>>>> upstream/main
 import * as client from './client.js'
 import { STUB_BOOK as STUB_ROWS } from './stub/index.js'
 import { withExtraParties } from '../../../prototype-data/index.js'
 const STUB_BOOK = withExtraParties(STUB_ROWS)
 
-/** Rows per page of the picker's results table (design 05-03..06). Owned here,
- * not by the pages — the address book owns its own search and pagination, and
- * the API's page size is server-owned (cv-025), so this service re-slices an
- * API page down to this size rather than asking for it. */
-export const PAGE_SIZE = 5
-
-/** Addresses have no type in the address book (D3) — the same record may be a
- * consignor on one notification and a consignee on the next. So every picker
- * searches one book, and no function here takes a role. What a picker does
- * with the record it gets back is the page's business, not the book's. */
-
-/** This service reads and never writes. The notification journey selects from
- * the organisation's book; adding, changing and removing the records in it
- * belongs to the INS frontend, which is the only writer. */
-
-const haystack = (record) =>
+const searchableTextOf = (record) =>
   [record.name, ...Object.values(record.address ?? {})]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 
-const pageOf = (records, requested) => {
-  const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE))
-  const current =
-    Number.isInteger(requested) && requested >= 1 && requested <= totalPages
-      ? requested
-      : 1
-  const from = (current - 1) * PAGE_SIZE
-  return {
-    results: records.slice(from, from + PAGE_SIZE),
-    total: records.length,
-    page: current,
-    totalPages,
-    pageSize: PAGE_SIZE
+const matchesSearch = (record, query) =>
+  searchableTextOf(record).includes(query.trim().toLowerCase())
+
+export const offeredForRole = (record, role) =>
+  !role || record.roles.length === 0 || record.roles.includes(role)
+
+const pageNumbersFrom = (first, last) =>
+  Array.from({ length: last - first + 1 }, (_, index) => first + index)
+
+const recordsFromEveryLivePage = async (orgId, query) => {
+  const PAGES_READ_AT_ONCE = 4
+  const countryCodes = await addressBookCountryCodesMatching(query)
+  const readPage = (page) =>
+    client.listAddresses(orgId, {
+      page,
+      pageSize: client.MAX_API_PAGE_SIZE,
+      query,
+      countryCodes
+    })
+  const first = await readPage(1)
+  const records = [...first.records]
+  for (
+    let batchStart = 2;
+    batchStart <= first.totalPages;
+    batchStart += PAGES_READ_AT_ONCE
+  ) {
+    const batchEnd = Math.min(
+      batchStart + PAGES_READ_AT_ONCE - 1,
+      first.totalPages
+    )
+    const batch = await Promise.all(
+      pageNumbersFrom(batchStart, batchEnd).map(readPage)
+    )
+    records.push(...batch.flatMap((found) => found.records))
   }
+  return records
 }
 
+<<<<<<< HEAD
 const searchStub = (query, requested) => {
   const term = query.trim().toLowerCase()
   return pageOf(
@@ -98,12 +111,21 @@ export const search = async (orgId, { query = '', page = 1 } = {}) => {
   return isStubDataMode()
     ? searchStub(query, requested)
     : searchReal(orgId, query, requested)
+=======
+/** The organisation's live addresses matching an optional search term (part of
+ * a name, part of an address or part of a country's name), narrowed to an
+ * optional role: a record holding that role, or holding no role at all,
+ * matches; with no role given, every matching record does. */
+export const addresses = async (orgId, { query = '', role } = {}) => {
+  const matching = isStubMode()
+    ? STUB_BOOK.filter((record) => matchesSearch(record, query))
+    : await recordsFromEveryLivePage(orgId, query)
+  return matching.filter((record) => offeredForRole(record, role))
+>>>>>>> upstream/main
 }
 
 /** One address by id. Resolves to undefined when the record does not exist for
- * this organisation; a soft-deleted record comes back with `deleted: true` so
- * callers can treat a deletion as "never entered" without mistaking an outage
- * for one. */
+ * this organisation; a soft-deleted record comes back with `deleted: true`. */
 export const party = async (orgId, id) => {
   if (isStubDataMode()) {
     return STUB_BOOK.find((record) => record.id === id)
