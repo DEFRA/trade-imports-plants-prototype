@@ -9,6 +9,7 @@ import process from 'node:process'
 const UPSTREAM_URL =
   'https://github.com/DEFRA/trade-imports-plants-frontend.git'
 const UPSTREAM_REMOTE = 'upstream'
+const PROTOTYPE_REPO = 'DEFRA/trade-imports-plants-prototype'
 
 // The sync script may be invoked from any working directory (the workflow
 // runs it from the checkout root, but nothing enforces that) - every git and
@@ -38,6 +39,7 @@ const gh = (args, options = {}) =>
   execFileSync('gh', args, {
     encoding: 'utf8',
     cwd: repoRoot,
+    env: { ...process.env, GH_REPO: PROTOTYPE_REPO },
     ...options
   }).trim()
 
@@ -153,21 +155,17 @@ export const mergedCommitLog = () =>
 export const pushBranch = (branchName) =>
   git(['push', '--set-upstream', 'origin', branchName])
 
-export const ensureLabel = (name, { color, description }) => {
-  try {
-    gh(['label', 'view', name])
-  } catch {
-    gh([
-      'label',
-      'create',
-      name,
-      '--color',
-      color,
-      '--description',
-      description
-    ])
-  }
-}
+export const ensureLabel = (name, { color, description }) =>
+  gh([
+    'label',
+    'create',
+    name,
+    '--force',
+    '--color',
+    color,
+    '--description',
+    description
+  ])
 
 export const createPullRequest = ({
   title,
