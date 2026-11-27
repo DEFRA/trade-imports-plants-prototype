@@ -30,7 +30,7 @@ const TEMPLATE_EXT = '.njk'
 // model under): a file that names its copy object something else is out of
 // reach, the same trade-off `set-isolation` and the other structural checks
 // already make for a plain-text scan.
-const COPY_REFERENCE = /\bcopy\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)/g
+const COPY_REFERENCE = /(?<![\w/-])copy\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)/g
 
 const toForwardSlashes = (relativePath) =>
   relativePath.split(path.sep).join('/')
