@@ -36,6 +36,7 @@ collide; `npm run test:fit:ci` does this for you.
 - [Set-owned services](services.md)
 - [High-risk-plants limits](limits.md)
 - [Testing the set and journey](testing.md)
+- [Copy status](copy-status.md)
 - [Lighthouse](lighthouse.md)
 
 ## Recipes
@@ -58,23 +59,21 @@ collide; `npm run test:fit:ci` does this for you.
 
 ## What the set exports, and what consumes it
 
-| File                                             | Exports                                           | Consumed by                                                 |
-| ------------------------------------------------ | ------------------------------------------------- | ----------------------------------------------------------- |
-| `obligations/index.js`                           | `obligations`, `groups`                           | `configureObligationSet`                                    |
-| `journeys/linear/config.js`                      | `TEMPLATES`, `LAYOUT`, `SESSION_COOKIE_NAMES`     | `configureJourneyFlow`, `configureSession`, set controllers |
-| `journeys/linear/features/index.js`              | `dispatchPages`, `allRoutes`                      | `buildDispatch`, `server.route`                             |
-| `journeys/linear/features/evaluation.js`         | `featureEvaluationBindings`                       | `configureFulfilmentRegistry`                               |
-| `journeys/linear/flow/flow.js`                   | `FLOW_ONLY_KEYS`, `sections`                      | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/task-rows.js`              | `taskRows`, `rowStatus`                           | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/section-captions/index.js` | `captionSections`, `sectionCaptionOf`             | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/run.js`                    | `nextRunTarget`                                   | `configureJourneyFlow`                                      |
-| `journeys/linear/flow/entry-guard.js`            | `entryGuardTarget`                                | `server.ext('onPreHandler')`                                |
-| `journeys/linear/parties/index.js`               | `REFERENCE_PARTIES`, `withoutUnresolvedPartyRefs` | `configureAnswersForRead`                                   |
+| File                                             | Exports                                       | Consumed by                                                 |
+| ------------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
+| `obligations/index.js`                           | `obligations`, `groups`                       | `configureObligationSet`                                    |
+| `journeys/linear/config.js`                      | `TEMPLATES`, `LAYOUT`, `SESSION_COOKIE_NAMES` | `configureJourneyFlow`, `configureSession`, set controllers |
+| `journeys/linear/features/index.js`              | `dispatchPages`, `allRoutes`                  | `buildDispatch`, `server.route`                             |
+| `journeys/linear/features/evaluation.js`         | `featureEvaluationBindings`                   | `configureFulfilmentRegistry`                               |
+| `journeys/linear/flow/flow.js`                   | `FLOW_ONLY_KEYS`, `sections`                  | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/task-rows.js`              | `taskRows`, `rowStatus`                       | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/section-captions/index.js` | `captionSections`, `sectionCaptionOf`         | `configureJourneyFlow`                                      |
+| `journeys/linear/flow/entry-guard.js`            | `entryGuardTarget`, `insTypeQuestionUrl`      | `server.ext('onPreHandler')`, `configureJourneyFlow`        |
 
 This set's gateway,
 [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
 (the [`routes.js`](../../../routes.js) barrel only re-exports it), is the
-composition seam that wires all ten. The unit suite installs a synthetic journey-neutral fixture
+composition seam that wires all nine. The unit suite installs a synthetic journey-neutral fixture
 from `test/fixtures/` instead — the engine must not depend on the set.
 
 ## The served surface today
@@ -87,20 +86,32 @@ sorts and paginates notifications, and starts a notification through
 Each notification has a task-list hub at `/notifications/{journeyId}`. Its
 seven task rows cover commodities, origin, arrival, destination, consignor,
 identification numbers and consignment contact. The destination, consignor
-and consignment contact pages are all the same address-book picker — a search
-box over the organisation's book, five rows a page with a radio per row, and
-paging links — sharing its shell through
-`journeys/linear/features/address-book-picker/`; the contact page differs in
-storing a copy of the record it picks and in allowing a blank save. The
-commodities feature has a list page and an entry sub-page for adding or
+and consignment contact pages share the same address-book picker shell
+through `journeys/linear/features/address-book-picker/` — a search box with a
+radio per address, eight a page, with GOV.UK pagination under the results
+where more than eight were found and an inset above them naming whichever
+address the picker holds as chosen. The destination and
+consignor pickers each ask for their own role's addresses, together with any
+address saved with no role; the consignment contact picker asks for no role,
+so it lists every address. The three pickers alike store a
+copy of the record they pick and allow a blank save, and share their results
+partial and their save rule through that directory.
+
+A stored copy keeps later address-book edits off the notification. A picker
+resolves a selection only to a record the book still holds. An empty selection
+leaves with nothing committed. An id the book no longer holds is refused with
+the party error. An address-book outage throws and is never read as a deletion.
+
+The commodities feature has a list page and an entry sub-page for adding or
 editing a line. Scope controls
 which questions apply: for example, potato notifications skip arrival status
-and go straight to arrival details.
+and go straight to arrival details, so their place of destination is always the
+pre-arrival one.
 
 The review section contains check answers, declaration and confirmation;
 readiness gates entry to it. Registered actions also support amending,
 cancelling an amendment, copying and deleting notifications. The entry guard
-redirects a notification with neither a started opening run nor committed user
+redirects a notification with no committed user
 answers to `commodity-type`, including when its hub is requested directly.
 
 [`features/index.js`](../journeys/linear/features/index.js) registers the
@@ -136,21 +147,11 @@ Build bindings with `feature`, `scalar` and `grouped` from
 `/notifications/<id>/`, the create path, the
 `amend`/`cancel-amend`/`copy`/`delete` action slugs, and the entry page
 and its sub-paths. Every other journey path — the hub included — is
-admitted only by one of two let-throughs: `openingRunStarted` for that
-journey in this session, or `hasCommittedNotificationAnswers`. Anything
-else is redirected to `commodity-type`, so a journey URL alone no longer
-reaches a mid-journey page or bypasses the opening run. See
-[Journey flow and gates](journey-flow-and-gates.md).
-
-**`configureAnswersForRead` is wired — gate closed.**
-`parties/index.js` holds the set's sanitiser, and `routes-high-risk-plants.js` passes
-`withoutUnresolvedPartyRefs` to `configureAnswersForRead`. Every answer
-in `REFERENCE_PARTIES` holds an address-book `{ addressId }` and nothing
-more, so an id the book no longer resolves — a record deleted, or one
-that never existed — drops out of the answers on every read and the
-notification treats it as never entered. Each new party that is held as
-a reference joins that list; one held as a copy of the address does not,
-because a copy cannot dangle.
+admitted only when `hasCommittedNotificationAnswers` finds an answer the user
+entered. Anything else is redirected to `commodity-type`, so a journey URL
+alone does not reach a mid-journey page, and a draft with nothing saved
+opens at its first page.
+See [Journey flow and gates](journey-flow-and-gates.md).
 
 **`sectionCaption` is wired — gate closed.**
 `flow/section-captions/index.js` holds the caption map with its

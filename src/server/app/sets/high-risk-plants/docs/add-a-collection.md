@@ -366,15 +366,18 @@ state.collectionView(
 )
 ```
 
-### Thread the change context through the loop
+### Thread the trail through the loop
 
-A collection reached from a Change link on check-your-answers carries a change
-context. Wrap every internal link and redirect — row actions, back links,
-add/remove/save round-trips — in `kit.withChangeContext(request, href)` so the
-context survives the loop. Resolve the loop's exiting Continue with
-`kit.nextTarget(request, page, scope)`, and let a hub exit win first via
-`kit.hubExitTarget(request)`. Only the exit repoints to check-your-answers;
-mid-loop actions must never bounce there early.
+A collection page carries where the trader came from, whether it was reached from a
+Change link on check-your-answers, the Overview, the dashboard or the page before it.
+Wrap every internal link and redirect (row actions, Back, add, remove and save
+round trips) in `kit.carryTrail(request, href)` so the trail survives the loop.
+Every mid-loop action keeps the trader in the loop, on the page. The loop moves on
+only from its exiting Continue, which goes to the next page in the journey's one page
+order through `kit.nextTarget(request, page, scope)`, adding the collection page to
+the trail. Save and return to overview goes to the Overview: a hub exit wins first via
+`kit.hubExitTarget(request)`. The collection page's Back link comes from the shared
+Back rule, `kit.trailBackLink(request)`.
 
 ## 5. Cap the count where the model demands it
 
@@ -438,7 +441,22 @@ declares. Add a case shaped like the matching layout:
    need no seed.
 4. Assert the handler committed exactly the declared ids.
 
-## The one hard limit
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file.
+
+The controller-test helpers are listed in [Test support](add-a-page.md#test-support), with `useStubbedJourney` as the set-up.
+
+A step that adds one instance to the collection belongs in
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js)
+once two specs need it.
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
+
+## Hard limit
 
 A member's `applyTo` gate reads values at the same identity level, or projects a
 shallower gate down onto its own instances via the projection group. It cannot

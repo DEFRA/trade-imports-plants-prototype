@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
 import { PLANTS_WOOD_DAYS_AFTER_ARRIVAL } from '../../timing-windows.js'
 import { ARRIVAL_STATUSES } from '../statuses.js'
 import { copy } from './copy.en.js'
@@ -9,17 +9,7 @@ import { copy as cy } from './copy.cy.js'
 const SENTINEL_DAYS = 9
 
 describe('#copy', () => {
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
   it('Should label every arrival status the page offers, and no other', () => {
     expect(Object.keys(copy.statusLabels)).toEqual([...ARRIVAL_STATUSES])

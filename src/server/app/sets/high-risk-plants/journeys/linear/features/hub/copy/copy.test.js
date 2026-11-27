@@ -1,22 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
-import { GROUPS } from '../controller.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
+import { sections } from '../../../flow/flow.js'
+import { taskRows } from '../../../flow/task-rows.js'
 import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
 describe('#copy', () => {
-  it('Should hold a non-empty string or copy function at every leaf', () => {
-    for (const { path, value } of leaves(copy)) {
-      expect(isCopyLeaf(value), `${path} must be copy`).toBe(true)
-    }
-  })
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
   it('Should name the four numbered groups in the design order', () => {
     expect(Object.values(copy.groups)).toEqual([
       '1. About the consignment',
       '2. Arrival and destination',
-      '3. Consignment parties',
+      '3. Addresses',
       '4. Check and submit'
     ])
   })
@@ -25,13 +22,28 @@ describe('#copy', () => {
     expect(Object.values(cy.groups)).toEqual([
       '1. Am y llwyth',
       '2. Cyrraedd a chyrchfan',
-      '3. Partïon y llwyth',
+      '3. Cyfeiriadau',
       '4. Gwirio a chyflwyno'
     ])
   })
 
   it('Should caption every group the controller renders, and no other', () => {
-    expect(Object.keys(copy.groups)).toEqual(GROUPS.map((group) => group.id))
+    const groupsWithTaskRows = sections
+      .filter(({ pages }) =>
+        taskRows.some((row) =>
+          pages.some((page) => page.id === row.pages[0].id)
+        )
+      )
+      .map(({ id }) => id)
+    expect(Object.keys(copy.groups)).toEqual([
+      ...groupsWithTaskRows,
+      'check-and-submit'
+    ])
+  })
+
+  it('Should head the task list in both locales', () => {
+    expect(copy.taskListHeading).toBe('Notification task list')
+    expect(cy.taskListHeading).toBe('Rhestr dasgau’r hysbysiad')
   })
 
   it('Should title the commodities row in both locales', () => {
@@ -49,15 +61,11 @@ describe('#copy', () => {
   })
 
   it('Should title the arrival row in both locales', () => {
-    // The animals string for the same task, and the Welsh the spec gives the
-    // arrival-details page (journey-spec.json pages[arrival-details].titleCy).
     expect(copy.rows.arrival).toEqual({ title: 'Arrival details' })
     expect(cy.rows.arrival).toEqual({ title: 'Manylion cyrraedd' })
   })
 
   it('Should title the destination row in both locales', () => {
-    // The animals string for the same party, and the Welsh the spec gives the
-    // page (journey-spec.json pages[place-of-destination].titleCy).
     expect(copy.rows.destination).toEqual({ title: 'Place of destination' })
     expect(cy.rows.destination).toEqual({ title: 'Man cyrchfan' })
   })
@@ -77,8 +85,8 @@ describe('#copy', () => {
 })
 
 it('Should title the consignor row in both locales', () => {
-  expect(copy.rows.consignor).toEqual({ title: 'Consignor or exporter' })
-  expect(cy.rows.consignor).toEqual({ title: 'Anfonwr neu allforiwr' })
+  expect(copy.rows.consignor).toEqual({ title: 'Consignor' })
+  expect(cy.rows.consignor).toEqual({ title: 'Anfonwr' })
 })
 
 it('Should title the contact row in both locales', () => {

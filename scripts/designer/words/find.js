@@ -19,6 +19,7 @@ import {
   walkFiles
 } from './repo.js'
 import { commentHits, pinnedHits, templateHits } from './scan-sources.js'
+import { readOrders } from '../release/orders.js'
 
 export const SHARED_FLAG = 'shared by every set: a real-service change'
 export const TEMPLATE_FLAG = 'should be copy'
@@ -279,26 +280,46 @@ export const pageWords = async ({ root, page, setId }) => {
     page: name,
     sets: [setInfo(root, id)],
     copy,
-    ...(name === TASK_LIST ? { groups: taskListGroups(root, id, leaves) } : {})
+    ...(name === TASK_LIST
+      ? { groups: await taskListGroups(root, id, leaves) }
+      : {})
   }
 }
 
 const HUB_CONTROLLER = 'journeys/linear/features/hub/controller.js'
 const GROUP_ENTRY = /\{\s*id:\s*'([^']+)',\s*rows:\s*\[([^\]]*)\]\s*\}/g
 
+const declaredGroups = (source) => {
+  const groupsSource = /GROUPS\s*=\s*\[([\s\S]*?)\n\]/.exec(source)?.[1]
+  return groupsSource === undefined
+    ? undefined
+    : [...groupsSource.matchAll(GROUP_ENTRY)].map(([, groupId, rows]) => ({
+        id: groupId,
+        rowIds: [...rows.matchAll(/'([^']+)'/g)].map(([, rowId]) => rowId)
+      }))
+}
+
+const groupsOfSections = async (root, setId) =>
+  (await readOrders(setId, { repoRoot: root })).groups.map((group) => ({
+    id: group.id,
+    rowIds: group.rows.map((row) => row.id)
+  }))
+
 /**
  * The task list's groups in order, each with its caption and the titles of
- * the tasks under it, read from the hub's `GROUPS` and its copy. Lets a
- * designer see whether a renamed group still fits what sits under it. Empty
- * when the release has no hub controller to read.
+ * the tasks under it, read from the hub's `GROUPS` (or, with none, the
+ * sections that hold task rows) and its copy. Lets a designer see whether a
+ * renamed group still fits what sits under it. Empty when the release has no
+ * hub controller to read.
  */
-export const taskListGroups = (root, setId, leaves) => {
+export const taskListGroups = async (root, setId, leaves) => {
   const file = path.join(setDir(root, setId), HUB_CONTROLLER)
   if (!existsSync(file)) {
     return []
   }
-  const source = readFileSync(file, 'utf8')
-  const groupsSource = /GROUPS\s*=\s*\[([\s\S]*?)\n\]/.exec(source)?.[1] ?? ''
+  const groups =
+    declaredGroups(readFileSync(file, 'utf8')) ??
+    (await groupsOfSections(root, setId))
   const hubText = (keyPath) => {
     const leaf = leaves.find(
       (candidate) =>
@@ -308,12 +329,10 @@ export const taskListGroups = (root, setId, leaves) => {
     )
     return leaf ? leafText(leaf.en) : null
   }
-  return [...groupsSource.matchAll(GROUP_ENTRY)].map(([, groupId, rows]) => ({
-    id: groupId,
-    caption: hubText(`groups.${groupId}`) ?? groupId,
-    rows: [...rows.matchAll(/'([^']+)'/g)].map(
-      ([, rowId]) => hubText(`rows.${rowId}.title`) ?? rowId
-    )
+  return groups.map(({ id, rowIds }) => ({
+    id,
+    caption: hubText(`groups.${id}`) ?? id,
+    rows: rowIds.map((rowId) => hubText(`rows.${rowId}.title`) ?? rowId)
   }))
 }
 

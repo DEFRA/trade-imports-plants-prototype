@@ -1,8 +1,5 @@
 import { isNonArrayObject } from '../../helper-internals.js'
 
-// The five implication constructors below correspond to the five categories
-// emitted by `classifyObligations`.
-
 const unindexedImplication = (obligation, applicabilityDecision) => {
   if (applicabilityDecision) {
     return applicabilityDecision

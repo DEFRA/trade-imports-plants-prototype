@@ -10,8 +10,7 @@ export const copy = {
     cannotStartYet: 'Methu dechrau eto'
   },
   // AWAITING THE COPY PASS — '2. Cyrraedd a chyrchfan' is machine-draft rather
-  // than an existing service string (journey-spec.json pages[hub].groupsCy,
-  // decisions.json d-069).
+  // than an existing service string (journey-spec.json pages[hub].groupsCy).
   groups: {
     'about-the-consignment': '1. Am y llwyth',
     'arrival-and-destination': '2. Cyrraedd a chyrchfan',

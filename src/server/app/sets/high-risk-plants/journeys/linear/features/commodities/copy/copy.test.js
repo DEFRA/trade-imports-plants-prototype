@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
+import { itHoldsCopyAtEveryLeaf } from '../../../../../../../engine/test-support.js'
 import {
   categories,
   commodityTypes,
@@ -21,14 +21,7 @@ const SENTINEL_MAX = 7
 const POTATOES_LABEL = 'Potatoes (seed or ware)'
 
 describe('#copy', () => {
-  it.each(LOCALES)(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
   it.each(LOCALES)(
     'Should label every %s category the service offers, and no other',

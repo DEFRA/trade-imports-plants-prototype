@@ -4,7 +4,7 @@ import {
   setBase
 } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
 import { startJourney } from '../../../../../../engine/journey.js'
 import { HTTP_STATUS_BAD_REQUEST } from '../../../../../../lib/http-status.js'
 import {
@@ -13,7 +13,7 @@ import {
   validate
 } from '../../../../../../lib/validate/index.js'
 import * as kit from '../../../../../../shared/kit.js'
-import { beginOpeningRun } from '../../../../../../flow/run-state.js'
+import { beginOpeningRun } from '../../flow/navigation.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import * as routing from '../../../../services/commodity-routing/index.js'
 import { LINES } from '../commodities/fields.js'

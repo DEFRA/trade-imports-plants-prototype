@@ -8,7 +8,9 @@
   {{ sectionCaption(caption) }}
   {{ govukPanel({ titleText: copy.title, html: referenceHtml }) }}
   <p class="govuk-body">{{ copy.body }}</p>
-  <p class="govuk-body">{{ copy.dateOfNotification }} {{ notificationDate }}</p>
+  {% if notificationDate %}
+    <p class="govuk-body">{{ copy.dateOfNotification }} {{ notificationDate }}</p>
+  {% endif %}
   {% if late %}
     {% set lateBody %}
       <h2 class="govuk-notification-banner__heading">{{ copy.late.heading }}</h2>

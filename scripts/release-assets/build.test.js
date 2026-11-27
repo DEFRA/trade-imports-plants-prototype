@@ -78,7 +78,6 @@ describe('a build of the real webpack config with two fixture releases', () => {
 
   it('Should keep the application bundle under its own names', () => {
     expect(manifest).toMatchObject({
-      'application.css': 'stylesheets/application.css',
       'application.js': 'javascripts/application.js',
       'stylesheets/application.scss': 'stylesheets/application.css'
     })
@@ -108,10 +107,14 @@ describe('a build of the real webpack config with two fixture releases', () => {
 
     expect(alpha).toMatch(/\.app-alpha-summary-card\s*{[^}]*font-family:/)
     expect(alpha).not.toContain('@font-face')
-    expect(builtFile('application.css')).not.toContain('@font-face')
+    expect(builtFile('stylesheets/application.scss')).not.toContain(
+      '@font-face'
+    )
   })
 
   it('Should keep release classes out of the application stylesheet', () => {
-    expect(builtFile('application.css')).not.toContain('app-alpha-')
+    expect(builtFile('stylesheets/application.scss')).not.toContain(
+      'app-alpha-'
+    )
   })
 })

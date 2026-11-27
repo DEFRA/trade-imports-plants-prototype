@@ -7,7 +7,7 @@ import {
   sectionEntry
 } from '../../../../../../flow/navigation.js'
 import { sectionGatePasses } from '../../../../../../flow/gates.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
 import {
   FULFILLED,
   IN_PROGRESS,
@@ -17,7 +17,7 @@ import {
 } from '../../../../../../bridge/status/index.js'
 import { sectionStatus } from '../../../../../../flow/section-status.js'
 import { rowStatus, taskRowById } from '../../flow/task-rows.js'
-import { completeOpeningRun } from '../../../../../../flow/run-state.js'
+import { completeOpeningRun } from '../../flow/navigation.js'
 import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { copy as en } from './copy/copy.en.js'

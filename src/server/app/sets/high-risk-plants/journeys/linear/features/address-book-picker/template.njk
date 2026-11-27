@@ -1,0 +1,47 @@
+{% from "submitted-search/macro.njk" import appSubmittedSearch %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "high-risk-plants/journeys/linear/features/address-book-picker/results.njk" import addressBookPickerResults %}
+{% from "shared/save-actions.njk" import saveActions %}
+{% from "shared/section-caption.njk" import sectionCaption %}
+{% extends "shared/layout.njk" %}
+
+{% block journeyContent %}
+  {% include "shared/error-summary.njk" %}
+
+  {{ sectionCaption(caption) }}
+  <h1 class="govuk-heading-l">{{ heading }}</h1>
+  <p class="govuk-body">{{ description }}</p>
+
+  {% include "high-risk-plants/journeys/linear/features/address-book-picker/held-copy.njk" %}
+
+  <form method="post" novalidate>
+    <input type="hidden" name="crumb" value="{{ crumb }}" />
+    <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
+    <input type="hidden" name="page" value="{{ picker.page }}" />
+    {% if picker.selected %}
+      <input type="hidden" name="selected" value="{{ picker.selected.id }}" />
+    {% endif %}
+
+    {{ appSubmittedSearch({
+      id: "q",
+      name: "q",
+      value: picker.query,
+      label: { text: pickerCopy.search.label },
+      hint: { text: pickerCopy.search.hint },
+      button: { text: pickerCopy.search.button },
+      wrapperClasses: "govuk-!-width-one-half"
+    }) }}
+
+    {% if picker.selected %}
+      {{ govukInsetText({ text: pickerCopy.selectedAddress(picker.selected.name) }) }}
+    {% endif %}
+
+    {{ addressBookPickerResults(fieldName, picker, pickerCopy) }}
+
+    {{ saveActions({
+      hubHref: hubHref,
+      primary: { text: saveActionsCopy.saveAndContinue, name: "action", value: "save" },
+      copy: saveActionsCopy
+    }) }}
+  </form>
+{% endblock %}

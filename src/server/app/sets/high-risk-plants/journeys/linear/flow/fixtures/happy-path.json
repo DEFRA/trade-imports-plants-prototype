@@ -2,7 +2,6 @@
   "warePotatoes": {
     "useCase": "Ware potatoes from Spain, notified before arrival",
     "countryName": "Spain",
-    "partyName": "Tech Imports Ltd",
     "late": false,
     "steps": [
       {
@@ -71,7 +70,6 @@
   "warePotatoesLate": {
     "useCase": "Ware potatoes from Portugal, notified after arrival",
     "countryName": "Portugal",
-    "partyName": "Tech Imports Ltd",
     "late": true,
     "steps": [
       {
@@ -140,7 +138,6 @@
   "seedPotatoes": {
     "useCase": "Seed potatoes from the Netherlands",
     "countryName": "Netherlands (the)",
-    "partyName": "Tech Imports Ltd",
     "late": false,
     "steps": [
       {
@@ -209,7 +206,6 @@
   "plantsForPlanting": {
     "useCase": "Spruce (Picea) from Germany, with species and EPPO code",
     "countryName": "Germany",
-    "partyName": "Tech Imports Ltd",
     "late": false,
     "steps": [
       {
@@ -269,7 +265,7 @@
       {
         "slug": "consignors/select",
         "fields": {
-          "consignor": "tech-imports-ltd"
+          "consignor": "northgate-trading-ag"
         }
       },
       {
@@ -289,7 +285,6 @@
   "woodWithoutBark": {
     "useCase": "Conifer wood without bark from Italy, with phytosanitary treatments",
     "countryName": "Italy",
-    "partyName": "Tech Imports Ltd",
     "late": false,
     "steps": [
       {
@@ -347,7 +342,7 @@
       {
         "slug": "consignors/select",
         "fields": {
-          "consignor": "tech-imports-ltd"
+          "consignor": "northgate-trading-ag"
         }
       },
       {

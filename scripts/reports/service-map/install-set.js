@@ -19,6 +19,7 @@ import { pathToFileURL } from 'node:url'
 
 import { REPO_ROOT } from '../../designer/lib/repo.js'
 import { SETS_DIR } from '../../designer/lib/sets.js'
+import { sectionGroups } from '../../designer/release/orders.js'
 
 export const JOURNEY = 'journeys/linear'
 const APP_DIR = 'src/server/app'
@@ -76,9 +77,64 @@ const requiredFile = async (file, { setId, setDir, what }) => {
   return importFile(file)
 }
 
-const noRunTarget = () => null
 const noGuard = async () => null
 const notStarted = () => 'notStarted'
+const REVIEW_SLUG = 'notification-view'
+
+const inTaskRow = (taskRows, page) =>
+  taskRows.some((row) => row.pages.some((rowPage) => rowPage.id === page.id))
+
+const journeyStepsOf = (platform, sections, taskRows) =>
+  sections
+    .flatMap((section) => section.pages)
+    .filter((page) => !page.subPage && inTaskRow(taskRows, page))
+    .map((page) => ({
+      id: page.id,
+      target: (scope, journeyId) =>
+        platform.gates.pageGatePasses(page, scope)
+          ? platform.paths.pagePath(journeyId, page.slug)
+          : null
+    }))
+
+const nextStepTarget = (platform) => (pageId, scope, journeyId) =>
+  platform.navigation.nextStepLanding(pageId, scope, journeyId)?.path ??
+  platform.paths.pagePath(journeyId, REVIEW_SLUG)
+
+const taskRowPageTarget = ({ platform, sections, taskRows, nextInSection }) => {
+  const taskRowPageIds = new Set(
+    sections
+      .flatMap((section) => section.pages)
+      .filter((page) => inTaskRow(taskRows, page))
+      .map((page) => page.id)
+  )
+  const nextStep = nextStepTarget(platform)
+  return (pageId, scope, journeyId) =>
+    taskRowPageIds.has(pageId)
+      ? nextStep(pageId, scope, journeyId)
+      : nextInSection(pageId, scope, journeyId)
+}
+
+const saveTargetsOf = async ({ platform, run, root, sections, taskRows }) => {
+  const { nextInSection } = await importFile(
+    path.join(root, 'src/server/prototype-support/release-journey.js')
+  )
+  return run
+    ? {
+        runSteps: run.RUN_STEPS ?? [],
+        firstPassTarget: run.nextRunTarget,
+        continueTarget: nextInSection
+      }
+    : {
+        runSteps: journeyStepsOf(platform, sections, taskRows),
+        firstPassTarget: nextStepTarget(platform),
+        continueTarget: taskRowPageTarget({
+          platform,
+          sections,
+          taskRows,
+          nextInSection
+        })
+      }
+}
 
 /**
  * Installs `setId` and returns what the map reads: its flow, task rows,
@@ -112,7 +168,7 @@ export const installSet = async (setId, { root = REPO_ROOT } = {}) => {
   )
   const flow = await need(`${JOURNEY}/flow/flow.js`, 'flow')
   const rows = (await optional('flow/task-rows.js')) ?? flow
-  const run = (await optional('flow/run.js')) ?? flow
+  const run = await optional('flow/run.js')
   const guard = (await optional('flow/entry-guard.js')) ?? flow
   const captions = await optional('flow/section-captions/index.js')
   const hub = await optional('features/hub/controller.js')
@@ -133,7 +189,6 @@ export const installSet = async (setId, { root = REPO_ROOT } = {}) => {
     sections: flow.sections,
     taskRows: rows.taskRows ?? [],
     rowStatus: rows.rowStatus ?? notStarted,
-    nextRunTarget: run.nextRunTarget ?? noRunTarget,
     flowOnlyKeys: flow.FLOW_ONLY_KEYS ?? [],
     entryGuardTarget: guard.entryGuardTarget ?? noGuard,
     sectionCaption: captions?.sectionCaptionOf,
@@ -150,8 +205,15 @@ export const installSet = async (setId, { root = REPO_ROOT } = {}) => {
     platform,
     sections: flow.sections ?? [],
     taskRows: rows.taskRows ?? [],
-    runSteps: run.RUN_STEPS ?? [],
-    groups: hub?.GROUPS ?? [],
+    ...(await saveTargetsOf({
+      platform,
+      run,
+      root,
+      sections: flow.sections ?? [],
+      taskRows: rows.taskRows ?? []
+    })),
+    groups:
+      hub?.GROUPS ?? sectionGroups(flow.sections ?? [], rows.taskRows ?? []),
     allRoutes: features.allRoutes ?? [],
     within: (fn) => platform.setContext.withSetContext(SET_ID, fn)
   }

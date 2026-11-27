@@ -3,7 +3,7 @@ import {
   pagePath,
   pageRoutePath
 } from '../../../../../../shared/paths.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
 import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { TEMPLATES } from '../../config.js'
@@ -39,7 +39,7 @@ const get = async (request, h) => {
     reference: journey.journeyId,
     notificationDate: dateText(journey.submittedAt),
     // The stored value committed at first finalise, never recomputed here
-    // from submittedAt (c-030).
+    // from submittedAt.
     late: answers.lateNotificationIndicator === 'late',
     lateRule:
       answers.commodityType === 'potatoes'

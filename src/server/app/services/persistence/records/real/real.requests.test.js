@@ -12,14 +12,13 @@ import {
 } from '../fulfilment-codec/index.js'
 import { fulfilmentToNotification } from '../mapper.js'
 import { isRecoverableBackendError } from '../errors.js'
+import { enterOrganisationIdForTests } from '../../../../../common/helpers/organisation-id.js'
+import { logger } from './http/get-fulfilment.js'
 import { mapStatus, records } from './index.js'
 
 const fetchMocker = createFetchMock(vi)
 fetchMocker.enableMocks()
 
-// The adapter is manifest-agnostic — it moves an opaque fulfilment map over
-// HTTP — so the payloads here are literal maps keyed by obligation UUID
-// rather than assembled from a journey's answers.
 const SCALAR_FIELD_ID = '40a5f607-1829-4c3d-8abc-06d7e8f9a0b2'
 const ITEM_COUNT_ID = '41f60718-192a-4d4e-8bcd-17e8f9a0b1c3'
 
@@ -62,6 +61,7 @@ const jsonOf = (request) => request.clone().json()
 describe('real records adapter — canonical fulfilment boundary', () => {
   beforeEach(() => {
     fetchMocker.resetMocks()
+    enterOrganisationIdForTests('5900001')
   })
 
   it('Should map every backend lifecycle status and reject contract drift', () => {
@@ -150,26 +150,55 @@ describe('real records adapter — canonical fulfilment boundary', () => {
     expect(request.url).toBe(`${notificationsUrl}/${journeyId}/fulfilments`)
     expect(request.method).toBe('GET')
     expect(loaded.fulfilment).toEqual(decodePersistedFulfilment(encoded))
-    // Load path fires exactly one request — the fulfilments GET — and no other
-    // notifications endpoints (writes, list, transitions, etc.).
     expect(fetchMocker.requests()).toHaveLength(1)
   })
 
-  it('Should return undefined when the fulfilment GET returns 404', async () => {
+  it.each([
+    [404, 'Not Found'],
+    [403, 'Forbidden']
+  ])(
+    'Should return undefined when the fulfilment GET returns %s',
+    async (status) => {
+      fetchMocker.mockResponse('Refused', { status })
+
+      const loaded = await records.load({ journeyId })
+
+      const [request] = fetchMocker.requests()
+      expect(request.url).toBe(`${notificationsUrl}/${journeyId}/fulfilments`)
+      expect(request.method).toBe('GET')
+      expect(loaded).toBeUndefined()
+    }
+  )
+
+  it('Should log the reference and organisation when the fulfilment GET returns 403', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
+    fetchMocker.mockResponse('Forbidden', { status: 403 })
+
+    const loaded = await records.load({ journeyId })
+
+    expect(loaded).toBeUndefined()
+    expect(warn).toHaveBeenCalledWith(
+      'Backend refused fulfilment read for notification REFERENCE-0001, organisation 5900001'
+    )
+    warn.mockRestore()
+  })
+
+  it('Should not log when the fulfilment GET returns 404', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
     fetchMocker.mockResponse('Not Found', { status: 404 })
 
     const loaded = await records.load({ journeyId })
 
-    const [request] = fetchMocker.requests()
-    expect(request.url).toBe(`${notificationsUrl}/${journeyId}/fulfilments`)
-    expect(request.method).toBe('GET')
     expect(loaded).toBeUndefined()
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
   })
 })
 
 describe('real records adapter — fulfilment writes', () => {
   beforeEach(() => {
     fetchMocker.resetMocks()
+    enterOrganisationIdForTests('5900001')
   })
 
   it('Should PUT the notification in a single call carrying both notification-shape fields and the fulfilments payload', async () => {
@@ -258,6 +287,7 @@ describe('real records adapter — fulfilment writes', () => {
 describe('real records adapter — lifecycle and list', () => {
   beforeEach(() => {
     fetchMocker.resetMocks()
+    enterOrganisationIdForTests('5900001')
   })
 
   it('Should POST every lifecycle transition to the notifications endpoint', async () => {
@@ -377,8 +407,7 @@ describe('real records adapter — lifecycle and list', () => {
     await records.list({
       page: 1,
       sort: 'createdAt,asc',
-      referenceNumber: journeyId,
-      organisationId: '5900002'
+      referenceNumber: journeyId
     })
 
     const [request] = fetchMocker.requests()
@@ -401,7 +430,7 @@ describe('real records adapter — lifecycle and list', () => {
       })
     )
 
-    const listed = await records.list({ page: 1, organisationId: '5900002' })
+    const listed = await records.list({ page: 1 })
 
     expect(listed.rows[0]).toMatchObject({
       journeyId,
@@ -409,26 +438,5 @@ describe('real records adapter — lifecycle and list', () => {
       createdAt,
       submittedAt: submittedTimestamp
     })
-  })
-
-  it("Should not send the reader's organisation to the backend", async () => {
-    // The backend stores parties as they are and hands them back the same way.
-    // The organisation is the address book's business, and the address book is
-    // called from here — sending it on the notifications read would be handing
-    // the backend an identity it has nothing to do with.
-    fetchMocker.mockResponse(
-      JSON.stringify({
-        page: 1,
-        size: 20,
-        totalElements: 0,
-        totalPages: 0,
-        content: []
-      })
-    )
-
-    await records.list({ page: 1, organisationId: '5900002' })
-
-    const [request] = fetchMocker.requests()
-    expect(request.headers.get('Trade-Imports-Organisation-Id')).toBeNull()
   })
 })

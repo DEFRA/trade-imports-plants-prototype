@@ -1,85 +1,25 @@
-import { SET_ID } from '../../../../../set.js'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
-import { installHighRiskPlantsJourney } from '../../../test-support.js'
-import { store } from '../../../../../../../engine/store.js'
-import { configureRecords } from '../../../../../../../engine/persistence/records.js'
-import { configureSession } from '../../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../../services/persistence/records/stub/index.js'
-import { session as sessionStub } from '../../../../../../../services/persistence/session/stub.js'
-import { driveHandler } from '../../../../../../../engine/test-support.js'
+import { useStubbedHighRiskPlantsJourney } from '../../../test-support.js'
+import {
+  driveHandler,
+  itHoldsCopyAtEveryLeaf
+} from '../../../../../../../engine/test-support.js'
 import * as contact from '../controller.js'
 import { copy } from './copy.en.js'
 import { copy as cy } from './copy.cy.js'
 
-const SENTINEL_ROWS_SHOWN = 5
-const SENTINEL_ROWS_FOUND = 13
-
 describe('#copy', () => {
-  it.each([
-    ['en', copy],
-    ['cy', cy]
-  ])(
-    'Should hold a non-empty string or copy function at every %s leaf',
-    (locale, bundle) => {
-      for (const { path, value } of leaves(bundle)) {
-        expect(isCopyLeaf(value), `${locale}: ${path} must be copy`).toBe(true)
-      }
-    }
-  )
+  itHoldsCopyAtEveryLeaf(copy, cy)
 
-  it('Should carry the contact question and the copying sentence in both languages', () => {
+  it('Should carry the contact question and the intro sentence in both languages', () => {
     expect(copy.title).toBe('Contact address for consignment')
     expect(cy.title).toBe('Cyfeiriad cyswllt ar gyfer y llwyth')
     expect(copy.description).toBe(
-      'Selecting a contact copies their name and address into this notification.'
+      'This is the contact address of the person responsible for the consignment from when it enters Great Britain until authorities complete their checks.'
     )
     expect(cy.description).toBe(
-      "Mae dewis cyswllt yn copïo eu henw a'u cyfeiriad i'r hysbysiad hwn."
-    )
-  })
-
-  it('Should carry the picker chrome the sibling party pickers use', () => {
-    expect(copy.search).toEqual({
-      label: 'Search',
-      hint: 'Name, address or country',
-      button: 'Search'
-    })
-    expect(copy.table).toEqual({
-      selectHidden: 'Select',
-      name: 'Name',
-      address: 'Address',
-      country: 'Country',
-      actionsHidden: 'Actions'
-    })
-    expect(copy.selectedAddressPrefix).toBe('Selected address:')
-    expect(copy.noMatches).toBe('No addresses match your search.')
-  })
-
-  it('Should carry the Welsh picker chrome the sibling party pickers use', () => {
-    // The English is byte-identical to the consignor picker's, so the Welsh has
-    // to be its Welsh — copy-parity.test.js only proves cy differs from en.
-    expect(cy.search.button).toBe('Chwilio')
-    expect(cy.noMatches).toBe(
-      'Nid oes unrhyw gyfeiriadau’n cyfateb i’ch chwiliad.'
-    )
-    expect(cy.table.actionsHidden).toBe('Camau gweithredu')
-    expect(cy.selectRowPrefix).toBe('Dewis')
-    expect(cy.table.selectHidden).toBe('Dewis')
-  })
-
-  it('Should name the paging links rather than leave them in English', () => {
-    expect(copy.pagination).toEqual({ previous: 'Previous', next: 'Next' })
-    expect(cy.pagination).toEqual({ previous: 'Blaenorol', next: 'Nesaf' })
-  })
-
-  it('Should count the rows shown against the rows found', () => {
-    expect(copy.resultsCaption(SENTINEL_ROWS_SHOWN, SENTINEL_ROWS_FOUND)).toBe(
-      'Showing 5 of 13 addresses'
-    )
-    expect(cy.resultsCaption(SENTINEL_ROWS_SHOWN, SENTINEL_ROWS_FOUND)).toBe(
-      'Yn dangos 5 o 13 cyfeiriad'
+      'Dyma gyfeiriad cyswllt y person sy’n gyfrifol am y llwyth o’r adeg y mae’n cyrraedd Prydain Fawr hyd nes bod yr awdurdodau wedi cwblhau eu gwiriadau.'
     )
   })
 
@@ -91,15 +31,23 @@ describe('#copy', () => {
       'Dewiswch gyfeiriad cyswllt o’r rhestr'
     )
   })
+
+  it('Should hold the two return-control words as the design source sets them, with a Welsh draft that differs', () => {
+    expect(copy.saveActions.saveAndReturnToHub).toBe('Save and return to hub')
+    expect(copy.saveActions.cancelAndReturnToHub).toBe(
+      'Cancel and return to hub'
+    )
+    expect(cy.saveActions.saveAndReturnToHub).not.toBe(
+      copy.saveActions.saveAndReturnToHub
+    )
+    expect(cy.saveActions.cancelAndReturnToHub).not.toBe(
+      copy.saveActions.cancelAndReturnToHub
+    )
+  })
 })
 
 describe('GET contact — copy reaches the view', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-    installHighRiskPlantsJourney()
-  })
-  beforeEach(() => store.clear())
+  useStubbedHighRiskPlantsJourney()
 
   it('Should supply the feature copy module and the shared chrome copy', async () => {
     const get = contact.routes.find((route) => route.method === 'GET').handler

@@ -1,17 +1,7 @@
-// AWAITING THE COPY PASS — only the title is a service string carried over
-// from the animals port-of-entry page. The date labels are the journey spec's
-// verbatim wording and every hint below is invented
-// (journey-spec.json pages[arrival-details].provisionalCopy, decisions.json
-// d-049).
-
 /**
  * The arrival-details page — when the consignment arrives, and for potatoes
- * what time and where it lands.
- *
- * `dateLabels` and `dateHints` are keyed on the state the date question is
- * asked in, not on the page: one field means three different things and the
- * controller picks the state. The keys are the `DATE_STATES` list beside the
- * feature.
+ * what time and where it lands. `dateLabels` and `dateHints` are keyed by the
+ * `DATE_STATES` values.
  */
 export const copy = {
   title: 'Arrival details',
@@ -32,8 +22,9 @@ export const copy = {
   },
   placeOfLanding: {
     label: 'Proposed place of landing',
-    hint: 'Where the potatoes will enter Great Britain. Start typing to search by port name or code.',
-    placeholder: 'Select a place of landing',
+    hint: 'Select where the potatoes will enter Great Britain. Start typing to search by port or airport name or code.',
+    selectText: 'Select a place of landing',
+    searchPlaceholder: 'Select a place of landing',
     noResults: 'No ports found'
   },
   errors: {

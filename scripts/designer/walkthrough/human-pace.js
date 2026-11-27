@@ -13,6 +13,7 @@
  */
 import { setTimeout as sleep } from 'node:timers/promises'
 
+import { valueUnlessPageMoved } from '../lib/page-moved.js'
 import { keyDelayFor, readingTimeMs } from './pace.js'
 
 /**
@@ -162,9 +163,10 @@ const highlight = async (page, locator, settings) => {
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
     steps: settings.cursorSteps
   })
-  await page
-    .evaluate((rect) => window.__walkthroughOverlay?.highlight(rect), box)
-    .catch(() => undefined)
+  await valueUnlessPageMoved(
+    page.evaluate((rect) => window.__walkthroughOverlay?.highlight(rect), box),
+    undefined
+  )
   await sleep(settings.highlightMs)
 }
 
@@ -182,7 +184,8 @@ const highlight = async (page, locator, settings) => {
  *   Promise<void> }}
  */
 export const createPace = (page, settings) => {
-  const settle = () => page.waitForLoadState('load').catch(() => undefined)
+  const settle = () =>
+    valueUnlessPageMoved(page.waitForLoadState('load'), undefined)
 
   const linger = async (role = 'page') => {
     const words = await wordsShown(page)
@@ -190,11 +193,12 @@ export const createPace = (page, settings) => {
   }
 
   const approach = async (locator) => {
-    await locator
-      .evaluate((element) =>
+    await valueUnlessPageMoved(
+      locator.evaluate((element) =>
         element.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      )
-      .catch(() => undefined)
+      ),
+      undefined
+    )
     await sleep(settings.scrollSettleMs)
     await highlight(page, locator, settings)
   }

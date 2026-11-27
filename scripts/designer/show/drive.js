@@ -15,6 +15,7 @@
  */
 import * as cheerio from 'cheerio'
 
+import { valueUnlessPageMoved } from '../lib/page-moved.js'
 import { HUB_KEY, baseKeyOf } from './targets.js'
 import { journeyIdOfPath, journeyPath, resolveStepFields } from './steps.js'
 import {
@@ -263,7 +264,7 @@ export const ERROR_STATE_NOTES = Object.freeze({
 })
 
 const settle = (page) =>
-  page.waitForLoadState('networkidle').catch(() => undefined)
+  valueUnlessPageMoved(page.waitForLoadState('networkidle'), undefined)
 
 /**
  * Sends the page's form empty to show its error messages, calls `onErrors`

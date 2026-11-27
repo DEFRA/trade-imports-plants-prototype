@@ -40,9 +40,17 @@ decision (changes which page Continue goes to) from a **field** decision
 reachable), and enumerates one answer state per combination of routing
 decision values, each merged over a base state so a prerequisite obligation
 never masks a branch. [`graph.js`](graph.js) then asks the real navigation
-functions — `nextRunTarget`, `nextInSection`, `rowEntry` — where each state
-goes, and groups states that share a target into one minimised condition
-per decision.
+functions where each state goes, and groups states that share a target into
+one minimised condition per decision. Save and continue is asked the way the
+set's own pages save. A set with its own `flow/run.js` saves through
+`src/server/prototype-support/release-journey.js`: the first pass is its
+`RUN_STEPS` and `nextRunTarget`, and Continue goes to the next page in the
+section. In every other set the first pass is every task-list page that is
+not a sub-page, and every page in a task row saves through the platform's
+`nextStepLanding` (on to the next task-list page that applies, else Check
+your answers); the pages outside the task list (Check your answers, the
+declaration) go to the next page in their section. The task list is asked
+through `rowEntry`.
 
 Refuses, with a plain message naming the decisions, past 256 states rather
 than drawing an unreadable map.

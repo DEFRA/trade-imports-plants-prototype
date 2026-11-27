@@ -14,8 +14,9 @@ export const copy = {
 
   title: 'Check your answers',
   change: 'Change',
+  editDetails: 'Edit details',
+  errorPrefix: 'Error:',
   cancelAmend: {
-    link: 'Cancel amendment',
     successTitle: 'Success',
     successBody:
       'The amendment has been cancelled and the submitted version restored.'
@@ -24,8 +25,19 @@ export const copy = {
   continue: 'Continue',
   errors: {
     parties: {
-      consignor: 'Select an address for the consignor',
-      placeOfDestination: 'Select an address for the place of destination'
+      consignor: 'Correct the address details for the consignor',
+      placeOfDestination:
+        'Correct the address details for the place of destination',
+      contactAddress: 'Correct the contact address details for this consignment'
+    },
+    cards: {
+      importDetails: 'Complete import details',
+      commodities: 'Complete commodity details',
+      arrivalDetails: 'Complete arrival details',
+      placeOfDestination: 'Complete place of destination',
+      consignor: 'Complete consignor',
+      identificationNumbers: 'Complete identification numbers',
+      contact: 'Complete contact'
     }
   },
   submit: {
@@ -35,13 +47,13 @@ export const copy = {
   sections: {
     consignment: '1. About the consignment',
     arrival: '2. Arrival and destination',
-    parties: '3. Consignment parties'
+    addresses: '3. Addresses'
   },
   cards: {
     import: 'Import details',
     commodity: 'Commodity',
     arrival: 'Arrival details',
-    consignor: 'Consignor or exporter',
+    consignor: 'Consignor',
     identification: 'Identification numbers',
     contact: 'Contact'
   },
@@ -54,8 +66,6 @@ export const copy = {
     proposedPlaceOfLanding: 'Place of landing',
     name: 'Name',
     address: 'Address',
-    telephoneNumber: 'Telephone number',
-    emailAddress: 'Email address',
     genus: 'Genus',
     species: 'Species',
     commodityCode: 'Commodity code',
@@ -73,6 +83,19 @@ export const copy = {
     consignmentNumber: 'Consignment number (optional)'
   },
   delete: 'Delete notification',
+  viewHeader: {
+    amend: 'Amend this notification',
+    dateCreated: (date) => `Date created: ${date}`,
+    dateSubmitted: (date) => `Date submitted: ${date}`
+  },
+  importReferences: {
+    heading: 'Import reference numbers',
+    warning:
+      'You must use the correct reference and code on the customs declaration or your consignment will be delayed.',
+    warningIcon: 'Warning',
+    notificationReference: 'Notification reference',
+    customsDocumentCode: 'Customs document code'
+  },
   typeLabels: {
     potatoes: 'Potatoes (seed or ware)',
     'plants-for-planting': 'Plants for planting',

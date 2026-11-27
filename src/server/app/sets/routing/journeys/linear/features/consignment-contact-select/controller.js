@@ -1,5 +1,6 @@
 import { TEMPLATES } from '../../config.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
+import { nextTarget } from '../../flow/navigation.js'
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -90,7 +91,7 @@ const post = async (request, h) => {
   }
 
   if (!selectedId) {
-    return h.redirect(await kit.nextTarget(request, page, current.scope))
+    return h.redirect(await nextTarget(request, page, current.scope))
   }
 
   const chosen = await chosenFor(organisationIdOf(request), selectedId)
@@ -107,6 +108,7 @@ const post = async (request, h) => {
 
   let committed
   const { failure } = await kit.recoverableSave(
+    request,
     async () => {
       committed = await state.commit(request, h, {
         [CONTACT_ADDRESS]: copyOf(chosen)
@@ -126,7 +128,7 @@ const post = async (request, h) => {
     return failure
   }
 
-  return h.redirect(await kit.nextTarget(request, page, committed.scope))
+  return h.redirect(await nextTarget(request, page, committed.scope))
 }
 
 export const routes = kit.pageRoutes(page, { get, post })

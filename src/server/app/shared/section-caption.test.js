@@ -18,8 +18,8 @@ describe('#sectionCaption', () => {
   })
 
   it('Should default to the large caption used by the question pages', () => {
-    expect(renderCaption('"Consignment parties"')).toContain(
-      '<span class="govuk-caption-l">Consignment parties</span>'
+    expect(renderCaption('"Addresses"')).toContain(
+      '<span class="govuk-caption-l">Addresses</span>'
     )
   })
 

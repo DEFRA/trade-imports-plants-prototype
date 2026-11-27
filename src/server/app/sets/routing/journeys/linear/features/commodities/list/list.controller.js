@@ -1,6 +1,7 @@
 import { hubPath } from '../../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../../config.js'
-import * as state from '../../../../../../../engine/index.js'
+import * as state from '../../../state.js'
+import { nextTarget } from '../../../flow/navigation.js'
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -109,6 +110,7 @@ const removeLine = async (request, h, current, action) => {
     return buildView(request, h, current).code(HTTP_STATUS_BAD_REQUEST)
   }
   const { failure } = await kit.recoverableSave(
+    request,
     async () => state.removeEntryAt(request, h, [LINES], index),
     async () =>
       buildView(request, h, { ...current, recoverableError: true }).code(
@@ -133,7 +135,7 @@ const post = async (request, h) => {
       errors: { [LINES]: copy.errors.commodityLines }
     }).code(HTTP_STATUS_BAD_REQUEST)
   }
-  return h.redirect(await kit.nextTarget(request, page, current.scope))
+  return h.redirect(await nextTarget(request, page, current.scope))
 }
 
 export const routes = kit.pageRoutes(page, { get, post })

@@ -1,32 +1,20 @@
 import { SET_ID } from '../../../../../set.js'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
+import { dispatchPages } from '../../../../../../../../../../test/fixtures/index.js'
+import { knownJourneysCookie } from '../../../../../../../engine/persistence/session.js'
 import {
-  configureRecords,
-  records
-} from '../../../../../../../engine/persistence/records.js'
-import {
-  configureSession,
-  knownJourneysCookie
-} from '../../../../../../../engine/persistence/session.js'
-import { records as recordsStub } from '../../../../../../../services/persistence/records/stub/index.js'
-import { session as sessionStub } from '../../../../../../../services/persistence/session/stub.js'
-import { authenticatedCredentials } from '../../../../../../../engine/test-support.js'
-import { isCopyLeaf, leaves } from '../../../../../../../shared/copy-leaves.js'
+  authenticatedCredentials,
+  useStubbedJourney,
+  itHoldsCopyAtEveryLeaf
+} from '../../../../../../../engine/test-support.js'
 
 import { routes } from '../controller.js'
 import { copy } from './copy.en.js'
+import { copy as copyCy } from './copy.cy.js'
 
 describe('#copy', () => {
-  it('Should have a non-empty string (or string-returning function) at every leaf', () => {
-    for (const { path, value } of leaves(copy)) {
-      const text =
-        typeof value === 'function'
-          ? value('sample', 'sample', 'sample')
-          : value
-      expect(isCopyLeaf(text), `${path} must resolve to copy`).toBe(true)
-    }
-  })
+  itHoldsCopyAtEveryLeaf(copy, copyCy, ['sample', 'sample', 'sample'])
 
   it('Should render both multi-row results labels', () => {
     expect(copy.pagination.results.oneOf(21, 21)).toBe(
@@ -66,11 +54,7 @@ describe('#copy', () => {
 })
 
 describe('GET /', () => {
-  beforeAll(() => {
-    configureRecords(SET_ID, recordsStub)
-    configureSession(SET_ID, sessionStub)
-  })
-  beforeEach(() => records.clear())
+  useStubbedJourney(SET_ID, dispatchPages)
 
   it('Should supply the feature copy module and the shared chrome copy', async () => {
     const listGet = routes.find(

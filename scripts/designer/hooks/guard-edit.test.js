@@ -88,8 +88,8 @@ describe('guard-edit hook', () => {
   })
 
   it.each([
-    'feat/EUDPA-621-widen-hint',
-    'chore/EUDPA-621-tidy-sync',
+    'feat/NO_JIRA-widen-hint',
+    'chore/NO_JIRA-tidy-sync',
     'main',
     'handoff/consignment-addresses',
     'maintain/tidy-sync'

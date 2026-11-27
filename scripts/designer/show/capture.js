@@ -34,6 +34,7 @@ import {
   captureFileName,
   summariseAxe
 } from './manifest.js'
+import { valueUnlessPageMoved } from '../lib/page-moved.js'
 import { HUB_KEY, baseKeyOf } from './targets.js'
 import { journeyIdOfPath, journeyPath, resolveStepFields } from './steps.js'
 import { pageHeading } from './walk.js'
@@ -169,9 +170,15 @@ const replaceText = (page, replacements) =>
 
 /** Shows every reference number on the page as its stand-in (above). */
 const pinReferenceNumbers = async (page) => {
-  const references = await textNodesOf(page, REFERENCE_PATTERN).catch(() => [])
+  const references = await valueUnlessPageMoved(
+    textNodesOf(page, REFERENCE_PATTERN),
+    []
+  )
   if (references.length > 0) {
-    await replaceText(page, pinnedReferences(references)).catch(() => undefined)
+    await valueUnlessPageMoved(
+      replaceText(page, pinnedReferences(references)),
+      undefined
+    )
   }
 }
 
@@ -194,7 +201,7 @@ const photograph = async (page, run, shot) => {
 }
 
 const settle = (page) =>
-  page.waitForLoadState('networkidle').catch(() => undefined)
+  valueUnlessPageMoved(page.waitForLoadState('networkidle'), undefined)
 
 const captureErrors = async (page, key, run, result) => {
   const outcome = await sendEmpty(page, {

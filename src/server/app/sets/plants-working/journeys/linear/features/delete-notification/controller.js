@@ -4,7 +4,7 @@ import {
   pageRoutePath
 } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
 import {
   isKnownJourney,
   softDeleteJourney
@@ -60,6 +60,7 @@ const post = async (request, h) => {
   }
 
   const { failure, value: deleted } = await kit.recoverableSave(
+    request,
     () => softDeleteJourney(request, h, request.params.journeyId),
     () => render(h, journey, true).code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
   )

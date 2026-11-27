@@ -311,8 +311,7 @@ export const graphOf = (inst, titles, set) => {
   const { platform } = inst
   const { pagePath, hubPath, dashboardPath } = platform.paths
   const { pageGatePasses, sectionGatePasses } = platform.gates
-  const { nextInSection, rowEntry, rowGatePasses, sectionEntry } =
-    platform.navigation
+  const { rowEntry, rowGatePasses, sectionEntry } = platform.navigation
   const obligations = platform.manifest.obligations()
   const hasHub = inst.taskRows.length > 0 || inst.groups.length > 0
 
@@ -488,11 +487,8 @@ export const graphOf = (inst, titles, set) => {
     states.forEach(({ scope }, index) => {
       if (shown[index]) {
         const url =
-          platform.journeyFlow.journeyNextRunTarget(
-            step.id,
-            scope,
-            JOURNEY_ID
-          ) ?? hubPath(JOURNEY_ID)
+          inst.firstPassTarget(step.id, scope, JOURNEY_ID) ??
+          hubPath(JOURNEY_ID)
         observations.push({
           from: step.id,
           kind: 'first-pass',
@@ -515,7 +511,7 @@ export const graphOf = (inst, titles, set) => {
           from: page.id,
           kind: 'continue',
           state: index,
-          to: toPage(nextInSection(page.id, scope, JOURNEY_ID))
+          to: toPage(inst.continueTarget(page.id, scope, JOURNEY_ID))
         })
       }
     })

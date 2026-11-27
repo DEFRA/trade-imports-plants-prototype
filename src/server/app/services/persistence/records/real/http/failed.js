@@ -1,9 +1,9 @@
+import { statusCodes } from '../../../../../../common/constants/status-codes.js'
 import { BackendRequestError } from '../../errors.js'
-import { HTTP_CONFLICT } from '../config.js'
 
 export const failed = async (action, response) => {
   const error = new BackendRequestError(action, response)
-  if (response.status === HTTP_CONFLICT) {
+  if (response.status === statusCodes.conflict) {
     try {
       const body = await response.clone().json()
       if (body?.code) {

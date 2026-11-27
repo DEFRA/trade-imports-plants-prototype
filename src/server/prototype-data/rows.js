@@ -94,6 +94,16 @@ const countryProblems = (row) => {
  * serves, through the stub's own `fromRow`, then lays the optional contact
  * details over the stub's defaults.
  */
+const countryCodeOf = (country) => {
+  if (country === 'United Kingdom') {
+    return 'GB'
+  }
+  return (
+    Object.entries(COUNTRY_LABELS).find(([, name]) => name === country)?.[0] ??
+    country
+  )
+}
+
 const toPartyRecord = (row) => {
   const record = fromRow(
     [
@@ -102,17 +112,16 @@ const toPartyRecord = (row) => {
       row.addressLine1,
       row.townOrCity,
       row.postalOrZipCode ?? '',
-      row.country
+      row.country,
+      countryCodeOf(row.country)
     ].join('|')
   )
   return {
     ...record,
     address: {
       ...record.address,
-      ...(isText(row.telephoneNumber) && {
-        telephoneNumber: row.telephoneNumber
-      }),
-      ...(isText(row.emailAddress) && { emailAddress: row.emailAddress })
+      ...(isText(row.telephoneNumber) && { phone: row.telephoneNumber }),
+      ...(isText(row.emailAddress) && { email: row.emailAddress })
     }
   }
 }

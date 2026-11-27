@@ -6,10 +6,18 @@ const toFieldErrors = (details) =>
       : errors
   }, {})
 
+/**
+ * Run a schema over a submitted payload.
+ *
+ * @param {object} schema - A Joi schema.
+ * @param {object} [payload] - The submitted values.
+ * @returns {{ value: object, errors: object | null }}
+ */
 export const validate = (schema, payload) => {
   const { value, error } = schema.validate(payload ?? {}, {
     abortEarly: false,
     convert: true
   })
-  return { value, errors: error ? toFieldErrors(error.details) : null }
+  const errors = error ? toFieldErrors(error.details) : {}
+  return { value, errors: Object.keys(errors).length > 0 ? errors : null }
 }

@@ -7,10 +7,11 @@ The code uses three separate terms:
 
 - a **feature group** is a nested folder under `journeys/linear/features/` that
   owns related pages, copy and persistence bindings
-- a **flow section** is an entry in `journeys/linear/flow/flow.js`; it controls
-  page order and `nextInSection()`
+- a **flow section** is an entry in `journeys/linear/flow/flow.js`; it places its
+  pages in the journey's one page order, which is where Save and continue goes
 - a **task row** is an entry in `journeys/linear/flow/task-rows.js`; it is the
-  item shown on the hub and it drives submit readiness
+  item shown on the hub and it drives submit readiness. It decides nothing about
+  where Save and continue goes
 
 This recipe creates all three. Do not call the hub entry a section in code.
 
@@ -59,10 +60,10 @@ Trace registration through these:
 - [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js) —
   this set's gateway; [`routes.js`](../../../routes.js) only re-exports it
 
-The hub feature and `flow/task-rows.test.js` already exist. The hub lands with
-`GROUPS` carrying its four numbered groups, each with an empty `rows` array, and
-`taskRows` empty, so the first task row adds only its `taskRows` entry, its
-`GROUPS` placement and its rows copy.
+The hub feature and `flow/task-rows.test.js` already exist. The hub derives its
+groups from the flow sections, and
+`taskRows` is empty, so the first task row adds only its `taskRows` entry and its
+rows copy; the hub lists a row under the flow section that holds its first page.
 
 ## 1. Define the user task and its data
 
@@ -109,7 +110,6 @@ journeys/linear/features/<group>/
 │   ├── copy.en.js
 │   └── copy.test.js
 ├── fit/
-│   ├── axe.js
 │   ├── <first-page>.fit.spec.js
 │   └── <second-page>.fit.spec.js
 ├── <first-page>/
@@ -129,7 +129,8 @@ A grouped page's template is named after the page, not `template.njk` —
 beside it. Only a single-page feature (a plain `controller.js`) keeps
 `template.njk`.
 
-Keep every `{ id, slug }` object in the import-free `page.js`. Put all
+Keep every `{ id, slug, maturity }` object in the import-free `page.js`
+([features.md](features.md#page-maturity) says how `maturity` is set). Put all
 group-owned English and Welsh copy in the shared `copy/` folder, namespaced by
 page. Keep the two locale bundles the same shape.
 
@@ -151,10 +152,13 @@ Follow [add-a-page.md](add-a-page.md) for each page. Each controller exports:
 - GET and POST handlers
 - `routes`, normally from `kit.pageRoutes(page, { get, post })`
 
-GET reads once through `state.get()`. POST validates raw input, returns 400 with
-raw values on error, commits cleaned values on success and redirects through
-`kit.nextTarget()`. Wrap every persistence write in `kit.recoverableSave()` and
-return the same form with status 500 for a marked failure.
+GET reads once through `state.get()`. POST validates raw input and, on error,
+returns 400 with the raw values and logs nothing for a user's own field errors
+(a refusal that is not the user's input error logs once through `kit.logRefusal`
+with the journey id); on success it commits cleaned values and redirects through
+`kit.nextTarget()`.
+Wrap every persistence write in `kit.recoverableSave(request, …)`, which logs a
+marked failure once, and return the same form with status 500 for it.
 
 Use `scope.has()` for conditional fields. Do not render, validate or commit a
 field that is out of scope. Let the evaluator purge a value when its obligation
@@ -207,18 +211,18 @@ to `sections`:
 }
 ```
 
-The array order is journey order. `nextInSection()` moves through the first
-gate-passing later page, then returns to the hub. The section's place among
-other sections also controls strictly-earlier continue prerequisites.
+The array order is journey order and Overview's group order. Save and continue
+goes to the next page that applies, from every start; nothing returns to the hub.
+The section's place among other sections also controls strictly-earlier continue
+prerequisites.
 
 Normal page and section gates are derived from `meta.collects`, in-scope
 obligations and earlier continue prerequisites. Add an authored `gate` only for
 a flow fact that those rules cannot express. Add focused navigation and gate
 tests for every conditional page or branch.
 
-Add these pages to [`journeys/linear/flow/run.js`](../journeys/linear/flow/run.js)
-— its empty `RUN_STEPS` — only if product behaviour puts them in the opening
-run. Update opening-run tests when you do.
+These pages' place in Save and continue's order is their place in the section's `pages`
+array, and their Back link comes from `kit.trailBackLink()`.
 
 ## 6. Add one task row and wire it to the hub
 
@@ -234,7 +238,7 @@ The row status defaults to the union of those pages' `collects` — that is what
 `rowParts()` computes. Use `parts` only when the row needs a collection facet.
 Use `conditional: true` only when the hub must hide a Not applicable row.
 
-Add the task-row id to the right object in the hub controller's `GROUPS` list.
+Add the task-row id to the right object in the flow section that holds its first page.
 Add the row title and hint to both hub copy bundles. Add a new numbered hub
 group only when the design requires a new heading; if so, add its caption to
 both locale bundles too.
@@ -262,8 +266,8 @@ This set's gateway,
 [`src/server/app/routes-high-risk-plants.js`](../../../routes-high-risk-plants.js)
 (the [`routes.js`](../../../routes.js) barrel only re-exports it), already
 imports the journey's
-`sections`, `taskRows`, `rowStatus`, `nextRunTarget`, `FLOW_ONLY_KEYS`,
-`entryGuardTarget`, `sectionCaptionOf` and `LAYOUT`. It passes them to
+`sections`, `taskRows`, `rowStatus`, `insTypeQuestionUrl`,
+`FLOW_ONLY_KEYS`, `entryGuardTarget`, `sectionCaptionOf` and `LAYOUT`. It passes them to
 [`configureJourneyFlow()`](../../../flow/journey-flow.js). Because it injects the
 whole exported arrays, adding a section or task row to the existing modules needs
 no new L1 import or configure call.
@@ -274,7 +278,7 @@ Registration work for the feature group is therefore limited to:
 2. add its binding bundle to `featureEvaluationBindings`
 3. add page identities to `sections` and `taskRows`
 4. add task-row ids and copy to the hub
-5. add pages to `run.js` only when they belong in the opening run
+5. place the task-row id on its check-answers card in `REVIEW_CARDS`
 
 Change `journeys/linear/config.js` or the `configureJourneyFlow()` call only when
 the journey's template identity, cookie identity or injected policy surface
@@ -285,8 +289,10 @@ argument in both `routes-high-risk-plants.js` and the test fixture at
 ## 7. Add check-answers output
 
 Add a section or cards for the feature under the check-answers feature's view
-model. Add English and Welsh headings, row labels and value labels to the
-check-answers copy bundles.
+model. Add English and Welsh headings and row labels to the check-answers copy
+bundles. A value label that the feature's own page already shows is read from
+that feature's label function, never copied into the check-answers copy. Value
+labels only the review shows go in the check-answers copy bundles.
 
 Pass obligation names to `row()` and `changeAction()` so Change links resolve
 through dispatch. Use `scope` to omit out-of-scope rows. Extend the
@@ -304,6 +310,15 @@ and [`copy/copy.cy.js`](../journeys/linear/features/check-answers/copy/copy.cy.j
 Extend
 [`check-answers.fit.spec.js`](../journeys/linear/features/check-answers/check-answers.fit.spec.js),
 which covers saved answers, scoped cards, Change navigation and accessibility.
+
+Place the task-row id on the card that shows its answers in `REVIEW_CARDS`
+([`view-model/incomplete-cards.js`](../journeys/linear/features/check-answers/view-model/incomplete-cards.js)),
+giving a new card an `id`, an `anchor` and the same `id` on the card its view
+model builds. Add a new card's message under `errors.cards`, keyed by that id —
+"Complete" and the card's title, lower-cased — in both check-answers
+`copy.en.js` and `copy.cy.js`. The review page names every unfinished card with
+it, linking to the card; `view-model/incomplete-cards.test.js` fails until every
+task row is on a card, and `copy/copy.test.js` until every card has a message.
 
 ## 8. Update downstream persistence when applicable
 
@@ -337,6 +352,21 @@ scope, redirects, marked recoverable failures and unexpected errors.
 Add focused tests for bindings, model gates, flow order, branch skipping,
 task-row status, hub rendering, check-answers rows and notification mapping.
 
+## Test support
+
+Build test set-up from the shared helpers, and extend them rather than writing
+set-up in the test file.
+
+The controller-test helpers are listed in [Test support](add-a-page.md#test-support), with `useStubbedJourney` as the set-up.
+
+A new section's answers join `COMPLETE_NOTIFICATION`. A new section that a
+potato notification reaches by Save and continue adds its step to `completePotatoNotification` in
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js).
+
+## Logging
+
+A user's own field errors shown back on the form are not logged. A refusal that is not the user's input error (a state refusal, a bare 400, another service refusing) logs once through `kit.logRefusal()` with the journey id, and every save fallback logs through `kit.recoverableSave()`; see "Logging" in [`architecture.md`](../../../docs/architecture.md).
+
 ## Playwright feature test
 
 Put the co-located specs in `journeys/linear/features/<group>/fit/`.
@@ -348,14 +378,17 @@ Do not sleep.
 
 Cover the complete task:
 
-- the hub row, initial status and first-page link
-- happy-path movement through every page and back to the hub
+- the Overview row reaching the group's first page, with its initial status
+- Save and continue carrying on through every page of the group into the next page
+  of the journey
 - each page's persisted values after reload
 - each validation rule in its own test
 - preservation of all entered values on error
 - every error-summary link moving focus to the right control
 - each conditional branch, skipped page and out-of-scope value purge
-- Back, Save and return to overview, Cancel and Change navigation
+- Back returning to where the trader came from, Save and return to overview, Cancel
+  and Change navigation
+- the same controls while amending as on a draft
 - the completed hub-row status
 - all check-answers values and Change targets
 
@@ -366,24 +399,13 @@ Add axe coverage for every new page in both states:
 - initial render
 - validation error state after the error summary appears
 
-Build axe with `AxeBuilder({ page })`, fail on every `serious` or `critical`
-violation, and filter only a proved component false positive. Do not spell the
-tag list out in each spec: put it in one helper the whole group calls.
+Call `expectNoSeriousOrCriticalViolations(page, subject)` from
+[`fit/high-risk-plants-journey.js`](../../../../../../fit/high-risk-plants-journey.js).
+It is the one place the tag list and impact threshold are written, so every
+page is checked against the same rules. Do not build `AxeBuilder` in a spec.
 
 Add or extend the hub axe test when the new row or a new group heading changes
 the hub state.
-
-[`journeys/linear/features/commodities/fit/axe.js`](../journeys/linear/features/commodities/fit/axe.js)
-is that helper for the multi-page group, and
-[`list.fit.spec.js`](../journeys/linear/features/commodities/fit/list.fit.spec.js)
-and
-[`details.fit.spec.js`](../journeys/linear/features/commodities/fit/details.fit.spec.js)
-both call it. One helper beside the group's specs keeps the tag list and the
-impact threshold identical on every page of the group, so a second page cannot
-quietly be checked against a narrower set of rules than the first. Its tags are
-`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`: axe-core tags a rule
-by the WCAG version that introduced it, so a rule reachable only through the
-2.1 or 2.2 tags would never run on the two WCAG 2.0 tags alone.
 
 ## 11. Run every check
 

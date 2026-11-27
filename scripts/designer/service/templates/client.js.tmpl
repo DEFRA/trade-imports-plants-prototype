@@ -1,5 +1,6 @@
 import { getTraceId } from '@defra/hapi-tracing'
 
+import { ORGANISATION_ID_HEADER } from '../../../common/helpers/organisation-id.js'
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_NOT_FOUND
@@ -8,8 +9,6 @@ import { BackendRequestError } from '../persistence/records/errors.js'
 
 /** The proposed real client for __TITLE__. No such API exists yet: see
  * `contract.json`. */
-
-const ORGANISATION_ID_HEADER = 'Trade-Imports-Organisation-Id'
 
 const serviceUrl = process.env.__ENV__ ?? '__DEFAULT_URL__'
 

@@ -1,6 +1,7 @@
 import { hubPath } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
+import { nextTarget } from '../../flow/navigation.js'
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -103,6 +104,7 @@ const post = async (request, h) => {
 
   let committed
   const { failure } = await kit.recoverableSave(
+    request,
     async () => {
       committed = await state.commit(request, h, {
         [CONSIGNOR]: { addressId: chosen.id }
@@ -122,7 +124,7 @@ const post = async (request, h) => {
     return failure
   }
 
-  return h.redirect(await kit.nextTarget(request, page, committed.scope))
+  return h.redirect(await nextTarget(request, page, committed.scope))
 }
 
 export const routes = kit.pageRoutes(page, { get, post })

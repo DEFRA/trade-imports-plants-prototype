@@ -1,6 +1,6 @@
 import { pagePath } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -80,6 +80,7 @@ const post = async (request, h) => {
 
   let result
   const { failure } = await kit.recoverableSave(
+    request,
     async () => {
       await state.commit(request, h, {
         declaration: value.declaration,

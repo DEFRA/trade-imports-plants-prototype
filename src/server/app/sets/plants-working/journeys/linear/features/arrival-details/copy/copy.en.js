@@ -1,8 +1,7 @@
 // AWAITING THE COPY PASS — only the title is a service string carried over
 // from the animals port-of-entry page. The date labels are the journey spec's
 // verbatim wording and every hint below is invented
-// (journey-spec.json pages[arrival-details].provisionalCopy, decisions.json
-// d-049).
+// (journey-spec.json pages[arrival-details].provisionalCopy).
 
 /**
  * The arrival-details page — when the consignment arrives, and for potatoes

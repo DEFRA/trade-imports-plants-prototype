@@ -6,7 +6,7 @@
 // title, so the page is called what the hub task row that leads to it is
 // called. The already-arrived heading and the descriptions are the journey
 // spec's wording and have not been through a content review (journey-spec.json
-// pages[place-of-destination].descriptionByState, decisions.json d-003).
+// pages[place-of-destination].descriptionByState).
 
 /**
  * The place-of-destination page — where the consignment is going, or where it

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { withSetContext } from '../../shared/set-context.js'
 import { clearFakesFor } from '../../../prototype-support/registry.js'
+import { pageOf } from '../../../prototype-support/search-page.js'
 import { STUB_BOOK } from '../address-book/stub/index.js'
 import * as pickers from '../address-book/index.js'
 import * as insAddressBook from './index.js'
@@ -43,9 +44,9 @@ const inRelease = (fn) => withSetContext(RELEASE, fn)
 
 const pickerIds = async (setId = RELEASE, query = '') => {
   const found = await withSetContext(setId, () =>
-    pickers.search(ORG, { query, page: 1 })
+    pickers.addresses(ORG, { query })
   )
-  return found.results.map(({ id }) => id)
+  return pageOf(found, 1).results.map(({ id }) => id)
 }
 
 describe('the stub, in stub mode', () => {
@@ -92,10 +93,10 @@ describe('the stub, in stub mode', () => {
     ).toMatchObject({
       name: GREENHOUSE.name,
       address: {
-        postalOrZipCode: 'PE11 1AA',
+        postcode: 'PE11 1AA',
         country: 'United Kingdom',
-        telephoneNumber: GREENHOUSE.phone,
-        emailAddress: GREENHOUSE.email
+        phone: GREENHOUSE.phone,
+        email: GREENHOUSE.email
       }
     })
     expect(await pickerIds(OTHER_RELEASE, 'spalding')).not.toContain(

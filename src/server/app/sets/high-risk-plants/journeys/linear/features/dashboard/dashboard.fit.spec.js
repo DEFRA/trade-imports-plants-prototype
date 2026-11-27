@@ -1,14 +1,25 @@
 import {
   BASE,
-  journeyIdFromPage
+  journeyIdFromPage,
+  notificationPageWithTrail
 } from '../../../../../../../../../fit/set-base.js'
-import AxeBuilder from '@axe-core/playwright'
+import { expectNoSeriousOrCriticalViolations } from '../../../../../../../../../fit/high-risk-plants-journey.js'
 import { expect, test } from '@playwright/test'
 
 import { signIn } from '../../../../../../../../../fit/sign-in.js'
+import { TRAIL_START } from '../../../../../../shared/trail.js'
 import { copy as sharedCopy } from '../../../../../../shared/copy.en.js'
 import { copy } from './copy/copy.en.js'
+import { copy as commodityTypeCopy } from '../commodity-type/copy/copy.en.js'
 
+const COMMODITY_TYPE_FROM_DASHBOARD_URL = notificationPageWithTrail(
+  'commodity-type',
+  [TRAIL_START.dashboard]
+)
+const COMMODITY_TYPE_FROM_INS_URL = notificationPageWithTrail(
+  'commodity-type',
+  [TRAIL_START.ins]
+)
 const CREATED_AT_ASCENDING_SORT = 'createdAt,asc'
 const DEFAULT_SORT = 'arrivalDate,desc'
 const UNMATCHED_REFERENCE = '26-ZZZZZZ'
@@ -16,7 +27,7 @@ const UNMATCHED_REFERENCE = '26-ZZZZZZ'
 const startNotification = async (page) => {
   await page.goto(BASE)
   await page.getByRole('button', { name: copy.startButton }).click()
-  await expect(page).toHaveURL(/\/notifications\/[^/]+\/commodity-type$/)
+  await expect(page).toHaveURL(COMMODITY_TYPE_FROM_DASHBOARD_URL)
   const reference = journeyIdFromPage(page)
   await page.goto(BASE)
   return reference
@@ -36,23 +47,20 @@ const cardRowValue = (page, key) =>
     .filter({ has: page.getByText(key, { exact: true }) })
     .locator('.govuk-summary-list__value')
 
-const expectNoSeriousOrCriticalViolations = async (page, subject) => {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    .analyze()
-  const seriousOrCritical = results.violations.filter(({ impact }) =>
-    ['serious', 'critical'].includes(impact)
-  )
-
-  expect(
-    seriousOrCritical,
-    `${subject} has serious/critical accessibility violations.\nFull axe violations:\n${JSON.stringify(results.violations, null, 2)}`
-  ).toEqual([])
-}
-
 test.describe('dashboard feature — initial render', () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page)
+  })
+
+  test('the start entry opens a new notification at its first question', async ({
+    page
+  }) => {
+    await page.goto(`${BASE}/start`)
+
+    await expect(page).toHaveURL(COMMODITY_TYPE_FROM_INS_URL)
+    await expect(
+      page.getByRole('heading', { name: commodityTypeCopy.legend })
+    ).toBeVisible()
   })
 
   test('renders the service heading, the intro body and the start button', async ({
@@ -83,9 +91,6 @@ test.describe('dashboard feature — initial render', () => {
     await expect(
       page.getByRole('link', { name: copy.guidanceLink })
     ).toHaveCount(0)
-    // The two '#' hrefs the layout's service navigation still carries are
-    // shared chrome placeholders, not this page's. Nothing the dashboard
-    // renders may hold one.
     await expect(page.locator('main a[href="#"]')).toHaveCount(0)
   })
 
@@ -104,7 +109,7 @@ test.describe('dashboard feature — initial render', () => {
 
     await page.getByRole('button', { name: copy.startButton }).click()
 
-    await expect(page).toHaveURL(/\/notifications\/[^/]+\/commodity-type$/)
+    await expect(page).toHaveURL(COMMODITY_TYPE_FROM_DASHBOARD_URL)
   })
 })
 
@@ -301,5 +306,29 @@ test.describe('dashboard feature — accessibility', () => {
     await page.goto(BASE)
 
     await expectNoSeriousOrCriticalViolations(page, 'Dashboard initial render')
+  })
+
+  test('the amend refused banner has no serious or critical axe violations', async ({
+    page
+  }) => {
+    await page.goto(`${BASE}?amendRefused=1`)
+
+    await expectNoSeriousOrCriticalViolations(page, 'Amend refused banner')
+  })
+})
+
+test.describe('dashboard feature — amend refused banner', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+    await page.goto(`${BASE}?amendRefused=1`)
+  })
+
+  test('renders the could-not-amend banner with its title and body', async ({
+    page
+  }) => {
+    const banner = page.getByRole('region', { name: copy.amendRefused.title })
+
+    await expect(banner).toBeVisible()
+    await expect(banner).toContainText(copy.amendRefused.body)
   })
 })

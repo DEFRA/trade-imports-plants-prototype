@@ -1,11 +1,24 @@
 {% extends "shared/layout.njk" %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
 {% from "shared/section-caption.njk" import sectionCaption %}
 {% from "shared/save-actions.njk" import saveActions %}
 
 {% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
 {% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+
+{% macro cardActions(actions) %}
+  {% if actions and actions.items.length %}
+    <ul class="govuk-summary-card__actions">
+      {% for item in actions.items %}
+        <li class="govuk-summary-card__action">
+          <a class="govuk-link" href="{{ item.href }}">{{ item.text }}<span class="govuk-visually-hidden"> {{ item.visuallyHiddenText }}</span></a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endmacro %}
 
 {% block journeyContent %}
   {% if amendmentCancelled %}
@@ -18,11 +31,38 @@
   {% endif %}
   {% include "shared/error-summary.njk" %}
   {{ sectionCaption(caption) }}
-  <h1 class="govuk-heading-l">{{ copy.title }}</h1>
-  {% if cancelAmendHref %}
-    <p class="govuk-body">
-      <a class="govuk-link" href="{{ cancelAmendHref }}">{{ copy.cancelAmend.link }}</a>
-    </p>
+  {% if viewHeader %}
+    <h1 class="govuk-heading-l govuk-!-display-inline-block govuk-!-margin-right-3">{{ viewHeader.reference }}</h1>
+    {{ govukTag({ text: viewHeader.status.text, classes: viewHeader.status.classes }) }}
+
+    {% if viewHeader.actions.amend %}
+      <form id="view-header-amend" method="post" action="{{ viewHeader.actions.amend.postAction }}" novalidate>
+        <input type="hidden" name="crumb" value="{{ crumb }}" />
+      </form>
+    {% endif %}
+
+    <div class="govuk-button-group">
+      {% if viewHeader.actions.amend %}
+        {{ govukButton({
+          text: viewHeader.actions.amend.text,
+          attributes: { form: "view-header-amend" }
+        }) }}
+      {% endif %}
+      {{ govukButton(viewHeader.actions.delete) }}
+    </div>
+
+    {% if viewHeader.dateLine %}
+      <p class="govuk-body">{{ viewHeader.dateLine }}</p>
+    {% endif %}
+
+    <section aria-labelledby="import-reference-numbers-heading">
+      <h2 class="govuk-heading-m" id="import-reference-numbers-heading">{{ viewHeader.importReferences.heading }}</h2>
+      {{ govukWarningText(viewHeader.importReferences.warning) }}
+      {{ govukSummaryList({ rows: viewHeader.importReferences.rows }) }}
+    </section>
+    <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
+  {% else %}
+    <h1 class="govuk-heading-l">{{ copy.title }}</h1>
   {% endif %}
   {% if lateNotification %}
     {% set lateBody %}
@@ -32,17 +72,34 @@
     {{ govukNotificationBanner({ titleText: copy.late.title, html: lateBody }) }}
   {% endif %}
   {% for section in sections %}
-    <h2 class="govuk-heading-m">{{ section.heading }}</h2>
+    <h2 class="govuk-heading-m"{% if section.anchor %} id="{{ section.anchor }}" tabindex="-1"{% endif %}>{{ section.heading }}</h2>
     {% for card in section.cards %}
-      {{ govukSummaryList({
-        card: { title: { text: card.title, headingLevel: 3 }, actions: card.actions },
-        rows: card.rows
-      }) }}
+      {% if card.error %}
+        <div class="govuk-summary-card app-summary-card--error" id="{{ card.anchor }}" tabindex="-1">
+          <div class="govuk-summary-card__title-wrapper">
+            <h3 class="govuk-summary-card__title">{{ card.title }}</h3>
+            {{ cardActions(card.actions) }}
+          </div>
+          <div class="govuk-summary-card__content">
+            <p class="govuk-error-message">
+              <span class="govuk-visually-hidden">{{ copy.errorPrefix }}</span> {{ card.error }}
+            </p>
+            {{ govukSummaryList({ rows: card.rows }) }}
+          </div>
+        </div>
+      {% else %}
+        {{ govukSummaryList({
+          card: {
+            title: { text: card.title, headingLevel: 3 },
+            actions: card.actions,
+            attributes: { id: card.anchor, tabindex: "-1" } if card.anchor else null
+          },
+          rows: card.rows
+        }) }}
+      {% endif %}
     {% endfor %}
   {% endfor %}
-  {% if readOnly %}
-    {{ govukButton({ text: copy.delete, href: deleteHref, classes: "govuk-button--warning" }) }}
-  {% else %}
+  {% if not readOnly %}
     {% if lateWarning %}
       {{ govukWarningText({ text: copy.late.warning(lateRule), iconFallbackText: copy.late.icon }) }}
     {% endif %}
@@ -51,7 +108,7 @@
     <form method="post" novalidate>
       <input type="hidden" name="crumb" value="{{ crumb }}" />
       <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
-      {{ saveActions(hubHref, primary = { text: copy.continue }, copy = sharedCopy.saveActions) }}
+      {{ saveActions({ hubHref: hubHref, primary: { text: copy.continue }, buttonsAfterPrimary: buttonsAfterPrimary, copy: sharedCopy.saveActions }) }}
     </form>
   {% endif %}
 {% endblock %}

@@ -1,6 +1,7 @@
 import { hubPath, pagePath } from '../../../../../../shared/paths.js'
 import { TEMPLATES } from '../../config.js'
-import * as state from '../../../../../../engine/index.js'
+import * as state from '../../state.js'
+import { nextTarget } from '../../flow/navigation.js'
 import * as kit from '../../../../../../shared/kit.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import * as addressBook from '../../../../../../services/address-book/index.js'
@@ -81,7 +82,7 @@ const render = async (request, h, current, disableAutoFocus = true) => {
       disableAutoFocus
     }),
     deleteHref: readOnly ? pagePath(current.journey.journeyId, 'delete') : null,
-    // Ruled c-030: AMEND offers Cancel amendment instead of Delete; the
+    // AMEND offers Cancel amendment instead of Delete; the
     // success banner shows once, after cancel-amend's own redirect.
     cancelAmendHref:
       current.journey.status === state.AMEND
@@ -113,7 +114,7 @@ const post = async (request, h) => {
   if (!current.scope.readyForCheckYourAnswers) {
     return h.redirect(hubPath(current.journey.journeyId))
   }
-  return h.redirect(await kit.nextTarget(request, page, current.scope))
+  return h.redirect(await nextTarget(request, page, current.scope))
 }
 
 export const routes = kit.pageRoutes(page, { get, post })

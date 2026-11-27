@@ -56,6 +56,14 @@ describe('copyReferencesIn', () => {
     ).toEqual([])
   })
 
+  it('Should ignore a file name that ends in copy, such as an included held-copy.njk', () => {
+    expect(
+      copyReferencesIn(
+        '{% include "set/features/picker/held-copy.njk" %}\n{% include "copy/copy.njk" %}'
+      )
+    ).toEqual([])
+  })
+
   it('Should deduplicate and sort', () => {
     expect(copyReferencesIn('copy.b.x copy.a.y copy.b.x')).toEqual([
       'a.y',

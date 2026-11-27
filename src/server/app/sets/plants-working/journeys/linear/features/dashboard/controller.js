@@ -18,7 +18,7 @@ import {
   STATUSES
 } from '../../../../../../services/notification-search/index.js'
 import * as kit from '../../../../../../shared/kit.js'
-import { beginOpeningRun } from '../../../../../../flow/run-state.js'
+import { beginOpeningRun } from '../../flow/navigation.js'
 import { copyFor } from '../../../../../../shared/copy.js'
 import { commodityTypePage } from '../commodity-type/page.js'
 import { dashboardPage } from './page.js'
