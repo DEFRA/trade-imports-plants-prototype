@@ -16,9 +16,17 @@ const FUNCTION_TYPES = new Set([
   'FunctionExpression'
 ])
 
-export const findTrackingReference = (text) => {
+const withoutAllowedTerms = (text, allowed) =>
+  allowed.reduce(
+    (remaining, term) =>
+      remaining.replaceAll(new RegExp(String.raw`\b${term}\b`, 'gi'), ''),
+    text
+  )
+
+export const findTrackingReference = (text, allowed = []) => {
+  const checked = withoutAllowedTerms(text, allowed)
   for (const { pattern, label } of TRACKING_REFERENCES) {
-    const found = pattern.exec(text)
+    const found = pattern.exec(checked)
     if (found) {
       return { label, match: found[0] }
     }
@@ -84,7 +92,15 @@ const noTrackingReferences = {
       description:
         'Disallow ticket keys, backlog or ruling ids, release names and session vocabulary in comments, test titles and test tags'
     },
-    schema: [],
+    schema: [
+      {
+        type: 'object',
+        properties: {
+          allow: { type: 'array', items: { type: 'string' } }
+        },
+        additionalProperties: false
+      }
+    ],
     messages: {
       inComment:
         'Comment contains {{label}} ("{{match}}"). Say what the code does instead.',
@@ -93,8 +109,9 @@ const noTrackingReferences = {
     }
   },
   create(context) {
+    const allowed = context.options[0]?.allow ?? []
     const reportIfTracked = (node, text, messageId) => {
-      const reference = findTrackingReference(text)
+      const reference = findTrackingReference(text, allowed)
       if (reference) {
         context.report({ node, messageId, data: reference })
       }

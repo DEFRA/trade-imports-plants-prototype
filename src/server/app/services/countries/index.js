@@ -8,13 +8,9 @@ import { fetchCountries } from './client.js'
 import { isStubDataMode } from '../../../common/services/mode.js'
 import { withExtraCountries } from '../../../prototype-data/index.js'
 
-<<<<<<< HEAD
 let labels = withExtraCountries({ ...COUNTRY_LABELS })
-=======
-let labels = { ...COUNTRY_LABELS }
 let subdivisionLabels = { ...COUNTRY_SUBDIVISIONS.labels }
 let subdivisionToParent = { ...COUNTRY_SUBDIVISIONS.parents }
->>>>>>> upstream/main
 let loaded = false
 let addressBookLabels = { ...ADDRESS_BOOK_COUNTRY_LABELS }
 let addressBookLoaded = false
@@ -125,7 +121,7 @@ export const addressCountries = async () => {
 }
 
 const ensureAddressBookCountriesLoaded = async () => {
-  if (isStubMode() || addressBookLoaded) {
+  if (isStubDataMode() || addressBookLoaded) {
     return
   }
   try {

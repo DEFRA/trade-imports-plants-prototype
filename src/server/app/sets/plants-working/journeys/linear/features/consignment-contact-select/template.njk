@@ -109,10 +109,10 @@
       <p class="govuk-body">{{ copy.noMatches }}</p>
     {% endif %}
 
-    {{ saveActions(
-      hubHref,
-      { text: sharedCopy.saveActions.saveAndContinue, name: "action", value: "save" },
-      sharedCopy.saveActions
-    ) }}
+    {{ saveActions({
+      hubHref: hubHref,
+      primary: { text: sharedCopy.saveActions.saveAndContinue, name: "action", value: "save" },
+      copy: sharedCopy.saveActions
+    }) }}
   </form>
 {% endblock %}

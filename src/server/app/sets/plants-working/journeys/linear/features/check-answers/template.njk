@@ -51,7 +51,7 @@
     <form method="post" novalidate>
       <input type="hidden" name="crumb" value="{{ crumb }}" />
       <input type="hidden" name="concurrencyToken" value="{{ concurrencyToken }}" />
-      {{ saveActions(hubHref, primary = { text: copy.continue }, copy = sharedCopy.saveActions) }}
+      {{ saveActions({ hubHref: hubHref, primary: { text: copy.continue }, copy: sharedCopy.saveActions }) }}
     </form>
   {% endif %}
 {% endblock %}

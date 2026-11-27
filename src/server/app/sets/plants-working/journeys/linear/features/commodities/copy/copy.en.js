@@ -1,7 +1,7 @@
 // AWAITING THE COPY PASS — the strings below are the journey spec's verbatim
 // wording, and the per-field hints and examples are invented
 // (journey-spec.json pages[commodities].provisionalCopy,
-// pages[commodity-details].provisionalCopy, ruled at d-049).
+// pages[commodity-details].provisionalCopy).
 
 /**
  * The commodities collection — the list page that owns the group and the

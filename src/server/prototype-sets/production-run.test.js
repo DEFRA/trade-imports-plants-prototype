@@ -193,11 +193,12 @@ describe('a production run with stub mode set', () => {
 
       expect(await countries.originLabel('AT')).toBe('Austria')
       expect(await ports.list()).toContainEqual({
-        code: 'GB ABD',
-        name: 'Aberdeen Harbour'
+        code: 'GB DYC',
+        name: 'Aberdeen Airport',
+        type: 'airport'
       })
       expect(
-        (await addressBook.search(SIGNED_IN_USER.organisationId)).total
+        (await addressBook.addresses(SIGNED_IN_USER.organisationId)).length
       ).toBeGreaterThan(0)
       expect(fetchMock).not.toHaveBeenCalled()
     })

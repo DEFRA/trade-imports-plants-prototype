@@ -9,6 +9,7 @@ import {
   existsSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync
 } from 'node:fs'
@@ -47,6 +48,11 @@ const OLD_WELSH = 'Defnyddiwch y cloc 24 awr. Er enghraifft, 14:30.'
 const TIMEOUT_MS = 120_000
 
 const RENAME = { fromId: 'high-risk-plants', newId: 'plants-working' }
+
+const lineHolding = (repoPath, text) =>
+  readFileSync(path.join(REPO_ROOT, repoPath), 'utf8')
+    .split('\n')
+    .findIndex((line) => line.includes(text)) + 1
 
 /** A scratch repository has no examples or engine to load: stand in for them. */
 const TEST_SOURCES = {
@@ -228,11 +234,11 @@ describe('designer:handoff end to end', () => {
       const brief = readFile(dir, 'brief.md')
       expect(brief).toContain(`[Welsh needed] followed by the English`)
       expect(brief).toContain(
-        `line 24 (once the patch is applied): "${NEW_HINT}"`
+        `line ${lineHolding(`${REAL}/${FEATURE}/copy/copy.cy.js`, OLD_WELSH)} (once the patch is applied): "${NEW_HINT}"`
       )
       expect(brief).toContain(`| \`time.hint\` | ${OLD_WELSH} | ${NEW_HINT} |`)
       expect(brief).toContain(
-        `\`${REAL}/${FEATURE}/copy/copy.test.js\` line 89: "${OLD_HINT}"`
+        `\`${REAL}/${FEATURE}/copy/copy.test.js\` line ${lineHolding(`${REAL}/${FEATURE}/copy/copy.test.js`, OLD_HINT)}: "${OLD_HINT}"`
       )
       expect(brief).toContain(`| \`time.hint\` | ${OLD_HINT} | ${NEW_HINT} |`)
       expect(brief).toContain(

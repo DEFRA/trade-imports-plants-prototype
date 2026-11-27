@@ -172,8 +172,8 @@ describe('retire', () => {
     editIn(
       repoRoot,
       'src/server/app/sets/plants-old/journeys/linear/features/origin/copy/copy.en.js',
-      "hint: 'Start typing to search for a country.'",
-      "hint: 'Unsaved'"
+      "searchPlaceholder: 'Search for a country'",
+      "searchPlaceholder: 'Unsaved'"
     )
 
     expect(() => retireRelease('plants-old', { repoRoot })).toThrow(

@@ -1,12 +1,12 @@
 import { createPath, pagePath, setBase } from '../../../../../shared/paths.js'
 import { isAnswered } from '../../../../../lib/answered.js'
-import { get } from '../../../../../engine/read.js'
+import { get } from '../state.js'
 import {
   obligationByName,
   SYSTEM_POPULATED
 } from '../../../../../bridge/obligation-source.js'
 import { commodityTypePage } from '../features/commodity-type/page.js'
-import { openingRunStarted } from '../../../../../flow/run-state.js'
+import { openingRunStarted } from './navigation.js'
 
 // A function, not a module-load constant: `request.path` now carries the Hapi
 // mount prefix, which is only known inside a request's set context.

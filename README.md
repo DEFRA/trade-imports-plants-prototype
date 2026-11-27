@@ -329,11 +329,7 @@ The Defra ID callback is a cross-site, top-level navigation. A `Strict` state co
 > [!TIP]
 > On Apple Silicon you may need to add `--platform linux/amd64` to the
 > `docker build` command, for example
-<<<<<<< HEAD
 > `docker build --platform=linux/amd64 --no-cache --tag trade-imports-plants-prototype .`
-=======
-> `docker build --platform=linux/amd64 --no-cache --tag trade-imports-plants-frontend .`
->>>>>>> upstream/main
 
 Build:
 
@@ -370,40 +366,11 @@ stands up MongoDB, Floci, Redis, the stubs and the real trade-imports
 services, but never this one. This prototype always runs on its own
 stubs, with `npm run dev`, whether or not the stack is running.
 
-<<<<<<< HEAD
 The header's "Address book" link is deliberately dead, stack running or
 not: the address book belongs to the Import Notification Service, which
 this prototype does not include, and there is no setting that points the
 link at a real one, local or deployed. It is never needed to see a change
 made here.
-=======
-```bash
-# from the workspace root
-tim docker up                     # full stack from published images
-tim docker dev                    # built from local source under repos/
-tim docker up -e plants-frontend  # everything except this service (run it via npm run dev)
-```
-
-A cross-repo change must use the **same branch name** in every repository it
-touches: the stack probes each repository for a branch-tagged image and falls
-back to `:latest` per service, so a mismatched name silently picks up someone
-else's image.
-
-## Lighthouse
-
-`npm run lighthouse` seeds its audit targets from the app's own registered
-routes, then runs Lighthouse CI against them.
-
-The set registers journey pages, which supply the derived audit URL list. The
-[Lighthouse guide](src/server/app/sets/high-risk-plants/docs/lighthouse.md)
-covers what each page increment adds, the score floors and the contribution
-steps.
-
-## SonarCloud
-
-Instructions for setting up SonarCloud are in
-[sonar-project.properties](./sonar-project.properties).
->>>>>>> upstream/main
 
 ## Licence
 

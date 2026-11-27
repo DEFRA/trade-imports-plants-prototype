@@ -1,6 +1,6 @@
 // AWAITING THE COPY PASS — `guidance` and every `errors.narrowing` sentence
 // are invented copy with no service source behind them
-// (journey-spec.json pages[origin].provisionalCopy, decisions.json d-054).
+// (journey-spec.json pages[origin].provisionalCopy).
 
 /**
  * The origin page — where the consignment comes from.

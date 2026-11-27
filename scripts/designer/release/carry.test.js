@@ -20,8 +20,9 @@ const ORIGIN_COPY = (setId) =>
   `src/server/app/sets/${setId}/journeys/linear/features/origin/copy/copy.en.js`
 const ORIGIN_OBLIGATION = (setId) =>
   `src/server/app/sets/${setId}/obligations/sections/origin.js`
-const OLD_HINT = "hint: 'Start typing to search for a country.'"
-const NEW_HINT = "hint: 'The country the plants were grown in.'"
+const OLD_PLACEHOLDER = "searchPlaceholder: 'Search for a country'"
+const NEW_PLACEHOLDER =
+  "searchPlaceholder: 'The country the plants were grown in'"
 
 let repoRoot
 
@@ -44,8 +45,8 @@ afterEach(() => {
 })
 
 describe('carry', () => {
-  it('Should carry an unsaved one-hint change into another release cleanly', () => {
-    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_HINT, NEW_HINT)
+  it('Should carry an unsaved one-line change into another release cleanly', () => {
+    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_PLACEHOLDER, NEW_PLACEHOLDER)
 
     const result = carryChange({
       from: 'plants-a',
@@ -58,11 +59,11 @@ describe('carry', () => {
       expect.objectContaining({ how: 'clean', conflicts: [], mode: 'working' })
     )
     expect(result.files).toEqual([ORIGIN_COPY('plants-b')])
-    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_HINT)
+    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_PLACEHOLDER)
   })
 
   it('Should carry a saved change named by its commit', () => {
-    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_HINT, NEW_HINT)
+    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_PLACEHOLDER, NEW_PLACEHOLDER)
     const commit = commitAll(repoRoot, 'New origin hint')
 
     const result = carryChange({
@@ -73,7 +74,7 @@ describe('carry', () => {
     })
 
     expect(result.how).toBe('clean')
-    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_HINT)
+    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_PLACEHOLDER)
   })
 
   it('Should rewrite obligation ids so a change beside one applies cleanly', () => {
@@ -103,8 +104,8 @@ describe('carry', () => {
     editIn(
       repoRoot,
       ORIGIN_COPY('plants-a'),
-      OLD_HINT,
-      `${OLD_HINT}, // see plants-a`
+      OLD_PLACEHOLDER,
+      `${OLD_PLACEHOLDER}, // see plants-a`
     )
 
     const result = carryChange({
@@ -140,7 +141,7 @@ describe('carry', () => {
   })
 
   it('Should refuse to carry into a frozen release', () => {
-    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_HINT, NEW_HINT)
+    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_PLACEHOLDER, NEW_PLACEHOLDER)
 
     expect(() =>
       carryChange({
@@ -150,12 +151,14 @@ describe('carry', () => {
         repoRoot
       })
     ).toThrow(/is frozen/)
-    expect(readIn(repoRoot, ORIGIN_COPY('plants-dr1'))).toContain(OLD_HINT)
+    expect(readIn(repoRoot, ORIGIN_COPY('plants-dr1'))).toContain(
+      OLD_PLACEHOLDER
+    )
   })
 
   it('Should name the working release made from a frozen target', () => {
     release('plants-dr1-1', { from: 'plants-dr1' })
-    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_HINT, NEW_HINT)
+    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_PLACEHOLDER, NEW_PLACEHOLDER)
 
     expect(() =>
       carryChange({
@@ -171,7 +174,12 @@ describe('carry', () => {
     git(repoRoot, ['switch', '-q', '-c', 'design/last-week'])
     release('plants-old')
     commitAll(repoRoot, 'Start plants-old')
-    editIn(repoRoot, ORIGIN_COPY('plants-old'), OLD_HINT, NEW_HINT)
+    editIn(
+      repoRoot,
+      ORIGIN_COPY('plants-old'),
+      OLD_PLACEHOLDER,
+      NEW_PLACEHOLDER
+    )
     const commit = commitAll(repoRoot, 'New origin hint')
     git(repoRoot, ['switch', '-q', 'main'])
 
@@ -183,7 +191,7 @@ describe('carry', () => {
     })
 
     expect(result.how).toBe('clean')
-    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_HINT)
+    expect(readIn(repoRoot, ORIGIN_COPY('plants-b'))).toContain(NEW_PLACEHOLDER)
   })
 
   it('Should say how to carry from another branch when no commit is named', () => {
@@ -193,7 +201,7 @@ describe('carry', () => {
   })
 
   it('Should refuse to carry into the real journey and point at hand-off', () => {
-    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_HINT, NEW_HINT)
+    editIn(repoRoot, ORIGIN_COPY('plants-a'), OLD_PLACEHOLDER, NEW_PLACEHOLDER)
 
     expect(() =>
       carryChange({

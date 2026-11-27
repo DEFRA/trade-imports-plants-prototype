@@ -1,6 +1,6 @@
 // AWAITING THE COPY PASS — the strings below are the journey spec's verbatim
 // wording and have not been through a content review
-// (journey-spec.json pages[arrival-status].provisionalCopy, decisions.json d-001).
+// (journey-spec.json pages[arrival-status].provisionalCopy).
 
 /**
  * The arrival-status page — whether the consignment has already arrived.

@@ -17,7 +17,7 @@ export const copy = {
   },
   // AWAITING THE COPY PASS — 'Arrival and destination' and 'Consignment
   // parties' are new hub strings with no source behind them (journey-spec.json
-  // pages[hub].provisionalCopy, decisions.json d-069).
+  // pages[hub].provisionalCopy).
   groups: {
     'about-the-consignment': '1. About the consignment',
     'arrival-and-destination': '2. Arrival and destination',

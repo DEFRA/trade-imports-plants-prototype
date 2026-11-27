@@ -6,7 +6,7 @@ const ADDRESS_PARTS = [
   'addressLine2',
   'townOrCity',
   'county',
-  'postalOrZipCode'
+  'postcode'
 ]
 
 /** The address as one line for the results table. The country has its own
@@ -24,7 +24,7 @@ export const detailLines = (record) => {
     record.name,
     ...ADDRESS_PARTS.map((part) => address[part]),
     address.country,
-    address.telephoneNumber,
-    address.emailAddress
+    address.phone,
+    address.email
   ].filter(Boolean)
 }

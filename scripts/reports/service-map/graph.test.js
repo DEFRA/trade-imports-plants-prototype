@@ -87,13 +87,13 @@ describe('the high-risk plants service map', () => {
     })
   })
 
-  it('Should end the opening run at the task list, and open check your answers from it only when every task is complete', () => {
+  it('Should end the first pass at check your answers, and open check your answers from the task list only when every task is complete', () => {
     expect(
       edgesFrom(graph, 'consignment-contact-select', 'first-pass')
     ).toEqual([
       {
         from: 'consignment-contact-select',
-        to: 'hub',
+        to: 'notification-view',
         kind: 'first-pass',
         condition: null
       }
@@ -170,7 +170,11 @@ describe('the high-risk plants service map', () => {
     })
     expect(graph.outsideTheFlow.map((page) => page.title)).toEqual([
       'Cancel this amendment?',
-      'Delete this notification?'
+      'Edit address details',
+      'Edit address details',
+      'Delete this notification?',
+      'Edit address details',
+      'Import notification service'
     ])
   })
 

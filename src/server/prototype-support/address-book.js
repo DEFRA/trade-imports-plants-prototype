@@ -7,8 +7,9 @@ import { extraParties } from '../prototype-data/index.js'
  *
  * - the Import Notification Service's wire shape, which the ins-address-book
  *   service speaks (`postcode`, `countryCode`, `phone`, `email`);
- * - the shape plants-frontend's pickers read (`address.postalOrZipCode`,
- *   `address.country` as a name), which the stub address book serves.
+ * - the shape plants-frontend's pickers read (the same fields under
+ *   `address`, plus `address.country` as a name, and `roles`), which the stub
+ *   address book serves.
  *
  * And gives the ins-address-book stub its starting rows: the stub address
  * book plus the active set's extra parties from `src/server/prototype-data/`,
@@ -17,16 +18,6 @@ import { extraParties } from '../prototype-data/index.js'
 
 const UNITED_KINGDOM = 'United Kingdom'
 const UNITED_KINGDOM_CODE = 'GB'
-
-const codeOf = (country) => {
-  if (country === UNITED_KINGDOM) {
-    return UNITED_KINGDOM_CODE
-  }
-  return (
-    Object.entries(COUNTRY_LABELS).find(([, name]) => name === country)?.[0] ??
-    country
-  )
-}
 
 const nameOf = (countryCode) =>
   COUNTRY_LABELS[countryCode] ??
@@ -50,10 +41,10 @@ export const toInsAddress = ({ id, name, deleted, address = {} }) => ({
   addressLine2: address.addressLine2 ?? '',
   townOrCity: address.townOrCity ?? '',
   county: address.county ?? '',
-  postcode: address.postalOrZipCode ?? '',
-  countryCode: codeOf(address.country),
-  phone: address.telephoneNumber ?? '',
-  email: address.emailAddress ?? '',
+  postcode: address.postcode ?? '',
+  countryCode: address.countryCode,
+  phone: address.phone ?? '',
+  email: address.email ?? '',
   deleted: Boolean(deleted)
 })
 
@@ -76,6 +67,7 @@ export const toBookRecord = ({
   countryCode,
   phone,
   email,
+  roles = [],
   organisationId: _organisationId,
   ...extra
 }) => ({
@@ -83,15 +75,17 @@ export const toBookRecord = ({
   id,
   name,
   deleted: Boolean(deleted),
+  roles,
   address: present([
     ['addressLine1', addressLine1],
     ['addressLine2', addressLine2],
     ['townOrCity', townOrCity],
     ['county', county],
-    ['postalOrZipCode', postcode],
+    ['postcode', postcode],
+    ['countryCode', countryCode],
     ['country', nameOf(countryCode)],
-    ['telephoneNumber', phone],
-    ['emailAddress', email]
+    ['phone', phone],
+    ['email', email]
   ])
 })
 

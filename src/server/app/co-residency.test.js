@@ -160,12 +160,9 @@ describe('co-residency — two sets mounted in one process', () => {
     expect(rootRoutes.toSorted()).toEqual([
       '/',
       SIGN_IN_OIDC_PATH,
-<<<<<<< HEAD
+      '/call-counts',
+      '/call-counts',
       '/examples/{setId}/{example}',
-=======
-      '/call-counts',
-      '/call-counts',
->>>>>>> upstream/main
       '/favicon.ico',
       '/health',
       '/public/{param*}',

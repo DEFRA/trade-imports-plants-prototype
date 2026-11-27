@@ -154,14 +154,37 @@ describe('explainOwner', () => {
   afterAll(() => fixture.cleanup())
 
   it.each([
-    ['src/server/app/sets/plants-working/set.js', SENTENCES.yours],
-    ['package.json', SENTENCES['shared-on-purpose']],
-    ['src/server/app/engine/journey.js', SENTENCES['real-service']],
-    ['.mcp.json', SENTENCES.removed],
-    ['src/server/app/sets/plants-dr2/set.js', SENTENCES.frozen]
-  ])('Should explain %s in one plain sentence', (filePath, sentence) => {
-    expect(explainOwner(filePath, { root: fixture.root })).toBe(sentence)
-  })
+    {
+      owner: 'a working release',
+      filePath: 'src/server/app/sets/plants-working/set.js',
+      sentence: SENTENCES.yours
+    },
+    {
+      owner: 'both repos on purpose',
+      filePath: 'package.json',
+      sentence: SENTENCES['shared-on-purpose']
+    },
+    {
+      owner: 'the platform',
+      filePath: 'src/server/app/engine/journey.js',
+      sentence: SENTENCES['real-service']
+    },
+    {
+      owner: 'nobody, as it is removed',
+      filePath: '.mcp.json',
+      sentence: SENTENCES.removed
+    },
+    {
+      owner: 'a frozen release',
+      filePath: 'src/server/app/sets/plants-dr2/set.js',
+      sentence: SENTENCES.frozen
+    }
+  ])(
+    'Should explain a file owned by $owner in one plain sentence',
+    ({ filePath, sentence }) => {
+      expect(explainOwner(filePath, { root: fixture.root })).toBe(sentence)
+    }
+  )
 
   it.each([
     'src/server/app/sets/plants-working/assets/styles.scss',

@@ -29,6 +29,6 @@
       autocomplete: { showAllValues: true, noResults: copy.country.noResults }
     }) }}
 
-    {{ saveActions(hubHref, copy = sharedCopy.saveActions) }}
+    {{ saveActions({ hubHref: hubHref, copy: sharedCopy.saveActions }) }}
   </form>
 {% endblock %}

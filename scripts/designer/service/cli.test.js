@@ -248,9 +248,10 @@ describe('designer:service', () => {
       )
 
       // The load-bearing shape every service client shares with the synced
-      // real one: the organisation header name, the trace header fallback,
+      // real one: the organisation header's import, the trace header fallback,
       // and the headers() object's three keys, in the same order.
-      const ORG_HEADER = "'Trade-Imports-Organisation-Id'"
+      const ORG_HEADER =
+        "import { ORGANISATION_ID_HEADER } from '../../../common/helpers/organisation-id.js'"
       const TRACE_FALLBACK = "process.env.TRACING_HEADER ?? 'x-cdp-request-id'"
       const HEADERS_SHAPE =
         /headers = \(orgId\) => \(\{\s*'Content-Type': 'application\/json',\s*\[[A-Z_]+\]: orgId,\s*\[tracingHeader\]: getTraceId\(\) \?\? ''/

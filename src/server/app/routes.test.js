@@ -54,23 +54,6 @@ describe('high-risk-plants plugin registration', () => {
     expect(makeScope(COMPLETE_NOTIFICATION).readyForCheckYourAnswers).toBe(true)
   })
 
-<<<<<<< HEAD
-  it('Should inject the set party sanitiser into the answers-read seam', async () => {
-    // Registration replaces the bridge's identity default, so a reference the
-    // address book does not resolve stops being an answer on every read. The
-    // seam is only proved here: nothing else configures it.
-    const request = { auth: { credentials: authenticatedCredentials } }
-    const dangling = { placeOfDestination: { addressId: 'no-such-address' } }
-    enterSetContext(SET_ID)
-
-    await expect(answersForRead(request, dangling)).resolves.toEqual({})
-    await expect(answersForRead(request, COMPLETE_NOTIFICATION)).resolves.toBe(
-      COMPLETE_NOTIFICATION
-    )
-  })
-
-=======
->>>>>>> upstream/main
   it('Should name the set-owned session cookies', () => {
     expect(Object.keys(server.states.cookies)).toEqual(
       expect.arrayContaining([

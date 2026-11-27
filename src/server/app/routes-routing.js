@@ -5,7 +5,6 @@ import {
 } from './flow/journey-flow.js'
 import { readyForCheckYourAnswers } from './flow/section-status.js'
 import { configureReadyForCheckYourAnswers } from './bridge/readiness-config.js'
-import { configureAnswersForRead } from './bridge/answers-read.js'
 import {
   allRoutes,
   dispatchPages
@@ -20,9 +19,7 @@ import {
   taskRows
 } from './sets/routing/journeys/linear/flow/task-rows.js'
 import { sectionCaptionOf } from './sets/routing/journeys/linear/flow/section-captions/index.js'
-import { nextRunTarget } from './sets/routing/journeys/linear/flow/run.js'
 import { entryGuardTarget } from './sets/routing/journeys/linear/flow/entry-guard.js'
-import { withoutUnresolvedPartyRefs } from './sets/routing/journeys/linear/parties/index.js'
 import {
   LAYOUT,
   SESSION_COOKIE_NAMES
@@ -45,6 +42,7 @@ import {
   enterSetContext,
   registerSetMount,
   routeWithSetContext,
+  runInRequestContext,
   withSetContext
 } from './shared/set-context.js'
 import { SET_BASE, SET_ID } from './sets/routing/set.js'
@@ -55,10 +53,6 @@ export const routing = {
     register: async (server) => {
       registerSetMount(SET_ID, SET_BASE)
       await withSetContext(SET_ID, async () => {
-        // Every extension below is sandboxed to this plugin's realm. Without
-        // `{ sandbox: 'plugin' }` Hapi registers it server-wide, so a second
-        // set's routes would run this set's guards and the last registration
-        // would win. Pinned by co-residency.test.js.
         server.ext(
           'onPreAuth',
           (_request, h) => {
@@ -73,14 +67,12 @@ export const routing = {
           sections,
           taskRows,
           rowStatus,
-          nextRunTarget,
           flowOnlyKeys: FLOW_ONLY_KEYS,
           entryGuardTarget,
           sectionCaption: sectionCaptionOf,
           layout: LAYOUT
         })
         configureReadyForCheckYourAnswers(SET_ID, readyForCheckYourAnswers)
-        configureAnswersForRead(SET_ID, withoutUnresolvedPartyRefs)
         assertObligationPurity()
         assertFulfilmentBindingCoverage()
         buildDispatch(SET_ID, dispatchPages)
@@ -90,11 +82,7 @@ export const routing = {
         server.ext(
           'onPreHandler',
           async (request, h) => {
-            // Wrapped, not left to the onPreAuth above: authentication crosses
-            // an async boundary in between, and `enterWith` does not always
-            // survive it. Bare, this resolves only by the sole-set fallback and
-            // throws the moment a second set mounts.
-            const target = await withSetContext(SET_ID, () =>
+            const target = await runInRequestContext(request, SET_ID, () =>
               journeyEntryGuardTarget(request, h)
             )
             return target ? h.redirect(target).takeover() : h.continue
@@ -104,9 +92,6 @@ export const routing = {
         server.route(
           allRoutes.map((route) => routeWithSetContext(SET_ID, route))
         )
-        // Last act of the registration: a seam this set never configured would
-        // otherwise answer with its fallback at request time, and three of
-        // those fallbacks are silent. Refusing here stops the server instead.
         assertSetConfigured(server, SET_ID)
       })
     }

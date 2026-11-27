@@ -65,15 +65,29 @@ describe('sets', () => {
   })
 
   it.each([
-    [
-      'src/server/app/sets/plants-working/journeys/linear/flow/flow.js',
-      'plants-working'
-    ],
-    ['src/server/app/routes-plants-dr2.js', 'plants-dr2'],
-    ['src/server/app/routes.js', null],
-    ['src/server/app/engine/journey.js', null],
-    ['README.md', null]
-  ])('Should place %s in set %s', (filePath, setId) => {
+    {
+      place: 'a set folder',
+      filePath:
+        'src/server/app/sets/plants-working/journeys/linear/flow/flow.js',
+      setId: 'plants-working'
+    },
+    {
+      place: 'a set gateway',
+      filePath: 'src/server/app/routes-plants-dr2.js',
+      setId: 'plants-dr2'
+    },
+    {
+      place: 'the shared routes',
+      filePath: 'src/server/app/routes.js',
+      setId: null
+    },
+    {
+      place: 'the platform',
+      filePath: 'src/server/app/engine/journey.js',
+      setId: null
+    },
+    { place: 'the repo root', filePath: 'README.md', setId: null }
+  ])('Should find the set of a file in $place', ({ filePath, setId }) => {
     expect(setOfPath(filePath, { root: fixture.root })).toBe(setId)
   })
 })

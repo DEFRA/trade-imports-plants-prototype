@@ -24,9 +24,23 @@ ruleTester.run(
       "const uuid = 'c3d0a1e2-0b1c-4d2e-9f3a-123456789abc'",
       '// Unruled transporters carry no status',
       '// A second lookup is ruled out by the cache',
-      "it('Should keep the ruled out options hidden', () => {})"
+      "it('Should keep the ruled out options hidden', () => {})",
+      {
+        code: "// Copies the design release's pages from the real service\nit('Should list every design release', () => {})",
+        options: [{ allow: ['design release', 'real service'] }]
+      }
     ],
     invalid: [
+      {
+        code: '// A design release made for EUDPA-390',
+        options: [{ allow: ['design release'] }],
+        errors: [{ messageId: 'inComment' }]
+      },
+      {
+        code: '// as Design release 1 shows it, and DR2.1',
+        options: [{ allow: ['design release'] }],
+        errors: [{ messageId: 'inComment' }]
+      },
       {
         code: '// EUDPA-390: decide the search mode',
         errors: [{ messageId: 'inComment' }]

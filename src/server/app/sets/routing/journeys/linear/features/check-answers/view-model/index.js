@@ -58,8 +58,8 @@ const partyCard = (field, title, party, journeyId, readOnly) => ({
           .filter(Boolean)
           .join(', ')
     ),
-    readOnlyRow(copy.labels.telephoneNumber, party?.address?.telephoneNumber),
-    readOnlyRow(copy.labels.emailAddress, party?.address?.emailAddress)
+    readOnlyRow(copy.labels.telephoneNumber, party?.address?.phone),
+    readOnlyRow(copy.labels.emailAddress, party?.address?.email)
   ]
 })
 

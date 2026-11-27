@@ -69,6 +69,17 @@ many of the real journey's pages have changed since the release was made
 To pick up the real team's later work, start a fresh release and copy your
 changes into it (see [Picking up the real team's changes](#picking-up-the-real-teams-changes)).
 
+The shared platform under a release (the engine, the page kit, the layout)
+is not copied, so the weekly update still changes it. When the real team
+takes away something a release's pages are built on, such as how Save and
+continue picks the next page, the change of context from Check your
+answers or the opening run, the release keeps it through
+`src/server/prototype-support/release-journey.js`. Each release reaches it
+through its own `journeys/linear/flow/navigation.js` and
+`journeys/linear/state.js`, so its pages go where they went before. What
+every page shares, such as the page title, the banner and the header,
+still follows the real service.
+
 ## The four kinds of set on the chooser
 
 The chooser at `http://localhost:3103/` lists every set with a tag:

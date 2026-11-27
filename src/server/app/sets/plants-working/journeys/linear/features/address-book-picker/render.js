@@ -2,6 +2,7 @@ import { hubPath } from '../../../../../../shared/paths.js'
 import * as kit from '../../../../../../shared/kit.js'
 import * as addressBook from '../../../../../../services/address-book/index.js'
 import { organisationIdOf } from '../../../../../../../common/helpers/organisation-id.js'
+import { pageOf } from '../../../../../../../prototype-support/search-page.js'
 
 /** A selection resolves only to a record the book still holds: a missing or
  * soft-deleted id is treated as no selection, the same way a stored reference
@@ -51,7 +52,10 @@ export const renderPicker = async (
   { view, page, copy, fieldName, pickerViewModel, heading, description }
 ) => {
   const orgId = organisationIdOf(request)
-  const found = await addressBook.search(orgId, { query, page: pageNumber })
+  const found = pageOf(
+    await addressBook.addresses(orgId, { query }),
+    pageNumber
+  )
   const selected = await chosenFor(orgId, selectedId)
   // A reference that no longer resolves must not travel as "Selected address"
   // or in the paging links, so it counts as no selection here too.

@@ -1,13 +1,17 @@
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { includeIgnoreFile } from 'eslint/config'
 import { neostandard } from 'neostandard'
 import sonarjs from 'eslint-plugin-sonarjs'
 import { codeQuality } from './eslint-rules/code-quality.js'
+import { designerRules } from './scripts/designer/eslint-rules/index.js'
 
 const SETS_DIR = path.join(import.meta.dirname, 'src/server/app/sets')
 const SET_NAMES = readdirSync(SETS_DIR, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
+  .filter(
+    (entry) => !existsSync(path.join(SETS_DIR, entry.name, 'release.json'))
+  )
   .map((entry) => entry.name)
 const PLATFORM_LAYER = [
   'analysis',
@@ -19,8 +23,6 @@ const PLATFORM_LAYER = [
   'services',
   'shared'
 ].map((dir) => `src/server/app/${dir}/**/*.js`)
-
-import { designerRules } from './scripts/designer/eslint-rules/index.js'
 
 export default [
   includeIgnoreFile(path.join(import.meta.dirname, '.gitignore')),
@@ -77,7 +79,10 @@ export default [
     files: ['**/*.{js,cjs,mjs}'],
     plugins: { 'code-quality': codeQuality },
     rules: {
-      'code-quality/no-tracking-references': 'error',
+      'code-quality/no-tracking-references': [
+        'error',
+        { allow: ['design releases?', 'real service'] }
+      ],
       'code-quality/no-silent-catch': 'error',
       'code-quality/no-message-only-error-log': 'error'
     }

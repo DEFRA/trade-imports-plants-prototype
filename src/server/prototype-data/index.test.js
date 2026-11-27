@@ -10,6 +10,7 @@ import { STUB_BOOK } from '../app/services/address-book/stub/index.js'
 import * as ports from '../app/services/ports/index.js'
 import * as countries from '../app/services/countries/index.js'
 import * as addressBook from '../app/services/address-book/index.js'
+import { PAGE_SIZE, pageOf } from '../prototype-support/search-page.js'
 import {
   checkOverlays,
   extraParties,
@@ -91,10 +92,10 @@ describe('extra parties, ports and countries for the prototype', () => {
 
     it('Should label and offer an extra port the way it labels a stub one', async () => {
       await withSetContext(SET_ID, async () => {
-        expect(await ports.label(SET_PORT.code)).toBe('Set Only Port (GB XSE)')
+        expect(await ports.label(SET_PORT.code)).toBe('Set Only Port - GB XSE')
         expect(await ports.portOptions()).toContainEqual({
           value: SET_PORT.code,
-          text: 'Set Only Port (GB XSE)'
+          text: 'Set Only Port - GB XSE'
         })
       })
     })
@@ -124,13 +125,17 @@ describe('extra parties, ports and countries for the prototype', () => {
     })
 
     it('Should find an extra party in the address book search after the stub parties', async () => {
-      const found = await withSetContext(SET_ID, () =>
-        addressBook.search(ANY_ORGANISATION, { query: 'green leaf' })
+      const found = pageOf(
+        await withSetContext(SET_ID, () =>
+          addressBook.addresses(ANY_ORGANISATION, { query: 'green leaf' })
+        ),
+        1
       )
-      const everything = await withSetContext(SET_ID, () =>
-        addressBook.search(ANY_ORGANISATION, {
-          page: Math.ceil((STUB_BOOK.length + 1) / addressBook.PAGE_SIZE)
-        })
+      const everything = pageOf(
+        await withSetContext(SET_ID, () =>
+          addressBook.addresses(ANY_ORGANISATION)
+        ),
+        Math.ceil((STUB_BOOK.length + 1) / PAGE_SIZE)
       )
 
       expect(found.results.map((record) => record.id)).toEqual([PARTY.id])
