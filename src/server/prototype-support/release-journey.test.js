@@ -1,12 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
+import {
+  BRANCH_A,
+  BRANCH_D,
+  SELECTOR_ALPHA,
+  dispatchPages
+} from '../../../test/fixtures/index.js'
+import { evaluateAnswers } from '../app/bridge/evaluation.js'
+import { makeScope } from '../app/engine/index.js'
+import { get as engineGet, memoRequestView } from '../app/engine/read.js'
+import { authenticatedCredentials } from '../app/engine/test-support.js'
+import { buildDispatch } from '../app/flow/dispatch.js'
+import { SET_ID } from '../app/sets/high-risk-plants/set.js'
+import { withoutUnresolvedPartyRefs } from '../app/sets/plants-working/journeys/linear/parties/index.js'
 import { CYA_SLUG } from '../app/shared/kit.js'
 import { hubPath, pagePath } from '../app/shared/paths.js'
 import {
   RUN_ACTIVE,
   RUN_COMPLETE,
+  nextInSection,
   openingRun,
   releaseNextTarget,
+  sanitisedGet,
   withChangeContext
 } from './release-journey.js'
 
@@ -95,5 +110,92 @@ describe('releaseNextTarget', () => {
 
   it('Should go to the next run step during the opening run', async () => {
     expect(await nextTarget(true)(saveRequest(), page, {})).toBe(RUN_STEP)
+  })
+})
+
+describe('nextInSection', () => {
+  beforeAll(() => {
+    buildDispatch(SET_ID, dispatchPages)
+  })
+
+  const scopeOnBranch = (branchSelector) =>
+    makeScope({
+      scalarField: 'answered',
+      itemCollection: [{ itemSelector: SELECTOR_ALPHA }],
+      branchSelector
+    })
+
+  it('Should go to the next page in the section that applies, past the ones that do not', () => {
+    expect(
+      nextInSection('branchPage', scopeOnBranch(BRANCH_A), JOURNEY_ID)
+    ).toBe(pagePath(JOURNEY_ID, 'details'))
+  })
+
+  it('Should go to the next page in the section when it applies', () => {
+    expect(
+      nextInSection('branchBDPage', scopeOnBranch(BRANCH_D), JOURNEY_ID)
+    ).toBe(pagePath(JOURNEY_ID, 'branch-d'))
+  })
+
+  it('Should go to the overview after the last page in the section', () => {
+    const scope = scopeOnBranch(BRANCH_A)
+    expect(nextInSection('detailsPage', scope, JOURNEY_ID)).toBe(
+      hubPath(JOURNEY_ID)
+    )
+  })
+
+  it('Should go to the overview for a page in no section', () => {
+    expect(nextInSection('noSuchPage', makeScope({}), JOURNEY_ID)).toBe(
+      hubPath(JOURNEY_ID)
+    )
+  })
+})
+
+describe('sanitisedGet', () => {
+  const get = sanitisedGet(withoutUnresolvedPartyRefs)
+
+  const readRequestFor = (answers) => {
+    const request = { app: {}, auth: { credentials: authenticatedCredentials } }
+    const view = {
+      answers,
+      evaluation: evaluateAnswers(answers),
+      scope: makeScope(answers)
+    }
+    memoRequestView(request, view)
+    return { request, view }
+  }
+
+  it('Should drop an address-book reference the book does not hold, keeping what was saved', async () => {
+    const stored = { placeOfDestination: { addressId: 'no-such-address' } }
+    const { request, view } = readRequestFor(stored)
+
+    const sanitised = await get(request)
+
+    expect(sanitised.answers).toEqual({})
+    expect(sanitised.storedAnswers).toBe(stored)
+    expect(sanitised.evaluation).not.toBe(view.evaluation)
+    expect(sanitised.evaluation).toEqual(evaluateAnswers({}))
+    expect(await engineGet(request)).toBe(sanitised)
+  })
+
+  it('Should keep the answers, as the same object, when every reference resolves', async () => {
+    const stored = { placeOfDestination: { addressId: 'tech-imports-ltd' } }
+    const { request, view } = readRequestFor(stored)
+
+    const read = await get(request)
+
+    expect(read.answers).toBe(stored)
+    expect(read.storedAnswers).toBe(stored)
+    expect(read.evaluation).toBe(view.evaluation)
+    expect(await engineGet(request)).toBe(read)
+  })
+
+  it('Should return a view it has already sanitised as it is', async () => {
+    const { request } = readRequestFor({
+      placeOfDestination: { addressId: 'no-such-address' }
+    })
+    const sanitised = await get(request)
+
+    expect(await get(request)).toBe(sanitised)
   })
 })
